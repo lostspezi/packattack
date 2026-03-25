@@ -31,7 +31,7 @@ export default async function AccountPage({
   const currentEmail = user?.email ?? session!.user!.email ?? "";
 
   // Fetch linked providers via MongoDB native client
-  const mongoClient = new MongoClient(process.env.MONGODB_URI!);
+  const mongoClient = new MongoClient(process.env.MONGODB_URI || "");
   let linkedProviders: Array<{ provider: string; providerAccountId: string }> = [];
   try {
     await mongoClient.connect();

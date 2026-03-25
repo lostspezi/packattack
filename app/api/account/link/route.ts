@@ -4,11 +4,10 @@ import connectDB from "@/lib/db";
 import User from "@/models/user";
 import { MongoClient, ObjectId } from "mongodb";
 
-const mongoClient = new MongoClient(process.env.MONGODB_URI!);
-
 async function getDb() {
-  await mongoClient.connect();
-  return mongoClient.db();
+  const client = new MongoClient(process.env.MONGODB_URI!);
+  await client.connect();
+  return client.db();
 }
 
 export async function GET() {

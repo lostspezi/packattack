@@ -104,18 +104,18 @@ const authConfig: NextAuthConfig = {
     }),
 
     Discord({
-      clientId: process.env.DISCORD_CLIENT_ID!,
-      clientSecret: process.env.DISCORD_CLIENT_SECRET!,
+      clientId: process.env.DISCORD_CLIENT_ID || "",
+      clientSecret: process.env.DISCORD_CLIENT_SECRET || "",
     }),
 
     Twitch({
-      clientId: process.env.TWITCH_CLIENT_ID!,
-      clientSecret: process.env.TWITCH_CLIENT_SECRET!,
+      clientId: process.env.TWITCH_CLIENT_ID || "",
+      clientSecret: process.env.TWITCH_CLIENT_SECRET || "",
     }),
 
     Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
     }),
   ],
 
