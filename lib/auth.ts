@@ -7,9 +7,27 @@ import Google from "next-auth/providers/google";
 import { MongoClient } from "mongodb";
 import { MongoDBAdapter } from "@auth/mongodb-adapter";
 import bcryptjs from "bcryptjs";
+import { Types } from "mongoose";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
 import PlatformSettings from "@/models/platform-settings";
+
+// Helper: find user by ID (handles both ObjectId and UUID strings)
+async function findUserById(id: string) {
+  if (Types.ObjectId.isValid(id) && new Types.ObjectId(id).toString() === id) {
+    return User.findById(id).lean();
+  }
+  // UUID from adapter — search by email via native client instead
+  const client = getMongoClient();
+  const db = client.db();
+  const nativeUser = await db.collection("users").findOne({ _id: id as unknown as Types.ObjectId });
+  if (!nativeUser) return null;
+  // Try to find the Mongoose user by email
+  if (nativeUser.email) {
+    return User.findOne({ email: nativeUser.email }).lean();
+  }
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Native MongoClient for the Auth adapter (separate from Mongoose connection)
@@ -123,28 +141,7 @@ const authConfig: NextAuthConfig = {
     // ------------------------------------------------------------------
     // signIn — allow all sign-ins; adapter handles account linking
     // ------------------------------------------------------------------
-    async signIn({ user, account }) {
-      // For OAuth sign-ins, ensure the user exists in our Mongoose users collection
-      // The adapter creates entries in the native `users` collection, but our app
-      // uses Mongoose models. We need to ensure consent and preferences exist.
-      if (account?.provider && account.provider !== "credentials" && user?.id) {
-        try {
-          await connectDB();
-          const existingUser = await User.findById(user.id);
-          if (existingUser && !existingUser.consents?.tos?.accepted) {
-            // User exists but hasn't accepted terms yet — allow sign-in,
-            // proxy will redirect to accept-terms
-          }
-          if (!existingUser) {
-            // User was created by the adapter in the native collection
-            // but doesn't exist in our Mongoose collection. This shouldn't happen
-            // normally, but log it for debugging.
-            console.warn("[signIn] OAuth user not found in Mongoose collection:", user.id);
-          }
-        } catch (err) {
-          console.error("[signIn] Error checking OAuth user:", err);
-        }
-      }
+    async signIn() {
       return true;
     },
 
@@ -161,7 +158,7 @@ const authConfig: NextAuthConfig = {
         // DB lookup ensures we always have correct role, consents, preferences.
         try {
           await connectDB();
-          const dbUser = await User.findById(token.sub ?? user.id).lean();
+          const dbUser = await findUserById(token.sub ?? user.id ?? "");
           if (dbUser) {
             token.id = dbUser._id.toString();
             token.role = dbUser.role ?? "user";
@@ -203,7 +200,7 @@ const authConfig: NextAuthConfig = {
       if (token.sub && !user) {
         try {
           await connectDB();
-          const dbUser = await User.findById(token.sub).select("emailVerified consents preferences.language role").lean();
+          const dbUser = await findUserById(token.sub ?? "");
           if (dbUser) {
             token.emailVerified = dbUser.emailVerified ?? null;
             token.userTosVersion = dbUser.consents?.tos?.version ?? "";
