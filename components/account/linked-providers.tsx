@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 
@@ -11,6 +12,7 @@ interface LinkedProvider {
 
 interface LinkedProvidersProps {
   dict: Record<string, string>;
+  lang: string;
   initialProviders: LinkedProvider[];
 }
 
@@ -37,7 +39,7 @@ const providerConfig: Record<
 
 const ALL_PROVIDERS = ["discord", "twitch", "google"] as const;
 
-export function LinkedProviders({ dict, initialProviders }: LinkedProvidersProps) {
+export function LinkedProviders({ dict, lang, initialProviders }: LinkedProvidersProps) {
   const { toast } = useToast();
   const [providers, setProviders] = useState(initialProviders);
   const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
@@ -132,7 +134,20 @@ export function LinkedProviders({ dict, initialProviders }: LinkedProvidersProps
               >
                 {dict["button_unlink"] ?? "Unlink"}
               </Button>
-            ) : null}
+            ) : (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                loading={loadingProvider === providerKey}
+                onClick={() => {
+                  setLoadingProvider(providerKey);
+                  signIn(providerKey, { callbackUrl: `/${lang}/account` });
+                }}
+              >
+                {dict["button_link"] ?? "Link"}
+              </Button>
+            )}
           </div>
         );
       })}

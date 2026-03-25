@@ -86,6 +86,7 @@ export default async function AccountPage({
         </h3>
         <LinkedProviders
           dict={accountDict}
+          lang={lang}
           initialProviders={linkedProviders}
         />
       </Card>
