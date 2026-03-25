@@ -161,14 +161,13 @@ export function UserHeader({
               <ChevronDown className="w-4 h-4 text-text-muted hidden sm:block" />
             </button>
 
-            {dropdownOpen && (
-              <UserDropdown
-                lang={lang}
-                dict={dict}
-                userRole={userRole}
-                onClose={() => setDropdownOpen(false)}
-              />
-            )}
+            <UserDropdown
+              lang={lang}
+              dict={dict}
+              userRole={userRole}
+              open={dropdownOpen}
+              onClose={() => setDropdownOpen(false)}
+            />
           </div>
         </div>
       </header>

@@ -83,17 +83,20 @@ export function NotificationBell() {
         )}
       </button>
 
-      {open && (
-        <div
-          className="fixed sm:absolute left-2 right-2 top-[4.5rem] sm:top-auto sm:left-auto sm:right-0 sm:mt-1 sm:w-80 bg-surface-elevated border border-border rounded-[10px] shadow-lg z-50 overflow-hidden"
-        >
-          <NotificationDropdown
-            lang="en"
-            dict={{}}
-            onUnreadCountChange={handleUnreadCountChange}
-          />
-        </div>
-      )}
+      <div
+        className={[
+          "fixed sm:absolute left-2 right-2 top-[4.5rem] sm:top-auto sm:left-auto sm:right-0 sm:mt-1 sm:w-80 bg-surface-elevated border border-border rounded-[10px] shadow-lg z-50 overflow-hidden transition-all duration-200 ease-out origin-top",
+          open
+            ? "opacity-100 scale-100 pointer-events-auto"
+            : "opacity-0 scale-95 pointer-events-none",
+        ].join(" ")}
+      >
+        <NotificationDropdown
+          lang="en"
+          dict={{}}
+          onUnreadCountChange={handleUnreadCountChange}
+        />
+      </div>
     </div>
   );
 }

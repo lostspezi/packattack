@@ -9,14 +9,16 @@ interface UserDropdownProps {
   lang: string;
   dict: Record<string, string>;
   userRole: string;
+  open: boolean;
   onClose: () => void;
 }
 
-export function UserDropdown({ lang, dict: _dict, userRole, onClose }: UserDropdownProps) {
+export function UserDropdown({ lang, dict: _dict, userRole, open, onClose }: UserDropdownProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isAdmin = userRole === "admin" || userRole === "super_admin";
 
   useEffect(() => {
+    if (!open) return;
     function handleClickOutside(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         onClose();
@@ -24,7 +26,7 @@ export function UserDropdown({ lang, dict: _dict, userRole, onClose }: UserDropd
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
+  }, [onClose, open]);
 
   const itemClass =
     "flex items-center gap-[10px] px-3 py-2.5 rounded-lg hover:bg-white/3 transition-colors text-sm text-text-primary w-full text-left";
@@ -32,7 +34,12 @@ export function UserDropdown({ lang, dict: _dict, userRole, onClose }: UserDropd
   return (
     <div
       ref={ref}
-      className="absolute top-full right-0 mt-1 w-[calc(100vw-2rem)] max-w-[13rem] bg-surface border border-border rounded-xl shadow-lg p-2 z-50"
+      className={[
+        "absolute top-full right-0 mt-1 w-[calc(100vw-2rem)] max-w-[13rem] bg-surface border border-border rounded-xl shadow-lg p-2 z-50 transition-all duration-200 ease-out origin-top-right",
+        open
+          ? "opacity-100 scale-100 pointer-events-auto"
+          : "opacity-0 scale-95 pointer-events-none",
+      ].join(" ")}
     >
       <Link
         href={`/${lang}/profile`}
