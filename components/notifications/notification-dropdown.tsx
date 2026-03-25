@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   NotificationItem,
@@ -10,6 +10,7 @@ import {
 interface NotificationDropdownProps {
   lang: string;
   dict: Record<string, string>;
+  open?: boolean;
   onUnreadCountChange?: (count: number) => void;
 }
 
@@ -22,6 +23,7 @@ interface NotificationsResponse {
 export function NotificationDropdown({
   lang,
   dict,
+  open,
   onUnreadCountChange,
 }: NotificationDropdownProps) {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
@@ -43,17 +45,13 @@ export function NotificationDropdown({
     }
   }, [onUnreadCountChange]);
 
-  // Called by parent when dropdown opens
-  // expose via ref pattern would be cleanest, but parent passes a callback — parent
-  // can simply call fetchNotifications by importing; here we auto-fetch on mount via
-  // the parent rendering this component only when open.
-  // We use a stable ref trick: fetch on first render of this component.
-  const [fetched, setFetched] = useState(false);
-  if (!fetched) {
-    setFetched(true);
-    // Defer to avoid calling setState during render
-    Promise.resolve().then(fetchNotifications);
-  }
+  // Fetch notifications when dropdown opens
+  useEffect(() => {
+    if (open) {
+      fetchNotifications();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   async function handleMarkRead(id: string) {
     setNotifications((prev) =>

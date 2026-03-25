@@ -94,6 +94,7 @@ export function NotificationBell() {
         <NotificationDropdown
           lang="en"
           dict={{}}
+          open={open}
           onUnreadCountChange={handleUnreadCountChange}
         />
       </div>
