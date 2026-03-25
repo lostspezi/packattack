@@ -58,12 +58,12 @@ export function AvatarSelector({
 
   const hasDiscord = linkedProviders.includes("discord");
   const hasTwitch = linkedProviders.includes("twitch");
+  const [cacheBust, setCacheBust] = useState(0);
 
-  // Cache-bust the file URL so re-uploads show immediately
   function avatarSrc(url: string | null): string | null {
     if (!url) return null;
-    if (url === "/api/profile/avatar/file") {
-      return `${url}?t=${Date.now()}`;
+    if (url === "/api/profile/avatar/file" && cacheBust > 0) {
+      return `${url}?t=${cacheBust}`;
     }
     return url;
   }
@@ -113,8 +113,8 @@ export function AvatarSelector({
       }
 
       const newUrl = data.image ?? "/api/profile/avatar/file";
-      // Add cache-busting for immediate display
-      setPreviewUrl(`${newUrl}?t=${Date.now()}`);
+      setCacheBust(Date.now());
+      setPreviewUrl(null);
       onAvatarChange(newUrl);
       toast({ type: "success", title: "Avatar updated" });
     } catch {
