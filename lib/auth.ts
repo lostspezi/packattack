@@ -144,38 +144,36 @@ const authConfig: NextAuthConfig = {
     async jwt({ token, user }) {
       // `user` is only present on the initial sign-in
       if (user) {
-        // user can carry extra fields from Credentials authorize or OAuth profile
-        const u = user as typeof user & {
-          role?: string;
-          emailVerified?: Date | null;
-          userTosVersion?: string;
-          userPrivacyVersion?: string;
-          language?: string;
-        };
+        token.id = user.id ?? "";
 
-        token.id = u.id ?? (u as { id?: string }).id ?? "";
-        token.role = u.role ?? "user";
-        token.emailVerified = u.emailVerified ?? null;
-        token.userTosVersion = u.userTosVersion ?? "";
-        token.userPrivacyVersion = u.userPrivacyVersion ?? "";
-        token.language = u.language ?? "en";
-
-        // For OAuth sign-ins, the above fields may not exist on the user object.
-        // Fetch them from the DB using the token sub (which is the user id).
-        if (!u.role) {
-          try {
-            await connectDB();
-            const dbUser = await User.findById(token.sub).lean();
-            if (dbUser) {
-              token.role = dbUser.role ?? "user";
-              token.emailVerified = dbUser.emailVerified ?? null;
-              token.userTosVersion = dbUser.consents?.tos?.version ?? "";
-              token.userPrivacyVersion = dbUser.consents?.privacy?.version ?? "";
-              token.language = dbUser.preferences?.language ?? "en";
-            }
-          } catch {
-            // non-fatal — token will carry defaults
+        // Always fetch full user data from DB on sign-in.
+        // The Credentials provider passes custom fields, but OAuth providers don't.
+        // DB lookup ensures we always have correct role, consents, preferences.
+        try {
+          await connectDB();
+          const dbUser = await User.findById(token.sub ?? user.id).lean();
+          if (dbUser) {
+            token.id = dbUser._id.toString();
+            token.role = dbUser.role ?? "user";
+            token.emailVerified = dbUser.emailVerified ?? null;
+            token.userTosVersion = dbUser.consents?.tos?.version ?? "";
+            token.userPrivacyVersion = dbUser.consents?.privacy?.version ?? "";
+            token.language = dbUser.preferences?.language ?? "en";
+          } else {
+            // Fallback for brand-new OAuth users created by the adapter
+            token.role = "user";
+            token.emailVerified = null;
+            token.userTosVersion = "";
+            token.userPrivacyVersion = "";
+            token.language = "en";
           }
+        } catch {
+          // non-fatal — set safe defaults
+          token.role = token.role ?? "user";
+          token.emailVerified = token.emailVerified ?? null;
+          token.userTosVersion = token.userTosVersion ?? "";
+          token.userPrivacyVersion = token.userPrivacyVersion ?? "";
+          token.language = token.language ?? "en";
         }
       }
 
