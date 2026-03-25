@@ -2,8 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/header";
+import { UserHeader } from "@/components/layout/user-header";
 
 export default async function DashboardLayout({
   children,
@@ -19,33 +18,24 @@ export default async function DashboardLayout({
     redirect(`/${lang}/login`);
   }
 
-  const [commonDict, dashboardDict, adminDict] = await Promise.all([
-    getDictionary(lang as Locale, "common"),
-    getDictionary(lang as Locale, "dashboard"),
-    getDictionary(lang as Locale, "admin"),
-  ]);
+  const commonDict = await getDictionary(lang as Locale, "common");
 
   const userName = session.user.name ?? session.user.email ?? "User";
   const userInitial = userName.charAt(0).toUpperCase();
   const userRole = (session.user as { role?: string }).role ?? "user";
 
-  const pageTitle = dashboardDict["pageTitle"] ?? "Dashboard";
-
   return (
-    <div className="flex min-h-screen">
-      <Sidebar
+    <div className="min-h-screen bg-bg">
+      <UserHeader
         lang={lang}
         dict={commonDict}
-        adminDict={adminDict}
-        dashboardDict={dashboardDict}
-        userRole={userRole}
         userName={userName}
         userInitial={userInitial}
+        userRole={userRole}
       />
-      <div className="ml-64 flex-1 flex flex-col">
-        <Header lang={lang} dict={commonDict} pageTitle={pageTitle} />
-        <main className="p-6 flex-1">{children}</main>
-      </div>
+      <main className="max-w-7xl mx-auto px-6 py-8">
+        {children}
+      </main>
     </div>
   );
 }

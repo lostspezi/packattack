@@ -13,6 +13,8 @@ interface SidebarProps {
   userRole: string;
   userName: string;
   userInitial: string;
+  /** "full" = original sidebar with all sections; "admin" = admin nav items only */
+  mode?: "full" | "admin";
 }
 
 function NavIcon({ name, className }: { name: string; className?: string }) {
@@ -56,6 +58,7 @@ export function Sidebar({
   userRole,
   userName,
   userInitial,
+  mode = "full",
 }: SidebarProps) {
   const pathname = usePathname();
 
@@ -66,13 +69,57 @@ export function Sidebar({
     if (item.href === "/dashboard") {
       return pathname === fullHref;
     }
+    if (item.href === "/admin") {
+      // exact match for /admin, startsWith for sub-pages
+      return pathname === fullHref || pathname.startsWith(`${fullHref}/`);
+    }
     return pathname.startsWith(fullHref);
   }
 
-  const mainLabel = dict["mainMenu"] ?? "Main menu";
   const adminLabel = adminDict["administration"] ?? "Administration";
   const comingSoonLabel = dashboardDict["comingSoon"] ?? "Coming soon";
   const levelLabel = dashboardDict["level"] ?? "Level";
+
+  if (mode === "admin") {
+    // Admin-only sidebar: just the admin navigation section
+    return (
+      <aside className="w-64 flex flex-col bg-gradient-to-b from-bg to-pa-lila/8 border-r border-border overflow-y-auto">
+        <nav className="flex-1 px-3 py-4">
+          <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
+            {adminLabel}
+          </p>
+          <ul className="space-y-1">
+            {adminNavItems.map((item) => (
+              <li key={item.key}>
+                <NavLink
+                  item={item}
+                  lang={lang}
+                  dict={adminDict}
+                  isActive={isActiveItem(item)}
+                />
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        {/* User card */}
+        <div className="px-3 pb-4 flex-shrink-0">
+          <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-white/3 border border-white/6">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pa-green/60 to-pa-lila/60 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+              {userInitial}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-text-primary truncate">{userName}</p>
+              <p className="text-xs text-text-muted">{levelLabel} 1</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+    );
+  }
+
+  // Full mode (original behavior)
+  const mainLabel = dict["mainMenu"] ?? "Main menu";
 
   return (
     <aside className="w-64 fixed h-screen flex flex-col bg-gradient-to-b from-bg to-pa-lila/8 border-r border-border overflow-y-auto">
