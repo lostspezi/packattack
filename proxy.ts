@@ -33,7 +33,7 @@ export async function proxy(request: NextRequest) {
   // 1. Locale detection & redirect
   const locale = getLocaleFromPath(pathname);
   if (!locale) {
-    const token = await getToken({ req: request });
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
     const preferredLang = (token?.language as string) || getPreferredLocale(request);
     const url = request.nextUrl.clone();
     url.pathname = `/${preferredLang}${pathname}`;
@@ -49,7 +49,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // 3. Auth check
-  const token = await getToken({ req: request });
+  const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
 
   if (!token) {
     const url = request.nextUrl.clone();

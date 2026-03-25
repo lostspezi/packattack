@@ -35,7 +35,7 @@ export default async function DashboardPage({
   const xpLabel = dashboardDict["xp"] ?? "XP";
 
   return (
-    <div className="space-y-8">
+    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
       {/* Welcome heading */}
       <div>
         <h2 className="text-2xl font-bold text-text-primary">{welcomeMessage}</h2>
