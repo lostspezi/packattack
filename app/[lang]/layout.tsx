@@ -36,7 +36,10 @@ export default async function LangLayout({
       lang={lang}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="bg-bg text-text-primary min-h-screen">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+      </head>
+      <body className="bg-bg text-text-primary min-h-screen safe-top safe-bottom">
         <SessionProvider>
           <ToastProvider>{children}</ToastProvider>
         </SessionProvider>

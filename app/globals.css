@@ -23,18 +23,60 @@
   --color-error-light: #F87171;
   --color-success: #9BFF00;
   --color-warning: #F59E0B;
+
+  /* --------------------------------------------------------
+   * Breakpoints reference (Tailwind defaults):
+   *   sm:  640px   — large phones landscape / small tablets
+   *   md:  768px   — tablets portrait
+   *   lg:  1024px  — tablets landscape / small desktops
+   *   xl:  1280px  — desktops
+   *   2xl: 1536px  — large desktops
+   *
+   * Our convention:
+   *   mobile-first (no prefix) = 0–639px (iPhone SE 375px baseline)
+   *   sm: = phone landscape / small tablet
+   *   md: = tablet portrait and up (main breakpoint)
+   *   lg: = desktop and up
+   * -------------------------------------------------------- */
 }
+
+/* ================================================================
+ * BASE — Mobile-first defaults
+ * ================================================================ */
 
 html {
   scroll-behavior: smooth;
+  /* Prevent zoom on input focus on iOS */
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background-color: var(--color-bg);
   color: var(--color-text-primary);
+  /* Smooth font rendering on mobile */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent pull-to-refresh on app-like pages */
+  overscroll-behavior-y: contain;
 }
 
-/* Ensure minimum tap target sizes on mobile */
+/* ================================================================
+ * TOUCH — Optimize for mobile/tablet interaction
+ * ================================================================ */
+
+/* Remove 300ms tap delay on mobile */
+*,
+*::before,
+*::after {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth momentum scrolling on iOS */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* All interactive elements: touch-friendly sizing */
 button,
 [role="button"],
 a {
@@ -42,13 +84,30 @@ a {
   min-width: 44px;
 }
 
-/* Override for very small inline elements where 44px would break layout */
-.tap-target-sm {
+/* Compact variant for inline/tight contexts */
+.tap-sm {
   min-height: 32px;
   min-width: 32px;
 }
 
-/* Global: all buttons and clickable elements get pointer cursor */
+/* Active states for touch feedback */
+button:active:not(:disabled),
+[role="button"]:active,
+a:active {
+  transform: scale(0.97);
+  transition: transform 0.1s ease;
+}
+
+/* Disable hover effects on touch devices to prevent sticky hover */
+@media (hover: none) {
+  button:hover,
+  [role="button"]:hover,
+  a:hover {
+    /* Let the active state handle feedback instead */
+  }
+}
+
+/* Global cursor rules */
 button,
 [role="button"],
 a,
@@ -64,15 +123,31 @@ button[disabled] {
   cursor: not-allowed;
 }
 
-/* Custom scrollbar matching dark theme */
+/* ================================================================
+ * TRANSITIONS — Smooth, consistent feel everywhere
+ * ================================================================ */
+
+/* Smooth drawer/overlay transitions */
+.transition-slide {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-fade {
+  transition: opacity 0.2s ease;
+}
+
+/* ================================================================
+ * SCROLLBAR — Custom dark theme
+ * ================================================================ */
+
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 *::-webkit-scrollbar-track {
@@ -81,9 +156,7 @@ button[disabled] {
 
 *::-webkit-scrollbar-thumb {
   background-color: var(--color-border);
-  border-radius: 4px;
-  border: 2px solid transparent;
-  background-clip: content-box;
+  border-radius: 3px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
@@ -92,4 +165,56 @@ button[disabled] {
 
 *::-webkit-scrollbar-corner {
   background: transparent;
+}
+
+/* Hide scrollbar on mobile for cleaner look, keep scroll functionality */
+@media (max-width: 639px) {
+  *::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+/* ================================================================
+ * SAFE AREAS — iPhone notch/dynamic island support
+ * ================================================================ */
+
+.safe-top {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.safe-x {
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+/* ================================================================
+ * UTILITIES — Responsive helpers
+ * ================================================================ */
+
+/* Responsive container padding — use on page wrappers */
+.page-padding {
+  @apply px-4 sm:px-6 lg:px-8;
+}
+
+/* Responsive card padding */
+.card-padding {
+  @apply p-4 sm:p-5 md:p-6;
+}
+
+/* Hide on specific device classes */
+.mobile-only {
+  @apply sm:hidden;
+}
+
+.tablet-up {
+  @apply hidden sm:block;
+}
+
+.desktop-up {
+  @apply hidden lg:block;
 }
