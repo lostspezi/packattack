@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { LayoutGrid, Package, ShoppingBag, ChevronDown } from "lucide-react";
@@ -93,13 +92,12 @@ export function UserHeader({
             className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/4 transition-colors"
           >
             {/* Avatar */}
-            <Image
+            <img
               src={userImage || "/images/default-avatar.png"}
               alt={userName}
               width={32}
               height={32}
               className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-              unoptimized
             />
             {/* Name + level */}
             <div className="text-left hidden sm:block">
