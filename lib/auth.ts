@@ -158,7 +158,7 @@ const authConfig: NextAuthConfig = {
         }
       }
 
-      // Always refresh platform settings (cached)
+      // Always refresh platform settings (cached) and critical user state
       try {
         const settings = await getCachedPlatformSettings();
         token.currentTosVersion = settings.tosVersion;
@@ -166,6 +166,25 @@ const authConfig: NextAuthConfig = {
       } catch {
         token.currentTosVersion = token.currentTosVersion ?? "";
         token.currentPrivacyVersion = token.currentPrivacyVersion ?? "";
+      }
+
+      // Refresh emailVerified and consent from DB on every token rotation
+      // so that changes (email verification, consent acceptance) are picked up
+      // without requiring a full re-login
+      if (token.sub && !user) {
+        try {
+          await connectDB();
+          const dbUser = await User.findById(token.sub).select("emailVerified consents preferences.language role").lean();
+          if (dbUser) {
+            token.emailVerified = dbUser.emailVerified ?? null;
+            token.userTosVersion = dbUser.consents?.tos?.version ?? "";
+            token.userPrivacyVersion = dbUser.consents?.privacy?.version ?? "";
+            token.language = dbUser.preferences?.language ?? (token.language as string) ?? "en";
+            token.role = dbUser.role ?? (token.role as string) ?? "user";
+          }
+        } catch {
+          // non-fatal — keep existing token values
+        }
       }
 
       return token;

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 
 interface VerifyEmailFormProps {
@@ -12,6 +13,7 @@ interface VerifyEmailFormProps {
 
 export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
   const router = useRouter();
+  const { update: updateSession } = useSession();
   const [status, setStatus] = useState<"idle" | "verifying" | "success" | "error">(
     token ? "verifying" : "idle"
   );
@@ -32,7 +34,9 @@ export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
 
         if (res.ok) {
           setStatus("success");
-          setTimeout(() => router.push(`/${lang}/dashboard`), 2000);
+          // Force session refresh so JWT picks up the new emailVerified value
+          await updateSession();
+          setTimeout(() => router.push(`/${lang}/dashboard`), 1500);
         } else {
           const data = await res.json();
           setStatus("error");
