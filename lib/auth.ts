@@ -28,6 +28,10 @@ interface PlatformSettingsCache {
 let platformSettingsCache: PlatformSettingsCache | null = null;
 const CACHE_TTL_MS = 60_000;
 
+export function invalidatePlatformSettingsCache() {
+  platformSettingsCache = null;
+}
+
 async function getCachedPlatformSettings(): Promise<PlatformSettingsCache> {
   const now = Date.now();
   if (platformSettingsCache && now - platformSettingsCache.fetchedAt < CACHE_TTL_MS) {

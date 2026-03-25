@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { auth, invalidatePlatformSettingsCache } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import PlatformSettings from "@/models/platform-settings";
 import ConsentLog from "@/models/consent-log";
@@ -89,6 +89,9 @@ export async function PATCH(req: NextRequest) {
       { $set: update },
       { upsert: true, new: true }
     ).lean();
+
+    // Invalidate the in-memory cache so the JWT callback picks up the new versions immediately
+    invalidatePlatformSettingsCache();
 
     return NextResponse.json({
       tosVersion: settings?.tosVersion ?? "",
