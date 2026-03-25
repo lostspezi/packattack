@@ -93,15 +93,14 @@ export function UserHeader({
             className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/4 transition-colors"
           >
             {/* Avatar */}
-            <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
-              <Image
-                src={userImage || "/images/default-avatar.png"}
-                alt={userName}
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
+            <Image
+              src={userImage || "/images/default-avatar.png"}
+              alt={userName}
+              width={32}
+              height={32}
+              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              unoptimized
+            />
             {/* Name + level */}
             <div className="text-left hidden sm:block">
               <p className="text-sm font-medium text-text-primary leading-tight">{userName}</p>
