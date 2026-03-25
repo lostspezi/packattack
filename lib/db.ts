@@ -1,12 +1,12 @@
 import mongoose from "mongoose";
 import { runSeed } from "./seed";
 
-const MONGODB_URI = process.env.MONGODB_URI as string;
-
-if (!MONGODB_URI) {
-  throw new Error(
-    "Please define the MONGODB_URI environment variable inside .env.local"
-  );
+function getMongoURI(): string {
+  const uri = process.env.MONGODB_URI;
+  if (!uri) {
+    throw new Error("MONGODB_URI environment variable is not defined");
+  }
+  return uri;
 }
 
 interface MongooseCache {
@@ -34,7 +34,7 @@ export async function connectDB(): Promise<typeof mongoose> {
 
   if (!cached.promise) {
     cached.promise = mongoose
-      .connect(MONGODB_URI, {
+      .connect(getMongoURI(), {
         bufferCommands: false,
       })
       .then((m) => m);

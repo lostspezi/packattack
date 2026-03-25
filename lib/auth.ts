@@ -14,7 +14,13 @@ import PlatformSettings from "@/models/platform-settings";
 // ---------------------------------------------------------------------------
 // Native MongoClient for the Auth adapter (separate from Mongoose connection)
 // ---------------------------------------------------------------------------
-const client = new MongoClient(process.env.MONGODB_URI!);
+let _client: MongoClient | null = null;
+function getMongoClient() {
+  if (!_client) {
+    _client = new MongoClient(process.env.MONGODB_URI!);
+  }
+  return _client;
+}
 
 // ---------------------------------------------------------------------------
 // Platform-settings cache — refresh at most once per 60 seconds
@@ -52,7 +58,7 @@ async function getCachedPlatformSettings(): Promise<PlatformSettingsCache> {
 // NextAuth configuration
 // ---------------------------------------------------------------------------
 const authConfig: NextAuthConfig = {
-  adapter: MongoDBAdapter(client),
+  adapter: MongoDBAdapter(getMongoClient()),
 
   session: { strategy: "jwt" },
 
