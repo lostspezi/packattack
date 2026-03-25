@@ -49,7 +49,7 @@ export default async function AccountPage({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-text-primary">
           {accountDict["pageTitle"] ?? "Account"}
@@ -60,7 +60,7 @@ export default async function AccountPage({
       </div>
 
       {/* Change Email */}
-      <Card variant="soft" className="p-6">
+      <Card variant="soft" className="p-4 md:p-6">
         <h3 className="text-base font-semibold text-text-primary mb-4">
           {accountDict["section_change_email"] ?? "Change Email"}
         </h3>
@@ -72,7 +72,7 @@ export default async function AccountPage({
 
       {/* Change Password — only if user has a password */}
       {hasPassword && (
-        <Card variant="soft" className="p-6">
+        <Card variant="soft" className="p-4 md:p-6">
           <h3 className="text-base font-semibold text-text-primary mb-4">
             {accountDict["section_change_password"] ?? "Change Password"}
           </h3>
@@ -81,7 +81,7 @@ export default async function AccountPage({
       )}
 
       {/* Linked Providers */}
-      <Card variant="soft" className="p-6">
+      <Card variant="soft" className="p-4 md:p-6">
         <h3 className="text-base font-semibold text-text-primary mb-4">
           {accountDict["section_linked_providers"] ?? "Linked Providers"}
         </h3>
@@ -93,7 +93,7 @@ export default async function AccountPage({
       </Card>
 
       {/* Danger Zone */}
-      <Card variant="soft" className="p-6 border-error/20">
+      <Card variant="soft" className="p-4 md:p-6 border-error/20">
         <h3 className="text-base font-semibold text-error mb-1">
           {accountDict["section_danger_zone"] ?? "Danger Zone"}
         </h3>

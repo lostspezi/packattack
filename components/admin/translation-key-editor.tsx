@@ -167,7 +167,7 @@ export function TranslationKeyEditor({ namespace }: TranslationKeyEditorProps) {
             onChange={(e) => setNewKeyName(e.target.value)}
             className="py-1.5 text-sm"
           />
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-text-muted mb-1">DE</label>
               <Input
@@ -214,7 +214,7 @@ export function TranslationKeyEditor({ namespace }: TranslationKeyEditorProps) {
         </p>
       ) : (
         <div className="bg-surface border border-border rounded-[14px] overflow-hidden">
-          <div className="overflow-y-auto max-h-[600px]">
+          <div className="overflow-x-auto overflow-y-auto max-h-[600px]">
             <table className="w-full min-w-full">
               <thead className="sticky top-0 bg-surface z-10">
                 <tr className="border-b border-border">

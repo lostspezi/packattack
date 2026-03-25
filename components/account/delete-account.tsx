@@ -74,16 +74,19 @@ export function DeleteAccount({ dict, lang }: DeleteAccountProps) {
         placeholder="DELETE"
       />
 
-      <Button
-        type="button"
-        variant="danger"
-        size="md"
-        loading={loading}
-        disabled={!isConfirmed}
-        onClick={handleDelete}
-      >
-        {dict["button_delete_account"] ?? "Delete My Account"}
-      </Button>
+      <div className="flex">
+        <Button
+          type="button"
+          variant="danger"
+          size="md"
+          loading={loading}
+          disabled={!isConfirmed}
+          onClick={handleDelete}
+          className="w-full md:w-auto"
+        >
+          {dict["button_delete_account"] ?? "Delete My Account"}
+        </Button>
+      </div>
     </div>
   );
 }

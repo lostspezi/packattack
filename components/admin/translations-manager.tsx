@@ -19,9 +19,9 @@ export function TranslationsManager({ namespaces }: TranslationsManagerProps) {
   );
 
   return (
-    <div className="flex gap-0 bg-surface border border-border rounded-[14px] overflow-hidden min-h-[600px]">
+    <div className="flex flex-col md:flex-row gap-0 bg-surface border border-border rounded-[14px] overflow-hidden min-h-[600px]">
       {/* Left panel */}
-      <div className="w-72 shrink-0 border-r border-border flex flex-col">
+      <div className="w-full md:w-72 md:shrink-0 border-b md:border-b-0 md:border-r border-border flex flex-col md:max-h-[600px]">
         <TranslationNamespaceList
           namespaces={namespaces}
           selected={selected}
@@ -30,7 +30,7 @@ export function TranslationsManager({ namespaces }: TranslationsManagerProps) {
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 p-6 overflow-auto">
+      <div className="flex-1 p-4 md:p-6 overflow-auto">
         <TranslationKeyEditor namespace={selected} />
       </div>
     </div>

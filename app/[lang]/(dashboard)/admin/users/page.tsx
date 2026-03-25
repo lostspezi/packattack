@@ -22,7 +22,7 @@ export default async function AdminUsersPage({
   const pageSubtitle = adminDict["users_pageSubtitle"] ?? "View and manage all users.";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-text-primary">{pageTitle}</h2>
         <p className="text-text-secondary mt-1 text-sm">{pageSubtitle}</p>

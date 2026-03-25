@@ -83,9 +83,11 @@ export function ChangeEmailForm({ dict, currentEmail }: ChangeEmailFormProps) {
         required
         autoComplete="current-password"
       />
-      <Button type="submit" variant="secondary" size="md" loading={loading}>
-        {dict["button_update_email"] ?? "Update Email"}
-      </Button>
+      <div className="flex">
+        <Button type="submit" variant="secondary" size="md" loading={loading} className="w-full md:w-auto">
+          {dict["button_update_email"] ?? "Update Email"}
+        </Button>
+      </div>
     </form>
   );
 }

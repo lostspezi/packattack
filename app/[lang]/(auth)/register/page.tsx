@@ -13,7 +13,7 @@ export default async function RegisterPage({
   const dict = await getDictionary(lang as Locale, "auth.register");
 
   return (
-    <Card variant="soft" className="p-8">
+    <Card variant="soft" className="p-5 sm:p-8">
       {/* Logo + subtitle */}
       <div className="mb-6 text-center">
         <h1 className="text-2xl font-bold tracking-wide mb-1">

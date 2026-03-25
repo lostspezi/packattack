@@ -111,7 +111,7 @@ export function ProfileForm({ dict, initialData, linkedProviders = [] }: Profile
         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">
           {dict["section_basic_info"] ?? "Basic Info"}
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input
             label={dict["label_name"] ?? "Name"}
             value={name}
@@ -154,7 +154,7 @@ export function ProfileForm({ dict, initialData, linkedProviders = [] }: Profile
         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">
           {dict["section_social_links"] ?? "Social Links"}
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-text-secondary text-sm font-medium">
               Discord
@@ -206,14 +206,17 @@ export function ProfileForm({ dict, initialData, linkedProviders = [] }: Profile
         onCheckedChange={setPublicProfile}
       />
 
-      <Button
-        type="submit"
-        variant="primary"
-        size="md"
-        loading={loading}
-      >
-        {dict["button_save"] ?? "Save Changes"}
-      </Button>
+      <div className="flex">
+        <Button
+          type="submit"
+          variant="primary"
+          size="md"
+          loading={loading}
+          className="w-full md:w-auto"
+        >
+          {dict["button_save"] ?? "Save Changes"}
+        </Button>
+      </div>
     </form>
   );
 }

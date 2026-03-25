@@ -102,7 +102,7 @@ export function LinkedProviders({ dict, lang, initialProviders }: LinkedProvider
           <div
             key={providerKey}
             className={[
-              "flex items-center justify-between p-4 rounded-[10px] border",
+              "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-[10px] border",
               isLinked ? config.bgColor : "bg-white/2 border-white/6",
             ].join(" ")}
           >

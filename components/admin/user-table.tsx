@@ -117,8 +117,8 @@ export function UserTable({
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="flex-1 min-w-[200px]">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+        <div className="w-full sm:flex-1 sm:min-w-[200px]">
           <Input
             placeholder="Search by username or email…"
             value={searchInput}
@@ -127,36 +127,38 @@ export function UserTable({
           />
         </div>
 
-        {/* Role filter */}
-        <Select
-          options={[
-            { label: "All roles", value: "" },
-            ...ALL_ROLES.map((r): SelectOption => ({ label: r, value: r })),
-          ]}
-          value={roleFilter}
-          onChange={(val) => {
-            setRoleFilter(val);
-            setPage(1);
-          }}
-          size="md"
-          className="w-44"
-        />
+        <div className="flex gap-3">
+          {/* Role filter */}
+          <Select
+            options={[
+              { label: "All roles", value: "" },
+              ...ALL_ROLES.map((r): SelectOption => ({ label: r, value: r })),
+            ]}
+            value={roleFilter}
+            onChange={(val) => {
+              setRoleFilter(val);
+              setPage(1);
+            }}
+            size="md"
+            className="flex-1 sm:w-44"
+          />
 
-        {/* Verified filter */}
-        <Select
-          options={[
-            { label: "All", value: "" },
-            { label: "Verified", value: "true" },
-            { label: "Unverified", value: "false" },
-          ]}
-          value={verifiedFilter}
-          onChange={(val) => {
-            setVerifiedFilter(val);
-            setPage(1);
-          }}
-          size="md"
-          className="w-36"
-        />
+          {/* Verified filter */}
+          <Select
+            options={[
+              { label: "All", value: "" },
+              { label: "Verified", value: "true" },
+              { label: "Unverified", value: "false" },
+            ]}
+            value={verifiedFilter}
+            onChange={(val) => {
+              setVerifiedFilter(val);
+              setPage(1);
+            }}
+            size="md"
+            className="flex-1 sm:w-36"
+          />
+        </div>
       </div>
 
       {/* Count */}

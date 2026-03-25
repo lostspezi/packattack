@@ -32,7 +32,7 @@ export function UserDropdown({ lang, dict: _dict, userRole, onClose }: UserDropd
   return (
     <div
       ref={ref}
-      className="absolute top-full right-0 mt-1 w-52 bg-surface border border-border rounded-xl shadow-lg p-2 z-50"
+      className="absolute top-full right-0 mt-1 w-[calc(100vw-2rem)] max-w-[13rem] bg-surface border border-border rounded-xl shadow-lg p-2 z-50"
     >
       <Link
         href={`/${lang}/profile`}

@@ -32,7 +32,7 @@ export default async function SettingsPage({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-text-primary">
           {settingsDict["pageTitle"] ?? "Settings"}
@@ -42,7 +42,7 @@ export default async function SettingsPage({
         </p>
       </div>
 
-      <Card variant="soft" className="p-6">
+      <Card variant="soft" className="p-4 md:p-6">
         <SettingsForm
           dict={settingsDict}
           lang={lang}

@@ -25,9 +25,27 @@
   --color-warning: #F59E0B;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background-color: var(--color-bg);
   color: var(--color-text-primary);
+}
+
+/* Ensure minimum tap target sizes on mobile */
+button,
+[role="button"],
+a {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Override for very small inline elements where 44px would break layout */
+.tap-target-sm {
+  min-height: 32px;
+  min-width: 32px;
 }
 
 /* Global: all buttons and clickable elements get pointer cursor */

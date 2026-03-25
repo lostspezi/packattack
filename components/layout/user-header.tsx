@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { LayoutGrid, Package, ShoppingBag, ChevronDown } from "lucide-react";
+import { LayoutGrid, Package, ShoppingBag, ChevronDown, Menu, X } from "lucide-react";
 import { LanguageSwitcher } from "./language-switcher";
 import { NotificationBell } from "./notification-bell";
 import { UserDropdown } from "./user-dropdown";
@@ -27,6 +27,7 @@ export function UserHeader({
 }: UserHeaderProps) {
   const pathname = usePathname();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(userImage || "/images/default-avatar.png");
 
   useEffect(() => {
@@ -42,96 +43,205 @@ export function UserHeader({
     setAvatarUrl(userImage || "/images/default-avatar.png");
   }, [userImage]);
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
   const dashboardHref = `/${lang}/dashboard`;
   const isDashboardActive = pathname === dashboardHref;
 
   const levelLabel = dict["level"] ?? "Level";
 
   return (
-    <header className="h-16 flex items-center justify-between px-6 border-b border-border bg-surface flex-shrink-0">
-      {/* Left side: logo + nav */}
-      <div className="flex items-center gap-6">
-        {/* Logo */}
-        <Link href={dashboardHref} className="text-lg font-bold tracking-wide">
-          <span className="text-pa-green">PACK</span>
-          <span className="text-text-primary">ATTACK</span>
-          <span className="text-pa-green">.GG</span>
-        </Link>
-
-        {/* Nav links */}
-        <nav className="flex items-center gap-1">
-          {/* Dashboard */}
-          <Link
-            href={dashboardHref}
-            className={[
-              "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-              isDashboardActive
-                ? "text-pa-green bg-pa-green/6"
-                : "text-text-muted hover:text-text-primary",
-            ].join(" ")}
-          >
-            <LayoutGrid className="w-4 h-4 flex-shrink-0" />
-            <span>{dict["dashboard"] ?? "Dashboard"}</span>
-          </Link>
-
-          {/* Packs — soon */}
-          <span className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
-            <Package className="w-4 h-4 flex-shrink-0" />
-            <span>{dict["packs"] ?? "Packs"}</span>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
-              Soon
-            </span>
-          </span>
-
-          {/* Marketplace — soon */}
-          <span className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
-            <ShoppingBag className="w-4 h-4 flex-shrink-0" />
-            <span>{dict["marketplace"] ?? "Marketplace"}</span>
-            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
-              Soon
-            </span>
-          </span>
-        </nav>
-      </div>
-
-      {/* Right side */}
-      <div className="flex items-center gap-3">
-        <LanguageSwitcher lang={lang} />
-        <NotificationBell />
-
-        {/* User dropdown trigger */}
-        <div className="relative">
+    <>
+      <header className="h-16 flex items-center justify-between px-4 md:px-6 border-b border-border bg-surface flex-shrink-0 relative z-40">
+        {/* Left side: hamburger (mobile) + logo + nav (desktop) */}
+        <div className="flex items-center gap-3 md:gap-6">
+          {/* Hamburger button — mobile only */}
           <button
-            onClick={() => setDropdownOpen((prev) => !prev)}
-            className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/4 transition-colors"
+            onClick={() => setMobileMenuOpen((prev) => !prev)}
+            className="md:hidden p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors flex-shrink-0"
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            aria-expanded={mobileMenuOpen}
           >
-            {/* Avatar */}
-            <img
-              src={avatarUrl}
-              alt={userName}
-              width={32}
-              height={32}
-              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
-              onError={(e) => { (e.target as HTMLImageElement).src = "/images/default-avatar.png"; }}
-            />
-            {/* Name + level */}
-            <div className="text-left hidden sm:block">
-              <p className="text-sm font-medium text-text-primary leading-tight">{userName}</p>
-              <p className="text-xs text-text-muted leading-tight">{levelLabel} 1</p>
-            </div>
-            <ChevronDown className="w-4 h-4 text-text-muted" />
+            {mobileMenuOpen ? (
+              <X className="w-5 h-5" />
+            ) : (
+              <Menu className="w-5 h-5" />
+            )}
           </button>
 
-          {dropdownOpen && (
-            <UserDropdown
-              lang={lang}
-              dict={dict}
-              userRole={userRole}
-              onClose={() => setDropdownOpen(false)}
-            />
-          )}
+          {/* Logo */}
+          <Link href={dashboardHref} className="text-base md:text-lg font-bold tracking-wide flex-shrink-0">
+            <span className="text-pa-green">PACK</span>
+            <span className="text-text-primary hidden sm:inline">ATTACK</span>
+            <span className="text-pa-green hidden sm:inline">.GG</span>
+            <span className="text-pa-green sm:hidden">.</span>
+          </Link>
+
+          {/* Desktop Nav links */}
+          <nav className="hidden md:flex items-center gap-1">
+            {/* Dashboard */}
+            <Link
+              href={dashboardHref}
+              className={[
+                "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                isDashboardActive
+                  ? "text-pa-green bg-pa-green/6"
+                  : "text-text-muted hover:text-text-primary",
+              ].join(" ")}
+            >
+              <LayoutGrid className="w-4 h-4 flex-shrink-0" />
+              <span>{dict["dashboard"] ?? "Dashboard"}</span>
+            </Link>
+
+            {/* Packs — soon */}
+            <span className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
+              <Package className="w-4 h-4 flex-shrink-0" />
+              <span>{dict["packs"] ?? "Packs"}</span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
+                Soon
+              </span>
+            </span>
+
+            {/* Marketplace — soon */}
+            <span className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
+              <ShoppingBag className="w-4 h-4 flex-shrink-0" />
+              <span>{dict["marketplace"] ?? "Marketplace"}</span>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
+                Soon
+              </span>
+            </span>
+          </nav>
         </div>
-      </div>
-    </header>
+
+        {/* Right side */}
+        <div className="flex items-center gap-2 md:gap-3">
+          <LanguageSwitcher lang={lang} />
+          <NotificationBell />
+
+          {/* User dropdown trigger */}
+          <div className="relative">
+            <button
+              onClick={() => setDropdownOpen((prev) => !prev)}
+              className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/4 transition-colors"
+            >
+              {/* Avatar */}
+              <img
+                src={avatarUrl}
+                alt={userName}
+                width={32}
+                height={32}
+                className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                onError={(e) => { (e.target as HTMLImageElement).src = "/images/default-avatar.png"; }}
+              />
+              {/* Name + level — hidden on mobile */}
+              <div className="text-left hidden sm:block">
+                <p className="text-sm font-medium text-text-primary leading-tight">{userName}</p>
+                <p className="text-xs text-text-muted leading-tight">{levelLabel} 1</p>
+              </div>
+              <ChevronDown className="w-4 h-4 text-text-muted hidden sm:block" />
+            </button>
+
+            {dropdownOpen && (
+              <UserDropdown
+                lang={lang}
+                dict={dict}
+                userRole={userRole}
+                onClose={() => setDropdownOpen(false)}
+              />
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile menu overlay */}
+      {mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-30 flex">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* Drawer */}
+          <div className="relative w-72 max-w-[85vw] bg-surface border-r border-border flex flex-col overflow-y-auto">
+            {/* Drawer header */}
+            <div className="h-16 flex items-center px-4 border-b border-border flex-shrink-0">
+              <span className="text-lg font-bold tracking-wide">
+                <span className="text-pa-green">PACK</span>
+                <span className="text-text-primary">ATTACK</span>
+                <span className="text-pa-green">.GG</span>
+              </span>
+            </div>
+
+            {/* Nav items */}
+            <nav className="flex-1 px-3 py-4 space-y-1">
+              <Link
+                href={dashboardHref}
+                onClick={() => setMobileMenuOpen(false)}
+                className={[
+                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
+                  isDashboardActive
+                    ? "text-pa-green bg-pa-green/6"
+                    : "text-text-muted hover:text-text-primary",
+                ].join(" ")}
+              >
+                <LayoutGrid className="w-5 h-5 flex-shrink-0" />
+                <span>{dict["dashboard"] ?? "Dashboard"}</span>
+              </Link>
+
+              <span className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
+                <Package className="w-5 h-5 flex-shrink-0" />
+                <span className="flex-1">{dict["packs"] ?? "Packs"}</span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
+                  Soon
+                </span>
+              </span>
+
+              <span className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
+                <ShoppingBag className="w-5 h-5 flex-shrink-0" />
+                <span className="flex-1">{dict["marketplace"] ?? "Marketplace"}</span>
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
+                  Soon
+                </span>
+              </span>
+            </nav>
+
+            {/* User info at bottom of drawer */}
+            <div className="px-3 pb-6 flex-shrink-0">
+              <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-white/3 border border-white/6">
+                <img
+                  src={avatarUrl}
+                  alt={userName}
+                  width={32}
+                  height={32}
+                  className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                  onError={(e) => { (e.target as HTMLImageElement).src = "/images/default-avatar.png"; }}
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-text-primary truncate">{userName}</p>
+                  <p className="text-xs text-text-muted">{levelLabel} 1</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { Menu, X } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { mainNavItems, adminNavItems, soonNavItems, type NavItem } from "./sidebar-nav";
 
@@ -28,15 +30,18 @@ function NavLink({
   lang,
   dict,
   isActive,
+  onClick,
 }: {
   item: NavItem;
   lang: string;
   dict: Record<string, string>;
   isActive: boolean;
+  onClick?: () => void;
 }) {
   return (
     <Link
       href={`/${lang}${item.href}`}
+      onClick={onClick}
       className={[
         "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
         isActive
@@ -50,7 +55,7 @@ function NavLink({
   );
 }
 
-export function Sidebar({
+function SidebarContent({
   lang,
   dict,
   adminDict,
@@ -58,10 +63,10 @@ export function Sidebar({
   userRole,
   userName,
   userInitial,
-  mode = "full",
-}: SidebarProps) {
+  mode,
+  onNavClick,
+}: SidebarProps & { onNavClick?: () => void }) {
   const pathname = usePathname();
-
   const isAdmin = userRole === "admin" || userRole === "super_admin";
 
   function isActiveItem(item: NavItem): boolean {
@@ -70,7 +75,6 @@ export function Sidebar({
       return pathname === fullHref;
     }
     if (item.href === "/admin") {
-      // exact match for /admin, startsWith for sub-pages
       return pathname === fullHref || pathname.startsWith(`${fullHref}/`);
     }
     return pathname.startsWith(fullHref);
@@ -81,9 +85,8 @@ export function Sidebar({
   const levelLabel = dashboardDict["level"] ?? "Level";
 
   if (mode === "admin") {
-    // Admin-only sidebar: just the admin navigation section
     return (
-      <aside className="w-64 flex flex-col bg-gradient-to-b from-bg to-pa-lila/8 border-r border-border overflow-y-auto">
+      <>
         <nav className="flex-1 px-3 py-4">
           <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
             {adminLabel}
@@ -96,6 +99,7 @@ export function Sidebar({
                   lang={lang}
                   dict={adminDict}
                   isActive={isActiveItem(item)}
+                  onClick={onNavClick}
                 />
               </li>
             ))}
@@ -114,15 +118,15 @@ export function Sidebar({
             </div>
           </div>
         </div>
-      </aside>
+      </>
     );
   }
 
-  // Full mode (original behavior)
+  // Full mode
   const mainLabel = dict["mainMenu"] ?? "Main menu";
 
   return (
-    <aside className="w-64 fixed h-screen flex flex-col bg-gradient-to-b from-bg to-pa-lila/8 border-r border-border overflow-y-auto">
+    <>
       {/* Logo */}
       <div className="px-6 py-5 flex-shrink-0">
         <span className="text-xl font-bold tracking-wide">
@@ -146,6 +150,7 @@ export function Sidebar({
                   lang={lang}
                   dict={dict}
                   isActive={isActiveItem(item)}
+                  onClick={onNavClick}
                 />
               </li>
             ))}
@@ -166,6 +171,7 @@ export function Sidebar({
                     lang={lang}
                     dict={adminDict}
                     isActive={isActiveItem(item)}
+                    onClick={onNavClick}
                   />
                 </li>
               ))}
@@ -206,6 +212,99 @@ export function Sidebar({
           </div>
         </div>
       </div>
-    </aside>
+    </>
+  );
+}
+
+export function Sidebar(props: SidebarProps) {
+  const { mode = "full" } = props;
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Close on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
+  // Prevent body scroll when open
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
+  if (mode === "admin") {
+    return (
+      <>
+        {/* Mobile toggle button */}
+        <button
+          onClick={() => setMobileOpen((prev) => !prev)}
+          className="md:hidden fixed bottom-4 right-4 z-50 w-12 h-12 flex items-center justify-center bg-pa-green text-bg rounded-full shadow-lg"
+          aria-label={mobileOpen ? "Close sidebar" : "Open sidebar"}
+        >
+          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        </button>
+
+        {/* Mobile overlay */}
+        {mobileOpen && (
+          <div className="md:hidden fixed inset-0 z-40 flex">
+            <div
+              className="absolute inset-0 bg-black/60"
+              onClick={() => setMobileOpen(false)}
+              aria-hidden="true"
+            />
+            <aside className="relative w-64 flex flex-col bg-gradient-to-b from-bg to-pa-lila/8 border-r border-border overflow-y-auto">
+              <div className="h-14 flex items-center justify-between px-4 border-b border-border flex-shrink-0">
+                <span className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
+                  Admin
+                </span>
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="text-text-muted hover:text-text-primary"
+                  aria-label="Close sidebar"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <SidebarContent {...props} onNavClick={() => setMobileOpen(false)} />
+            </aside>
+          </div>
+        )}
+
+        {/* Desktop sidebar */}
+        <aside className="hidden md:flex w-64 flex-col bg-gradient-to-b from-bg to-pa-lila/8 border-r border-border overflow-y-auto">
+          <SidebarContent {...props} />
+        </aside>
+      </>
+    );
+  }
+
+  // Full mode
+  return (
+    <>
+      {/* Mobile overlay */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-40 flex">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+          <aside className="relative w-72 max-w-[85vw] flex flex-col bg-gradient-to-b from-bg to-pa-lila/8 border-r border-border overflow-y-auto">
+            <SidebarContent {...props} onNavClick={() => setMobileOpen(false)} />
+          </aside>
+        </div>
+      )}
+
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex w-64 fixed h-screen flex-col bg-gradient-to-b from-bg to-pa-lila/8 border-r border-border overflow-y-auto">
+        <SidebarContent {...props} />
+      </aside>
+    </>
   );
 }

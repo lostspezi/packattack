@@ -99,9 +99,11 @@ export function ChangePasswordForm({ dict }: ChangePasswordFormProps) {
         minLength={8}
         autoComplete="new-password"
       />
-      <Button type="submit" variant="secondary" size="md" loading={loading}>
-        {dict["button_update_password"] ?? "Update Password"}
-      </Button>
+      <div className="flex">
+        <Button type="submit" variant="secondary" size="md" loading={loading} className="w-full md:w-auto">
+          {dict["button_update_password"] ?? "Update Password"}
+        </Button>
+      </div>
     </form>
   );
 }

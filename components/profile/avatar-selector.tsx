@@ -198,7 +198,7 @@ export function AvatarSelector({
   return (
     <div className="flex flex-col gap-4">
       {/* Current avatar preview */}
-      <div className="flex items-center gap-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-5">
         <div className="relative w-20 h-20 rounded-full overflow-hidden bg-white/6 border border-white/10 flex items-center justify-center flex-shrink-0">
           <Image
             src={displaySrc}

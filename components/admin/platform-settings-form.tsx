@@ -71,7 +71,7 @@ export function PlatformSettingsForm({ initial }: PlatformSettingsFormProps) {
             Version Numbers
           </h3>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div className="space-y-1.5">
               <label className="block text-sm font-medium text-text-secondary">
                 Terms of Service Version
@@ -118,7 +118,7 @@ export function PlatformSettingsForm({ initial }: PlatformSettingsFormProps) {
         <h3 className="text-base font-semibold text-text-primary">
           Consent Statistics (Current Versions)
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="bg-white/4 rounded-[10px] p-4">
             <p className="text-xs text-text-muted mb-1">
               ToS Acceptances (v{tosVersion || "—"})

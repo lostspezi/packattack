@@ -87,12 +87,12 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
           {dict["section_language"] ?? "Language"}
         </h3>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => setLanguage("de")}
             className={[
-              "px-5 py-2 rounded-[10px] text-sm font-medium cursor-pointer transition-colors",
+              "flex-1 sm:flex-none px-5 py-2 rounded-[10px] text-sm font-medium cursor-pointer transition-colors",
               language === "de" ? activeClass : inactiveClass,
             ].join(" ")}
           >
@@ -102,7 +102,7 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
             type="button"
             onClick={() => setLanguage("en")}
             className={[
-              "px-5 py-2 rounded-[10px] text-sm font-medium cursor-pointer transition-colors",
+              "flex-1 sm:flex-none px-5 py-2 rounded-[10px] text-sm font-medium cursor-pointer transition-colors",
               language === "en" ? activeClass : inactiveClass,
             ].join(" ")}
           >
@@ -116,12 +116,12 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
           {dict["section_theme"] ?? "Theme"}
         </h3>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <button
             type="button"
             onClick={() => setTheme("dark")}
             className={[
-              "px-5 py-2 rounded-[10px] text-sm font-medium cursor-pointer transition-colors",
+              "flex-1 sm:flex-none px-5 py-2 rounded-[10px] text-sm font-medium cursor-pointer transition-colors",
               theme === "dark" ? activeClass : inactiveClass,
             ].join(" ")}
           >
@@ -131,7 +131,7 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
             type="button"
             onClick={() => setTheme("light")}
             className={[
-              "px-5 py-2 rounded-[10px] text-sm font-medium cursor-pointer transition-colors",
+              "flex-1 sm:flex-none px-5 py-2 rounded-[10px] text-sm font-medium cursor-pointer transition-colors",
               theme === "light" ? activeClass : inactiveClass,
             ].join(" ")}
           >
@@ -161,9 +161,11 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
         </div>
       </div>
 
-      <Button type="submit" variant="primary" size="md" loading={loading}>
-        {dict["button_save"] ?? "Save Settings"}
-      </Button>
+      <div className="flex">
+        <Button type="submit" variant="primary" size="md" loading={loading} className="w-full md:w-auto">
+          {dict["button_save"] ?? "Save Settings"}
+        </Button>
+      </div>
     </form>
   );
 }

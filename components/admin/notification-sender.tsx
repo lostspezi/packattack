@@ -192,7 +192,7 @@ export function NotificationSender() {
         <label className="block text-sm font-medium text-text-secondary">
           Call to Action (optional)
         </label>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Input
             value={ctaLabel}
             onChange={(e) => setCtaLabel(e.target.value)}

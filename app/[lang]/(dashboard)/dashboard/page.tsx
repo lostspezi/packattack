@@ -35,7 +35,7 @@ export default async function DashboardPage({
   const xpLabel = dashboardDict["xp"] ?? "XP";
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8">
       {/* Welcome heading */}
       <div>
         <h2 className="text-2xl font-bold text-text-primary">{welcomeMessage}</h2>
@@ -45,7 +45,7 @@ export default async function DashboardPage({
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Packs opened — topline */}
         <Card variant="topline" className="p-5">
           <p className="text-xs font-semibold uppercase tracking-wider text-text-muted mb-2">
@@ -94,7 +94,7 @@ export default async function DashboardPage({
           {comingSoonLabel}
         </h3>
         <p className="text-sm text-text-secondary mb-4">{comingSoonDescLabel}</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Packs teaser */}
           <Card variant="soft" className="p-5 opacity-60 cursor-not-allowed">
             <div className="flex items-start gap-3">

@@ -102,9 +102,9 @@ export function EmailTemplatesManager({
   }
 
   return (
-    <div className="flex gap-0 bg-surface border border-border rounded-[14px] overflow-hidden min-h-[700px]">
+    <div className="flex flex-col md:flex-row gap-0 bg-surface border border-border rounded-[14px] overflow-hidden min-h-[700px]">
       {/* Left: template list */}
-      <div className="w-64 shrink-0 border-r border-border flex flex-col">
+      <div className="w-full md:w-64 md:shrink-0 border-b md:border-b-0 md:border-r border-border flex flex-col md:max-h-[700px]">
         <div className="p-3 border-b border-border">
           <p className="text-xs font-medium text-text-secondary uppercase tracking-wider">
             Templates
@@ -136,7 +136,7 @@ export function EmailTemplatesManager({
       </div>
 
       {/* Right: editor + preview */}
-      <div className="flex-1 p-6 overflow-auto">
+      <div className="flex-1 p-4 md:p-6 overflow-auto">
         {!selected ? (
           <div className="flex items-center justify-center h-64 text-text-muted text-sm">
             Select a template to edit.
@@ -187,7 +187,7 @@ export function EmailTemplatesManager({
               <label className="block text-sm font-medium text-text-secondary">
                 Subject
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs text-text-muted mb-1">DE</p>
                   <Input
@@ -214,7 +214,7 @@ export function EmailTemplatesManager({
               <label className="block text-sm font-medium text-text-secondary">
                 Body (HTML)
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <p className="text-xs text-text-muted mb-1">DE</p>
                   <textarea
