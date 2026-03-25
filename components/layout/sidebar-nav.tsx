@@ -1,0 +1,28 @@
+export type NavItem = {
+  key: string;
+  href: string;
+  icon: string;
+  adminOnly?: boolean;
+  soon?: boolean;
+};
+
+export const mainNavItems: NavItem[] = [
+  { key: "dashboard", href: "/dashboard", icon: "LayoutGrid" },
+  { key: "profile", href: "/profile", icon: "User" },
+  { key: "settings", href: "/settings", icon: "Settings" },
+  { key: "account", href: "/account", icon: "Shield" },
+];
+
+export const adminNavItems: NavItem[] = [
+  { key: "adminDashboard", href: "/admin", icon: "BarChart3" },
+  { key: "users", href: "/admin/users", icon: "Users" },
+  { key: "platform", href: "/admin/platform", icon: "Cog" },
+  { key: "notifications", href: "/admin/notifications", icon: "Bell" },
+  { key: "emailTemplates", href: "/admin/email-templates", icon: "Mail" },
+  { key: "translations", href: "/admin/translations", icon: "Languages" },
+];
+
+export const soonNavItems: NavItem[] = [
+  { key: "packs", href: "#", icon: "Package", soon: true },
+  { key: "marketplace", href: "#", icon: "ShoppingBag", soon: true },
+];
