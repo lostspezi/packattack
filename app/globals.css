@@ -76,35 +76,10 @@ body {
   -webkit-overflow-scrolling: touch;
 }
 
-/* All interactive elements: touch-friendly sizing */
-button,
-[role="button"],
-a {
+/* Touch-friendly tap targets — opt-in via class, not global */
+.tap-target {
   min-height: 44px;
   min-width: 44px;
-}
-
-/* Compact variant for inline/tight contexts */
-.tap-sm {
-  min-height: 32px;
-  min-width: 32px;
-}
-
-/* Active states for touch feedback */
-button:active:not(:disabled),
-[role="button"]:active,
-a:active {
-  transform: scale(0.97);
-  transition: transform 0.1s ease;
-}
-
-/* Disable hover effects on touch devices to prevent sticky hover */
-@media (hover: none) {
-  button:hover,
-  [role="button"]:hover,
-  a:hover {
-    /* Let the active state handle feedback instead */
-  }
 }
 
 /* Global cursor rules */
