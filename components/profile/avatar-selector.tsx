@@ -60,6 +60,10 @@ export function AvatarSelector({
   const hasTwitch = linkedProviders.includes("twitch");
   const [cacheBust, setCacheBust] = useState(0);
 
+  function notifyAvatarChanged(url: string | null) {
+    window.dispatchEvent(new CustomEvent("avatar-changed", { detail: { url } }));
+  }
+
   function avatarSrc(url: string | null): string | null {
     if (!url) return null;
     if (url === "/api/profile/avatar/file" && cacheBust > 0) {
@@ -115,8 +119,10 @@ export function AvatarSelector({
       const newUrl = data.image ?? "/api/profile/avatar/file";
       const bust = Date.now();
       setCacheBust(bust);
-      setPreviewUrl(`${newUrl}?t=${bust}`);
+      const displayUrl = `${newUrl}?t=${bust}`;
+      setPreviewUrl(displayUrl);
       onAvatarChange(newUrl);
+      notifyAvatarChanged(displayUrl);
       toast({ type: "success", title: "Avatar updated" });
     } catch {
       toast({ type: "error", title: "An unexpected error occurred" });
@@ -147,6 +153,7 @@ export function AvatarSelector({
       const newUrl = data.image ?? null;
       setPreviewUrl(newUrl);
       onAvatarChange(newUrl);
+      notifyAvatarChanged(newUrl);
       toast({
         type: "success",
         title: `Avatar updated to ${provider} profile picture`,
@@ -174,6 +181,7 @@ export function AvatarSelector({
 
       setPreviewUrl(null);
       onAvatarChange(null);
+      notifyAvatarChanged(null);
       toast({ type: "success", title: "Avatar removed" });
     } catch {
       toast({ type: "error", title: "An unexpected error occurred" });

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LayoutGrid, Package, ShoppingBag, ChevronDown } from "lucide-react";
 import { LanguageSwitcher } from "./language-switcher";
 import { NotificationBell } from "./notification-bell";
@@ -27,6 +27,20 @@ export function UserHeader({
 }: UserHeaderProps) {
   const pathname = usePathname();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState(userImage || "/images/default-avatar.png");
+
+  useEffect(() => {
+    function onAvatarChange(e: Event) {
+      const detail = (e as CustomEvent<{ url: string | null }>).detail;
+      setAvatarUrl(detail.url || "/images/default-avatar.png");
+    }
+    window.addEventListener("avatar-changed", onAvatarChange);
+    return () => window.removeEventListener("avatar-changed", onAvatarChange);
+  }, []);
+
+  useEffect(() => {
+    setAvatarUrl(userImage || "/images/default-avatar.png");
+  }, [userImage]);
 
   const dashboardHref = `/${lang}/dashboard`;
   const isDashboardActive = pathname === dashboardHref;
@@ -93,7 +107,7 @@ export function UserHeader({
           >
             {/* Avatar */}
             <img
-              src={userImage || "/images/default-avatar.png"}
+              src={avatarUrl}
               alt={userName}
               width={32}
               height={32}
