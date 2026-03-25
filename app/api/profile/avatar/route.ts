@@ -142,13 +142,12 @@ export async function POST(req: NextRequest) {
 
     await uploadAvatar(userId, buffer, filename, blob.type);
 
-    // Update user.image to point to the file serving route
+    // Update user.image to point to the file serving route with userId
+    const avatarUrl = `/api/profile/avatar/file?userId=${userId}`;
     await connectDB();
-    await User.findByIdAndUpdate(userId, {
-      image: `/api/profile/avatar/file`,
-    });
+    await User.findByIdAndUpdate(userId, { image: avatarUrl });
 
-    return NextResponse.json({ success: true, image: `/api/profile/avatar/file` });
+    return NextResponse.json({ success: true, image: avatarUrl });
   } catch (err) {
     console.error("[avatar POST]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

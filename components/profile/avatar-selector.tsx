@@ -66,8 +66,11 @@ export function AvatarSelector({
 
   function avatarSrc(url: string | null): string | null {
     if (!url) return null;
-    if (url === "/api/profile/avatar/file" && cacheBust > 0) {
-      return `${url}?t=${cacheBust}`;
+    if (url.startsWith("/api/profile/avatar/file") && cacheBust > 0) {
+      const base = url.split("?")[0];
+      const params = new URLSearchParams(url.split("?")[1] || "");
+      params.set("t", String(cacheBust));
+      return `${base}?${params.toString()}`;
     }
     return url;
   }

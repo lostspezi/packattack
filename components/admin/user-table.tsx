@@ -222,18 +222,13 @@ export function UserTable({
                   >
                     {/* Avatar */}
                     <td className="px-4 py-3">
-                      {user.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={user.image}
-                          alt={user.username}
-                          className="w-8 h-8 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pa-green/60 to-pa-lila/60 flex items-center justify-center text-sm font-bold text-white">
-                          {initial}
-                        </div>
-                      )}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={user.image || "/images/default-avatar.png"}
+                        alt={user.username || "User"}
+                        className="w-8 h-8 rounded-full object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).src = "/images/default-avatar.png"; }}
+                      />
                     </td>
 
                     {/* Username */}
