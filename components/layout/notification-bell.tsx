@@ -84,24 +84,15 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <>
-          {/* Mobile: fixed fullwidth dropdown */}
-          <div className="sm:hidden fixed left-2 right-2 top-[4.5rem] bg-surface-elevated border border-border rounded-[10px] shadow-lg z-50 overflow-hidden">
-            <NotificationDropdown
-              lang="en"
-              dict={{}}
-              onUnreadCountChange={handleUnreadCountChange}
-            />
-          </div>
-          {/* Desktop: absolute positioned */}
-          <div className="hidden sm:block absolute right-0 mt-1 w-80 bg-surface-elevated border border-border rounded-[10px] shadow-lg z-50 overflow-hidden">
-            <NotificationDropdown
-              lang="en"
-              dict={{}}
-              onUnreadCountChange={handleUnreadCountChange}
-            />
-          </div>
-        </>
+        <div
+          className="fixed sm:absolute left-2 right-2 top-[4.5rem] sm:top-auto sm:left-auto sm:right-0 sm:mt-1 sm:w-80 bg-surface-elevated border border-border rounded-[10px] shadow-lg z-50 overflow-hidden"
+        >
+          <NotificationDropdown
+            lang="en"
+            dict={{}}
+            onUnreadCountChange={handleUnreadCountChange}
+          />
+        </div>
       )}
     </div>
   );
