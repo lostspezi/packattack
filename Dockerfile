@@ -9,6 +9,21 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Dummy env vars for build time (Next.js pre-renders pages during build)
+ENV MONGODB_URI=mongodb://localhost:27017/dummy
+ENV REDIS_URL=redis://localhost:6379
+ENV NEXTAUTH_URL=http://localhost:3000
+ENV NEXTAUTH_SECRET=build-time-dummy-secret
+ENV NEXT_PUBLIC_APP_URL=http://localhost:3000
+ENV SMTP_FROM=dummy@localhost
+ENV DISCORD_CLIENT_ID=dummy
+ENV DISCORD_CLIENT_SECRET=dummy
+ENV TWITCH_CLIENT_ID=dummy
+ENV TWITCH_CLIENT_SECRET=dummy
+ENV GOOGLE_CLIENT_ID=dummy
+ENV GOOGLE_CLIENT_SECRET=dummy
+
 RUN npm run build
 
 # Stage 3: Production runner
