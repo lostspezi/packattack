@@ -166,6 +166,7 @@ const authConfig: NextAuthConfig = {
             token.userTosVersion = dbUser.consents?.tos?.version ?? "";
             token.userPrivacyVersion = dbUser.consents?.privacy?.version ?? "";
             token.language = dbUser.preferences?.language ?? "en";
+            token.picture = dbUser.image ?? null;
           } else {
             // Fallback for brand-new OAuth users created by the adapter
             token.role = "user";
@@ -207,6 +208,7 @@ const authConfig: NextAuthConfig = {
             token.userPrivacyVersion = dbUser.consents?.privacy?.version ?? "";
             token.language = dbUser.preferences?.language ?? (token.language as string) ?? "en";
             token.role = dbUser.role ?? (token.role as string) ?? "user";
+            token.picture = dbUser.image ?? null;
           }
         } catch {
           // non-fatal — keep existing token values

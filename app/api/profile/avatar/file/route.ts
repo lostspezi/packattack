@@ -17,9 +17,12 @@ export async function GET() {
     const result = await getAvatar(session.user.id);
 
     if (!result) {
-      // Clean up stale user.image reference
+      // Only clean up if user.image still points to this route
       await connectDB();
-      await User.findByIdAndUpdate(session.user.id, { image: null });
+      const user = await User.findById(session.user.id).select("image").lean();
+      if (user?.image === "/api/profile/avatar/file") {
+        await User.findByIdAndUpdate(session.user.id, { image: null });
+      }
       // Redirect to default avatar
       return NextResponse.redirect(new URL("/images/default-avatar.png", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
     }
