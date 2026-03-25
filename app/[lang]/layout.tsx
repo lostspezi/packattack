@@ -17,6 +17,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "PackAttack.gg",
   description: "PackAttack.gg — your pack opening platform",
+  icons: {
+    icon: "/favicon.png",
+  },
 };
 
 export default async function LangLayout({
