@@ -41,13 +41,13 @@ function GoogleIcon() {
   );
 }
 
-export function OAuthButtons() {
+export function OAuthButtons({ callbackUrl = "/dashboard" }: { callbackUrl?: string }) {
   return (
     <div className="flex flex-col gap-3">
       {/* Discord — full width */}
       <button
         type="button"
-        onClick={() => signIn("discord")}
+        onClick={() => signIn("discord", { callbackUrl })}
         className="flex w-full items-center justify-center gap-3 rounded-[10px] px-4 py-3 text-sm font-medium transition-colors bg-[#5865F2]/10 border border-[#5865F2]/20 text-[#8b9aff] hover:bg-[#5865F2]/20"
       >
         <DiscordIcon />
@@ -58,7 +58,7 @@ export function OAuthButtons() {
       <div className="grid grid-cols-2 gap-3">
         <button
           type="button"
-          onClick={() => signIn("twitch")}
+          onClick={() => signIn("twitch", { callbackUrl })}
           className="flex items-center justify-center gap-2 rounded-[10px] px-4 py-3 text-sm font-medium transition-colors bg-[#9146FF]/10 border border-[#9146FF]/20 text-[#b388ff] hover:bg-[#9146FF]/20"
         >
           <TwitchIcon />
@@ -67,7 +67,7 @@ export function OAuthButtons() {
 
         <button
           type="button"
-          onClick={() => signIn("google")}
+          onClick={() => signIn("google", { callbackUrl })}
           className="flex items-center justify-center gap-2 rounded-[10px] px-4 py-3 text-sm font-medium transition-colors bg-white/3 border border-white/6 text-text-primary hover:bg-white/6"
         >
           <GoogleIcon />

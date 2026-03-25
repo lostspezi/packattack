@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 
 const mongoClient = new MongoClient(process.env.MONGODB_URI!);
 
@@ -21,7 +21,7 @@ export async function GET() {
     const db = await getDb();
     const accounts = await db
       .collection("accounts")
-      .find({ userId: session.user.id })
+      .find({ userId: new ObjectId(session.user.id) })
       .toArray();
 
     const providers = accounts.map((a) => ({
@@ -54,11 +54,12 @@ export async function DELETE(req: NextRequest) {
     const db = await getDb();
 
     const userId = session.user.id;
+    const userOid = new ObjectId(userId);
 
     // Count all linked accounts for this user
     const allAccounts = await db
       .collection("accounts")
-      .find({ userId })
+      .find({ userId: userOid })
       .toArray();
 
     const user = await User.findById(userId).select("+password").lean();
@@ -77,7 +78,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    await db.collection("accounts").deleteOne({ userId, provider });
+    await db.collection("accounts").deleteOne({ userId: userOid, provider });
 
     return NextResponse.json({ success: true });
   } catch (err) {

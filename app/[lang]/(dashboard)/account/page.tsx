@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
+import { ObjectId } from "mongodb";
 import { ChangeEmailForm } from "@/components/account/change-email-form";
 import { ChangePasswordForm } from "@/components/account/change-password-form";
 import { LinkedProviders } from "@/components/account/linked-providers";
@@ -37,7 +38,7 @@ export default async function AccountPage({
     const db = mongoClient.db();
     const accounts = await db
       .collection("accounts")
-      .find({ userId: session!.user!.id })
+      .find({ userId: new ObjectId(session!.user!.id) })
       .toArray();
     linkedProviders = accounts.map((a) => ({
       provider: String(a.provider),

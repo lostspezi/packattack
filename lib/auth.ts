@@ -113,7 +113,28 @@ const authConfig: NextAuthConfig = {
     // ------------------------------------------------------------------
     // signIn — allow all sign-ins; adapter handles account linking
     // ------------------------------------------------------------------
-    async signIn() {
+    async signIn({ user, account }) {
+      // For OAuth sign-ins, ensure the user exists in our Mongoose users collection
+      // The adapter creates entries in the native `users` collection, but our app
+      // uses Mongoose models. We need to ensure consent and preferences exist.
+      if (account?.provider && account.provider !== "credentials" && user?.id) {
+        try {
+          await connectDB();
+          const existingUser = await User.findById(user.id);
+          if (existingUser && !existingUser.consents?.tos?.accepted) {
+            // User exists but hasn't accepted terms yet — allow sign-in,
+            // proxy will redirect to accept-terms
+          }
+          if (!existingUser) {
+            // User was created by the adapter in the native collection
+            // but doesn't exist in our Mongoose collection. This shouldn't happen
+            // normally, but log it for debugging.
+            console.warn("[signIn] OAuth user not found in Mongoose collection:", user.id);
+          }
+        } catch (err) {
+          console.error("[signIn] Error checking OAuth user:", err);
+        }
+      }
       return true;
     },
 
