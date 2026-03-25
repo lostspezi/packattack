@@ -20,12 +20,17 @@ export function UserDropdown({ lang, dict: _dict, userRole, open, onClose }: Use
   useEffect(() => {
     if (!open) return;
     function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        onClose();
-      }
+      const target = e.target as Node;
+      // Don't close if clicking inside the dropdown
+      if (ref.current && ref.current.contains(target)) return;
+      // Don't close if clicking the trigger button (parent handles toggle)
+      const trigger = ref.current?.parentElement?.querySelector("button");
+      if (trigger && trigger.contains(target)) return;
+      onClose();
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    // Use click instead of mousedown to avoid race with button toggle
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
   }, [onClose, open]);
 
   const itemClass =
