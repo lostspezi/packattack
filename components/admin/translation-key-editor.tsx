@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 
 interface TranslationKey {
@@ -188,20 +189,24 @@ export function TranslationKeyEditor({ namespace }: TranslationKeyEditorProps) {
             </div>
           </div>
           <div className="flex gap-2">
-            <button
+            <Button
               type="submit"
+              variant="primary"
+              size="sm"
+              loading={addingKey}
               disabled={addingKey || !newKeyName.trim()}
-              className="px-3 py-1.5 bg-pa-green text-black text-xs font-semibold rounded-[8px] hover:bg-pa-green/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {addingKey ? "Adding…" : "Add"}
-            </button>
-            <button
+              Add
+            </Button>
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
+              disabled={addingKey}
               onClick={() => setShowAddForm(false)}
-              className="px-3 py-1.5 bg-white/4 border border-border text-text-secondary text-xs rounded-[8px] hover:bg-white/8 transition-colors"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       )}
@@ -271,13 +276,15 @@ export function TranslationKeyEditor({ namespace }: TranslationKeyEditorProps) {
                         />
                       </td>
                       <td className="px-2 py-2 align-middle">
-                        <button
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          size="sm"
+                          loading={savingKey === keyItem._id}
                           onClick={() => void saveKey(keyItem)}
-                          disabled={savingKey === keyItem._id}
-                          className="px-2.5 py-1 bg-white/4 border border-border text-text-secondary text-xs rounded-[6px] hover:bg-white/8 transition-colors disabled:opacity-50"
                         >
-                          {savingKey === keyItem._id ? "…" : "Save"}
-                        </button>
+                          Save
+                        </Button>
                       </td>
                     </tr>
                   );

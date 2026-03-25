@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { EmailTemplatePreview } from "@/components/admin/email-template-preview";
 
@@ -161,13 +162,16 @@ export function EmailTemplatesManager({
                   Last updated: {formatDate(template.updatedAt)}
                 </p>
               </div>
-              <button
+              <Button
+                type="button"
+                variant="primary"
+                size="md"
+                loading={saving}
                 onClick={() => void handleSave()}
-                disabled={saving}
-                className="px-4 py-2 bg-pa-green text-black text-sm font-semibold rounded-[10px] hover:bg-pa-green/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+                className="shrink-0"
               >
-                {saving ? "Saving…" : "Save"}
-              </button>
+                Save
+              </Button>
             </div>
 
             {/* Name */}

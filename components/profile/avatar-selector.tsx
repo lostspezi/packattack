@@ -60,6 +60,8 @@ export function AvatarSelector({
   const hasTwitch = linkedProviders.includes("twitch");
   const [cacheBust, setCacheBust] = useState(0);
 
+  const anyLoading = uploading || removing || selectingProvider !== null;
+
   function notifyAvatarChanged(url: string | null) {
     window.dispatchEvent(new CustomEvent("avatar-changed", { detail: { url } }));
   }
@@ -226,7 +228,7 @@ export function AvatarSelector({
           type="button"
           variant="secondary"
           size="sm"
-          disabled={!hasDiscord || selectingProvider === "discord"}
+          disabled={!hasDiscord || anyLoading}
           loading={selectingProvider === "discord"}
           onClick={() => handleProviderSelect("discord")}
           title={
@@ -255,7 +257,7 @@ export function AvatarSelector({
           type="button"
           variant="secondary"
           size="sm"
-          disabled={!hasTwitch || selectingProvider === "twitch"}
+          disabled={!hasTwitch || anyLoading}
           loading={selectingProvider === "twitch"}
           onClick={() => handleProviderSelect("twitch")}
           title={
@@ -283,6 +285,7 @@ export function AvatarSelector({
           variant="secondary"
           size="sm"
           loading={uploading}
+          disabled={anyLoading}
           onClick={() => fileInputRef.current?.click()}
         >
           <svg
@@ -310,6 +313,7 @@ export function AvatarSelector({
             variant="danger"
             size="sm"
             loading={removing}
+            disabled={anyLoading}
             onClick={handleRemove}
           >
             Remove

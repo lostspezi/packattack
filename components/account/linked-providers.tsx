@@ -133,6 +133,7 @@ export function LinkedProviders({ dict, lang, initialProviders }: LinkedProvider
                 variant="danger"
                 size="sm"
                 loading={loadingProvider === providerKey}
+                disabled={loadingProvider !== null}
                 onClick={() => handleUnlink(providerKey)}
               >
                 {dict["button_unlink"] ?? "Unlink"}
@@ -143,6 +144,7 @@ export function LinkedProviders({ dict, lang, initialProviders }: LinkedProvider
                 variant="secondary"
                 size="sm"
                 loading={loadingProvider === providerKey}
+                disabled={loadingProvider !== null}
                 onClick={() => {
                   setLoadingProvider(providerKey);
                   signIn(providerKey, { callbackUrl: `/${lang}/account` });

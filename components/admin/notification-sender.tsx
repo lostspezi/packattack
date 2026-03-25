@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { Select } from "@/components/ui/select";
 import type { SelectOption } from "@/components/ui/select";
@@ -208,13 +209,14 @@ export function NotificationSender() {
         </div>
       </div>
 
-      <button
+      <Button
         type="submit"
-        disabled={sending}
-        className="px-4 py-2 bg-pa-green text-black text-sm font-semibold rounded-[10px] hover:bg-pa-green/85 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        variant="primary"
+        size="md"
+        loading={sending}
       >
-        {sending ? "Sending…" : "Send Notification"}
-      </button>
+        Send Notification
+      </Button>
     </form>
   );
 }
