@@ -6,5 +6,5 @@ export default async function LangRoot({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
-  redirect(`/${lang}/login`);
+  redirect(`/${lang}/dashboard`);
 }
