@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { LayoutGrid, Package, ShoppingBag, ChevronDown } from "lucide-react";
@@ -13,6 +14,7 @@ interface UserHeaderProps {
   dict: Record<string, string>;
   userName: string;
   userInitial: string;
+  userImage?: string | null;
   userRole: string;
 }
 
@@ -21,6 +23,7 @@ export function UserHeader({
   dict,
   userName,
   userInitial,
+  userImage,
   userRole,
 }: UserHeaderProps) {
   const pathname = usePathname();
@@ -90,8 +93,14 @@ export function UserHeader({
             className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/4 transition-colors"
           >
             {/* Avatar */}
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pa-green/60 to-pa-lila/60 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
-              {userInitial}
+            <div className="relative w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+              <Image
+                src={userImage || "/images/default-avatar.png"}
+                alt={userName}
+                fill
+                className="object-cover"
+                unoptimized
+              />
             </div>
             {/* Name + level */}
             <div className="text-left hidden sm:block">

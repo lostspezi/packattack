@@ -23,6 +23,7 @@ export default async function DashboardLayout({
   const userName = session.user.name ?? session.user.email ?? "User";
   const userInitial = userName.charAt(0).toUpperCase();
   const userRole = (session.user as { role?: string }).role ?? "user";
+  const userImage = session.user.image ?? null;
 
   return (
     <div className="min-h-screen bg-bg">
@@ -31,6 +32,7 @@ export default async function DashboardLayout({
         dict={commonDict}
         userName={userName}
         userInitial={userInitial}
+        userImage={userImage}
         userRole={userRole}
       />
       <div className="flex-1">{children}</div>

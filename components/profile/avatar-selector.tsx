@@ -181,26 +181,20 @@ export function AvatarSelector({
     }
   }
 
-  const displaySrc = avatarSrc(previewUrl);
+  const displaySrc = avatarSrc(previewUrl) ?? "/images/default-avatar.png";
 
   return (
     <div className="flex flex-col gap-4">
       {/* Current avatar preview */}
       <div className="flex items-center gap-5">
         <div className="relative w-20 h-20 rounded-full overflow-hidden bg-white/6 border border-white/10 flex items-center justify-center flex-shrink-0">
-          {displaySrc ? (
-            <Image
-              src={displaySrc}
-              alt="Avatar"
-              fill
-              className="object-cover"
-              unoptimized
-            />
-          ) : (
-            <span className="text-2xl font-bold text-text-secondary select-none">
-              ?
-            </span>
-          )}
+          <Image
+            src={displaySrc}
+            alt="Avatar"
+            fill
+            className="object-cover"
+            unoptimized
+          />
         </div>
 
         <div className="flex flex-col gap-1">
