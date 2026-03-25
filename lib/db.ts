@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { runSeed } from "./seed";
 
 const MONGODB_URI = process.env.MONGODB_URI as string;
 
@@ -24,7 +25,9 @@ if (!global._mongoose) {
   global._mongoose = cached;
 }
 
-async function connectDB(): Promise<typeof mongoose> {
+let seeded = false;
+
+export async function connectDB(): Promise<typeof mongoose> {
   if (cached.conn) {
     return cached.conn;
   }
@@ -38,6 +41,12 @@ async function connectDB(): Promise<typeof mongoose> {
   }
 
   cached.conn = await cached.promise;
+
+  if (!seeded) {
+    seeded = true;
+    runSeed().catch(console.error);
+  }
+
   return cached.conn;
 }
 
