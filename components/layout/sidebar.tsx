@@ -244,7 +244,7 @@ export function Sidebar(props: SidebarProps) {
         {/* Mobile toggle button */}
         <button
           onClick={() => setMobileOpen((prev) => !prev)}
-          className="md:hidden fixed bottom-4 right-4 z-50 w-12 h-12 flex items-center justify-center bg-pa-green text-bg rounded-full shadow-lg"
+          className="md:hidden fixed bottom-4 right-4 z-20 w-12 h-12 flex items-center justify-center bg-pa-green text-bg rounded-full shadow-lg"
           aria-label={mobileOpen ? "Close sidebar" : "Open sidebar"}
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
@@ -252,7 +252,7 @@ export function Sidebar(props: SidebarProps) {
 
         {/* Mobile overlay */}
         {mobileOpen && (
-          <div className="md:hidden fixed inset-0 z-40 flex">
+          <div className="md:hidden fixed inset-0 z-25 flex">
             <div
               className="absolute inset-0 bg-black/60"
               onClick={() => setMobileOpen(false)}
@@ -289,7 +289,7 @@ export function Sidebar(props: SidebarProps) {
     <>
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-40 flex">
+        <div className="md:hidden fixed inset-0 z-25 flex">
           <div
             className="absolute inset-0 bg-black/60"
             onClick={() => setMobileOpen(false)}
