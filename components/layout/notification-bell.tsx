@@ -4,7 +4,7 @@ import { Bell } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 
-const POLL_INTERVAL_MS = 30_000;
+const POLL_INTERVAL_MS = 10_000;
 
 interface UnreadResponse {
   unreadCount: number;
