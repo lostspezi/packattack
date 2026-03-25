@@ -1,16 +1,22 @@
 import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import connectDB from "@/lib/db";
 import EmailTemplate from "@/models/email-template";
 
-const SMTP_HOST = process.env.SMTP_HOST || "localhost";
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || "587", 10);
-const SMTP_FROM = process.env.SMTP_FROM || "noreply@packattack.gg";
+const SMTP_FROM = process.env.SMTP_FROM || "no-reply@mail.packattack.gg";
 
-function getTransport() {
+// Use Resend in production, Nodemailer/SMTP for local dev
+const resendApiKey = process.env.RESEND_API_KEY;
+
+function getResend() {
+  return new Resend(resendApiKey);
+}
+
+function getSmtpTransport() {
   return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_PORT === 465,
+    host: process.env.SMTP_HOST || "localhost",
+    port: parseInt(process.env.SMTP_PORT || "1025", 10),
+    secure: false,
   });
 }
 
@@ -37,11 +43,21 @@ export async function sendTemplateEmail(
   const subject = interpolate(template.subject[lang], variables);
   const html = interpolate(template.body[lang], variables);
 
-  const transport = getTransport();
-  await transport.sendMail({
-    from: SMTP_FROM,
-    to,
-    subject,
-    html,
-  });
+  if (resendApiKey) {
+    const resend = getResend();
+    await resend.emails.send({
+      from: SMTP_FROM,
+      to,
+      subject,
+      html,
+    });
+  } else {
+    const transport = getSmtpTransport();
+    await transport.sendMail({
+      from: SMTP_FROM,
+      to,
+      subject,
+      html,
+    });
+  }
 }

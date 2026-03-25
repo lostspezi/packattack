@@ -1,0 +1,47 @@
+name: Deploy Beta
+
+on:
+  push:
+    branches:
+      - beta
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to server via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            cd /opt/packattackgg-beta
+
+            # Generate .env.beta from secrets + hardcoded values
+            cat > .env.beta << 'ENVEOF'
+            MONGODB_URI=mongodb://mongo:27017/packattackgg
+            REDIS_URL=redis://redis:6379
+            NEXTAUTH_URL=https://beta.packattack.gg
+            NEXT_PUBLIC_APP_URL=https://beta.packattack.gg
+            NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
+            DISCORD_CLIENT_ID=${{ secrets.DISCORD_CLIENT_ID }}
+            DISCORD_CLIENT_SECRET=${{ secrets.DISCORD_CLIENT_SECRET }}
+            TWITCH_CLIENT_ID=${{ secrets.TWITCH_CLIENT_ID }}
+            TWITCH_CLIENT_SECRET=${{ secrets.TWITCH_CLIENT_SECRET }}
+            RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            SMTP_FROM=no-reply@mail.packattack.gg
+            ENVEOF
+
+            # Remove leading whitespace from heredoc
+            sed -i 's/^            //' .env.beta
+
+            # Pull latest code
+            git pull origin beta
+
+            # Rebuild and restart containers
+            docker compose -f docker-compose.beta.yml up --build -d
+
+            # Cleanup old images
+            docker image prune -f

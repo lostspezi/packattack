@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.gitignore
+.env*
+.claude
+.superpowers
+.idea
+docker-compose*.yml
+Dockerfile
+nginx
+docs
+README.md
