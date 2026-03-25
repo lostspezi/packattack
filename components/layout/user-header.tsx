@@ -131,7 +131,9 @@ export function UserHeader({
 
         {/* Right side */}
         <div className="flex items-center gap-2 md:gap-3">
-          <LanguageSwitcher lang={lang} />
+          <div className="hidden sm:block">
+            <LanguageSwitcher lang={lang} />
+          </div>
           <NotificationBell />
 
           {/* User dropdown trigger */}
@@ -222,6 +224,14 @@ export function UserHeader({
                 </span>
               </span>
             </nav>
+
+            {/* Language switcher in drawer */}
+            <div className="px-3 py-3 border-t border-border">
+              <div className="flex items-center justify-between px-3">
+                <span className="text-sm text-text-muted">{dict["language"] ?? "Language"}</span>
+                <LanguageSwitcher lang={lang} />
+              </div>
+            </div>
 
             {/* User info at bottom of drawer */}
             <div className="px-3 pb-6 flex-shrink-0">
