@@ -46,7 +46,12 @@
       "Bash(mkdir -p \"C:/Users/marce/Desktop/packattackgg/app/[lang]/\\(dashboard\\)/admin/email-templates\")",
       "Bash(npx next:*)",
       "Bash(node:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(find C:UsersmarceDesktoppackattackgg -type d -name .next -prune -o -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\) -print)",
+      "Bash(for file:*)",
+      "Read(//c/Users/marce/Desktop/packattackgg/**)",
+      "Bash(grep -h ^export C:UsersmarceDesktoppackattackggcomponentslayout/*.tsx)",
+      "Bash(cd:*)"
     ]
   }
 }
