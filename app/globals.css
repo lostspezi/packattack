@@ -53,33 +53,8 @@ html {
 body {
   background-color: var(--color-bg);
   color: var(--color-text-primary);
-  /* Smooth font rendering on mobile */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent pull-to-refresh on app-like pages */
-  overscroll-behavior-y: contain;
-}
-
-/* ================================================================
- * TOUCH — Optimize for mobile/tablet interaction
- * ================================================================ */
-
-/* Remove 300ms tap delay on mobile */
-*,
-*::before,
-*::after {
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Smooth momentum scrolling on iOS */
-.scroll-touch {
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Touch-friendly tap targets — opt-in via class, not global */
-.tap-target {
-  min-height: 44px;
-  min-width: 44px;
 }
 
 /* Global cursor rules */
