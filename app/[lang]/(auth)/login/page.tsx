@@ -32,15 +32,12 @@ export default async function LoginPage({
       </div>
 
       {/* Divider */}
-      <div className="relative mb-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs">
-          <span className="bg-surface px-3 text-text-muted uppercase tracking-wider">
-            {dict["divider"] ?? "or"}
-          </span>
-        </div>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-xs text-text-muted uppercase tracking-wider">
+          {dict["divider"] ?? "or"}
+        </span>
+        <div className="flex-1 h-px bg-border" />
       </div>
 
       {/* Login form */}
