@@ -38,6 +38,7 @@ const providerConfig: Record<
 };
 
 const ALL_PROVIDERS = ["discord", "twitch", "google"] as const;
+const DISABLED_PROVIDERS = new Set(["google"]);
 
 export function LinkedProviders({ dict, lang, initialProviders }: LinkedProvidersProps) {
   const { toast } = useToast();
@@ -124,7 +125,9 @@ export function LinkedProviders({ dict, lang, initialProviders }: LinkedProvider
                 </span>
               )}
             </div>
-            {isLinked ? (
+            {DISABLED_PROVIDERS.has(providerKey) && !isLinked ? (
+              <span className="text-[10px] font-bold text-pa-green bg-pa-green/8 border border-pa-green/15 rounded px-2 py-1">Soon</span>
+            ) : isLinked ? (
               <Button
                 type="button"
                 variant="danger"
