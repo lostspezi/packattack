@@ -129,11 +129,11 @@ function SidebarContent({
     <>
       {/* Logo */}
       <div className="px-6 py-5 flex-shrink-0">
-        <span className="text-xl font-bold tracking-wide">
-          <span className="text-pa-green">PACK</span>
-          <span className="text-text-primary">ATTACK</span>
-          <span className="text-pa-green">.GG</span>
-        </span>
+        <img
+          src="/images/logo.svg"
+          alt="PackAttack.gg"
+          className="h-5 w-auto"
+        />
       </div>
 
       {/* Main nav */}
