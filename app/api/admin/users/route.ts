@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
+
+function getCreatedAt(user: { _id: unknown; createdAt?: Date | string }): string | null {
+  if (user.createdAt) return new Date(user.createdAt as string).toISOString();
+  // Extract timestamp from ObjectId if possible
+  if (user._id && Types.ObjectId.isValid(String(user._id))) {
+    try {
+      return new Types.ObjectId(String(user._id)).getTimestamp().toISOString();
+    } catch { /* ignore */ }
+  }
+  return null;
+}
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -61,7 +73,7 @@ export async function GET(req: NextRequest) {
         role: u.role,
         emailVerified: u.emailVerified ?? null,
         image: u.image ?? null,
-        createdAt: u.createdAt,
+        createdAt: getCreatedAt(u),
       })),
       total,
       page,
