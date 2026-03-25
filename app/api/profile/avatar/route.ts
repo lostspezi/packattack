@@ -191,25 +191,56 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    // Retrieve the image URL stored by NextAuth for this provider
-    // The adapter stores avatar on the user record at sign-in
-    // We look it up from the native users collection
-    const nativeUser = await db
-      .collection("users")
-      .findOne({ _id: new ObjectId(userId) });
+    // Fetch the avatar URL directly from the provider's API
+    let providerImage: string | null = null;
 
-    let providerImage: string | null = nativeUser?.image ?? null;
+    if (provider === "discord") {
+      // Discord API: GET /users/@me with Bearer token
+      const accessToken = account.access_token as string | undefined;
+      if (accessToken) {
+        try {
+          const res = await fetch("https://discord.com/api/v10/users/@me", {
+            headers: { Authorization: `Bearer ${accessToken}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.avatar) {
+              const ext = data.avatar.startsWith("a_") ? "gif" : "png";
+              providerImage = `https://cdn.discordapp.com/avatars/${data.id}/${data.avatar}.${ext}?size=256`;
+            }
+          }
+        } catch { /* ignore fetch error */ }
+      }
+    } else if (provider === "twitch") {
+      // Twitch API: GET /users with Bearer token + Client-ID
+      const accessToken = account.access_token as string | undefined;
+      if (accessToken) {
+        try {
+          const res = await fetch("https://api.twitch.tv/helix/users", {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "Client-Id": process.env.TWITCH_CLIENT_ID || "",
+            },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            providerImage = data.data?.[0]?.profile_image_url ?? null;
+          }
+        } catch { /* ignore fetch error */ }
+      }
+    }
 
-    // If no image on user doc, try to build from Discord account data
-    if (!providerImage && provider === "discord" && account.providerAccountId) {
-      // avatar hash may be stored in account metadata — fall back to null
-      // (Discord image URL was set by NextAuth at first sign-in on user.image)
-      providerImage = null;
+    // Fallback: check native users collection for stored image
+    if (!providerImage) {
+      const nativeUser = await db
+        .collection("users")
+        .findOne({ _id: new ObjectId(userId) });
+      providerImage = (nativeUser?.image as string) ?? null;
     }
 
     if (!providerImage) {
       return NextResponse.json(
-        { error: "No avatar found for this provider" },
+        { error: "No avatar found for this provider. Try re-linking your account." },
         { status: 404 }
       );
     }
