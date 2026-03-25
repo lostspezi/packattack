@@ -41,8 +41,8 @@ jobs:
             # Pull latest code
             git pull origin beta
 
-            # Rebuild and restart containers
-            docker compose -f docker-compose.beta.yml up --build -d
+            # Rebuild and restart containers (--env-file loads vars for build args)
+            docker compose --env-file .env.beta -f docker-compose.beta.yml up --build -d
 
             # Cleanup old images
             docker image prune -f
