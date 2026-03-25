@@ -113,8 +113,9 @@ export function AvatarSelector({
       }
 
       const newUrl = data.image ?? "/api/profile/avatar/file";
-      setCacheBust(Date.now());
-      setPreviewUrl(null);
+      const bust = Date.now();
+      setCacheBust(bust);
+      setPreviewUrl(`${newUrl}?t=${bust}`);
       onAvatarChange(newUrl);
       toast({ type: "success", title: "Avatar updated" });
     } catch {
