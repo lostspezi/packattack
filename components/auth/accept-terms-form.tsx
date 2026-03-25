@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
@@ -20,6 +21,7 @@ export function AcceptTermsForm({
   privacyVersion,
 }: AcceptTermsFormProps) {
   const router = useRouter();
+  const { update: updateSession } = useSession();
   const [acceptTos, setAcceptTos] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,6 +46,8 @@ export function AcceptTermsForm({
       });
 
       if (res.ok) {
+        // Refresh session so JWT picks up the new consent versions
+        await updateSession();
         router.push(`/${lang}/dashboard`);
       } else {
         setError(dict["error_unexpected"] ?? "An unexpected error occurred.");
