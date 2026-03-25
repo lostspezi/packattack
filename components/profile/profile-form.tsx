@@ -7,6 +7,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import type { BadgeVariant } from "@/components/ui/badge";
+import { AvatarSelector } from "@/components/profile/avatar-selector";
 
 interface ProfileData {
   name: string;
@@ -27,9 +28,10 @@ interface ProfileFormProps {
   dict: Record<string, string>;
   lang: string;
   initialData: ProfileData;
+  linkedProviders?: string[];
 }
 
-export function ProfileForm({ dict, initialData }: ProfileFormProps) {
+export function ProfileForm({ dict, initialData, linkedProviders = [] }: ProfileFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
 
@@ -41,6 +43,7 @@ export function ProfileForm({ dict, initialData }: ProfileFormProps) {
   const [twitter, setTwitter] = useState(initialData.socialLinks?.twitter ?? "");
   const [youtube, setYoutube] = useState(initialData.socialLinks?.youtube ?? "");
   const [publicProfile, setPublicProfile] = useState(initialData.publicProfile);
+  const [currentImage, setCurrentImage] = useState(initialData.image);
 
   const roleVariant = (initialData.role as BadgeVariant) || "user";
 
@@ -100,6 +103,19 @@ export function ProfileForm({ dict, initialData }: ProfileFormProps) {
           {dict["label_role"] ?? "Role"}:
         </span>
         <Badge variant={roleVariant}>{initialData.role}</Badge>
+      </div>
+
+      {/* Avatar */}
+      <div>
+        <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">
+          {dict["section_avatar"] ?? "Avatar"}
+        </h3>
+        <AvatarSelector
+          currentImage={currentImage}
+          lang=""
+          linkedProviders={linkedProviders}
+          onAvatarChange={setCurrentImage}
+        />
       </div>
 
       {/* Basic Info */}

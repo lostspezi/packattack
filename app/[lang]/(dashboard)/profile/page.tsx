@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { ProfileForm } from "@/components/profile/profile-form";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
+import { MongoClient, ObjectId } from "mongodb";
 
 export default async function ProfilePage({
   params,
@@ -20,7 +21,25 @@ export default async function ProfilePage({
   ]);
 
   await connectDB();
-  const user = await User.findById(session!.user!.id).lean();
+
+  const userId = session!.user!.id;
+
+  // Fetch user data and linked providers in parallel
+  const nativeClient = new MongoClient(process.env.MONGODB_URI!);
+  await nativeClient.connect();
+  const db = nativeClient.db();
+
+  const [user, accounts] = await Promise.all([
+    User.findById(userId).lean(),
+    db
+      .collection("accounts")
+      .find({ userId: new ObjectId(userId) })
+      .toArray(),
+  ]);
+
+  await nativeClient.close();
+
+  const linkedProviders = accounts.map((a) => a.provider as string);
 
   const initialData = {
     name: user?.name ?? "",
@@ -48,6 +67,7 @@ export default async function ProfilePage({
           dict={profileDict}
           lang={lang}
           initialData={initialData}
+          linkedProviders={linkedProviders}
         />
       </Card>
     </div>
