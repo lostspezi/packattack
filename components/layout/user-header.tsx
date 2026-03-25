@@ -98,6 +98,7 @@ export function UserHeader({
               width={32}
               height={32}
               className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+              onError={(e) => { (e.target as HTMLImageElement).src = "/images/default-avatar.png"; }}
             />
             {/* Name + level */}
             <div className="text-left hidden sm:block">

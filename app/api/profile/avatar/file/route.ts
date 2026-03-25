@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { getAvatar } from "@/lib/gridfs";
+import connectDB from "@/lib/db";
+import User from "@/models/user";
 
 // ---------------------------------------------------------------------------
 // GET — serve the authenticated user's custom avatar from GridFS
@@ -15,7 +17,11 @@ export async function GET() {
     const result = await getAvatar(session.user.id);
 
     if (!result) {
-      return NextResponse.json({ error: "No avatar found" }, { status: 404 });
+      // Clean up stale user.image reference
+      await connectDB();
+      await User.findByIdAndUpdate(session.user.id, { image: null });
+      // Redirect to default avatar
+      return NextResponse.redirect(new URL("/images/default-avatar.png", process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"));
     }
 
     // Collect the readable stream into a Buffer
