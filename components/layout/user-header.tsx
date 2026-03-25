@@ -43,10 +43,12 @@ export function UserHeader({
     setAvatarUrl(userImage || "/images/default-avatar.png");
   }, [userImage]);
 
-  // Close mobile menu on route change
+  // Close mobile menu on route change (but not on language switch)
+  const pathnameWithoutLang = pathname.replace(/^\/(de|en)/, "");
   useEffect(() => {
     setMobileMenuOpen(false);
-  }, [pathname]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathnameWithoutLang]);
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
