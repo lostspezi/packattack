@@ -174,10 +174,11 @@ export function UserHeader({
 
       {/* Mobile menu overlay — always in DOM for animation */}
       <div
-        className={[
-          "md:hidden fixed inset-0 z-30 flex pointer-events-none",
-          mobileMenuOpen ? "pointer-events-auto" : "",
-        ].join(" ")}
+        className="md:hidden fixed inset-0 z-30 flex"
+        style={{
+          visibility: mobileMenuOpen ? "visible" : "hidden",
+          transition: mobileMenuOpen ? "visibility 0s" : "visibility 0s 0.3s",
+        }}
       >
         {/* Backdrop */}
         <div
