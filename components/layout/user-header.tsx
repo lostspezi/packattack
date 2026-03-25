@@ -173,18 +173,30 @@ export function UserHeader({
         </div>
       </header>
 
-      {/* Mobile menu overlay */}
-      {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-30 flex">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setMobileMenuOpen(false)}
-            aria-hidden="true"
-          />
+      {/* Mobile menu overlay — always in DOM for animation */}
+      <div
+        className={[
+          "md:hidden fixed inset-0 z-30 flex pointer-events-none",
+          mobileMenuOpen ? "pointer-events-auto" : "",
+        ].join(" ")}
+      >
+        {/* Backdrop */}
+        <div
+          className={[
+            "absolute inset-0 bg-black/60 transition-opacity duration-300",
+            mobileMenuOpen ? "opacity-100" : "opacity-0",
+          ].join(" ")}
+          onClick={() => setMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
 
-          {/* Drawer */}
-          <div className="relative w-72 max-w-[85vw] bg-surface border-r border-border flex flex-col overflow-y-auto">
+        {/* Drawer */}
+        <div
+          className={[
+            "relative w-72 max-w-[85vw] bg-surface border-r border-border flex flex-col overflow-y-auto transition-transform duration-300 ease-out",
+            mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
+          ].join(" ")}
+        >
             {/* Drawer header */}
             <div className="h-16 flex items-center px-4 border-b border-border flex-shrink-0">
               <img
@@ -253,8 +265,7 @@ export function UserHeader({
               </div>
             </div>
           </div>
-        </div>
-      )}
+      </div>
     </>
   );
 }
