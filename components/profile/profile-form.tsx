@@ -4,9 +4,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
-import type { BadgeVariant } from "@/components/ui/badge";
 import { AvatarSelector } from "@/components/profile/avatar-selector";
 
 interface ProfileData {
@@ -44,8 +42,6 @@ export function ProfileForm({ dict, initialData, linkedProviders = [] }: Profile
   const [youtube, setYoutube] = useState(initialData.socialLinks?.youtube ?? "");
   const [publicProfile, setPublicProfile] = useState(initialData.publicProfile);
   const [currentImage, setCurrentImage] = useState(initialData.image);
-
-  const roleVariant = (initialData.role as BadgeVariant) || "user";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -97,14 +93,6 @@ export function ProfileForm({ dict, initialData, linkedProviders = [] }: Profile
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Role badge */}
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-text-secondary">
-          {dict["label_role"] ?? "Role"}:
-        </span>
-        <Badge variant={roleVariant}>{initialData.role}</Badge>
-      </div>
-
       {/* Avatar */}
       <div>
         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-4">
