@@ -104,10 +104,13 @@ export function UserTable({
   }
 
   function formatDate(dateStr: string) {
+    if (!dateStr) return "—";
     try {
-      return new Date(dateStr).toLocaleDateString();
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return "—";
+      return d.toLocaleDateString();
     } catch {
-      return dateStr;
+      return "—";
     }
   }
 
