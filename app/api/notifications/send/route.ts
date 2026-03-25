@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
+import { getRedis } from "@/lib/redis";
 import User from "@/models/user";
 import Notification from "@/models/notification";
 
@@ -111,6 +112,12 @@ export async function POST(req: NextRequest) {
     }));
 
     await Notification.insertMany(docs);
+
+    // Invalidate Redis unread count cache for all affected users
+    const redis = getRedis();
+    for (const userId of userIds) {
+      await redis.del(`notifications:unread:${userId}`);
+    }
 
     return NextResponse.json({ count: userIds.length });
   } catch (err) {
