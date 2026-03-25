@@ -2,6 +2,8 @@
 
 import React, { useState } from "react";
 import { useToast } from "@/components/ui/toast";
+import { Select } from "@/components/ui/select";
+import type { SelectOption } from "@/components/ui/select";
 
 const ALL_ROLES = ["user", "shop", "moderator", "admin", "super_admin"] as const;
 type Role = (typeof ALL_ROLES)[number];
@@ -26,8 +28,13 @@ export function RoleSelector({
 
   const isDisabled = isOwnUser || loading;
 
-  async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const newRole = e.target.value as Role;
+  const roleOptions: SelectOption[] = ALL_ROLES.map((r) => {
+    const isElevated = r === "admin" || r === "super_admin";
+    const isOptionDisabled = isElevated && sessionUserRole !== "super_admin";
+    return { label: r, value: r, disabled: isOptionDisabled };
+  });
+
+  async function handleChange(newRole: string) {
     setLoading(true);
     try {
       const res = await fetch(`/api/admin/users/${userId}/role`, {
@@ -47,7 +54,7 @@ export function RoleSelector({
       }
 
       toast({ type: "success", title: "Role updated successfully" });
-      onRoleChange(userId, newRole);
+      onRoleChange(userId, newRole as Role);
     } catch {
       toast({ type: "error", title: "Network error", message: "Please try again." });
     } finally {
@@ -56,21 +63,12 @@ export function RoleSelector({
   }
 
   return (
-    <select
+    <Select
+      options={roleOptions}
       value={currentRole}
       onChange={handleChange}
+      size="sm"
       disabled={isDisabled}
-      className="bg-white/4 border border-white/8 text-text-primary text-sm rounded-[8px] px-2 py-1 outline-none focus:border-pa-green/35 disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      {ALL_ROLES.map((r) => {
-        const isElevated = r === "admin" || r === "super_admin";
-        const isOptionDisabled = isElevated && sessionUserRole !== "super_admin";
-        return (
-          <option key={r} value={r} disabled={isOptionDisabled}>
-            {r}
-          </option>
-        );
-      })}
-    </select>
+    />
   );
 }

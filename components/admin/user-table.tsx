@@ -6,6 +6,8 @@ import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 import { RoleSelector } from "@/components/admin/role-selector";
 import { useToast } from "@/components/ui/toast";
+import { Select } from "@/components/ui/select";
+import type { SelectOption } from "@/components/ui/select";
 
 type Role = "user" | "shop" | "moderator" | "admin" | "super_admin";
 
@@ -123,35 +125,35 @@ export function UserTable({
         </div>
 
         {/* Role filter */}
-        <select
+        <Select
+          options={[
+            { label: "All roles", value: "" },
+            ...ALL_ROLES.map((r): SelectOption => ({ label: r, value: r })),
+          ]}
           value={roleFilter}
-          onChange={(e) => {
-            setRoleFilter(e.target.value);
+          onChange={(val) => {
+            setRoleFilter(val);
             setPage(1);
           }}
-          className="bg-white/4 border border-white/8 text-text-primary text-sm rounded-[10px] px-3 py-2 outline-none focus:border-pa-green/35"
-        >
-          <option value="">All roles</option>
-          {ALL_ROLES.map((r) => (
-            <option key={r} value={r}>
-              {r}
-            </option>
-          ))}
-        </select>
+          size="md"
+          className="w-44"
+        />
 
         {/* Verified filter */}
-        <select
+        <Select
+          options={[
+            { label: "All", value: "" },
+            { label: "Verified", value: "true" },
+            { label: "Unverified", value: "false" },
+          ]}
           value={verifiedFilter}
-          onChange={(e) => {
-            setVerifiedFilter(e.target.value);
+          onChange={(val) => {
+            setVerifiedFilter(val);
             setPage(1);
           }}
-          className="bg-white/4 border border-white/8 text-text-primary text-sm rounded-[10px] px-3 py-2 outline-none focus:border-pa-green/35"
-        >
-          <option value="">All</option>
-          <option value="true">Verified</option>
-          <option value="false">Unverified</option>
-        </select>
+          size="md"
+          className="w-36"
+        />
       </div>
 
       {/* Count */}

@@ -3,6 +3,8 @@
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/toast";
+import { Select } from "@/components/ui/select";
+import type { SelectOption } from "@/components/ui/select";
 
 type RecipientType = "user" | "role" | "all";
 type NotificationType = "info" | "success" | "warning" | "error";
@@ -135,17 +137,12 @@ export function NotificationSender() {
           <label className="block text-sm font-medium text-text-secondary">
             Role
           </label>
-          <select
+          <Select
+            options={ROLES.map((r): SelectOption => ({ label: r, value: r }))}
             value={roleValue}
-            onChange={(e) => setRoleValue(e.target.value)}
-            className="bg-white/4 border border-white/8 text-text-primary text-sm rounded-[10px] px-3 py-2 outline-none focus:border-pa-green/35 w-full max-w-xs"
-          >
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
+            onChange={(val) => setRoleValue(val)}
+            className="w-full max-w-xs"
+          />
         </div>
       )}
 
@@ -183,17 +180,11 @@ export function NotificationSender() {
         <label className="block text-sm font-medium text-text-secondary">
           Type
         </label>
-        <select
+        <Select
+          options={NOTIFICATION_TYPES.map(({ value, label }): SelectOption => ({ label, value }))}
           value={notifType}
-          onChange={(e) => setNotifType(e.target.value as NotificationType)}
-          className="bg-white/4 border border-white/8 text-text-primary text-sm rounded-[10px] px-3 py-2 outline-none focus:border-pa-green/35"
-        >
-          {NOTIFICATION_TYPES.map(({ value, label }) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+          onChange={(val) => setNotifType(val as NotificationType)}
+        />
       </div>
 
       {/* CTA (optional) */}
