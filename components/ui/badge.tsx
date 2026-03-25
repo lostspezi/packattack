@@ -28,7 +28,7 @@ const variantClasses: Record<BadgeVariant, string> = {
   super_admin:
     "bg-gradient-to-br from-pa-green/10 to-pa-lila/20 text-pa-green border border-pa-green/15",
   online: "bg-green-500/10 text-green-400 border border-green-400/15",
-  verified: "bg-blue-500/10 text-blue-400 border border-blue-400/15",
+  verified: "bg-pa-green/10 text-pa-green border border-pa-green/15",
   banned: "bg-error/10 text-error border border-error/15",
   info: "bg-blue-500/10 text-blue-400 border border-blue-400/15",
   success: "bg-green-500/10 text-green-400 border border-green-400/15",
