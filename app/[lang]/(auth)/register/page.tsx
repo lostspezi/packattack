@@ -14,13 +14,8 @@ export default async function RegisterPage({
 
   return (
     <Card variant="soft" className="p-5 sm:p-8">
-      {/* Logo + subtitle */}
+      {/* Subtitle */}
       <div className="mb-6 text-center">
-        <h1 className="text-2xl font-bold tracking-wide mb-1">
-          <span className="text-pa-green">PACK</span>
-          <span className="text-text-primary">ATTACK</span>
-          <span className="text-pa-green">.GG</span>
-        </h1>
         <p className="text-text-secondary text-sm">
           {dict["subtitle"] ?? "Create your account"}
         </p>

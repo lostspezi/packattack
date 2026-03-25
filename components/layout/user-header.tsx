@@ -85,11 +85,12 @@ export function UserHeader({
           </button>
 
           {/* Logo */}
-          <Link href={dashboardHref} className="text-base md:text-lg font-bold tracking-wide flex-shrink-0">
-            <span className="text-pa-green">PACK</span>
-            <span className="text-text-primary hidden sm:inline">ATTACK</span>
-            <span className="text-pa-green hidden sm:inline">.GG</span>
-            <span className="text-pa-green sm:hidden">.</span>
+          <Link href={dashboardHref} className="flex-shrink-0">
+            <img
+              src="/images/logo.svg"
+              alt="PackAttack.gg"
+              className="h-5 sm:h-6 w-auto"
+            />
           </Link>
 
           {/* Desktop Nav links */}
@@ -182,11 +183,11 @@ export function UserHeader({
           <div className="relative w-72 max-w-[85vw] bg-surface border-r border-border flex flex-col overflow-y-auto">
             {/* Drawer header */}
             <div className="h-16 flex items-center px-4 border-b border-border flex-shrink-0">
-              <span className="text-lg font-bold tracking-wide">
-                <span className="text-pa-green">PACK</span>
-                <span className="text-text-primary">ATTACK</span>
-                <span className="text-pa-green">.GG</span>
-              </span>
+              <img
+                src="/images/logo.svg"
+                alt="PackAttack.gg"
+                className="h-5 w-auto"
+              />
             </div>
 
             {/* Nav items */}
