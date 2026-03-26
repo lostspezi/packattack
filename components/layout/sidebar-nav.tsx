@@ -9,6 +9,7 @@ export type NavItem = {
 export const mainNavItems: NavItem[] = [
   { key: "dashboard", href: "/dashboard", icon: "LayoutGrid" },
   { key: "packs", href: "/packs", icon: "Package" },
+  { key: "inventory", href: "/inventory", icon: "Layers" },
   { key: "profile", href: "/profile", icon: "User" },
   { key: "settings", href: "/settings", icon: "Settings" },
   { key: "account", href: "/account", icon: "Shield" },
