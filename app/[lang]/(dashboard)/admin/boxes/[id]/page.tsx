@@ -36,7 +36,7 @@ async function getBox(id: string): Promise<BoxData | null> {
       totalPacks: box.totalPacks ?? null,
       rarityWeights: (box.rarityWeights ?? []).map((w: { rarity: string; weight: number }) => ({
         rarity: w.rarity,
-        weight: w.weight,
+        weight: w.weight ?? 0,
       })),
       packsOpened: box.packsOpened ?? 0,
       cardsCount: Array.isArray(box.cards) ? box.cards.length : 0,

@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
     priceInCoins?: number;
     cardsPerPack?: number;
     totalPacks?: number | null;
-    rarityWeights?: Array<{ rarity: string; weight: number }>;
+    rarityWeights?: Array<{ rarity: string; weight?: number }>;
   };
 
   if (!name?.de || !name?.en) {
@@ -131,13 +131,11 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const weightSum = rarityWeights.reduce((acc, rw) => acc + (rw.weight ?? 0), 0);
-  if (weightSum !== 100) {
-    return NextResponse.json(
-      { error: "rarityWeights must sum to 100" },
-      { status: 400 }
-    );
-  }
+  // Normalise: weights are computed from cards, store rarity names with weight 0
+  const normalisedRarityWeights = rarityWeights.map((rw) => ({
+    rarity: rw.rarity,
+    weight: rw.weight ?? 0,
+  }));
 
   try {
     await connectDB();
@@ -149,7 +147,7 @@ export async function POST(req: NextRequest) {
       priceInCoins,
       cardsPerPack,
       totalPacks: totalPacks ?? null,
-      rarityWeights,
+      rarityWeights: normalisedRarityWeights,
       status: "draft",
       packsOpened: 0,
       cards: [],

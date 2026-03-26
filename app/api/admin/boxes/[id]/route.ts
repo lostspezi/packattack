@@ -68,7 +68,7 @@ export async function PATCH(
     priceInCoins?: number;
     cardsPerPack?: number;
     totalPacks?: number | null;
-    rarityWeights?: Array<{ rarity: string; weight: number }>;
+    rarityWeights?: Array<{ rarity: string; weight?: number }>;
     status?: string;
     image?: string | null;
   };
@@ -80,16 +80,11 @@ export async function PATCH(
         { status: 400 }
       );
     }
-    const weightSum = updates.rarityWeights.reduce(
-      (acc, rw) => acc + (rw.weight ?? 0),
-      0
-    );
-    if (weightSum !== 100) {
-      return NextResponse.json(
-        { error: "rarityWeights must sum to 100" },
-        { status: 400 }
-      );
-    }
+    // Normalise: store rarity names; weights are computed from card entries
+    updates.rarityWeights = updates.rarityWeights.map((rw) => ({
+      rarity: rw.rarity,
+      weight: rw.weight ?? 0,
+    }));
   }
 
   try {

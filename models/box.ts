@@ -1,5 +1,11 @@
 import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
+export interface IBoxCard {
+  card: Types.ObjectId;
+  weight: number;
+  rarity: string;
+}
+
 export interface IBox extends Document {
   name: { de: string; en: string };
   description: { de: string; en: string } | null;
@@ -11,7 +17,7 @@ export interface IBox extends Document {
   totalPacks: number | null;
   packsOpened: number;
   rarityWeights: Array<{ rarity: string; weight: number }>;
-  cards: Types.ObjectId[];
+  cards: IBoxCard[];
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -47,10 +53,16 @@ const BoxSchema = new Schema<IBox>(
     rarityWeights: [
       {
         rarity: { type: String, required: true },
-        weight: { type: Number, required: true },
+        weight: { type: Number, required: true, default: 0 },
       },
     ],
-    cards: [{ type: Schema.Types.ObjectId, ref: "Card" }],
+    cards: [
+      {
+        card: { type: Schema.Types.ObjectId, ref: "Card", required: true },
+        weight: { type: Number, required: true, default: 1 },
+        rarity: { type: String, required: true },
+      },
+    ],
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }

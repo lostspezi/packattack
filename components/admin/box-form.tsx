@@ -80,8 +80,6 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
     const cpp = parseInt(cardsPerPack, 10);
     if (isNaN(cpp) || cpp < 1) errs.cardsPerPack = isDe ? "Muss mind. 1 sein" : "Must be at least 1";
     if (rarityWeights.length === 0) errs.rarityWeights = isDe ? "Mind. eine Rarität nötig" : "At least one rarity required";
-    const weightSum = rarityWeights.reduce((acc, w) => acc + w.weight, 0);
-    if (rarityWeights.length > 0 && weightSum !== 100) errs.rarityWeights = isDe ? "Gewichte müssen 100 ergeben" : "Weights must sum to 100";
     setErrors(errs);
     return Object.keys(errs).length === 0;
   }
