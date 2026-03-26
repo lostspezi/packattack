@@ -5,6 +5,7 @@ export interface IUser extends Document {
   name: string;
   username: string;
   email: string;
+  coins: number;
   emailVerified: Date | null;
   password: string | null;
   image: string | null;
@@ -102,6 +103,7 @@ const UserSchema = new Schema<IUser>(
       },
     },
     onboardingCompleted: { type: Boolean, default: false },
+    coins: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

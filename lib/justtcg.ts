@@ -1,0 +1,147 @@
+import { createHash } from "crypto";
+import { getRedis } from "@/lib/redis";
+
+const BASE_URL = "https://api.justtcg.com/v1";
+
+function getApiKey(): string {
+  return process.env.JUSTTCG_API_KEY ?? "";
+}
+
+async function fetchJustTCG<T>(path: string): Promise<T | null> {
+  try {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      headers: {
+        "X-API-Key": getApiKey(),
+      },
+    });
+
+    if (!res.ok) {
+      console.error(
+        `[JustTCG] Request failed: ${res.status} ${res.statusText} — ${path}`
+      );
+      return null;
+    }
+
+    return (await res.json()) as T;
+  } catch (err) {
+    console.error(`[JustTCG] Fetch error for ${path}:`, err);
+    return null;
+  }
+}
+
+async function cached<T>(
+  key: string,
+  ttlSeconds: number,
+  fetcher: () => Promise<T | null>
+): Promise<T | null> {
+  const redis = getRedis();
+
+  try {
+    const hit = await redis.get(key);
+    if (hit !== null) {
+      return JSON.parse(hit) as T;
+    }
+  } catch (err) {
+    console.error(`[JustTCG] Redis get error for key ${key}:`, err);
+  }
+
+  const data = await fetcher();
+
+  if (data !== null) {
+    try {
+      await redis.set(key, JSON.stringify(data), "EX", ttlSeconds);
+    } catch (err) {
+      console.error(`[JustTCG] Redis set error for key ${key}:`, err);
+    }
+  }
+
+  return data;
+}
+
+export interface JustTCGGame {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+export interface JustTCGSet {
+  id: string;
+  slug: string;
+  name: string;
+  game: string;
+  [key: string]: unknown;
+}
+
+export interface JustTCGCardVariant {
+  condition: string;
+  printing: string;
+  price: number;
+}
+
+export interface JustTCGCard {
+  id: string;
+  name: string;
+  game: string;
+  set: string;
+  setName: string;
+  rarity: string;
+  image: string | null;
+  tcgplayerId: string | null;
+  marketPrice: number | null;
+  variants: JustTCGCardVariant[];
+  [key: string]: unknown;
+}
+
+export interface JustTCGCardsResponse {
+  cards: JustTCGCard[];
+  total?: number;
+  page?: number;
+  limit?: number;
+}
+
+export interface SearchCardsParams {
+  game?: string;
+  set?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+export async function getGames(): Promise<JustTCGGame[] | null> {
+  return cached<JustTCGGame[]>("justtcg:games", 3600, () =>
+    fetchJustTCG<JustTCGGame[]>("/games")
+  );
+}
+
+export async function getSets(game: string): Promise<JustTCGSet[] | null> {
+  const cacheKey = `justtcg:sets:${game}`;
+  return cached<JustTCGSet[]>(cacheKey, 3600, () =>
+    fetchJustTCG<JustTCGSet[]>(`/sets?game=${encodeURIComponent(game)}`)
+  );
+}
+
+export async function searchCards(
+  params: SearchCardsParams
+): Promise<JustTCGCardsResponse | null> {
+  const query = new URLSearchParams();
+  if (params.game) query.set("game", params.game);
+  if (params.set) query.set("set", params.set);
+  if (params.search) query.set("search", params.search);
+  if (params.page !== undefined) query.set("page", String(params.page));
+  if (params.limit !== undefined) query.set("limit", String(params.limit));
+
+  const queryString = query.toString();
+  const hash = createHash("sha256").update(queryString).digest("hex");
+  const cacheKey = `justtcg:cards:search:${hash}`;
+
+  return cached<JustTCGCardsResponse>(cacheKey, 300, () =>
+    fetchJustTCG<JustTCGCardsResponse>(`/cards${queryString ? `?${queryString}` : ""}`)
+  );
+}
+
+export async function getCard(id: string): Promise<JustTCGCard | null> {
+  const cacheKey = `justtcg:card:${id}`;
+  return cached<JustTCGCard>(cacheKey, 300, () =>
+    fetchJustTCG<JustTCGCard>(`/cards/${encodeURIComponent(id)}`)
+  );
+}
