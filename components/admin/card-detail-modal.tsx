@@ -71,6 +71,7 @@ export function CardDetailModal({
     async function fetchPriceData() {
       try {
         const params = new URLSearchParams({ game, name: card.name });
+        if (card.set) params.set("set", card.set);
         const res = await fetch(`/api/justtcg/card?${params.toString()}`);
         if (cancelled) return;
         if (!res.ok) throw new Error("fetch failed");
@@ -92,7 +93,7 @@ export function CardDetailModal({
     void fetchPriceData();
 
     return () => { cancelled = true; };
-  }, [open, card.name, game]);
+  }, [open, card.name, card.set, game]);
 
   // Aggregate price changes from first variant with data
   const firstVariant = variants.find(

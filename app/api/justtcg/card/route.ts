@@ -16,13 +16,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const game = searchParams.get("game");
   const cardName = searchParams.get("name");
+  const cardSet = searchParams.get("set");
 
   if (!game || !cardName) {
     return NextResponse.json({ error: "game and name parameters required" }, { status: 400 });
   }
 
   // Short cache (2 min) to avoid hammering the API on repeated clicks
-  const cacheKey = `justtcg:card-detail:${game}:${cardName}`;
+  const cacheKey = `justtcg:card-detail:${game}:${cardSet ?? ""}:${cardName}`;
   const redis = getRedis();
 
   try {
@@ -35,6 +36,7 @@ export async function GET(req: NextRequest) {
   try {
     const apiKey = process.env.JUSTTCG_API_KEY ?? "";
     const params = new URLSearchParams({ game, search: cardName, limit: "5" });
+    if (cardSet) params.set("set", cardSet);
     const res = await fetch(`${BASE_URL}/cards?${params.toString()}`, {
       headers: { "X-API-Key": apiKey },
     });
