@@ -150,6 +150,7 @@ export function BoxCardManager({
           open={modalOpen}
           onClose={() => setModalOpen(false)}
           lang={lang}
+          game={game}
         />
       )}
       {/* Card search section */}
