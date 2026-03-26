@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { LayoutGrid, Package, ShoppingBag, ChevronDown, Menu, X } from "lucide-react";
+import { LayoutGrid, Package, ShoppingBag, Layers, ChevronDown, Menu, X } from "lucide-react";
 import { LanguageSwitcher } from "./language-switcher";
 import { NotificationBell } from "./notification-bell";
 import { UserDropdown } from "./user-dropdown";
@@ -126,6 +126,20 @@ export function UserHeader({
               <span>{dict["packs"] ?? "Packs"}</span>
             </Link>
 
+            {/* Inventory / Collection */}
+            <Link
+              href={`/${lang}/inventory`}
+              className={[
+                "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                pathname.includes("/inventory")
+                  ? "bg-white/6 text-pa-green"
+                  : "text-text-secondary hover:text-text-primary hover:bg-white/4",
+              ].join(" ")}
+            >
+              <Layers className="w-4 h-4 flex-shrink-0" />
+              <span>{dict["inventory"] ?? (lang === "de" ? "Sammlung" : "Collection")}</span>
+            </Link>
+
             {/* Marketplace — soon */}
             <span className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
               <ShoppingBag className="w-4 h-4 flex-shrink-0" />
@@ -233,13 +247,33 @@ export function UserHeader({
                 <span>{dict["dashboard"] ?? "Dashboard"}</span>
               </Link>
 
-              <span className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
+              <Link
+                href={`/${lang}/packs`}
+                onClick={() => setMobileMenuOpen(false)}
+                className={[
+                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
+                  pathname.includes("/packs")
+                    ? "text-pa-green bg-pa-green/6"
+                    : "text-text-muted hover:text-text-primary",
+                ].join(" ")}
+              >
                 <Package className="w-5 h-5 flex-shrink-0" />
-                <span className="flex-1">{dict["packs"] ?? "Packs"}</span>
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
-                  Soon
-                </span>
-              </span>
+                <span>{dict["packs"] ?? "Packs"}</span>
+              </Link>
+
+              <Link
+                href={`/${lang}/inventory`}
+                onClick={() => setMobileMenuOpen(false)}
+                className={[
+                  "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
+                  pathname.includes("/inventory")
+                    ? "text-pa-green bg-pa-green/6"
+                    : "text-text-muted hover:text-text-primary",
+                ].join(" ")}
+              >
+                <Layers className="w-5 h-5 flex-shrink-0" />
+                <span>{dict["inventory"] ?? (lang === "de" ? "Sammlung" : "Collection")}</span>
+              </Link>
 
               <span className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
                 <ShoppingBag className="w-5 h-5 flex-shrink-0" />
