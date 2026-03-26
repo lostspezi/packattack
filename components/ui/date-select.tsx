@@ -11,6 +11,7 @@ interface DateSelectProps {
   error?: string;
   maxYear?: number;
   minYear?: number;
+  lang?: "de" | "en";
 }
 
 const MONTHS_DE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
@@ -28,6 +29,7 @@ export function DateSelect({
   error,
   maxYear,
   minYear,
+  lang = "en",
 }: DateSelectProps) {
   const currentYear = new Date().getFullYear();
   const max = maxYear ?? currentYear;
@@ -62,18 +64,19 @@ export function DateSelect({
     }
   }
 
+  const isDE = lang === "de";
+
   // Day options
   const daysInMonth = getDaysInMonth(parseInt(month) || 0, parseInt(year) || currentYear);
   const dayOptions: SelectOption[] = [
-    { label: "Day", value: "" },
+    { label: isDE ? "Tag" : "Day", value: "" },
     ...Array.from({ length: daysInMonth }, (_, i) => ({
       label: String(i + 1),
       value: String(i + 1),
     })),
   ];
 
-  // Month options — detect language from document
-  const isDE = typeof document !== "undefined" && document.documentElement.lang === "de";
+  // Month options
   const monthNames = isDE ? MONTHS_DE : MONTHS_EN;
   const monthOptions: SelectOption[] = [
     { label: isDE ? "Monat" : "Month", value: "" },

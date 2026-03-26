@@ -144,6 +144,7 @@ export function OnboardingForm({
         value={dateOfBirth}
         onChange={setDateOfBirth}
         maxYear={maxYear}
+        lang={lang as "de" | "en"}
       />
 
       <div className="flex flex-col gap-3">
