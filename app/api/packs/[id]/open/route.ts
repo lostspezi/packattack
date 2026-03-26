@@ -39,12 +39,16 @@ export async function POST(
   try {
     await connectDB();
 
-    // 1. Load box
-    const box = await Box.findById(boxId);
+    // 1. Load box (support slug or ObjectId)
+    const isObjectId = /^[a-f\d]{24}$/i.test(boxId);
+    const box = isObjectId
+      ? await Box.findById(boxId)
+      : await Box.findOne({ slug: boxId });
     if (!box || box.status !== "published") {
       return NextResponse.json({ error: "Box not found or not published" }, { status: 404 });
     }
 
+    const realBoxId = box._id;
     const totalCost = box.priceInCoins * packCount;
 
     // 2. Check user coins (atomic: only deduct if sufficient)
@@ -130,7 +134,7 @@ export async function POST(
       // Decrement one at a time with atomic $gte guard
       for (let i = 0; i < count; i++) {
         const res = await Box.updateOne(
-          { _id: boxId, "cards.card": cardObjectId, "cards.stock": { $gte: 1 } },
+          { _id: realBoxId, "cards.card": cardObjectId, "cards.stock": { $gte: 1 } },
           { $inc: { "cards.$.stock": -1 } }
         );
         if (res.modifiedCount === 0) failedDecrements++;
@@ -138,17 +142,17 @@ export async function POST(
     }
 
     // Atomically increment packsOpened
-    await Box.updateOne({ _id: boxId }, { $inc: { packsOpened: packCount } });
+    await Box.updateOne({ _id: realBoxId }, { $inc: { packsOpened: packCount } });
 
     // Reload box for stock alerts (need current state)
-    const updatedBox = await Box.findById(boxId);
+    const updatedBox = await Box.findById(realBoxId);
 
     // 8. Record coin transaction
     await CoinTransaction.create({
       userId,
       amount: -totalCost,
       type: "pack_purchase",
-      relatedBoxId: boxId,
+      relatedBoxId: realBoxId,
     });
 
     // 9. Check for low-stock / out-of-stock notifications (only for drawn cards)

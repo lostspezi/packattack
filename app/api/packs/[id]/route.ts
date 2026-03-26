@@ -17,7 +17,11 @@ export async function GET(
   try {
     await connectDB();
 
-    const box = await Box.findById(id).lean();
+    // Support both slug and ObjectId lookup
+    const isObjectId = /^[a-f\d]{24}$/i.test(id);
+    const box = isObjectId
+      ? await Box.findById(id).lean()
+      : await Box.findOne({ slug: id }).lean();
     if (!box || box.status !== "published") {
       return NextResponse.json({ error: "Box not found" }, { status: 404 });
     }
@@ -40,6 +44,7 @@ export async function GET(
 
     return NextResponse.json({
       _id: box._id.toString(),
+      slug: box.slug ?? box._id.toString(),
       name: box.name,
       description: box.description,
       game: box.game,

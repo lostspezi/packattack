@@ -107,6 +107,18 @@ async function syncEmailTemplates() {
   }
 }
 
+async function migrateBoxSlugs() {
+  const Box = (await import("@/models/box")).default;
+  const boxes = await Box.find({ $or: [{ slug: { $exists: false } }, { slug: null }, { slug: "" }] });
+  if (boxes.length === 0) return;
+
+  for (const box of boxes) {
+    box.slug = undefined as unknown as string; // Force pre-save hook to generate
+    await box.save();
+  }
+  console.log(`[seed]   ✓ Generated slugs for ${boxes.length} existing box(es)`);
+}
+
 export async function runSeed() {
   const start = performance.now();
   console.log("[seed] Starting seed process...");
@@ -117,6 +129,7 @@ export async function runSeed() {
   await runInitialSeed();
   await syncTranslations();
   await syncEmailTemplates();
+  await migrateBoxSlugs();
 
   const duration = (performance.now() - start).toFixed(0);
   console.log(`[seed] Seed complete in ${duration}ms.`);

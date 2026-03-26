@@ -10,6 +10,7 @@ export interface IBoxCard {
 
 export interface IBox extends Document {
   name: { de: string; en: string };
+  slug: string;
   description: { de: string; en: string } | null;
   game: string;
   image: string | null;
@@ -32,6 +33,7 @@ const BoxSchema = new Schema<IBox>(
       de: { type: String, required: true },
       en: { type: String, required: true },
     },
+    slug: { type: String, unique: true, sparse: true },
     description: {
       type: new Schema(
         {
@@ -74,8 +76,35 @@ const BoxSchema = new Schema<IBox>(
   { timestamps: true }
 );
 
+// Auto-generate unique slug from name
+BoxSchema.pre("save", async function () {
+  if (this.slug) return;
+
+  const base = (this.name?.en || this.name?.de || "box")
+    .toLowerCase()
+    .replace(/[äöüß]/g, (c: string) => ({ ä: "ae", ö: "oe", ü: "ue", ß: "ss" }[c] ?? c))
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+
+  let slug = base;
+  let attempt = 0;
+  const BoxModel = this.constructor as Model<IBox>;
+
+  // eslint-disable-next-line no-constant-condition
+  while (true) {
+    const existing = await BoxModel.findOne({ slug, _id: { $ne: this._id } }).select("_id").lean();
+    if (!existing) break;
+    attempt++;
+    slug = `${base}-${attempt}`;
+  }
+
+  this.slug = slug;
+});
+
 BoxSchema.index({ status: 1 });
 BoxSchema.index({ game: 1 });
+BoxSchema.index({ slug: 1 });
 
 const Box: Model<IBox> =
   mongoose.models.Box ?? mongoose.model<IBox>("Box", BoxSchema);

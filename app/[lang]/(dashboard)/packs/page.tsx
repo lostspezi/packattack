@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 
 interface BoxItem {
   _id: string;
+  slug: string;
   name: { de: string; en: string };
   description: { de: string; en: string } | null;
   game: string;
@@ -68,7 +69,7 @@ export default function PacksPage() {
               <button
                 key={box._id}
                 type="button"
-                onClick={() => router.push(`/${lang}/packs/${box._id}`)}
+                onClick={() => router.push(`/${lang}/packs/${box.slug}`)}
                 className="bg-surface border border-border rounded-[14px] p-4 text-left hover:border-pa-green/30 transition-all group"
               >
                 {/* Box image */}

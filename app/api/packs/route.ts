@@ -28,6 +28,7 @@ export async function GET() {
 
         return {
           _id: b._id.toString(),
+          slug: b.slug ?? b._id.toString(),
           name: b.name,
           description: b.description,
           game: b.game,
