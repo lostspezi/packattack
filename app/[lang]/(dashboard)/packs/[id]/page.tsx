@@ -313,7 +313,7 @@ export default function PackDetailPage() {
       {/* ═══ THREE COLUMNS ═══ */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <TopHits cards={box.topHits} lang={lang} />
-        <LiveEvents boxId={box._id} initialEvents={initialEvents} lang={lang} />
+        <LiveEvents boxId={box._id} initialEvents={initialEvents} cardPool={box.cardPool} lang={lang} />
         <MyPulls pulls={box.recentPulls} lang={lang} />
       </div>
 

@@ -26,13 +26,23 @@ function isRare(coinValue: number): boolean {
   return coinValue >= 20;
 }
 
+interface CardPoolEntry {
+  name: string;
+  chance: number;
+  coinValue: number;
+  marketPrice: number | null;
+  setName: string;
+}
+
 export function LiveEvents({
   boxId,
   initialEvents,
+  cardPool,
   lang,
 }: {
   boxId: string;
   initialEvents: LiveEvent[];
+  cardPool: CardPoolEntry[];
   lang: string;
 }) {
   const isDe = lang === "de";
@@ -126,22 +136,25 @@ export function LiveEvents({
         )}
       </div>
 
-      {selectedEvent && (
-        <CardLightbox
-          card={{
-            name: selectedEvent.cardName,
-            image: selectedEvent.cardImage,
-            rarity: selectedEvent.rarity,
-            setName: "",
-            coinValue: selectedEvent.coinValue,
-            marketPrice: null,
-            chance: 0,
-          }}
-          lang={lang}
-          open={true}
-          onClose={() => setSelectedEvent(null)}
-        />
-      )}
+      {selectedEvent && (() => {
+        const poolCard = cardPool.find((c) => c.name === selectedEvent.cardName);
+        return (
+          <CardLightbox
+            card={{
+              name: selectedEvent.cardName,
+              image: selectedEvent.cardImage,
+              rarity: selectedEvent.rarity,
+              setName: poolCard?.setName ?? "",
+              coinValue: selectedEvent.coinValue,
+              marketPrice: poolCard?.marketPrice ?? null,
+              chance: poolCard?.chance ?? 0,
+            }}
+            lang={lang}
+            open={true}
+            onClose={() => setSelectedEvent(null)}
+          />
+        );
+      })()}
     </>
   );
 }
