@@ -21,7 +21,17 @@ export async function POST(req: NextRequest) {
 
     await User.findByIdAndUpdate(userId, { emailVerified: new Date() });
 
-    return NextResponse.json({ success: true });
+    // Set a short-lived cookie so proxy.ts skips the emailVerified check on the next request.
+    // The JWT won't have the updated value yet, but the proxy will let the user through.
+    // On the next JWT refresh cycle, emailVerified will be read from DB correctly.
+    const response = NextResponse.json({ success: true });
+    response.cookies.set("email-just-verified", "1", {
+      maxAge: 60, // 60 seconds — enough time for the redirect + JWT refresh
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+    });
+    return response;
   } catch (err) {
     console.error("[verify-email]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

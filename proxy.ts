@@ -58,7 +58,10 @@ export async function proxy(request: NextRequest) {
   }
 
   // 4. Email verification check
-  if (!token.emailVerified) {
+  // Skip if the user just verified their email (cookie set by verify-email API).
+  // The JWT hasn't refreshed yet, but the DB has the updated emailVerified value.
+  const justVerified = request.cookies.get("email-just-verified")?.value === "1";
+  if (!token.emailVerified && !justVerified) {
     const url = request.nextUrl.clone();
     url.pathname = `/${locale}/verify-email`;
     return NextResponse.redirect(url);
