@@ -70,8 +70,10 @@ export function calculateAutoWeights(
   }
   const expectedPackValue = Math.round(expectedCardValue * cardsPerPack * 100) / 100;
 
-  // Pack price with margin
-  const suggestedPackPrice = Math.max(1, Math.round(expectedPackValue * (1 + marginPercent / 100)));
+  // Pack price with margin: margin% of revenue is profit
+  // price = expectedValue / (1 - margin/100)
+  const marginFraction = Math.min(marginPercent / 100, 0.99);
+  const suggestedPackPrice = Math.max(1, Math.round(expectedPackValue / (1 - marginFraction)));
 
   return { weights, coinValues, suggestedPackPrice, expectedPackValue };
 }
