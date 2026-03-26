@@ -21,11 +21,6 @@ export function TranslationKeyEditor({ namespace }: TranslationKeyEditorProps) {
   const [keys, setKeys] = useState<TranslationKey[]>([]);
   const [loading, setLoading] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
-  const [newKeyName, setNewKeyName] = useState("");
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [newDe, setNewDe] = useState("");
-  const [newEn, setNewEn] = useState("");
-  const [addingKey, setAddingKey] = useState(false);
   const { toast } = useToast();
 
   const fetchKeys = useCallback(async () => {
@@ -50,7 +45,6 @@ export function TranslationKeyEditor({ namespace }: TranslationKeyEditorProps) {
 
   useEffect(() => {
     setKeys([]);
-    setShowAddForm(false);
     void fetchKeys();
   }, [fetchKeys]);
 
@@ -98,39 +92,6 @@ export function TranslationKeyEditor({ namespace }: TranslationKeyEditorProps) {
     }
   }
 
-  async function handleAddKey(e: React.FormEvent) {
-    e.preventDefault();
-    if (!namespace || !newKeyName.trim()) return;
-    setAddingKey(true);
-    try {
-      const res = await fetch("/api/admin/translations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          namespace,
-          key: newKeyName.trim(),
-          values: { de: newDe, en: newEn },
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        toast({ type: "error", title: data.error ?? "Failed to add key" });
-        return;
-      }
-      const created = await res.json();
-      setKeys((prev) => [...prev, created]);
-      setNewKeyName("");
-      setNewDe("");
-      setNewEn("");
-      setShowAddForm(false);
-      toast({ type: "success", title: `Added "${created.key}"` });
-    } catch {
-      toast({ type: "error", title: "Network error" });
-    } finally {
-      setAddingKey(false);
-    }
-  }
-
   if (!namespace) {
     return (
       <div className="flex items-center justify-center h-64 text-text-muted text-sm">
@@ -148,68 +109,7 @@ export function TranslationKeyEditor({ namespace }: TranslationKeyEditorProps) {
             ({keys.length} keys)
           </span>
         </h3>
-        <button
-          onClick={() => setShowAddForm((v) => !v)}
-          className="px-3 py-1.5 bg-pa-green text-black text-xs font-semibold rounded-[8px] hover:bg-pa-green/85 transition-colors"
-        >
-          + Add key
-        </button>
       </div>
-
-      {showAddForm && (
-        <form
-          onSubmit={handleAddKey}
-          className="bg-surface border border-border rounded-[12px] p-4 space-y-3"
-        >
-          <h4 className="text-sm font-medium text-text-secondary">New Translation Key</h4>
-          <Input
-            placeholder="Key name (e.g. greeting_title)"
-            value={newKeyName}
-            onChange={(e) => setNewKeyName(e.target.value)}
-            className="py-1.5 text-sm"
-          />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-text-muted mb-1">DE</label>
-              <Input
-                placeholder="German"
-                value={newDe}
-                onChange={(e) => setNewDe(e.target.value)}
-                className="py-1.5 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs text-text-muted mb-1">EN</label>
-              <Input
-                placeholder="English"
-                value={newEn}
-                onChange={(e) => setNewEn(e.target.value)}
-                className="py-1.5 text-sm"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              type="submit"
-              variant="primary"
-              size="sm"
-              loading={addingKey}
-              disabled={addingKey || !newKeyName.trim()}
-            >
-              Add
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={addingKey}
-              onClick={() => setShowAddForm(false)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </form>
-      )}
 
       {loading ? (
         <p className="text-sm text-text-muted py-8 text-center">Loading…</p>

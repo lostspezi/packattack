@@ -7,12 +7,11 @@ import bcrypt from "bcryptjs";
 import { translationSeedData } from "@/seed/translations";
 import { emailTemplateSeedData } from "@/seed/email-templates";
 
-export async function runSeed() {
-  await connectDB();
+async function runInitialSeed() {
   const userCount = await User.countDocuments();
   if (userCount > 0) return; // Already seeded
 
-  console.log("[seed] First start detected — seeding database...");
+  console.log("[seed] First start detected — seeding admin user and platform settings...");
 
   // 1. Create super admin
   const hashedPassword = await bcrypt.hash("admin123", 12);
@@ -41,11 +40,40 @@ export async function runSeed() {
     updatedAt: new Date(),
   });
 
-  // 3. Seed translations
-  await Translation.insertMany(translationSeedData);
+  console.log("[seed] Admin user and platform settings created.");
+}
 
-  // 4. Seed email templates
-  await EmailTemplate.insertMany(emailTemplateSeedData);
+async function syncTranslations() {
+  let inserted = 0;
+  for (const item of translationSeedData) {
+    const exists = await Translation.exists({ namespace: item.namespace, key: item.key });
+    if (!exists) {
+      await Translation.create(item);
+      inserted++;
+    }
+  }
+  if (inserted > 0) {
+    console.log(`[seed] Inserted ${inserted} missing translation key(s).`);
+  }
+}
 
-  console.log("[seed] Database seeded successfully.");
+async function syncEmailTemplates() {
+  let inserted = 0;
+  for (const item of emailTemplateSeedData) {
+    const exists = await EmailTemplate.exists({ slug: item.slug });
+    if (!exists) {
+      await EmailTemplate.create(item);
+      inserted++;
+    }
+  }
+  if (inserted > 0) {
+    console.log(`[seed] Inserted ${inserted} missing email template(s).`);
+  }
+}
+
+export async function runSeed() {
+  await connectDB();
+  await runInitialSeed();
+  await syncTranslations();
+  await syncEmailTemplates();
 }

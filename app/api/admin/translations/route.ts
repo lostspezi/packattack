@@ -58,67 +58,6 @@ export async function GET(req: NextRequest) {
   }
 }
 
-export async function POST(req: NextRequest) {
-  const session = await auth();
-  const role = (session?.user as { role?: string } | undefined)?.role;
-  const userId = (session?.user as { id?: string } | undefined)?.id;
-
-  if (!session?.user || (role !== "admin" && role !== "super_admin")) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  let body: { namespace?: string; key?: string; values?: { de?: string; en?: string } };
-  try {
-    body = await req.json();
-  } catch {
-    return NextResponse.json({ error: "invalid_json" }, { status: 400 });
-  }
-
-  const { namespace, key, values } = body;
-
-  if (!namespace || !key) {
-    return NextResponse.json(
-      { error: "namespace and key are required" },
-      { status: 400 }
-    );
-  }
-
-  try {
-    await connectDB();
-
-    const existing = await Translation.findOne({ namespace, key });
-    if (existing) {
-      return NextResponse.json(
-        { error: "Key already exists" },
-        { status: 409 }
-      );
-    }
-
-    const doc = await Translation.create({
-      namespace,
-      key,
-      values: { de: values?.de ?? "", en: values?.en ?? "" },
-      updatedBy: userId ?? null,
-    });
-
-    await invalidateTranslationCache(namespace);
-
-    return NextResponse.json(
-      {
-        _id: doc._id.toString(),
-        namespace: doc.namespace,
-        key: doc.key,
-        values: doc.values,
-        updatedAt: doc.updatedAt,
-      },
-      { status: 201 }
-    );
-  } catch (err) {
-    console.error("[admin/translations POST]", err);
-    return NextResponse.json({ error: "server_error" }, { status: 500 });
-  }
-}
-
 export async function PATCH(req: NextRequest) {
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role;
