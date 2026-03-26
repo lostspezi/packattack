@@ -94,7 +94,7 @@ export async function GET(
     // User's recent pulls for this box (last 5)
     const myPulls = await PackPull.find({ userId, boxId: box._id })
       .sort({ createdAt: -1 })
-      .limit(5)
+      .limit(6)
       .populate("cardId", "name image")
       .lean();
 

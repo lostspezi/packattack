@@ -92,7 +92,7 @@ export function LiveEvents({
           </p>
         ) : (
           <div className="space-y-1">
-            {events.slice(0, 6).map((ev, i) => {
+            {events.slice(0, 7).map((ev, i) => {
               const rare = isRare(ev.coinValue);
               return (
                 <button
