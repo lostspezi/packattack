@@ -14,24 +14,21 @@ export interface AutoWeightResult {
   coinValues: Map<string, number>;
   suggestedPackPrice: number;
   expectedPackValue: number;
-  coinRate: number;
 }
 
 /**
  * Calculate weights inversely proportional to price.
  * Expensive cards get low weights (rare), cheap cards get high weights (common).
- * Also calculates coin values and suggested pack price with margin.
- *
- * coinRate: how many coins per $1 USD (e.g. 100 means $0.12 = 12 coins, $174 = 17400 coins)
+ * Coin values derived from market price (1 Coin = 1€ ≈ $1, rounded, min 1).
+ * Pack price = expected value × (1 + margin).
  */
 export function calculateAutoWeights(
   cards: AutoWeightCard[],
   cardsPerPack: number,
-  marginPercent: number,
-  coinRate: number
+  marginPercent: number
 ): AutoWeightResult {
   if (cards.length === 0) {
-    return { weights: new Map(), coinValues: new Map(), suggestedPackPrice: 0, expectedPackValue: 0, coinRate };
+    return { weights: new Map(), coinValues: new Map(), suggestedPackPrice: 0, expectedPackValue: 0 };
   }
 
   // Use marketPrice, fallback to internalPrice
@@ -57,11 +54,10 @@ export function calculateAutoWeights(
     weights.set(cards[i]._id, rounded);
   }
 
-  // Coin values: marketPrice × coinRate, rounded, minimum 1
+  // Coin values: 1 Coin = 1€ ≈ $1, rounded, minimum 1
   const coinValues = new Map<string, number>();
   for (let i = 0; i < cards.length; i++) {
-    const price = effectivePrices[i];
-    coinValues.set(cards[i]._id, Math.max(1, Math.round(price * coinRate)));
+    coinValues.set(cards[i]._id, Math.max(1, Math.round(effectivePrices[i])));
   }
 
   // Expected pack value: weighted average card value × cardsPerPack
@@ -77,5 +73,5 @@ export function calculateAutoWeights(
   // Pack price with margin
   const suggestedPackPrice = Math.max(1, Math.round(expectedPackValue * (1 + marginPercent / 100)));
 
-  return { weights, coinValues, suggestedPackPrice, expectedPackValue, coinRate };
+  return { weights, coinValues, suggestedPackPrice, expectedPackValue };
 }

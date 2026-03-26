@@ -24,7 +24,6 @@ export function AutoWeightCalculator({
   const isDe = lang === "de";
   const [open, setOpen] = useState(false);
   const [margin, setMargin] = useState("30");
-  const [coinRate, setCoinRate] = useState("100");
   const [preview, setPreview] = useState<{
     updates: { cardId: string; name: string; oldWeight: number; newWeight: number; oldCoins: number; newCoins: number; marketPrice: number }[];
     suggestedPackPrice: number;
@@ -34,14 +33,12 @@ export function AutoWeightCalculator({
   const hasCards = cards.length > 0;
   const cardsWithPrice = cards.filter((c) => (c.marketPrice ?? 0) > 0).length;
   const marginNum = Math.max(0, Math.min(99, parseInt(margin, 10) || 0));
-  const coinRateNum = Math.max(1, parseInt(coinRate, 10) || 100);
 
   function handleCalculate() {
     const result = calculateAutoWeights(
       cards.map((c) => ({ _id: c._id, marketPrice: c.marketPrice, internalPrice: c.internalPrice })),
       cardsPerPack,
-      marginNum,
-      coinRateNum
+      marginNum
     );
 
     const updates = cards.map((c) => ({
@@ -105,76 +102,46 @@ export function AutoWeightCalculator({
                   : "Automatically calculates weights (based on market price) and coin values for all cards. More expensive cards will be drawn less often."}
               </p>
 
-              {/* Coin Rate + Margin */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-medium text-text-muted">
-                    {isDe ? "Coins pro $1" : "Coins per $1"}
-                  </label>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={coinRate}
-                    onChange={(e) => setCoinRate(e.target.value)}
-                    className="py-2 text-sm"
-                  />
-                  <div className="flex flex-wrap gap-1 pt-0.5">
-                    {[10, 50, 100, 200].map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => setCoinRate(String(v))}
-                        className={`px-2 py-0.5 text-[11px] font-medium rounded-full border transition-colors ${
-                          coinRateNum === v
-                            ? "bg-pa-green/10 text-pa-green border-pa-green/20"
-                            : "bg-white/4 text-text-secondary border-border hover:bg-white/6"
-                        }`}
-                      >
-                        {v}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-medium text-text-muted">
-                    {isDe ? "Marge (%)" : "Margin (%)"}
-                  </label>
-                  <Input
-                    type="number"
-                    min={0}
-                    max={99}
-                    value={margin}
-                    onChange={(e) => setMargin(e.target.value)}
-                    className="py-2 text-sm"
-                  />
-                  <div className="flex flex-wrap gap-1 pt-0.5">
-                    {[10, 20, 30, 40, 50].map((v) => (
-                      <button
-                        key={v}
-                        type="button"
-                        onClick={() => setMargin(String(v))}
-                        className={`px-2 py-0.5 text-[11px] font-medium rounded-full border transition-colors ${
-                          marginNum === v
-                            ? "bg-pa-green/10 text-pa-green border-pa-green/20"
-                            : "bg-white/4 text-text-secondary border-border hover:bg-white/6"
-                        }`}
-                      >
-                        {v}%
-                      </button>
-                    ))}
-                  </div>
+              {/* Margin */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-medium text-text-muted">
+                  {isDe ? "Marge (%)" : "Margin (%)"}
+                </label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={99}
+                  value={margin}
+                  onChange={(e) => setMargin(e.target.value)}
+                  className="py-2 text-sm w-24"
+                />
+                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                  {[10, 20, 30, 40, 50].map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setMargin(String(v))}
+                      className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors ${
+                        marginNum === v
+                          ? "bg-pa-green/10 text-pa-green border-pa-green/20"
+                          : "bg-white/4 text-text-secondary border-border hover:bg-white/6"
+                      }`}
+                    >
+                      {v}%
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Example preview */}
-              {cardsWithPrice > 0 && (
-                <div className="bg-white/4 border border-border rounded-xl p-3 text-[13px] text-text-muted">
-                  {isDe ? "Beispiel: " : "Example: "}
-                  {isDe
-                    ? `$0.12 Karte = ${Math.max(1, Math.round(0.12 * coinRateNum))} Coins, $10 Karte = ${Math.round(10 * coinRateNum)} Coins`
-                    : `$0.12 card = ${Math.max(1, Math.round(0.12 * coinRateNum))} coins, $10 card = ${Math.round(10 * coinRateNum)} coins`}
-                </div>
-              )}
+              {/* Info */}
+              <div className="bg-white/4 border border-border rounded-xl p-3 text-[13px] text-text-secondary space-y-1">
+                <p>{isDe ? "So funktioniert es:" : "How it works:"}</p>
+                <ul className="list-disc list-inside space-y-0.5 text-text-muted">
+                  <li>{isDe ? "Coin-Wert = Marktpreis gerundet (1 Coin = 1€)" : "Coin value = market price rounded (1 Coin = 1€)"}</li>
+                  <li>{isDe ? "Gewicht = umgekehrt proportional zum Preis (teurer = seltener)" : "Weight = inversely proportional to price (more expensive = rarer)"}</li>
+                  <li>{isDe ? "Pack-Preis = Erwartungswert pro Pack + Marge" : "Pack price = expected pack value + margin"}</li>
+                </ul>
+              </div>
 
               {cardsWithPrice < cards.length && (
                 <p className="text-xs text-yellow-400">
