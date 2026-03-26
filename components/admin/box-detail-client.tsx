@@ -7,6 +7,8 @@ import type { BoxFormData } from "@/components/admin/box-form";
 import { BoxCardManager, ValidationRow } from "@/components/admin/box-card-manager";
 import type { RarityBreakdownEntry, BoxCard } from "@/components/admin/box-card-manager";
 import { PackSimulationButton } from "@/components/admin/pack-simulation-button";
+import { BoxStats } from "@/components/admin/box-stats";
+import { BoxPullHistory } from "@/components/admin/box-pull-history";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -350,6 +352,10 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
             onCardsChange={handleCardsChange}
             onPackPriceSuggestion={handlePackPriceSuggestion}
           />
+
+          {/* Stats + Pull History (below card manager) */}
+          <BoxStats boxId={box._id} lang={lang} />
+          <BoxPullHistory boxId={box._id} lang={lang} />
         </div>
 
         {/* Right column: Live panels + Settings (sticky sidebar) */}
