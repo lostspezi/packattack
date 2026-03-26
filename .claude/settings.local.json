@@ -57,7 +57,20 @@
       "WebFetch(domain:justtcg.com)",
       "Bash(mkdir -p \"C:\\\\Users\\\\marce\\\\Desktop\\\\packattackgg\\\\app\\\\[lang]\\\\\\(dashboard\\)\\\\admin\\\\boxes\\\\new\")",
       "Bash(mkdir -p \"C:\\\\Users\\\\marce\\\\Desktop\\\\packattackgg\\\\app\\\\[lang]\\\\\\(dashboard\\)\\\\admin\\\\boxes\\\\[id]\")",
-      "Bash(curl -sI \"https://tcgplayer-cdn.tcgplayer.com/product/650853_200w.jpg\")"
+      "Bash(curl -sI \"https://tcgplayer-cdn.tcgplayer.com/product/650853_200w.jpg\")",
+      "WebFetch(domain:tcgapi.dev)",
+      "WebFetch(domain:tcgapis.com)",
+      "WebFetch(domain:www.cardmarket-api.com)",
+      "WebFetch(domain:scrydex.com)",
+      "WebFetch(domain:help.cardmarket.com)",
+      "WebFetch(domain:api.cardmarket.com)",
+      "WebFetch(domain:www.pricecharting.com)",
+      "WebFetch(domain:scryfall.com)",
+      "WebFetch(domain:poketrace.com)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "justtcg"
+  ],
+  "enableAllProjectMcpServers": true
 }
