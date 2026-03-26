@@ -92,6 +92,26 @@ export interface JustTCGCard {
   [key: string]: unknown;
 }
 
+// Map snake_case API fields to camelCase
+function normalizeCard(raw: Record<string, unknown>): JustTCGCard {
+  return {
+    id: (raw.id as string) ?? "",
+    name: (raw.name as string) ?? "",
+    game: (raw.game as string) ?? "",
+    set: (raw.set as string) ?? "",
+    setName: (raw.set_name as string) ?? (raw.setName as string) ?? "",
+    rarity: (raw.rarity as string) ?? "",
+    image: (raw.image as string) ?? null,
+    tcgplayerId: (raw.tcgplayerId as string) ?? (raw.tcgplayer_id as string) ?? null,
+    marketPrice: null, // extracted separately from variants
+    variants: Array.isArray(raw.variants) ? raw.variants.map((v: Record<string, unknown>) => ({
+      condition: (v.condition as string) ?? "",
+      printing: (v.printing as string) ?? "",
+      price: (v.price as number) ?? 0,
+    })) : [],
+  };
+}
+
 export interface JustTCGCardsResponse {
   cards: JustTCGCard[];
   total?: number;
@@ -151,11 +171,11 @@ export async function searchCards(
   const cacheKey = `justtcg:cards:search:${hash}`;
 
   return cached<JustTCGCardsResponse>(cacheKey, 300, async () => {
-    const res = await fetchJustTCG<{ data: JustTCGCard[]; meta?: { total?: number; page?: number; limit?: number } }>(`/cards${queryString ? `?${queryString}` : ""}`);
+    const res = await fetchJustTCG<{ data: Record<string, unknown>[]; meta?: { total?: number; page?: number; limit?: number } }>(`/cards${queryString ? `?${queryString}` : ""}`);
     if (!res) return null;
-    const cards = Array.isArray(res) ? res as unknown as JustTCGCard[] : res.data ?? [];
+    const rawCards = Array.isArray(res) ? res as unknown as Record<string, unknown>[] : res.data ?? [];
     return {
-      cards,
+      cards: rawCards.map(normalizeCard),
       total: res.meta?.total,
       page: res.meta?.page,
       limit: res.meta?.limit,
@@ -166,9 +186,8 @@ export async function searchCards(
 export async function getCard(id: string, game: string): Promise<JustTCGCard | null> {
   const cacheKey = `justtcg:card:${id}`;
   return cached<JustTCGCard>(cacheKey, 300, async () => {
-    // Single card lookup requires game filter
-    const res = await fetchJustTCG<{ data: JustTCGCard[] }>(`/cards?game=${encodeURIComponent(game)}&id=${encodeURIComponent(id)}`);
+    const res = await fetchJustTCG<{ data: Record<string, unknown>[] }>(`/cards?game=${encodeURIComponent(game)}&id=${encodeURIComponent(id)}`);
     if (!res || !res.data || res.data.length === 0) return null;
-    return res.data[0];
+    return normalizeCard(res.data[0]);
   });
 }

@@ -130,7 +130,7 @@ export async function POST(
         name: tcgData.name,
         game: tcgData.game,
         set: tcgData.set,
-        setName: tcgData.setName,
+        setName: tcgData.setName ?? (tcgData as unknown as Record<string, string>).set_name ?? "",
         rarity: tcgData.rarity,
         image: tcgData.image ?? (tcgData.tcgplayerId ? `https://tcgplayer-cdn.tcgplayer.com/product/${tcgData.tcgplayerId}_200w.jpg` : null),
         tcgplayerId: tcgData.tcgplayerId ?? null,
