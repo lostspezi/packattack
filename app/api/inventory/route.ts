@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import UserInventory from "@/models/user-inventory";
+import "@/models/card";
+import "@/models/box";
 import { expireOverduePulls } from "@/lib/expire-pulls";
 
 export async function GET(req: NextRequest) {
