@@ -11,9 +11,9 @@ interface CardPriceChartProps {
   cardName: string;
 }
 
-function formatCents(cents: number | null | undefined): string {
-  if (cents === null || cents === undefined) return "—";
-  return `$${(cents / 100).toFixed(2)}`;
+function formatPrice(price: number | null | undefined): string {
+  if (price === null || price === undefined) return "—";
+  return `$${price.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function formatChange(change: number | null | undefined): {
@@ -82,13 +82,13 @@ export function CardPriceChart({ variants, cardName }: CardPriceChartProps) {
     yaxis: {
       labels: {
         style: { colors: "#6B6B78" },
-        formatter: (v: number) => `$${(v / 100).toFixed(2)}`,
+        formatter: (v: number) => `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       },
     },
     tooltip: {
       theme: "dark",
       x: { format: "dd MMM yyyy" },
-      y: { formatter: (v: number) => `$${(v / 100).toFixed(2)}` },
+      y: { formatter: (v: number) => `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` },
     },
     dataLabels: { enabled: false },
     markers: { size: 0 },
@@ -128,7 +128,7 @@ export function CardPriceChart({ variants, cardName }: CardPriceChartProps) {
         <div className="text-text-muted text-xs">
           Current:{" "}
           <span className="text-pa-green font-semibold text-sm">
-            {formatCents(variant.price)}
+            {formatPrice(variant.price)}
           </span>
         </div>
         {(
