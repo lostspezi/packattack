@@ -112,14 +112,19 @@ export function UserHeader({
               <span>{dict["dashboard"] ?? "Dashboard"}</span>
             </Link>
 
-            {/* Packs — soon */}
-            <span className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
+            {/* Packs */}
+            <Link
+              href={`/${lang}/packs`}
+              className={[
+                "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                pathname.includes("/packs")
+                  ? "bg-white/6 text-pa-green"
+                  : "text-text-secondary hover:text-text-primary hover:bg-white/4",
+              ].join(" ")}
+            >
               <Package className="w-4 h-4 flex-shrink-0" />
               <span>{dict["packs"] ?? "Packs"}</span>
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
-                Soon
-              </span>
-            </span>
+            </Link>
 
             {/* Marketplace — soon */}
             <span className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
