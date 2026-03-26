@@ -8,10 +8,11 @@ import { BoxCardManager, ValidationRow } from "@/components/admin/box-card-manag
 import type { RarityBreakdownEntry, BoxCard } from "@/components/admin/box-card-manager";
 import { PackSimulationButton } from "@/components/admin/pack-simulation-button";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
-import { AlertTriangle, XCircle } from "lucide-react";
+import { AlertTriangle, XCircle, Copy } from "lucide-react";
 import type { RarityWeight } from "@/components/admin/rarity-weight-editor";
 import type { ValidationItem } from "@/lib/box-validation";
 
@@ -78,6 +79,10 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
   const [statusLoading, setStatusLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicateLoading, setDuplicateLoading] = useState(false);
+  const [dupNameDe, setDupNameDe] = useState("");
+  const [dupNameEn, setDupNameEn] = useState("");
   const [validationItems, setValidationItems] = useState<ValidationItem[]>([]);
   const [rarityBreakdown, setRarityBreakdown] = useState<RarityBreakdownEntry[]>([]);
   const [boxCards, setBoxCards] = useState<BoxCard[]>([]);
@@ -223,6 +228,37 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
     }
   }
 
+  async function handleDuplicate() {
+    if (!dupNameDe.trim() || !dupNameEn.trim()) return;
+    setDuplicateLoading(true);
+    try {
+      const res = await fetch(`/api/admin/boxes/${box._id}/duplicate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: { de: dupNameDe.trim(), en: dupNameEn.trim() } }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        toast({ type: "error", title: (body as { error?: string }).error ?? "Failed to duplicate" });
+        return;
+      }
+      const data = await res.json() as { _id: string };
+      toast({ type: "success", title: isDe ? "Box dupliziert!" : "Box duplicated!" });
+      router.push(`/${lang}/admin/boxes/${data._id}`);
+    } catch {
+      toast({ type: "error", title: "Network error" });
+    } finally {
+      setDuplicateLoading(false);
+      setShowDuplicateModal(false);
+    }
+  }
+
+  function openDuplicateModal() {
+    setDupNameDe(`${box.name.de} (Kopie)`);
+    setDupNameEn(`${box.name.en} (Copy)`);
+    setShowDuplicateModal(true);
+  }
+
   const actions = STATUS_ACTIONS[box.status] ?? [];
   const hasBlockingErrors = (box.status === "draft" || box.status === "paused") && validationItems.some((i) => i.level === "error");
 
@@ -244,6 +280,15 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
 
         {/* Status + delete actions */}
         <div className="flex gap-2 flex-wrap shrink-0 items-start">
+          <Button
+            type="button"
+            variant="secondary"
+            size="md"
+            onClick={openDuplicateModal}
+          >
+            <Copy className="w-4 h-4 mr-1.5" />
+            {isDe ? "Duplizieren" : "Duplicate"}
+          </Button>
           <PackSimulationButton
             cards={boxCards}
             cardsPerPack={box.cardsPerPack}
@@ -442,6 +487,64 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
 
       {/* Bottom spacer only on desktop */}
       <div className="hidden xl:block h-16" />
+
+      {/* Duplicate modal */}
+      <Modal
+        open={showDuplicateModal}
+        onClose={() => { if (!duplicateLoading) setShowDuplicateModal(false); }}
+        title={isDe ? "Box duplizieren" : "Duplicate Box"}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-text-secondary">
+            {isDe
+              ? "Erstellt eine Kopie dieser Box mit allen Karten, Gewichten und Einstellungen als neuen Entwurf."
+              : "Creates a copy of this box with all cards, weights and settings as a new draft."}
+          </p>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-text-muted">
+                {isDe ? "Name (Deutsch)" : "Name (German)"}
+              </label>
+              <Input
+                value={dupNameDe}
+                onChange={(e) => setDupNameDe(e.target.value)}
+                className="py-2 text-sm"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-xs font-medium text-text-muted">
+                {isDe ? "Name (Englisch)" : "Name (English)"}
+              </label>
+              <Input
+                value={dupNameEn}
+                onChange={(e) => setDupNameEn(e.target.value)}
+                className="py-2 text-sm"
+              />
+            </div>
+          </div>
+          <div className="flex gap-3 justify-end pt-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={duplicateLoading}
+              onClick={() => setShowDuplicateModal(false)}
+            >
+              {isDe ? "Abbrechen" : "Cancel"}
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              loading={duplicateLoading}
+              disabled={!dupNameDe.trim() || !dupNameEn.trim()}
+              onClick={() => void handleDuplicate()}
+            >
+              <Copy className="w-3.5 h-3.5 mr-1.5" />
+              {isDe ? "Duplizieren" : "Duplicate"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Delete confirmation modal */}
       <Modal
