@@ -30,7 +30,10 @@ export function OnboardingForm({
   const { update: updateSession } = useSession();
 
   const [name, setName] = useState(initialName);
-  const [username, setUsername] = useState(initialUsername);
+  // Sanitize initial username: remove invalid chars, replace spaces with underscores
+  const [username, setUsername] = useState(
+    initialUsername.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_-]/g, "")
+  );
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
