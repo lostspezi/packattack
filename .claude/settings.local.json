@@ -66,11 +66,12 @@
       "WebFetch(domain:api.cardmarket.com)",
       "WebFetch(domain:www.pricecharting.com)",
       "WebFetch(domain:scryfall.com)",
-      "WebFetch(domain:poketrace.com)"
+      "WebFetch(domain:poketrace.com)",
+      "Bash(xargs grep:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "justtcg"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }
