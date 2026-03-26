@@ -16,6 +16,8 @@ export interface BoxFormData {
   priceInCoins: number;
   cardsPerPack: number;
   totalPacks: number | null;
+  coinConversionRate: number;
+  claimDeadlineHours: number;
   rarityWeights: RarityWeight[];
 }
 
@@ -46,6 +48,12 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
     initialData?.totalPacks !== null && initialData?.totalPacks !== undefined
       ? String(initialData.totalPacks)
       : ""
+  );
+  const [conversionRate, setConversionRate] = useState<string>(
+    initialData?.coinConversionRate !== undefined ? String(initialData.coinConversionRate) : "50"
+  );
+  const [deadlineHours, setDeadlineHours] = useState<string>(
+    initialData?.claimDeadlineHours !== undefined ? String(initialData.claimDeadlineHours) : "24"
   );
   const [rarityWeights, setRarityWeights] = useState<RarityWeight[]>(
     initialData?.rarityWeights ?? []
@@ -102,6 +110,8 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
       priceInCoins: parseInt(priceInCoins, 10),
       cardsPerPack: parseInt(cardsPerPack, 10),
       totalPacks: totalPacksParsed !== null && !isNaN(totalPacksParsed) ? totalPacksParsed : null,
+      coinConversionRate: Math.max(1, Math.min(100, parseInt(conversionRate, 10) || 50)),
+      claimDeadlineHours: Math.max(1, Math.min(168, parseInt(deadlineHours, 10) || 24)),
       rarityWeights,
     });
   }
@@ -188,11 +198,25 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
             {errors.cardsPerPack && <p className="text-[11px] text-red-400">{errors.cardsPerPack}</p>}
           </div>
 
-          <div className="space-y-1 col-span-2">
+          <div className="space-y-1">
             <label className="block text-xs font-medium text-text-muted">
               {isDe ? "Gesamte Packs" : "Total Packs"}
             </label>
             <Input type="number" min={1} value={totalPacksStr} onChange={(e) => setTotalPacksStr(e.target.value)} placeholder={isDe ? "Unbegrenzt" : "Unlimited"} className="py-1.5 text-sm" />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-text-muted">
+              {isDe ? "Umwandlung (%)" : "Conversion (%)"}
+            </label>
+            <Input type="number" min={1} max={100} value={conversionRate} onChange={(e) => setConversionRate(e.target.value)} placeholder="50" className="py-1.5 text-sm" />
+          </div>
+
+          <div className="space-y-1 col-span-2">
+            <label className="block text-xs font-medium text-text-muted">
+              {isDe ? "Entscheidungsfrist (h)" : "Claim Deadline (h)"}
+            </label>
+            <Input type="number" min={1} max={168} value={deadlineHours} onChange={(e) => setDeadlineHours(e.target.value)} placeholder="24" className="py-1.5 text-sm" />
           </div>
         </div>
       </div>

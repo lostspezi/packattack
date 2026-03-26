@@ -21,6 +21,7 @@ export const adminNavItems: NavItem[] = [
   { key: "emailTemplates", href: "/admin/email-templates", icon: "Mail" },
   { key: "translations", href: "/admin/translations", icon: "Languages" },
   { key: "boxes", href: "/admin/boxes", icon: "Package" },
+  { key: "coins", href: "/admin/coins", icon: "Coins" },
 ];
 
 export const soonNavItems: NavItem[] = [

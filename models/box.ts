@@ -18,6 +18,8 @@ export interface IBox extends Document {
   cardsPerPack: number;
   totalPacks: number | null;
   packsOpened: number;
+  coinConversionRate: number;
+  claimDeadlineHours: number;
   rarityWeights: Array<{ rarity: string; weight: number }>;
   cards: IBoxCard[];
   createdBy: Types.ObjectId;
@@ -52,6 +54,8 @@ const BoxSchema = new Schema<IBox>(
     cardsPerPack: { type: Number, required: true },
     totalPacks: { type: Number, default: null },
     packsOpened: { type: Number, default: 0 },
+    coinConversionRate: { type: Number, default: 50, min: 1, max: 100 },
+    claimDeadlineHours: { type: Number, default: 24, min: 1, max: 168 },
     rarityWeights: [
       {
         rarity: { type: String, required: true },

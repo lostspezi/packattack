@@ -339,4 +339,7 @@ export const translationSeedData = [
   { namespace: "admin.boxes", key: "cancel", values: { de: "Abbrechen", en: "Cancel" } },
   { namespace: "admin.boxes", key: "confirmDelete", values: { de: "Möchtest du diese Box wirklich löschen?", en: "Are you sure you want to delete this box?" } },
   { namespace: "admin.boxes", key: "unlimited", values: { de: "Unbegrenzt", en: "Unlimited" } },
+
+  // Admin: Coins
+  { namespace: "sidebar", key: "coins", values: { de: "Coins", en: "Coins" } },
 ];

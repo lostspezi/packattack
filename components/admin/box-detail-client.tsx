@@ -26,6 +26,8 @@ interface BoxData {
   cardsPerPack: number;
   totalPacks: number | null;
   rarityWeights: RarityWeight[];
+  coinConversionRate: number;
+  claimDeadlineHours: number;
   packsOpened: number;
   cardsCount: number;
   createdAt: string;
@@ -415,6 +417,8 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
                 priceInCoins: box.priceInCoins,
                 cardsPerPack: box.cardsPerPack,
                 totalPacks: box.totalPacks,
+                coinConversionRate: box.coinConversionRate ?? 50,
+                claimDeadlineHours: box.claimDeadlineHours ?? 24,
                 rarityWeights: box.rarityWeights,
               }}
               onSave={(data) => void handleSave(data)}
