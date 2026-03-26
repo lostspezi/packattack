@@ -34,6 +34,7 @@ export default async function LangLayout({
   return (
     <html
       lang={lang}
+      data-scroll-behavior="smooth"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
