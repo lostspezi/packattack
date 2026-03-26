@@ -221,26 +221,31 @@ export function BoxCardManager({
                       <Badge variant="info">{card.rarity}</Badge>
                     </td>
 
-                    {/* Market price */}
+                    {/* Market price (average from variants) */}
                     <td className="px-3 py-2 text-sm text-text-secondary">
                       {card.marketPrice !== null && card.marketPrice !== undefined
-                        ? `$${card.marketPrice.toFixed(2)}`
+                        ? (
+                          <span className="text-pa-green font-medium">
+                            ${card.marketPrice.toFixed(2)}
+                          </span>
+                        )
                         : "—"}
                     </td>
 
-                    {/* Internal price (editable) */}
+                    {/* Internal price (editable, accepts , and . for decimals) */}
                     <td className="px-3 py-2">
                       <Input
-                        type="number"
-                        min={0}
-                        step={0.01}
+                        type="text"
+                        inputMode="decimal"
                         value={internalPrices[card._id] ?? ""}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          // Allow digits, dots, and commas
+                          const val = e.target.value.replace(/[^0-9.,]/g, "");
                           setInternalPrices((prev) => ({
                             ...prev,
-                            [card._id]: e.target.value,
-                          }))
-                        }
+                            [card._id]: val,
+                          }));
+                        }}
                         placeholder="—"
                         className="py-1 text-sm w-24"
                       />

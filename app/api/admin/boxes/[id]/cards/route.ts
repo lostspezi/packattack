@@ -78,7 +78,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { justTcgId, name, game: cardGame, set: cardSet, setName, rarity, tcgplayerId, internalPrice } = body as {
+  const { justTcgId, name, game: cardGame, set: cardSet, setName, rarity, tcgplayerId, variants, internalPrice } = body as {
     justTcgId?: string;
     name?: string;
     game?: string;
@@ -86,6 +86,7 @@ export async function POST(
     setName?: string;
     rarity?: string;
     tcgplayerId?: string | null;
+    variants?: Array<{ condition: string; printing: string; price: number }>;
     internalPrice?: number;
   };
 
@@ -112,6 +113,16 @@ export async function POST(
         ? `https://tcgplayer-cdn.tcgplayer.com/product/${tcgplayerId}_200w.jpg`
         : null;
 
+      // Calculate market price from variants (prices are in cents from JustTCG)
+      const cardVariants = variants ?? [];
+      let marketPrice: number | null = null;
+      if (cardVariants.length > 0) {
+        const prices = cardVariants.filter((v) => v.price > 0).map((v) => v.price / 100);
+        if (prices.length > 0) {
+          marketPrice = Math.round((prices.reduce((a, b) => a + b, 0) / prices.length) * 100) / 100;
+        }
+      }
+
       card = await Card.create({
         justTcgId,
         name: name ?? "Unknown",
@@ -121,10 +132,10 @@ export async function POST(
         rarity: rarity ?? "",
         image: imageUrl,
         tcgplayerId: tcgplayerId ?? null,
-        marketPrice: null,
-        internalPrice: internalPrice ?? null,
-        lastPriceUpdate: null,
-        variants: [],
+        marketPrice,
+        internalPrice: internalPrice ?? marketPrice,
+        lastPriceUpdate: marketPrice !== null ? new Date() : null,
+        variants: cardVariants,
       });
     } else {
       if (internalPrice !== undefined) {

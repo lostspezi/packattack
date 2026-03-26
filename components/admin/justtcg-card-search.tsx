@@ -9,9 +9,11 @@ interface JustTCGCardResult {
   id: string;
   name: string;
   rarity: string;
+  set?: string;
   set_name?: string;
   setName?: string;
   tcgplayerId?: string | null;
+  variants?: Array<{ condition: string; printing: string; price: number }>;
 }
 
 export interface AddCardPayload {
@@ -22,6 +24,7 @@ export interface AddCardPayload {
   setName: string;
   rarity: string;
   tcgplayerId: string | null;
+  variants: Array<{ condition: string; printing: string; price: number }>;
 }
 
 interface JustTCGCardSearchProps {
@@ -103,10 +106,11 @@ export function JustTCGCardSearch({
         justTcgId: card.id,
         name: card.name,
         game,
-        set: (card as unknown as Record<string, string>).set ?? "",
+        set: card.set ?? "",
         setName: card.set_name ?? card.setName ?? "",
         rarity: card.rarity,
         tcgplayerId: card.tcgplayerId ?? null,
+        variants: card.variants ?? [],
       });
       toast({ type: "success", title: `${card.name} ${isDe ? "hinzugefügt" : "added"}` });
       // Don't close — user might want to add more
