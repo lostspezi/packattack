@@ -9,71 +9,115 @@ import { emailTemplateSeedData } from "@/seed/email-templates";
 
 async function runInitialSeed() {
   const userCount = await User.countDocuments();
-  if (userCount > 0) return; // Already seeded
+  if (userCount > 0) {
+    console.log(`[seed] Skipping initial seed — ${userCount} user(s) already exist.`);
+    return;
+  }
 
-  console.log("[seed] First start detected — seeding admin user and platform settings...");
+  console.log("[seed] First start detected — creating admin user and platform settings...");
 
-  // 1. Create super admin
   const hashedPassword = await bcrypt.hash("admin123", 12);
-  await User.create({
-    name: "Super Admin",
-    username: "admin",
-    email: "admin@packattack.gg",
-    emailVerified: new Date(),
-    password: hashedPassword,
-    role: "super_admin",
-    dateOfBirth: new Date("1990-01-01"),
-    preferences: { language: "en", theme: "dark", notifications: { email: true, browser: true } },
-    publicProfile: false,
-    onboardingCompleted: true,
-    consents: {
-      tos: { accepted: true, version: "1.0", acceptedAt: new Date() },
-      privacy: { accepted: true, version: "1.0", acceptedAt: new Date() },
-      ageVerification: { accepted: true, acceptedAt: new Date() },
+
+  // Use findOneAndUpdate with upsert to avoid duplicate key errors from parallel runs
+  const adminUser = await User.findOneAndUpdate(
+    { email: "admin@packattack.gg" },
+    {
+      $setOnInsert: {
+        name: "Super Admin",
+        username: "admin",
+        email: "admin@packattack.gg",
+        emailVerified: new Date(),
+        password: hashedPassword,
+        role: "super_admin",
+        dateOfBirth: new Date("1990-01-01"),
+        preferences: { language: "en", theme: "dark", notifications: { email: true, browser: true } },
+        publicProfile: false,
+        onboardingCompleted: true,
+        consents: {
+          tos: { accepted: true, version: "1.0", acceptedAt: new Date() },
+          privacy: { accepted: true, version: "1.0", acceptedAt: new Date() },
+          ageVerification: { accepted: true, acceptedAt: new Date() },
+        },
+      },
     },
-  });
+    { upsert: true, returnDocument: "after" }
+  );
+  if (adminUser.createdAt && Date.now() - adminUser.createdAt.getTime() < 5000) {
+    console.log("[seed]   ✓ Super Admin user created (admin@packattack.gg)");
+  } else {
+    console.log("[seed]   ✓ Super Admin user already exists");
+  }
 
-  // 2. Create platform settings
-  await PlatformSettings.create({
-    tosVersion: "1.0",
-    privacyVersion: "1.0",
-    updatedAt: new Date(),
-  });
-
-  console.log("[seed] Admin user and platform settings created.");
+  const settingsResult = await PlatformSettings.updateOne(
+    {},
+    {
+      $setOnInsert: {
+        tosVersion: "1.0",
+        privacyVersion: "1.0",
+      },
+    },
+    { upsert: true }
+  );
+  if (settingsResult.upsertedCount > 0) {
+    console.log("[seed]   ✓ Platform settings created (ToS v1.0, Privacy v1.0)");
+  } else {
+    console.log("[seed]   ✓ Platform settings already exist");
+  }
 }
 
 async function syncTranslations() {
+  const total = translationSeedData.length;
+  const existingCount = await Translation.countDocuments();
   let inserted = 0;
+
   for (const item of translationSeedData) {
-    const exists = await Translation.exists({ namespace: item.namespace, key: item.key });
-    if (!exists) {
-      await Translation.create(item);
-      inserted++;
-    }
+    const result = await Translation.updateOne(
+      { namespace: item.namespace, key: item.key },
+      { $setOnInsert: item },
+      { upsert: true }
+    );
+    if (result.upsertedCount > 0) inserted++;
   }
+
   if (inserted > 0) {
-    console.log(`[seed] Inserted ${inserted} missing translation key(s).`);
+    console.log(`[seed]   ✓ Translations: ${inserted} new key(s) inserted (${existingCount} already existed, ${total} total in seed)`);
+  } else {
+    console.log(`[seed]   ✓ Translations: all ${total} key(s) up to date`);
   }
 }
 
 async function syncEmailTemplates() {
+  const total = emailTemplateSeedData.length;
+  const existingCount = await EmailTemplate.countDocuments();
   let inserted = 0;
+
   for (const item of emailTemplateSeedData) {
-    const exists = await EmailTemplate.exists({ slug: item.slug });
-    if (!exists) {
-      await EmailTemplate.create(item);
-      inserted++;
-    }
+    const result = await EmailTemplate.updateOne(
+      { slug: item.slug },
+      { $setOnInsert: item },
+      { upsert: true }
+    );
+    if (result.upsertedCount > 0) inserted++;
   }
+
   if (inserted > 0) {
-    console.log(`[seed] Inserted ${inserted} missing email template(s).`);
+    console.log(`[seed]   ✓ Email templates: ${inserted} new template(s) inserted (${existingCount} already existed, ${total} total in seed)`);
+  } else {
+    console.log(`[seed]   ✓ Email templates: all ${total} template(s) up to date`);
   }
 }
 
 export async function runSeed() {
+  const start = performance.now();
+  console.log("[seed] Starting seed process...");
+
   await connectDB();
+  console.log("[seed] Database connected.");
+
   await runInitialSeed();
   await syncTranslations();
   await syncEmailTemplates();
+
+  const duration = (performance.now() - start).toFixed(0);
+  console.log(`[seed] Seed complete in ${duration}ms.`);
 }
