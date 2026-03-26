@@ -116,6 +116,17 @@ export async function getGames(): Promise<JustTCGGame[] | null> {
   });
 }
 
+export async function getRarities(game: string): Promise<string[] | null> {
+  const cacheKey = `justtcg:rarities:${game}`;
+  return cached<string[]>(cacheKey, 3600, async () => {
+    // Fetch a large sample of cards to extract unique rarities
+    const res = await fetchJustTCG<{ data: Array<{ rarity: string }> }>(`/cards?game=${encodeURIComponent(game)}&limit=100`);
+    if (!res || !res.data) return null;
+    const rarities = [...new Set(res.data.map((c) => c.rarity).filter(Boolean))].sort();
+    return rarities.length > 0 ? rarities : null;
+  });
+}
+
 export async function getSets(game: string): Promise<JustTCGSet[] | null> {
   const cacheKey = `justtcg:sets:${game}`;
   return cached<JustTCGSet[]>(cacheKey, 3600, async () => {

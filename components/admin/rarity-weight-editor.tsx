@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { Trash2, Plus, Wand2 } from "lucide-react";
+import { Trash2, Plus, Wand2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/toast";
 
 export interface RarityWeight {
   rarity: string;
@@ -13,6 +14,7 @@ export interface RarityWeight {
 interface RarityWeightEditorProps {
   weights: RarityWeight[];
   onChange: (weights: RarityWeight[]) => void;
+  game?: string;
 }
 
 const COMMON_RARITIES: RarityWeight[] = [
@@ -22,8 +24,10 @@ const COMMON_RARITIES: RarityWeight[] = [
   { rarity: "Ultra Rare", weight: 3 },
 ];
 
-export function RarityWeightEditor({ weights, onChange }: RarityWeightEditorProps) {
+export function RarityWeightEditor({ weights, onChange, game }: RarityWeightEditorProps) {
   const [newRarity, setNewRarity] = useState("");
+  const [loadingRarities, setLoadingRarities] = useState(false);
+  const { toast } = useToast();
 
   const total = weights.reduce((acc, w) => acc + (w.weight || 0), 0);
   const isExact = total === 100;
@@ -52,30 +56,74 @@ export function RarityWeightEditor({ weights, onChange }: RarityWeightEditorProp
     onChange(COMMON_RARITIES);
   }
 
+  async function handleLoadFromApi() {
+    if (!game) return;
+    setLoadingRarities(true);
+    try {
+      const res = await fetch(`/api/justtcg/rarities?game=${encodeURIComponent(game)}`);
+      if (!res.ok) {
+        toast({ type: "error", title: "Rarities konnten nicht geladen werden" });
+        return;
+      }
+      const data = await res.json() as { rarities?: string[] };
+      const rarities = data.rarities;
+      if (!rarities || rarities.length === 0) {
+        toast({ type: "warning", title: "Keine Rarities für dieses Spiel gefunden" });
+        return;
+      }
+      // Merge: keep existing weights for rarities that already exist, add new ones with 0
+      const existingMap = new Map(weights.map((w) => [w.rarity.toLowerCase(), w]));
+      const merged: RarityWeight[] = rarities
+        .filter((r) => r && r !== "None")
+        .map((r) => existingMap.get(r.toLowerCase()) ?? { rarity: r, weight: 0 });
+      onChange(merged);
+      toast({ type: "success", title: `${merged.length} Rarities geladen` });
+    } catch {
+      toast({ type: "error", title: "Fehler beim Laden der Rarities" });
+    } finally {
+      setLoadingRarities(false);
+    }
+  }
+
   return (
     <div className="space-y-3">
       {/* Header row */}
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <label className="block text-sm font-medium text-text-secondary">
           Rarity Weights
         </label>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={handlePreset}
-          className="flex items-center gap-1.5"
-        >
-          <Wand2 className="w-3.5 h-3.5" />
-          Common Preset
-        </Button>
+        <div className="flex gap-2">
+          {game && (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={handleLoadFromApi}
+              loading={loadingRarities}
+              className="flex items-center gap-1.5"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Vom Spiel laden
+            </Button>
+          )}
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            onClick={handlePreset}
+            className="flex items-center gap-1.5"
+          >
+            <Wand2 className="w-3.5 h-3.5" />
+            Standard-Preset
+          </Button>
+        </div>
       </div>
 
       {/* Weight rows */}
       <div className="space-y-2">
         {weights.length === 0 ? (
           <p className="text-sm text-text-muted py-2">
-            No rarities added yet. Add one below or use the preset.
+            Noch keine Rarities hinzugefügt. Füge eine hinzu oder nutze einen Preset.
           </p>
         ) : (
           weights.map((w, i) => (
@@ -137,7 +185,7 @@ export function RarityWeightEditor({ weights, onChange }: RarityWeightEditorProp
       {/* Add new rarity */}
       <div className="flex gap-2">
         <Input
-          placeholder="New rarity name…"
+          placeholder="Neue Rarity…"
           value={newRarity}
           onChange={(e) => setNewRarity(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddRarity(); } }}
@@ -152,7 +200,6 @@ export function RarityWeightEditor({ weights, onChange }: RarityWeightEditorProp
           className="shrink-0"
         >
           <Plus className="w-4 h-4" />
-          Add Rarity
         </Button>
       </div>
     </div>

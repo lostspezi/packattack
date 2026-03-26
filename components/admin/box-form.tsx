@@ -236,7 +236,7 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
 
       {/* Rarity weights */}
       <div className="bg-surface border border-border rounded-[14px] p-6">
-        <RarityWeightEditor weights={rarityWeights} onChange={setRarityWeights} />
+        <RarityWeightEditor weights={rarityWeights} onChange={setRarityWeights} game={game} />
         {errors.rarityWeights && (
           <p className="text-xs text-red-400 mt-2">{errors.rarityWeights}</p>
         )}
