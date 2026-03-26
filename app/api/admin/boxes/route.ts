@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
 
     const box = await Box.create({
       name,
-      description: description ?? null,
+      description: description?.de || description?.en ? description : null,
       game,
       priceInCoins,
       cardsPerPack,

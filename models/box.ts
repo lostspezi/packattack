@@ -26,8 +26,8 @@ const BoxSchema = new Schema<IBox>(
     description: {
       type: new Schema(
         {
-          de: { type: String, required: true },
-          en: { type: String, required: true },
+          de: { type: String, default: "" },
+          en: { type: String, default: "" },
         },
         { _id: false }
       ),
