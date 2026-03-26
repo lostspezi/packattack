@@ -123,7 +123,7 @@ export function ProfileForm({ dict, initialData, linkedProviders = [] }: Profile
           <Input
             label={dict["label_username"] ?? "Username"}
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
             required
             minLength={3}
             maxLength={30}

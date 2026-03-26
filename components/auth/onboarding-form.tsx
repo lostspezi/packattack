@@ -117,7 +117,7 @@ export function OnboardingForm({
         label={dict["label_username"] ?? "Username"}
         type="text"
         value={username}
-        onChange={(e) => setUsername(e.target.value)}
+        onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_-]/g, ""))}
         required
         autoComplete="username"
       />
