@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+// useSession removed — redirect via full page reload, proxy handles session state
 import { Button } from "@/components/ui/button";
 
 interface VerifyEmailFormProps {
@@ -13,7 +13,6 @@ interface VerifyEmailFormProps {
 
 export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
   const router = useRouter();
-  const { update: updateSession } = useSession();
   const [status, setStatus] = useState<"idle" | "verifying" | "success" | "error">(
     token ? "verifying" : "idle"
   );
@@ -34,11 +33,10 @@ export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
 
         if (res.ok) {
           setStatus("success");
-          // Force session refresh so JWT picks up the new emailVerified value
-          await updateSession();
-          // Redirect immediately via full page reload
-          // Proxy will route to onboarding (OAuth) or dashboard (completed)
+          // Redirect via full page reload — proxy reads emailVerified from DB
+          // on next request, so no need to wait for session refresh
           window.location.replace(`/${lang}/dashboard`);
+          return;
         } else {
           const data = await res.json();
           setStatus("error");
