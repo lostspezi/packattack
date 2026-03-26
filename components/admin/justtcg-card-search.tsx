@@ -377,11 +377,11 @@ export function JustTCGCardSearch({
                       <img
                         src={`https://tcgplayer-cdn.tcgplayer.com/product/${card.tcgplayerId}_200w.jpg`}
                         alt=""
-                        className="w-8 h-11 object-cover rounded shrink-0"
+                        className="w-12 h-16 object-cover rounded shrink-0"
                         loading="lazy"
                       />
                     ) : (
-                      <div className="w-8 h-11 bg-white/4 rounded shrink-0 flex items-center justify-center">
+                      <div className="w-12 h-16 bg-white/4 rounded shrink-0 flex items-center justify-center">
                         <span className="text-text-muted text-[10px]">?</span>
                       </div>
                     )}

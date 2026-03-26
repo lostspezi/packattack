@@ -223,9 +223,9 @@ export function PackSimulationResults({
                     <td className="px-2 py-1.5">
                       {card.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={card.image} alt="" className="w-6 h-8 object-cover rounded" loading="lazy" />
+                        <img src={card.image} alt="" className="w-10 h-14 object-cover rounded" loading="lazy" />
                       ) : (
-                        <div className="w-6 h-8 bg-white/4 rounded" />
+                        <div className="w-10 h-14 bg-white/4 rounded" />
                       )}
                     </td>
                     <td className="px-2 py-1.5 text-sm text-text-primary font-medium max-w-[160px] truncate">{card.name}</td>
