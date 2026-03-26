@@ -5,6 +5,7 @@ import { getRedis } from "@/lib/redis";
 const BASE_URL = "https://api.justtcg.com/v1";
 
 // Fetch a single card with full variant data (including price history) live from JustTCG
+// Uses tcgplayerId for exact match
 export async function GET(req: NextRequest) {
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role;
@@ -15,15 +16,14 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const game = searchParams.get("game");
-  const cardName = searchParams.get("name");
-  const cardSet = searchParams.get("set");
+  const tcgplayerId = searchParams.get("tcgplayerId");
 
-  if (!game || !cardName) {
-    return NextResponse.json({ error: "game and name parameters required" }, { status: 400 });
+  if (!game || !tcgplayerId) {
+    return NextResponse.json({ error: "game and tcgplayerId parameters required" }, { status: 400 });
   }
 
-  // Short cache (2 min) to avoid hammering the API on repeated clicks
-  const cacheKey = `justtcg:card-detail:${game}:${cardSet ?? ""}:${cardName}`;
+  // Short cache (2 min)
+  const cacheKey = `justtcg:card-detail:${game}:tcg:${tcgplayerId}`;
   const redis = getRedis();
 
   try {
@@ -31,12 +31,11 @@ export async function GET(req: NextRequest) {
     if (cached) {
       return NextResponse.json(JSON.parse(cached));
     }
-  } catch { /* ignore cache miss */ }
+  } catch { /* ignore */ }
 
   try {
     const apiKey = process.env.JUSTTCG_API_KEY ?? "";
-    const params = new URLSearchParams({ game, search: cardName, limit: "5" });
-    if (cardSet) params.set("set", cardSet);
+    const params = new URLSearchParams({ game, tcgplayerId, limit: "1" });
     const res = await fetch(`${BASE_URL}/cards?${params.toString()}`, {
       headers: { "X-API-Key": apiKey },
     });
@@ -52,12 +51,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "card_not_found" }, { status: 404 });
     }
 
-    // Find exact name match first, fallback to first result
-    const exactMatch = cards.find((c) => (c.name as string) === cardName);
-    const card = exactMatch ?? cards[0];
+    const rawCard = cards[0];
 
-    // Normalize variants
-    const variants = Array.isArray(card.variants) ? (card.variants as Array<Record<string, unknown>>).map((v) => ({
+    // Normalize variants with full history
+    const variants = Array.isArray(rawCard.variants) ? (rawCard.variants as Array<Record<string, unknown>>).map((v) => ({
       condition: (v.condition as string) ?? "",
       printing: (v.printing as string) ?? "",
       price: (v.price as number) ?? 0,
@@ -73,17 +70,16 @@ export async function GET(req: NextRequest) {
     })) : [];
 
     const result = {
-      id: card.id,
-      name: card.name,
-      game: card.game,
-      set: card.set,
-      setName: card.set_name ?? card.setName,
-      rarity: card.rarity,
-      tcgplayerId: card.tcgplayerId,
+      id: rawCard.id,
+      name: rawCard.name,
+      game: rawCard.game,
+      set: rawCard.set,
+      setName: rawCard.set_name ?? rawCard.setName,
+      rarity: rawCard.rarity,
+      tcgplayerId: rawCard.tcgplayerId,
       variants,
     };
 
-    // Cache for 2 minutes
     try {
       await redis.set(cacheKey, JSON.stringify({ card: result }), "EX", 120);
     } catch { /* ignore */ }

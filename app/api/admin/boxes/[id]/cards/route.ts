@@ -113,13 +113,16 @@ export async function POST(
         ? `https://tcgplayer-cdn.tcgplayer.com/product/${tcgplayerId}_200w.jpg`
         : null;
 
-      // Calculate market price from variants (prices are in cents from JustTCG)
+      // Calculate market price from variants
+      // JustTCG prices are in cents (e.g. 3900 = $39.00)
+      // Prefer Near Mint price, fallback to first available
       const cardVariants = variants ?? [];
       let marketPrice: number | null = null;
       if (cardVariants.length > 0) {
-        const prices = cardVariants.filter((v) => v.price > 0).map((v) => v.price / 100);
-        if (prices.length > 0) {
-          marketPrice = Math.round((prices.reduce((a, b) => a + b, 0) / prices.length) * 100) / 100;
+        const nearMint = cardVariants.find((v) => v.condition === "Near Mint" && v.price > 0);
+        const bestVariant = nearMint ?? cardVariants.find((v) => v.price > 0);
+        if (bestVariant) {
+          marketPrice = Math.round(bestVariant.price) / 100;
         }
       }
 

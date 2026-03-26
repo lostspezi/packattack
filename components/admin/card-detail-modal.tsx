@@ -64,14 +64,13 @@ export function CardDetailModal({
 
   // Fetch live price data when modal opens
   useEffect(() => {
-    if (!open || !card.name) return;
+    if (!open || !card.tcgplayerId) return;
 
     let cancelled = false;
 
     async function fetchPriceData() {
       try {
-        const params = new URLSearchParams({ game, name: card.name });
-        if (card.set) params.set("set", card.set);
+        const params = new URLSearchParams({ game, tcgplayerId: card.tcgplayerId! });
         const res = await fetch(`/api/justtcg/card?${params.toString()}`);
         if (cancelled) return;
         if (!res.ok) throw new Error("fetch failed");
@@ -93,7 +92,7 @@ export function CardDetailModal({
     void fetchPriceData();
 
     return () => { cancelled = true; };
-  }, [open, card.name, card.set, game]);
+  }, [open, card.tcgplayerId, game]);
 
   // Aggregate price changes from first variant with data
   const firstVariant = variants.find(
