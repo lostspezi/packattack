@@ -51,12 +51,6 @@ export function CardLightbox({ card, lang, open, onClose }: { card: CardInfo; la
               <p className="text-[10px] text-text-muted">{isDe ? "Ziehchance" : "Draw Chance"}</p>
               <p className="text-lg font-bold text-yellow-400">{formatChance(card.chance)}</p>
             </div>
-            {card.marketPrice !== null && (
-              <div className="bg-white/4 border border-border rounded-xl px-4 py-2.5">
-                <p className="text-[10px] text-text-muted">{isDe ? "Marktpreis" : "Market Price"}</p>
-                <p className="text-lg font-bold text-text-primary">${card.marketPrice.toFixed(2)}</p>
-              </div>
-            )}
           </div>
         </div>
       </div>
