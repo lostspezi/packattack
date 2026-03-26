@@ -141,8 +141,8 @@ export async function POST(
       relatedBoxId: boxId,
     });
 
-    // 9. Check for low-stock / out-of-stock notifications
-    void sendStockAlerts(box, cardMap);
+    // 9. Check for low-stock / out-of-stock notifications (only for drawn cards)
+    void sendStockAlerts(box, cardMap, stockUpdates);
 
     // 10. Response
     return NextResponse.json({
@@ -158,20 +158,32 @@ export async function POST(
   }
 }
 
-/** Send notifications to admins for low-stock and out-of-stock cards */
+/**
+ * Send notifications only for cards that were drawn AND just crossed a threshold.
+ * stockUpdates: { cardId: drawCount } — only cards affected by this opening.
+ */
 async function sendStockAlerts(
   box: InstanceType<typeof Box>,
-  cardMap: Map<string, { name?: string }>
+  cardMap: Map<string, { name?: string }>,
+  stockUpdates: Record<string, number>
 ) {
   try {
     const admins = await User.find({ role: { $in: ["admin", "super_admin"] } }).select("_id").lean();
+    if (admins.length === 0) return;
     const adminIds = admins.map((a) => a._id.toString());
+    const boxName = box.name?.de ?? box.name?.en ?? "Box";
 
-    for (const entry of box.cards) {
-      const cardName = cardMap.get(entry.card.toString())?.name ?? "Unknown";
-      const boxName = box.name?.de ?? box.name?.en ?? "Box";
+    for (const [cardId, drawnCount] of Object.entries(stockUpdates)) {
+      const entry = box.cards.find((c) => c.card.toString() === cardId);
+      if (!entry) continue;
 
-      if (entry.stock === 0) {
+      const stockNow = entry.stock ?? 0;
+      const stockBefore = stockNow + drawnCount; // what it was before this opening
+      const minStock = entry.minStock ?? 5;
+      const cardName = cardMap.get(cardId)?.name ?? "Unknown";
+
+      // Only notify if threshold was JUST crossed (was above, now at or below)
+      if (stockNow === 0 && stockBefore > 0) {
         for (const adminId of adminIds) {
           await Notification.create({
             userId: adminId,
@@ -181,12 +193,12 @@ async function sendStockAlerts(
             cta: { label: "Box öffnen", url: `/de/admin/boxes/${box._id}` },
           });
         }
-      } else if (entry.stock <= (entry.minStock ?? 5)) {
+      } else if (stockNow <= minStock && stockBefore > minStock) {
         for (const adminId of adminIds) {
           await Notification.create({
             userId: adminId,
             title: `Niedriger Bestand: ${cardName}`,
-            message: `${cardName} in "${boxName}" hat nur noch ${entry.stock} Stück (Mindestbestand: ${entry.minStock ?? 5}).`,
+            message: `${cardName} in "${boxName}" hat nur noch ${stockNow} Stück (Mindestbestand: ${minStock}).`,
             type: "warning",
             cta: { label: "Box öffnen", url: `/de/admin/boxes/${box._id}` },
           });
