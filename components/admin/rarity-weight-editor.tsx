@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Trash2, Plus, Download, Search, GripVertical } from "lucide-react";
+import { Trash2, Plus, Download, Search, GripVertical, ChevronUp, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 
@@ -139,6 +139,7 @@ export function RarityWeightEditor({ weights, onChange, game, lang }: RarityWeig
     }
   }
 
+  // --- Drag & Drop (desktop) ---
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const [overIdx, setOverIdx] = useState<number | null>(null);
 
@@ -169,6 +170,15 @@ export function RarityWeightEditor({ weights, onChange, game, lang }: RarityWeig
     setDragIdx(null);
     setOverIdx(null);
   }, []);
+
+  // --- Move up/down (mobile) ---
+  function moveItem(from: number, to: number) {
+    if (to < 0 || to >= weights.length) return;
+    const updated = [...weights];
+    const [moved] = updated.splice(from, 1);
+    updated.splice(to, 0, moved);
+    onChange(updated);
+  }
 
   return (
     <div className="space-y-3">
@@ -210,12 +220,32 @@ export function RarityWeightEditor({ weights, onChange, game, lang }: RarityWeig
               onDrop={() => handleDrop(i)}
               onDragEnd={handleDragEnd}
               className={[
-                "flex items-center gap-2 rounded-[10px] transition-all",
+                "flex items-center gap-1.5 rounded-[10px] transition-all",
                 dragIdx === i ? "opacity-40" : "",
                 overIdx === i && dragIdx !== i ? "border-t-2 border-t-pa-green" : "",
               ].join(" ")}
             >
-              <GripVertical className="w-4 h-4 text-text-muted shrink-0 cursor-grab active:cursor-grabbing" />
+              {/* Desktop: drag handle */}
+              <GripVertical className="w-4 h-4 text-text-muted shrink-0 cursor-grab active:cursor-grabbing hidden sm:block" />
+              {/* Mobile: up/down buttons */}
+              <div className="flex flex-col sm:hidden shrink-0">
+                <button
+                  type="button"
+                  disabled={i === 0}
+                  onClick={() => moveItem(i, i - 1)}
+                  className="text-text-muted hover:text-text-primary disabled:opacity-20 p-0.5"
+                >
+                  <ChevronUp className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  disabled={i === weights.length - 1}
+                  onClick={() => moveItem(i, i + 1)}
+                  className="text-text-muted hover:text-text-primary disabled:opacity-20 p-0.5"
+                >
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+              </div>
               <span className="flex-1 text-sm text-text-primary truncate min-w-0 bg-white/4 border border-border rounded-[10px] px-3 py-2">
                 {w.rarity}
               </span>
