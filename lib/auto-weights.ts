@@ -54,10 +54,10 @@ export function calculateAutoWeights(
     weights.set(cards[i]._id, rounded);
   }
 
-  // Coin values: 1 Coin = 1€ ≈ $1, rounded, minimum 1
+  // Coin values: marketPrice + 10% markup, rounded up, minimum 1
   const coinValues = new Map<string, number>();
   for (let i = 0; i < cards.length; i++) {
-    coinValues.set(cards[i]._id, Math.max(1, Math.round(effectivePrices[i])));
+    coinValues.set(cards[i]._id, Math.max(1, Math.ceil(effectivePrices[i] * 1.10)));
   }
 
   // Expected pack value: weighted average card value × cardsPerPack

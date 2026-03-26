@@ -137,7 +137,7 @@ export function AutoWeightCalculator({
               <div className="bg-white/4 border border-border rounded-xl p-3 text-[13px] text-text-secondary space-y-1">
                 <p>{isDe ? "So funktioniert es:" : "How it works:"}</p>
                 <ul className="list-disc list-inside space-y-0.5 text-text-muted">
-                  <li>{isDe ? "Coin-Wert = Marktpreis gerundet (1 Coin = 1€)" : "Coin value = market price rounded (1 Coin = 1€)"}</li>
+                  <li>{isDe ? "Coin-Wert = Marktpreis + 10% Aufschlag, aufgerundet" : "Coin value = market price + 10% markup, rounded up"}</li>
                   <li>{isDe ? "Gewicht = umgekehrt proportional zum Preis (teurer = seltener)" : "Weight = inversely proportional to price (more expensive = rarer)"}</li>
                   <li>{isDe ? "Pack-Preis = Erwartungswert pro Pack + Marge" : "Pack price = expected pack value + margin"}</li>
                 </ul>
