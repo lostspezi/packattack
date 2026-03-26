@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
+import { getRedis } from "@/lib/redis";
 import PackPull from "@/models/pack-pull";
 import UserInventory from "@/models/user-inventory";
 import User from "@/models/user";
@@ -76,8 +77,11 @@ export async function POST(req: NextRequest) {
       throw err;
     }
 
+    // Get user info for SSE event
+    const userDoc = await User.findById(userId).select("name username image").lean();
+    const cardDoc = await (await import("@/models/card")).default.findById(cardId).select("name image").lean();
+
     if (decision === "claim") {
-      // Claim: card goes to inventory, stock stays reduced
       await UserInventory.create({
         userId,
         cardId,
@@ -87,16 +91,18 @@ export async function POST(req: NextRequest) {
       });
 
       const user = await User.findById(userId).select("coins").lean();
+
+      // Publish SSE live event
+      void publishLiveEvent(boxId, userDoc, cardDoc, rarity ?? "", coinValue ?? 0, decision);
+
       return NextResponse.json({ success: true, decision: "claimed", newBalance: user?.coins ?? 0 });
     } else {
-      // Convert: give coins back, restore stock
       const user = await User.findByIdAndUpdate(
         userId,
         { $inc: { coins: conversionValue ?? 0 } },
         { returnDocument: "after" }
       );
 
-      // Atomically restore stock in box (race-condition safe)
       const { Types } = await import("mongoose");
       const cardObjectId = new Types.ObjectId(cardId);
       await Box.updateOne(
@@ -104,7 +110,6 @@ export async function POST(req: NextRequest) {
         { $inc: { "cards.$.stock": 1 } }
       );
 
-      // Record transaction
       await CoinTransaction.create({
         userId,
         amount: conversionValue ?? 0,
@@ -113,10 +118,38 @@ export async function POST(req: NextRequest) {
         relatedBoxId: boxId,
       });
 
+      // Publish SSE live event
+      void publishLiveEvent(boxId, userDoc, cardDoc, rarity ?? "", coinValue ?? 0, decision);
+
       return NextResponse.json({ success: true, decision: "converted", newBalance: user?.coins ?? 0 });
     }
   } catch (err) {
     console.error("[pulls/decide POST]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
+}
+
+async function publishLiveEvent(
+  boxId: string,
+  userDoc: { name?: string; username?: string; image?: string | null } | null,
+  cardDoc: { name?: string; image?: string | null } | null,
+  rarity: string,
+  coinValue: number,
+  decision: string
+) {
+  try {
+    const redis = getRedis();
+    await redis.publish(`box-events:${boxId}`, JSON.stringify({
+      userName: userDoc?.name ?? userDoc?.username ?? "User",
+      userImage: userDoc?.image ?? null,
+      cardName: cardDoc?.name ?? "Unknown",
+      cardImage: cardDoc?.image ?? null,
+      rarity,
+      coinValue,
+      decision,
+      timestamp: Date.now(),
+    }));
+  } catch {
+    // Non-critical — SSE is best-effort
   }
 }

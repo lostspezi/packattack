@@ -2,14 +2,31 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Package } from "lucide-react";
+import { ArrowLeft, Loader2, Package, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { PackOpening } from "@/components/packs/pack-opening";
+import { TopHits } from "@/components/packs/top-hits";
+import { LiveEvents } from "@/components/packs/live-events";
+import { MyPulls } from "@/components/packs/my-pulls";
+import { CardPool } from "@/components/packs/card-pool";
+
+interface CardInfo {
+  cardId: string;
+  name: string;
+  image: string | null;
+  rarity: string;
+  setName: string;
+  coinValue: number;
+  marketPrice: number | null;
+  chance: number;
+  stock: number;
+}
 
 interface BoxDetail {
   _id: string;
+  slug: string;
   name: { de: string; en: string };
   description: { de: string; en: string } | null;
   game: string;
@@ -19,21 +36,27 @@ interface BoxDetail {
   totalCards: number;
   availableCards: number;
   packsOpened: number;
-  rarities: string[];
   rarityInfo: Array<{ rarity: string; percentage: number }>;
   coinConversionRate: number;
-  claimDeadlineHours: number;
-}
-
-interface DrawnCard {
-  cardId: string;
-  name: string;
-  rarity: string;
-  coinValue: number;
-  conversionValue: number;
-  image: string | null;
-  packIndex: number;
-  cardIndex: number;
+  cardPool: CardInfo[];
+  topHits: CardInfo[];
+  recentPulls: Array<{
+    _id: string;
+    card: { name?: string; image?: string | null } | null;
+    rarity: string;
+    coinValue: number;
+    conversionValue: number;
+    status: string;
+    createdAt: string;
+  }>;
+  liveEvents: Array<{
+    user: { name?: string; username?: string; image?: string | null } | null;
+    card: { name?: string; image?: string | null } | null;
+    rarity: string;
+    coinValue: number;
+    status: string;
+    createdAt: string;
+  }>;
 }
 
 interface OpenResult {
@@ -41,7 +64,16 @@ interface OpenResult {
   packCount: number;
   totalCost: number;
   newBalance: number;
-  cards: DrawnCard[];
+  cards: Array<{
+    cardId: string;
+    name: string;
+    rarity: string;
+    coinValue: number;
+    conversionValue: number;
+    image: string | null;
+    packIndex: number;
+    cardIndex: number;
+  }>;
 }
 
 export default function PackDetailPage() {
@@ -58,6 +90,7 @@ export default function PackDetailPage() {
   const [opening, setOpening] = useState(false);
   const [openResult, setOpenResult] = useState<OpenResult | null>(null);
   const [userCoins, setUserCoins] = useState<number | null>(null);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -108,7 +141,6 @@ export default function PackDetailPage() {
     );
   }
 
-  // If we have an open result, show the opening flow
   if (openResult) {
     return (
       <PackOpening
@@ -117,7 +149,6 @@ export default function PackDetailPage() {
         lang={lang}
         onDone={() => {
           setOpenResult(null);
-          // Reload box to get updated stock
           fetch(`/api/packs/${id}`).then((r) => r.ok ? r.json() : null).then((d) => { if (d) setBox(d as BoxDetail); }).catch(() => {});
         }}
         onCoinsChange={(coins) => setUserCoins(coins)}
@@ -130,8 +161,20 @@ export default function PackDetailPage() {
   const totalCost = box.priceInCoins * packCount;
   const canAfford = (userCoins ?? 0) >= totalCost;
 
+  // Map live events to the format LiveEvents expects
+  const initialEvents = box.liveEvents.map((e) => ({
+    userName: (e.user as { name?: string })?.name ?? (e.user as { username?: string })?.username ?? "User",
+    userImage: (e.user as { image?: string | null })?.image ?? null,
+    cardName: (e.card as { name?: string })?.name ?? "Unknown",
+    cardImage: (e.card as { image?: string | null })?.image ?? null,
+    rarity: e.rarity,
+    coinValue: e.coinValue,
+    decision: e.status,
+    timestamp: new Date(e.createdAt).getTime(),
+  }));
+
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className="space-y-4">
       {/* Back */}
       <button
         type="button"
@@ -142,96 +185,141 @@ export default function PackDetailPage() {
         {isDe ? "Zurück zu Packs" : "Back to Packs"}
       </button>
 
-      {/* Box header */}
-      <div className="flex flex-col sm:flex-row gap-5">
-        {box.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={box.image} alt={name} className="w-full sm:w-48 h-48 object-cover rounded-xl" />
-        ) : (
-          <div className="w-full sm:w-48 h-48 bg-white/4 rounded-xl flex items-center justify-center">
-            <Package className="w-12 h-12 text-text-muted" />
-          </div>
-        )}
-        <div className="flex-1 space-y-2">
-          <h2 className="text-2xl font-bold text-text-primary">{name}</h2>
-          <p className="text-xs text-text-muted">{box.game}</p>
-          {desc && <p className="text-sm text-text-secondary">{desc}</p>}
-          <div className="flex flex-wrap gap-3 text-sm text-text-secondary">
-            <span><strong className="text-pa-green">{box.priceInCoins}</strong> Coins/Pack</span>
-            <span>{box.cardsPerPack} {isDe ? "Karten/Pack" : "cards/pack"}</span>
-            <span>{box.availableCards} {isDe ? "verfügbar" : "available"}</span>
-          </div>
-          {box.rarityInfo.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {box.rarityInfo.map((r) => (
-                <Badge key={r.rarity} variant="info">{r.rarity} ~{r.percentage}%</Badge>
-              ))}
+      {/* ═══ HERO: PACK OPENING ═══ */}
+      <div className="bg-surface border border-border rounded-[16px] p-5 md:p-7 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-radial from-pa-green/5 to-transparent pointer-events-none" />
+
+        <div className="flex flex-col lg:flex-row gap-6 relative">
+          {/* Box Image */}
+          {box.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={box.image} alt={name} className="w-full lg:w-40 h-48 lg:h-52 object-cover rounded-xl shrink-0" />
+          ) : (
+            <div className="w-full lg:w-40 h-48 lg:h-52 bg-white/4 rounded-xl shrink-0 flex items-center justify-center">
+              <Package className="w-10 h-10 text-text-muted" />
             </div>
           )}
+
+          {/* Middle: CTA */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h1 className="text-xl md:text-2xl font-extrabold text-text-primary">{name}</h1>
+              <span className="bg-pa-green/8 border border-pa-green/15 text-pa-green text-xs px-2.5 py-1 rounded-lg">
+                🔥 {box.packsOpened.toLocaleString()} {isDe ? "geöffnet" : "opened"}
+              </span>
+            </div>
+            <p className="text-xs text-text-muted mt-0.5">{box.game}</p>
+
+            {/* Pack selector */}
+            <div className="mt-5">
+              <p className="text-xs text-text-muted mb-2">{isDe ? "Wie viele Packs?" : "How many packs?"}</p>
+              <div className="flex gap-2 flex-wrap">
+                {[1, 2, 3, 5, 10].map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setPackCount(n)}
+                    className={`px-5 py-2.5 text-sm font-bold rounded-xl border transition-all ${
+                      packCount === n
+                        ? "bg-pa-green/15 text-pa-green border-pa-green/40"
+                        : "bg-white/4 text-text-muted border-border hover:bg-white/6"
+                    }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA + Balance */}
+            <div className="flex items-center gap-4 mt-4 flex-wrap">
+              <Button
+                variant="primary"
+                size="lg"
+                loading={opening}
+                disabled={!canAfford || box.availableCards === 0}
+                onClick={() => void handleOpen()}
+                className="shadow-[0_0_24px_theme(colors.pa-green/0.2)]"
+              >
+                🎴 {isDe ? "Pack öffnen" : "Open Pack"} — {totalCost} Coins
+              </Button>
+              <div className="text-center">
+                <p className="text-[10px] text-text-muted">{isDe ? "Guthaben" : "Balance"}</p>
+                <p className={`text-xl font-extrabold tabular-nums ${canAfford ? "text-pa-green" : "text-red-400"}`}>
+                  {(userCoins ?? 0).toLocaleString()}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-4 mt-3 text-xs text-text-muted flex-wrap">
+              <span>{box.cardsPerPack} {isDe ? "Karten/Pack" : "cards/pack"}</span>
+              <span>·</span>
+              <span>{box.availableCards} {isDe ? "verfügbar" : "available"}</span>
+              <span>·</span>
+              <span>{box.coinConversionRate}% {isDe ? "Umwandlung" : "conversion"}</span>
+            </div>
+          </div>
+
+          {/* Right: Description + Rarities */}
+          <div className="lg:w-64 shrink-0 space-y-3">
+            {/* Description */}
+            {desc && (
+              <div className="bg-white/4 rounded-xl p-3.5">
+                <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5">
+                  {isDe ? "Beschreibung" : "Description"}
+                </p>
+                <div className={`text-xs text-text-secondary leading-relaxed ${!descExpanded ? "max-h-20 overflow-hidden" : ""}`}>
+                  {desc}
+                </div>
+                {desc.length > 120 && (
+                  <button
+                    type="button"
+                    onClick={() => setDescExpanded((v) => !v)}
+                    className="text-[10px] text-pa-green mt-1 flex items-center gap-0.5"
+                  >
+                    {descExpanded ? (isDe ? "Weniger" : "Less") : (isDe ? "Mehr anzeigen" : "Show more")}
+                    <ChevronDown className={`w-3 h-3 transition-transform ${descExpanded ? "rotate-180" : ""}`} />
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Rarity distribution */}
+            <div className="bg-white/4 rounded-xl p-3.5">
+              <p className="text-[10px] text-text-muted uppercase tracking-wider mb-2">
+                {isDe ? "Raritäten" : "Rarities"}
+              </p>
+              <div className="space-y-2">
+                {box.rarityInfo.map((r) => (
+                  <div key={r.rarity} className="flex items-center gap-2">
+                    <Badge variant="info" className="text-[9px] min-w-[60px] justify-center">{r.rarity}</Badge>
+                    <div className="flex-1 h-1.5 bg-white/6 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all"
+                        style={{
+                          width: `${Math.max(2, r.percentage)}%`,
+                          backgroundColor: r.percentage < 1 ? "#EF4444" : r.percentage < 10 ? "#F59E0B" : "#60A5FA",
+                        }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-text-muted tabular-nums w-8 text-right">~{r.percentage}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Pack opening controls */}
-      <div className="bg-surface border border-border rounded-[14px] p-5 space-y-4">
-        <h3 className="text-base font-semibold text-text-primary">
-          {isDe ? "Packs öffnen" : "Open Packs"}
-        </h3>
-
-        {/* Pack count selector */}
-        <div className="flex flex-wrap gap-2">
-          {[1, 2, 3, 5, 10].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setPackCount(n)}
-              className={`px-4 py-2 text-sm font-medium rounded-xl border transition-colors ${
-                packCount === n
-                  ? "bg-pa-green/10 text-pa-green border-pa-green/20"
-                  : "bg-white/4 text-text-secondary border-border hover:bg-white/6"
-              }`}
-            >
-              {n} Pack{n > 1 ? "s" : ""}
-            </button>
-          ))}
-        </div>
-
-        {/* Cost summary */}
-        <div className="flex items-center justify-between bg-white/4 border border-border rounded-xl p-4">
-          <div>
-            <p className="text-xs text-text-muted">{isDe ? "Gesamtkosten" : "Total Cost"}</p>
-            <p className="text-xl font-bold text-text-primary">{totalCost.toLocaleString()} Coins</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-text-muted">{isDe ? "Dein Guthaben" : "Your Balance"}</p>
-            <p className={`text-xl font-bold ${canAfford ? "text-pa-green" : "text-red-400"}`}>
-              {(userCoins ?? 0).toLocaleString()} Coins
-            </p>
-          </div>
-        </div>
-
-        {/* Open button */}
-        <Button
-          variant="primary"
-          size="lg"
-          className="w-full"
-          loading={opening}
-          disabled={!canAfford || box.availableCards === 0}
-          onClick={() => void handleOpen()}
-        >
-          {!canAfford
-            ? (isDe ? "Nicht genug Coins" : "Not enough coins")
-            : box.availableCards === 0
-            ? (isDe ? "Keine Karten verfügbar" : "No cards available")
-            : (isDe ? `${packCount} Pack${packCount > 1 ? "s" : ""} öffnen` : `Open ${packCount} Pack${packCount > 1 ? "s" : ""}`)}
-        </Button>
-
-        {/* Info */}
-        <p className="text-[11px] text-text-muted text-center">
-          {isDe
-            ? `Umwandlungsrate: ${box.coinConversionRate}%`
-            : `Conversion rate: ${box.coinConversionRate}%`}
-        </p>
+      {/* ═══ THREE COLUMNS ═══ */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <TopHits cards={box.topHits} lang={lang} />
+        <LiveEvents boxId={box._id} initialEvents={initialEvents} lang={lang} />
+        <MyPulls pulls={box.recentPulls} lang={lang} />
       </div>
+
+      {/* ═══ CARD POOL ═══ */}
+      <CardPool cards={box.cardPool} lang={lang} />
     </div>
   );
 }
