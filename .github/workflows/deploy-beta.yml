@@ -33,6 +33,7 @@ jobs:
             GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
+            JUSTTCG_API_KEY=${{ secrets.JUSTTCG_API_KEY }}
             SMTP_FROM=no-reply@mail.packattack.gg
             AUTH_TRUST_HOST=true
             ENVEOF
