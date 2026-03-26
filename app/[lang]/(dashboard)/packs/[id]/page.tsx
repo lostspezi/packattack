@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2, Package, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { Modal } from "@/components/ui/modal";
 import { PackOpening } from "@/components/packs/pack-opening";
 import { TopHits } from "@/components/packs/top-hits";
 import { LiveEvents } from "@/components/packs/live-events";
@@ -90,7 +91,7 @@ export default function PackDetailPage() {
   const [opening, setOpening] = useState(false);
   const [openResult, setOpenResult] = useState<OpenResult | null>(null);
   const [userCoins, setUserCoins] = useState<number | null>(null);
-  const [descExpanded, setDescExpanded] = useState(false);
+  const [showBoxInfo, setShowBoxInfo] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -260,29 +261,27 @@ export default function PackDetailPage() {
             </div>
           </div>
 
-          {/* Right: Description + Rarities */}
-          <div className="lg:w-64 shrink-0 space-y-3">
+          {/* Right: Description + Rarities side by side */}
+          <div className="lg:w-[340px] shrink-0 grid grid-cols-2 gap-3">
             {/* Description */}
-            {desc && (
-              <div className="bg-white/4 rounded-xl p-3.5">
-                <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5">
-                  {isDe ? "Beschreibung" : "Description"}
-                </p>
-                <div className={`text-xs text-text-secondary leading-relaxed ${!descExpanded ? "max-h-20 overflow-hidden" : ""}`}>
-                  {desc}
-                </div>
-                {desc.length > 120 && (
-                  <button
-                    type="button"
-                    onClick={() => setDescExpanded((v) => !v)}
-                    className="text-[10px] text-pa-green mt-1 flex items-center gap-0.5"
-                  >
-                    {descExpanded ? (isDe ? "Weniger" : "Less") : (isDe ? "Mehr anzeigen" : "Show more")}
-                    <ChevronDown className={`w-3 h-3 transition-transform ${descExpanded ? "rotate-180" : ""}`} />
-                  </button>
-                )}
+            <div className="bg-white/4 rounded-xl p-3.5">
+              <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5">
+                {isDe ? "Beschreibung" : "Description"}
+              </p>
+              <div className="text-xs text-text-secondary leading-relaxed max-h-24 overflow-hidden">
+                {desc || (isDe ? "Keine Beschreibung" : "No description")}
               </div>
-            )}
+              {desc && desc.length > 80 && (
+                <button
+                  type="button"
+                  onClick={() => setShowBoxInfo(true)}
+                  className="text-[10px] text-pa-green mt-1.5 flex items-center gap-0.5 hover:underline"
+                >
+                  {isDe ? "Mehr anzeigen" : "Show more"}
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+              )}
+            </div>
 
             {/* Rarity distribution */}
             <div className="bg-white/4 rounded-xl p-3.5">
@@ -292,7 +291,7 @@ export default function PackDetailPage() {
               <div className="space-y-2">
                 {box.rarityInfo.map((r) => (
                   <div key={r.rarity} className="flex items-center gap-2">
-                    <Badge variant="info" className="text-[9px] min-w-[60px] justify-center">{r.rarity}</Badge>
+                    <Badge variant="info" className="text-[9px] min-w-[50px] justify-center">{r.rarity}</Badge>
                     <div className="flex-1 h-1.5 bg-white/6 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
@@ -302,7 +301,7 @@ export default function PackDetailPage() {
                         }}
                       />
                     </div>
-                    <span className="text-[10px] text-text-muted tabular-nums w-8 text-right">~{r.percentage}%</span>
+                    <span className="text-[10px] text-text-muted tabular-nums w-7 text-right">~{r.percentage}%</span>
                   </div>
                 ))}
               </div>
@@ -320,6 +319,92 @@ export default function PackDetailPage() {
 
       {/* ═══ CARD POOL ═══ */}
       <CardPool cards={box.cardPool} lang={lang} />
+
+      {/* ═══ BOX INFO MODAL ═══ */}
+      <Modal open={showBoxInfo} onClose={() => setShowBoxInfo(false)} title={name} size="xl">
+        <div className="space-y-6">
+          {/* Description full */}
+          {desc && (
+            <div>
+              <p className="text-xs text-text-muted uppercase tracking-wider mb-2">
+                {isDe ? "Beschreibung" : "Description"}
+              </p>
+              <div className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
+                {desc}
+              </div>
+            </div>
+          )}
+
+          {/* Top 3 Hits */}
+          {box.topHits.length > 0 && (
+            <div>
+              <p className="text-xs text-text-muted uppercase tracking-wider mb-3">🏆 Top Hits</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {box.topHits.map((card, i) => (
+                  <div
+                    key={card.cardId}
+                    className={`rounded-xl p-4 text-center ${
+                      i === 0
+                        ? "bg-pa-green/5 border border-pa-green/20"
+                        : "bg-white/4 border border-border"
+                    }`}
+                  >
+                    {card.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={card.image} alt="" className="w-20 mx-auto rounded-lg mb-2" loading="lazy" />
+                    ) : (
+                      <div className="w-20 aspect-[63/88] bg-white/4 rounded-lg mx-auto mb-2" />
+                    )}
+                    <p className="text-sm font-bold text-text-primary">{card.name}</p>
+                    <Badge variant="info" className="mt-1">{card.rarity}</Badge>
+                    <p className={`text-lg font-extrabold mt-2 ${i === 0 ? "text-pa-green" : "text-text-primary"}`}>
+                      {card.coinValue.toLocaleString()} Coins
+                    </p>
+                    <p className="text-xs text-yellow-400">
+                      ⚡ {card.chance < 0.01 ? card.chance.toFixed(3) : card.chance < 1 ? card.chance.toFixed(2) : card.chance.toFixed(1)}% Chance
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Rarity breakdown */}
+          <div>
+            <p className="text-xs text-text-muted uppercase tracking-wider mb-2">
+              {isDe ? "Raritäten-Verteilung" : "Rarity Distribution"}
+            </p>
+            <div className="space-y-2">
+              {box.rarityInfo.map((r) => (
+                <div key={r.rarity} className="flex items-center gap-3">
+                  <Badge variant="info" className="min-w-[80px] justify-center">{r.rarity}</Badge>
+                  <div className="flex-1 h-2 bg-white/6 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${Math.max(2, r.percentage)}%`,
+                        backgroundColor: r.percentage < 1 ? "#EF4444" : r.percentage < 10 ? "#F59E0B" : "#60A5FA",
+                      }}
+                    />
+                  </div>
+                  <span className="text-sm text-text-secondary tabular-nums w-10 text-right">~{r.percentage}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA */}
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full shadow-[0_0_24px_theme(colors.pa-green/0.2)]"
+            disabled={!canAfford || box.availableCards === 0}
+            onClick={() => { setShowBoxInfo(false); void handleOpen(); }}
+          >
+            🎴 {isDe ? "Pack öffnen" : "Open Pack"} — {totalCost} Coins
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
