@@ -66,7 +66,7 @@ export async function GET(
     // Top 3 hits (by coin value)
     const topHits = [...cardPool]
       .sort((a, b) => b.coinValue - a.coinValue)
-      .slice(0, 3);
+      .slice(0, 5);
 
     // Rarity breakdown
     const rarityBreakdown: Record<string, number> = {};
