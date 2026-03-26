@@ -82,7 +82,7 @@ export function LiveEvents({
         <div className="flex items-center gap-2 mb-3">
           <span className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_theme(colors.red.500)]" />
           <span className="text-xs text-text-muted uppercase tracking-wider font-semibold">
-            Live Events
+            Live Pulls
           </span>
         </div>
 
@@ -92,7 +92,7 @@ export function LiveEvents({
           </p>
         ) : (
           <div className="space-y-1">
-            {events.slice(0, 8).map((ev, i) => {
+            {events.slice(0, 4).map((ev, i) => {
               const rare = isRare(ev.coinValue);
               return (
                 <button
