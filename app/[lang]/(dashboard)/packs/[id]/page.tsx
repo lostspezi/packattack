@@ -287,7 +287,7 @@ export default function PackDetailPage() {
           </div>
 
           {/* Right: Description + Rarities side by side */}
-          <div className="lg:w-[340px] shrink-0 grid grid-cols-2 gap-3">
+          <div className="lg:w-[480px] shrink-0 grid grid-cols-2 gap-3">
             {/* Description */}
             <div className="bg-white/4 rounded-xl p-3.5">
               <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5">
