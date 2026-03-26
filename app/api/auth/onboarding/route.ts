@@ -1,19 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
 import ConsentLog from "@/models/consent-log";
 import PlatformSettings from "@/models/platform-settings";
-import { registerSchema } from "@/lib/validations";
-import { generateVerificationToken } from "@/lib/tokens";
-import { sendTemplateEmail } from "@/lib/mail";
-
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+import { onboardingSchema } from "@/lib/validations";
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    }
+
     const body = await req.json();
-    const parsed = registerSchema.safeParse(body);
+    const parsed = onboardingSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
@@ -23,7 +25,6 @@ export async function POST(req: NextRequest) {
     }
 
     const { name, username, email, password, dateOfBirth } = parsed.data;
-    const lang = (body.lang as string) || "en";
 
     // Validate age >= 18
     const dob = new Date(dateOfBirth);
@@ -38,49 +39,42 @@ export async function POST(req: NextRequest) {
 
     await connectDB();
 
-    const existingEmail = await User.findOne({ email });
+    // Check email uniqueness (excluding current user)
+    const existingEmail = await User.findOne({ email, _id: { $ne: session.user.id } });
     if (existingEmail) {
-      return NextResponse.json(
-        { error: "email_taken" },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "email_taken" }, { status: 409 });
     }
 
-    const existingUsername = await User.findOne({ username });
+    // Check username uniqueness (excluding current user)
+    const existingUsername = await User.findOne({ username, _id: { $ne: session.user.id } });
     if (existingUsername) {
-      return NextResponse.json(
-        { error: "username_taken" },
-        { status: 409 }
-      );
+      return NextResponse.json({ error: "username_taken" }, { status: 409 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    const user = await User.create({
-      name,
-      username,
-      email,
-      password: hashedPassword,
-      emailVerified: null,
-      role: "user",
-      dateOfBirth: dob,
-      onboardingCompleted: true,
-    });
-
-    // Get platform settings for consent version
     const settings = await PlatformSettings.findOne().lean();
     const tosVersion = settings?.tosVersion ?? "";
     const privacyVersion = settings?.privacyVersion ?? "";
     const now = new Date();
 
-    // Update user consents
-    await User.findByIdAndUpdate(user._id, {
+    // Build update object
+    const updateData: Record<string, unknown> = {
+      name,
+      username,
+      email,
+      dateOfBirth: dob,
+      onboardingCompleted: true,
       "consents.tos": { accepted: true, version: tosVersion, acceptedAt: now },
       "consents.privacy": { accepted: true, version: privacyVersion, acceptedAt: now },
       "consents.ageVerification": { accepted: true, acceptedAt: now },
-    });
+    };
 
-    // Log consent
+    // Only update password if provided (OAuth users may not have one yet)
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 12);
+    }
+
+    await User.findByIdAndUpdate(session.user.id, updateData);
+
     const ip =
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
       req.headers.get("x-real-ip") ??
@@ -89,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     await ConsentLog.create([
       {
-        userId: user._id,
+        userId: session.user.id,
         type: "tos",
         version: tosVersion,
         action: "accepted",
@@ -98,7 +92,7 @@ export async function POST(req: NextRequest) {
         createdAt: now,
       },
       {
-        userId: user._id,
+        userId: session.user.id,
         type: "privacy",
         version: privacyVersion,
         action: "accepted",
@@ -107,7 +101,7 @@ export async function POST(req: NextRequest) {
         createdAt: now,
       },
       {
-        userId: user._id,
+        userId: session.user.id,
         type: "age_verification",
         version: "1.0",
         action: "accepted",
@@ -117,22 +111,9 @@ export async function POST(req: NextRequest) {
       },
     ]);
 
-    // Generate verification token and send email
-    const token = await generateVerificationToken(user._id.toString(), "email_verify");
-    const verifyUrl = `${APP_URL}/${lang}/verify-email?token=${token}`;
-
-    try {
-      await sendTemplateEmail(email, "verify-email", lang as "de" | "en", {
-        name,
-        verifyUrl,
-      });
-    } catch {
-      // Non-fatal: user is created, email can be resent
-    }
-
-    return NextResponse.json({ success: true }, { status: 201 });
+    return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("[register]", err);
+    console.error("[onboarding]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }

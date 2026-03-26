@@ -11,6 +11,23 @@ export const registerSchema = z.object({
   password: z.string().min(8).max(100),
   acceptTos: z.literal(true),
   acceptPrivacy: z.literal(true),
+  dateOfBirth: z.string().min(1),
+  acceptAge: z.literal(true),
+});
+
+export const onboardingSchema = z.object({
+  name: z.string().min(2).max(50),
+  username: z
+    .string()
+    .min(3)
+    .max(30)
+    .regex(/^[a-zA-Z0-9_-]+$/, "Only letters, numbers, _ and - are allowed"),
+  email: z.string().email(),
+  password: z.string().min(8).max(100).optional(),
+  dateOfBirth: z.string().min(1),
+  acceptTos: z.literal(true),
+  acceptPrivacy: z.literal(true),
+  acceptAge: z.literal(true),
 });
 
 export const profileSchema = z.object({

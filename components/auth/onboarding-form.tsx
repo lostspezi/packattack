@@ -2,21 +2,35 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 
-interface RegisterFormProps {
+interface OnboardingFormProps {
   dict: Record<string, string>;
   lang: string;
+  initialName: string;
+  initialUsername: string;
+  initialEmail: string;
+  hasPassword: boolean;
 }
 
-export function RegisterForm({ dict, lang }: RegisterFormProps) {
+export function OnboardingForm({
+  dict,
+  lang,
+  initialName,
+  initialUsername,
+  initialEmail,
+  hasPassword,
+}: OnboardingFormProps) {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
+  const { update: updateSession } = useSession();
+
+  const [name, setName] = useState(initialName);
+  const [username, setUsername] = useState(initialUsername);
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [acceptTos, setAcceptTos] = useState(false);
@@ -37,27 +51,31 @@ export function RegisterForm({ dict, lang }: RegisterFormProps) {
     setError(null);
 
     if (!acceptTos || !acceptPrivacy || !acceptAge) {
-      setError(dict["error_accept_terms"] ?? "You must accept the Terms, Privacy Policy, and confirm your age.");
+      setError(dict["error_accept_terms"] ?? "You must accept all terms.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth/register", {
+      const body: Record<string, unknown> = {
+        name,
+        username,
+        email,
+        dateOfBirth,
+        acceptTos: true,
+        acceptPrivacy: true,
+        acceptAge: true,
+      };
+
+      if (!hasPassword && password) {
+        body.password = password;
+      }
+
+      const res = await fetch("/api/auth/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          username,
-          email,
-          password,
-          dateOfBirth,
-          acceptTos,
-          acceptPrivacy,
-          acceptAge,
-          lang,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -67,13 +85,17 @@ export function RegisterForm({ dict, lang }: RegisterFormProps) {
           setError(dict["error_email_taken"] ?? "This email is already registered.");
         } else if (data.error === "username_taken") {
           setError(dict["error_username_taken"] ?? "This username is already taken.");
+        } else if (data.error === "age_requirement") {
+          setError(dict["error_age_requirement"] ?? "You must be at least 18 years old.");
         } else {
           setError(dict["error_unexpected"] ?? "An unexpected error occurred.");
         }
         return;
       }
 
-      router.push(`/${lang}/verify-email`);
+      // Refresh session so JWT picks up onboardingCompleted: true
+      await updateSession();
+      router.push(`/${lang}/dashboard`);
     } catch {
       setError(dict["error_unexpected"] ?? "An unexpected error occurred.");
     } finally {
@@ -84,7 +106,7 @@ export function RegisterForm({ dict, lang }: RegisterFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <Input
-        label={dict["label_name"] ?? "Full Name"}
+        label={dict["label_name"] ?? "Name"}
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
@@ -110,14 +132,16 @@ export function RegisterForm({ dict, lang }: RegisterFormProps) {
         autoComplete="email"
       />
 
-      <Input
-        label={dict["label_password"] ?? "Password"}
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        required
-        autoComplete="new-password"
-      />
+      {!hasPassword && (
+        <Input
+          label={dict["label_password"] ?? "Password"}
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          autoComplete="new-password"
+        />
+      )}
 
       <Input
         label={dict["label_date_of_birth"] ?? "Date of Birth"}
@@ -131,12 +155,12 @@ export function RegisterForm({ dict, lang }: RegisterFormProps) {
       <div className="flex flex-col gap-3">
         <div className="flex items-start gap-2">
           <Checkbox
-            id="accept-tos"
+            id="onboarding-accept-tos"
             checked={acceptTos}
             onCheckedChange={setAcceptTos}
           />
-          <label htmlFor="accept-tos" className="text-sm text-text-secondary leading-tight pt-0.5">
-            {dict["label_accept_tos_prefix"] ?? "I accept the"}{" "}
+          <label htmlFor="onboarding-accept-tos" className="text-sm text-text-secondary leading-tight pt-0.5">
+            {dict["checkbox_tos"] ?? "I accept the"}{" "}
             <Link
               href={`/${lang}/terms`}
               target="_blank"
@@ -149,12 +173,12 @@ export function RegisterForm({ dict, lang }: RegisterFormProps) {
 
         <div className="flex items-start gap-2">
           <Checkbox
-            id="accept-privacy"
+            id="onboarding-accept-privacy"
             checked={acceptPrivacy}
             onCheckedChange={setAcceptPrivacy}
           />
-          <label htmlFor="accept-privacy" className="text-sm text-text-secondary leading-tight pt-0.5">
-            {dict["label_accept_privacy_prefix"] ?? "I accept the"}{" "}
+          <label htmlFor="onboarding-accept-privacy" className="text-sm text-text-secondary leading-tight pt-0.5">
+            {dict["checkbox_privacy"] ?? "I accept the"}{" "}
             <Link
               href={`/${lang}/privacy`}
               target="_blank"
@@ -167,11 +191,11 @@ export function RegisterForm({ dict, lang }: RegisterFormProps) {
 
         <div className="flex items-start gap-2">
           <Checkbox
-            id="accept-age"
+            id="onboarding-accept-age"
             checked={acceptAge}
             onCheckedChange={setAcceptAge}
           />
-          <label htmlFor="accept-age" className="text-sm text-text-secondary leading-tight pt-0.5">
+          <label htmlFor="onboarding-accept-age" className="text-sm text-text-secondary leading-tight pt-0.5">
             {dict["checkbox_age"] ?? "I confirm I am at least 18 years old"}
           </label>
         </div>
@@ -188,18 +212,8 @@ export function RegisterForm({ dict, lang }: RegisterFormProps) {
         loading={loading}
         className="w-full"
       >
-        {dict["button_register"] ?? "Create Account"}
+        {dict["button_complete"] ?? "Complete & Continue"}
       </Button>
-
-      <p className="text-center text-sm text-text-secondary">
-        {dict["text_have_account"] ?? "Already have an account?"}{" "}
-        <Link
-          href={`/${lang}/login`}
-          className="text-pa-green hover:text-pa-green-hover font-medium"
-        >
-          {dict["link_login"] ?? "Log in"}
-        </Link>
-      </p>
     </form>
   );
 }

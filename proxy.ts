@@ -5,7 +5,7 @@ import { getToken } from "next-auth/jwt";
 const locales = ["de", "en"];
 const defaultLocale = "en";
 
-const authRoutes = ["/login", "/register", "/verify-email", "/accept-terms", "/error", "/forgot-password", "/reset-password"];
+const authRoutes = ["/login", "/register", "/verify-email", "/accept-terms", "/onboarding", "/error", "/forgot-password", "/reset-password"];
 
 function getLocaleFromPath(pathname: string): string | null {
   const segment = pathname.split("/")[1];
@@ -64,7 +64,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // 5. Consent check
+  // 5. Onboarding check
+  if (!token.onboardingCompleted) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${locale}/onboarding`;
+    return NextResponse.redirect(url);
+  }
+
+  // 6. Consent check
   if (
     token.userTosVersion !== token.currentTosVersion ||
     token.userPrivacyVersion !== token.currentPrivacyVersion

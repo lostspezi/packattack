@@ -11,6 +11,7 @@ declare module "next-auth" {
       currentTosVersion: string;
       currentPrivacyVersion: string;
       language: string;
+      onboardingCompleted: boolean;
     } & DefaultSession["user"];
   }
 }
@@ -25,5 +26,6 @@ declare module "@auth/core/jwt" {
     currentTosVersion: string;
     currentPrivacyVersion: string;
     language: string;
+    onboardingCompleted: boolean;
   }
 }

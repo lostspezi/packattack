@@ -23,11 +23,14 @@ export async function runSeed() {
     emailVerified: new Date(),
     password: hashedPassword,
     role: "super_admin",
+    dateOfBirth: new Date("1990-01-01"),
     preferences: { language: "en", theme: "dark", notifications: { email: true, browser: true } },
     publicProfile: false,
+    onboardingCompleted: true,
     consents: {
       tos: { accepted: true, version: "1.0", acceptedAt: new Date() },
       privacy: { accepted: true, version: "1.0", acceptedAt: new Date() },
+      ageVerification: { accepted: true, acceptedAt: new Date() },
     },
   });
 

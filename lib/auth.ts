@@ -167,6 +167,7 @@ const authConfig: NextAuthConfig = {
             token.userPrivacyVersion = dbUser.consents?.privacy?.version ?? "";
             token.language = dbUser.preferences?.language ?? "en";
             token.picture = dbUser.image ?? null;
+            token.onboardingCompleted = dbUser.onboardingCompleted ?? false;
           } else {
             // Fallback for brand-new OAuth users created by the adapter
             token.role = "user";
@@ -174,6 +175,7 @@ const authConfig: NextAuthConfig = {
             token.userTosVersion = "";
             token.userPrivacyVersion = "";
             token.language = "en";
+            token.onboardingCompleted = false;
           }
         } catch {
           // non-fatal — set safe defaults
@@ -182,6 +184,7 @@ const authConfig: NextAuthConfig = {
           token.userTosVersion = token.userTosVersion ?? "";
           token.userPrivacyVersion = token.userPrivacyVersion ?? "";
           token.language = token.language ?? "en";
+          token.onboardingCompleted = token.onboardingCompleted ?? false;
         }
       }
 
@@ -209,6 +212,7 @@ const authConfig: NextAuthConfig = {
             token.language = dbUser.preferences?.language ?? (token.language as string) ?? "en";
             token.role = dbUser.role ?? (token.role as string) ?? "user";
             token.picture = dbUser.image ?? null;
+            token.onboardingCompleted = dbUser.onboardingCompleted ?? false;
           }
         } catch {
           // non-fatal — keep existing token values
@@ -231,6 +235,7 @@ const authConfig: NextAuthConfig = {
         session.user.currentTosVersion = token.currentTosVersion as string;
         session.user.currentPrivacyVersion = token.currentPrivacyVersion as string;
         session.user.language = token.language as string;
+        session.user.onboardingCompleted = token.onboardingCompleted as boolean;
       }
       return session;
     },

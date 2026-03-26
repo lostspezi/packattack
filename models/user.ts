@@ -10,6 +10,7 @@ export interface IUser extends Document {
   image: string | null;
   role: "user" | "shop" | "moderator" | "admin" | "super_admin";
   bio: string | null;
+  dateOfBirth: Date | null;
   socialLinks: {
     discord?: string;
     twitch?: string;
@@ -36,7 +37,12 @@ export interface IUser extends Document {
       version: string;
       acceptedAt: Date;
     };
+    ageVerification: {
+      accepted: boolean;
+      acceptedAt: Date;
+    };
   };
+  onboardingCompleted: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -55,6 +61,7 @@ const UserSchema = new Schema<IUser>(
       default: "user",
     },
     bio: { type: String, default: null },
+    dateOfBirth: { type: Date, default: null },
     socialLinks: {
       discord: { type: String },
       twitch: { type: String },
@@ -89,7 +96,12 @@ const UserSchema = new Schema<IUser>(
         version: { type: String, default: "" },
         acceptedAt: { type: Date },
       },
+      ageVerification: {
+        accepted: { type: Boolean, default: false },
+        acceptedAt: { type: Date },
+      },
     },
+    onboardingCompleted: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
