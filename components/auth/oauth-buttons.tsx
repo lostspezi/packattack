@@ -82,12 +82,15 @@ export function OAuthButtons({ callbackUrl = "/dashboard", dict = {} }: OAuthBut
 
         <button
           type="button"
-          disabled
-          className="flex items-center justify-center gap-2 rounded-[10px] px-4 py-3 text-sm font-medium bg-white/3 border border-white/6 text-text-disabled opacity-50 cursor-not-allowed relative"
+          disabled={loading !== null}
+          onClick={() => handleSignIn("google")}
+          className={[
+            "flex items-center justify-center gap-2 rounded-[10px] px-4 py-3 text-sm font-medium transition-colors bg-white/3 border border-white/6 text-text-primary hover:bg-white/6",
+            loading && loading !== "google" ? "opacity-50" : "",
+          ].join(" ")}
         >
-          <GoogleIcon />
-          Google
-          <span className="text-[9px] font-bold text-pa-green bg-pa-green/8 border border-pa-green/15 rounded px-1.5 py-0.5 ml-1">Soon</span>
+          {loading === "google" ? <Spinner /> : <GoogleIcon />}
+          {loading === "google" ? "..." : (dict["withGoogle"] ?? "Google")}
         </button>
       </div>
     </div>

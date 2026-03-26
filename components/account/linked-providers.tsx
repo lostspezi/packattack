@@ -38,7 +38,7 @@ const providerConfig: Record<
 };
 
 const ALL_PROVIDERS = ["discord", "twitch", "google"] as const;
-const DISABLED_PROVIDERS = new Set(["google"]);
+const DISABLED_PROVIDERS = new Set<string>([]);
 
 export function LinkedProviders({ dict, lang, initialProviders }: LinkedProvidersProps) {
   const { toast } = useToast();
