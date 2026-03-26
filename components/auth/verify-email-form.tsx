@@ -36,9 +36,9 @@ export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
           setStatus("success");
           // Force session refresh so JWT picks up the new emailVerified value
           await updateSession();
-          // Redirect via full page reload so proxy determines the correct destination
-          // (onboarding for new OAuth users, dashboard for completed users)
-          setTimeout(() => { window.location.href = `/${lang}/dashboard`; }, 1500);
+          // Redirect immediately via full page reload
+          // Proxy will route to onboarding (OAuth) or dashboard (completed)
+          window.location.replace(`/${lang}/dashboard`);
         } else {
           const data = await res.json();
           setStatus("error");
