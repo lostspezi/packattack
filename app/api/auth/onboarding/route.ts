@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
+import { Types } from "mongoose";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
@@ -56,13 +57,14 @@ export async function POST(req: NextRequest) {
     const privacyVersion = settings?.privacyVersion ?? "";
     const now = new Date();
 
-    // Build update object
+    // Build update object — ensure role is set to "user" if not already present
     const updateData: Record<string, unknown> = {
       name,
       username,
       email,
       dateOfBirth: dob,
       onboardingCompleted: true,
+      role: "user",
       "consents.tos": { accepted: true, version: tosVersion, acceptedAt: now },
       "consents.privacy": { accepted: true, version: privacyVersion, acceptedAt: now },
       "consents.ageVerification": { accepted: true, acceptedAt: now },
@@ -73,7 +75,16 @@ export async function POST(req: NextRequest) {
       updateData.password = await bcrypt.hash(password, 12);
     }
 
-    await User.findByIdAndUpdate(session.user.id, updateData);
+    // Handle both ObjectId and UUID user IDs from the adapter
+    const userId = session.user.id;
+    const isObjectId = Types.ObjectId.isValid(userId) && new Types.ObjectId(userId).toString() === userId;
+
+    if (isObjectId) {
+      await User.findByIdAndUpdate(userId, updateData, { upsert: true });
+    } else {
+      // UUID from adapter — find by email and update, or create via upsert
+      await User.findOneAndUpdate({ email }, updateData, { upsert: true });
+    }
 
     const ip =
       req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
