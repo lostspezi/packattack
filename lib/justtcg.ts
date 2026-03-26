@@ -108,16 +108,21 @@ export interface SearchCardsParams {
 }
 
 export async function getGames(): Promise<JustTCGGame[] | null> {
-  return cached<JustTCGGame[]>("justtcg:games", 3600, () =>
-    fetchJustTCG<JustTCGGame[]>("/games")
-  );
+  return cached<JustTCGGame[]>("justtcg:games", 3600, async () => {
+    const res = await fetchJustTCG<{ data: JustTCGGame[] } | JustTCGGame[]>("/games");
+    if (!res) return null;
+    // API wraps response in { data: [...] }
+    return Array.isArray(res) ? res : res.data ?? null;
+  });
 }
 
 export async function getSets(game: string): Promise<JustTCGSet[] | null> {
   const cacheKey = `justtcg:sets:${game}`;
-  return cached<JustTCGSet[]>(cacheKey, 3600, () =>
-    fetchJustTCG<JustTCGSet[]>(`/sets?game=${encodeURIComponent(game)}`)
-  );
+  return cached<JustTCGSet[]>(cacheKey, 3600, async () => {
+    const res = await fetchJustTCG<{ data: JustTCGSet[] } | JustTCGSet[]>(`/sets?game=${encodeURIComponent(game)}`);
+    if (!res) return null;
+    return Array.isArray(res) ? res : res.data ?? null;
+  });
 }
 
 export async function searchCards(
@@ -134,14 +139,26 @@ export async function searchCards(
   const hash = createHash("sha256").update(queryString).digest("hex");
   const cacheKey = `justtcg:cards:search:${hash}`;
 
-  return cached<JustTCGCardsResponse>(cacheKey, 300, () =>
-    fetchJustTCG<JustTCGCardsResponse>(`/cards${queryString ? `?${queryString}` : ""}`)
-  );
+  return cached<JustTCGCardsResponse>(cacheKey, 300, async () => {
+    const res = await fetchJustTCG<{ data: JustTCGCard[]; meta?: { total?: number; page?: number; limit?: number } }>(`/cards${queryString ? `?${queryString}` : ""}`);
+    if (!res) return null;
+    const cards = Array.isArray(res) ? res as unknown as JustTCGCard[] : res.data ?? [];
+    return {
+      cards,
+      total: res.meta?.total,
+      page: res.meta?.page,
+      limit: res.meta?.limit,
+    } as JustTCGCardsResponse;
+  });
 }
 
 export async function getCard(id: string): Promise<JustTCGCard | null> {
   const cacheKey = `justtcg:card:${id}`;
-  return cached<JustTCGCard>(cacheKey, 300, () =>
-    fetchJustTCG<JustTCGCard>(`/cards/${encodeURIComponent(id)}`)
-  );
+  return cached<JustTCGCard>(cacheKey, 300, async () => {
+    const res = await fetchJustTCG<{ data: JustTCGCard } | JustTCGCard>(`/cards/${encodeURIComponent(id)}`);
+    if (!res) return null;
+    // Single card may be wrapped in { data: {...} }
+    if ("data" in res && !("name" in res)) return (res as { data: JustTCGCard }).data;
+    return res as JustTCGCard;
+  });
 }

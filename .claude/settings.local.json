@@ -53,7 +53,10 @@
       "Bash(grep -h ^export C:UsersmarceDesktoppackattackggcomponentslayout/*.tsx)",
       "Bash(cd:*)",
       "Bash(npm run:*)",
-      "Bash(npx eslint:*)"
+      "Bash(npx eslint:*)",
+      "WebFetch(domain:justtcg.com)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\marce\\\\Desktop\\\\packattackgg\\\\app\\\\[lang]\\\\\\(dashboard\\)\\\\admin\\\\boxes\\\\new\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\marce\\\\Desktop\\\\packattackgg\\\\app\\\\[lang]\\\\\\(dashboard\\)\\\\admin\\\\boxes\\\\[id]\")"
     ]
   }
 }
