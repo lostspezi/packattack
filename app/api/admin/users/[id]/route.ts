@@ -50,15 +50,18 @@ export async function DELETE(
       return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
     }
 
-    const { MongoClient } = await import("mongodb");
+    const { MongoClient, ObjectId } = await import("mongodb");
     const client = new MongoClient(process.env.MONGODB_URI!);
     await client.connect();
     const db = client.db();
 
+    // userId in native collections is stored as ObjectId, not string
+    const userOid = new ObjectId(id);
+
     // Delete accounts, sessions, notifications, verificationtokens — keep consent_log
     await Promise.all([
-      db.collection("accounts").deleteMany({ userId: id }),
-      db.collection("sessions").deleteMany({ userId: id }),
+      db.collection("accounts").deleteMany({ userId: userOid }),
+      db.collection("sessions").deleteMany({ userId: userOid }),
       db.collection("notifications").deleteMany({ userId: id }),
       db.collection("verificationtokens").deleteMany({ userId: id }),
     ]);
@@ -66,8 +69,10 @@ export async function DELETE(
     // Delete GridFS avatar
     await deleteAvatar(id);
 
-    // Delete user document
+    // Delete user document (both Mongoose and native adapter collection)
     await User.findByIdAndDelete(id);
+    // Also try to delete from the native users collection (adapter may store separately)
+    await db.collection("users").deleteOne({ _id: userOid });
 
     await client.close();
 
