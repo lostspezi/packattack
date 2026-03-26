@@ -8,6 +8,7 @@ export type NavItem = {
 
 export const mainNavItems: NavItem[] = [
   { key: "dashboard", href: "/dashboard", icon: "LayoutGrid" },
+  { key: "packs", href: "/packs", icon: "Package" },
   { key: "profile", href: "/profile", icon: "User" },
   { key: "settings", href: "/settings", icon: "Settings" },
   { key: "account", href: "/account", icon: "Shield" },
@@ -25,6 +26,5 @@ export const adminNavItems: NavItem[] = [
 ];
 
 export const soonNavItems: NavItem[] = [
-  { key: "packs", href: "#", icon: "Package", soon: true },
   { key: "marketplace", href: "#", icon: "ShoppingBag", soon: true },
 ];

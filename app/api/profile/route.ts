@@ -25,6 +25,7 @@ export async function GET() {
       publicProfile: user.publicProfile ?? false,
       role: user.role,
       image: user.image ?? null,
+      coins: user.coins ?? 0,
     });
   } catch (err) {
     console.error("[profile GET]", err);

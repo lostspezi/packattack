@@ -7,6 +7,7 @@ import { LayoutGrid, Package, ShoppingBag, ChevronDown, Menu, X } from "lucide-r
 import { LanguageSwitcher } from "./language-switcher";
 import { NotificationBell } from "./notification-bell";
 import { UserDropdown } from "./user-dropdown";
+import { CoinBalance } from "./coin-balance";
 
 interface UserHeaderProps {
   lang: string;
@@ -137,6 +138,7 @@ export function UserHeader({
             <LanguageSwitcher lang={lang} />
           </div>
           <NotificationBell />
+          <CoinBalance />
 
           {/* User dropdown trigger */}
           <div className="relative">
