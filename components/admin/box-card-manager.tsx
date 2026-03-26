@@ -536,7 +536,7 @@ export function BoxCardManager({
                           <img
                             src={card.image}
                             alt={card.name}
-                            className="w-14 h-20 object-cover rounded"
+                            className="w-14 h-20 object-contain rounded"
                             loading="lazy"
                           />
                         ) : (
