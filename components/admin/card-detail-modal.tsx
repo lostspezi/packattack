@@ -94,15 +94,19 @@ export function CardDetailModal({
     return () => { cancelled = true; };
   }, [open, card.tcgplayerId, game]);
 
-  // Aggregate price changes from first variant with data
-  const firstVariant = variants.find(
-    (v) => v.priceChange7d !== null || v.priceChange30d !== null || v.priceChange90d !== null
-  );
+  // Prefer Near Mint variant for header stats, fallback to first with change data
+  const nearMintVariant = variants.find((v) => v.condition === "Near Mint");
+  const primaryVariant = nearMintVariant
+    ?? variants.find((v) => v.priceChange7d !== null || v.priceChange30d !== null || v.priceChange90d !== null)
+    ?? variants[0];
 
-  const marketPriceDollars =
-    card.marketPrice !== null && card.marketPrice !== undefined
-      ? `$${card.marketPrice.toFixed(2)}`
-      : "—";
+  // Live market price from Near Mint variant (or primary)
+  const livePrice = primaryVariant?.price;
+  const marketPriceDollars = livePrice
+    ? `$${livePrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : (card.marketPrice !== null && card.marketPrice !== undefined
+      ? `$${card.marketPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      : "—");
 
   return (
     <Modal open={open} onClose={onClose} title={card.name} size="lg">
@@ -158,16 +162,16 @@ export function CardDetailModal({
               <p className="text-2xl font-bold text-pa-green">{marketPriceDollars}</p>
             </div>
 
-            {firstVariant && (
+            {primaryVariant && (
               <div className="flex flex-wrap gap-2 items-center">
                 <span className="text-xs text-text-muted">{isDe ? "Änderung:" : "Change:"}</span>
                 <div className="flex gap-1.5 flex-wrap">
                   <span className="text-xs text-text-muted">7d</span>
-                  <ChangeChip change={firstVariant.priceChange7d} />
+                  <ChangeChip change={primaryVariant.priceChange7d} />
                   <span className="text-xs text-text-muted">30d</span>
-                  <ChangeChip change={firstVariant.priceChange30d} />
+                  <ChangeChip change={primaryVariant.priceChange30d} />
                   <span className="text-xs text-text-muted">90d</span>
-                  <ChangeChip change={firstVariant.priceChange90d} />
+                  <ChangeChip change={primaryVariant.priceChange90d} />
                 </div>
               </div>
             )}

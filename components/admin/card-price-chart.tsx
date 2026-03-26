@@ -28,7 +28,13 @@ function formatChange(change: number | null | undefined): {
 
 export function CardPriceChart({ variants, cardName }: CardPriceChartProps) {
   const [period, setPeriod] = useState<"7d" | "30d">("30d");
-  const [activeVariantIdx, setActiveVariantIdx] = useState(0);
+
+  // Default to Near Mint variant, or first variant with price history
+  const defaultIdx = Math.max(0,
+    variants.findIndex((v) => v.condition === "Near Mint"),
+    variants.findIndex((v) => Array.isArray(v.priceHistory) && v.priceHistory.length > 0)
+  );
+  const [activeVariantIdx, setActiveVariantIdx] = useState(defaultIdx);
 
   const variant = variants[activeVariantIdx] ?? variants[0];
 
@@ -174,8 +180,13 @@ export function CardPriceChart({ variants, cardName }: CardPriceChartProps) {
 
       {/* Chart */}
       {seriesData.length === 0 ? (
-        <div className="flex items-center justify-center h-40 text-text-muted text-sm rounded-lg border border-border">
-          No price history for this period.
+        <div className="flex flex-col items-center justify-center h-40 text-text-muted text-sm rounded-lg border border-border gap-2">
+          <span>No price chart available for this variant.</span>
+          {variant.avgPrice30d && (
+            <span className="text-text-secondary">
+              30d avg: <span className="text-pa-green font-medium">{formatPrice(variant.avgPrice30d)}</span>
+            </span>
+          )}
         </div>
       ) : (
         <div className="rounded-lg overflow-hidden" style={{ background: "#12111A" }}>
