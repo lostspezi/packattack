@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { BoxForm } from "@/components/admin/box-form";
+import { BoxForm, BoxFormSaveButton } from "@/components/admin/box-form";
 import type { BoxFormData } from "@/components/admin/box-form";
 import { useToast } from "@/components/ui/toast";
 
@@ -65,6 +65,8 @@ export default function NewBoxPage() {
         onSave={(data) => void handleSave(data)}
         loading={loading}
       />
+
+      <BoxFormSaveButton loading={loading} lang={lang} />
     </div>
   );
 }
