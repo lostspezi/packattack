@@ -141,24 +141,26 @@ const authConfig: NextAuthConfig = {
     // ------------------------------------------------------------------
     // signIn — allow all sign-ins; adapter handles account linking
     // ------------------------------------------------------------------
-    async signIn({ account }) {
-      // When linking from the account page, if it fails with OAuthAccountNotLinked,
-      // NextAuth destroys the session and redirects to login. To prevent this,
-      // we redirect to the account page with an error parameter instead.
+    async signIn({ user, account }) {
+      // Prevent OAuthAccountNotLinked from destroying the session when linking.
+      // Only block if the OAuth account belongs to a DIFFERENT user.
       if (account?.provider && account.provider !== "credentials") {
         try {
           const client = getMongoClient();
           const db = client.db();
-          // Check if this OAuth account is already linked to a different user
           const existingAccount = await db.collection("accounts").findOne({
             provider: account.provider,
             providerAccountId: account.providerAccountId,
           });
           if (existingAccount) {
-            // Account exists — is it the same user trying to re-link?
-            // If the adapter would throw OAuthAccountNotLinked, redirect gracefully
-            // Return the URL to redirect to instead of true/false
-            return `/en/account?error=OAuthAccountNotLinked`;
+            // Account exists — check if it belongs to the same user (normal login) or different user (linking conflict)
+            const currentUserId = user?.id ?? "";
+            const ownerId = existingAccount.userId?.toString() ?? "";
+            if (currentUserId && ownerId && currentUserId !== ownerId) {
+              // Different user owns this account — redirect with error instead of crashing
+              return `/en/account?error=OAuthAccountNotLinked`;
+            }
+            // Same user — this is a normal login, allow through
           }
         } catch {
           // Non-fatal, let the normal flow handle it
