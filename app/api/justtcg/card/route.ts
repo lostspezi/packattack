@@ -52,8 +52,9 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "card_not_found" }, { status: 404 });
     }
 
-    // Return the first match (best match for the name)
-    const card = cards[0];
+    // Find exact name match first, fallback to first result
+    const exactMatch = cards.find((c) => (c.name as string) === cardName);
+    const card = exactMatch ?? cards[0];
 
     // Normalize variants
     const variants = Array.isArray(card.variants) ? (card.variants as Array<Record<string, unknown>>).map((v) => ({

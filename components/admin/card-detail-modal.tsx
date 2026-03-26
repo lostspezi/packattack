@@ -141,8 +141,15 @@ export function CardDetailModal({
             </div>
             {card.tcgplayerId && (
               <div>
-                <p className="text-xs text-text-muted uppercase tracking-wide mb-0.5">TCGPlayer ID</p>
-                <p className="text-sm text-text-secondary font-mono">{card.tcgplayerId}</p>
+                <p className="text-xs text-text-muted uppercase tracking-wide mb-0.5">TCGPlayer</p>
+                <a
+                  href={`https://www.tcgplayer.com/product/${card.tcgplayerId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-pa-green hover:text-pa-green-hover font-medium inline-flex items-center gap-1"
+                >
+                  Auf TCGPlayer ansehen ↗
+                </a>
               </div>
             )}
             <div>
