@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Trash2 } from "lucide-react";
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { Trash2, HelpCircle, CheckCircle2, AlertTriangle, XCircle, Lightbulb } from "lucide-react";
+import { validateBoxWeights, type ValidationItem, type ValidationLevel } from "@/lib/box-validation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -41,9 +42,43 @@ interface RarityBreakdownEntry {
 interface BoxCardManagerProps {
   boxId: string;
   game: string;
+  cardsPerPack: number;
   rarityWeights: RarityWeight[];
   lang: string;
   dict: Record<string, string>;
+  onValidationChange?: (items: ValidationItem[]) => void;
+  onBreakdownChange?: (breakdown: RarityBreakdownEntry[]) => void;
+}
+
+export type { RarityBreakdownEntry };
+
+const validationIconMap: Record<ValidationLevel, React.ReactNode> = {
+  error: <XCircle className="w-4 h-4 text-red-400 shrink-0" />,
+  warning: <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0" />,
+  tip: <Lightbulb className="w-4 h-4 text-blue-400 shrink-0" />,
+  ok: <CheckCircle2 className="w-4 h-4 text-green-400 shrink-0" />,
+};
+const validationBgMap: Record<ValidationLevel, string> = {
+  error: "bg-red-500/5 border-red-500/15",
+  warning: "bg-yellow-500/5 border-yellow-500/15",
+  tip: "bg-blue-500/5 border-blue-500/15",
+  ok: "bg-green-500/5 border-green-500/15",
+};
+const validationTextMap: Record<ValidationLevel, string> = {
+  error: "text-red-300",
+  warning: "text-yellow-300",
+  tip: "text-blue-300",
+  ok: "text-green-300",
+};
+
+export function ValidationRow({ item, lang }: { item: ValidationItem; lang: string }) {
+  const msg = lang === "de" ? item.message.de : item.message.en;
+  return (
+    <div className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${validationBgMap[item.level]}`}>
+      {validationIconMap[item.level]}
+      <span className={`text-[13px] leading-relaxed ${validationTextMap[item.level]}`}>{msg}</span>
+    </div>
+  );
 }
 
 function formatDrawChance(chance: number): string {
@@ -57,9 +92,12 @@ function formatDrawChance(chance: number): string {
 export function BoxCardManager({
   boxId,
   game,
+  cardsPerPack,
   rarityWeights,
   lang,
   dict,
+  onValidationChange,
+  onBreakdownChange,
 }: BoxCardManagerProps) {
   void dict;
   const isDe = lang === "de";
@@ -162,7 +200,43 @@ export function BoxCardManager({
     }
   }
 
+  // Recompute draw chances and rarity breakdown locally (no refetch needed)
+  function recomputeLocal(updatedCards: BoxCard[]) {
+    const totalWeight = updatedCards.reduce((a, c) => a + c.weight, 0);
+    const withChances = updatedCards.map((c) => ({
+      ...c,
+      drawChance: totalWeight > 0 ? (c.weight / totalWeight) * 100 : 0,
+    }));
+    setCards(withChances);
+
+    const rarityMap = new Map<string, number>();
+    for (const c of withChances) {
+      rarityMap.set(c.rarity, (rarityMap.get(c.rarity) ?? 0) + c.weight);
+    }
+    setRarityBreakdown(
+      Array.from(rarityMap.entries()).map(([rarity, weight]) => ({
+        rarity,
+        weight,
+        percentage: totalWeight > 0 ? (weight / totalWeight) * 100 : 0,
+      }))
+    );
+  }
+
   function patchCard(cardId: string, patch: { weight?: number; rarity?: string }) {
+    // Optimistic local update
+    if (patch.weight !== undefined || patch.rarity !== undefined) {
+      setCards((prev) => {
+        const updated = prev.map((c) =>
+          c._id === cardId
+            ? { ...c, ...(patch.weight !== undefined ? { weight: patch.weight } : {}), ...(patch.rarity !== undefined ? { rarity: patch.rarity } : {}) }
+            : c
+        );
+        // Schedule recompute after state update
+        setTimeout(() => recomputeLocal(updated), 0);
+        return updated;
+      });
+    }
+
     fetch(`/api/admin/boxes/${boxId}/cards`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -175,8 +249,7 @@ export function BoxCardManager({
             type: "error",
             title: (data as { error?: string }).error ?? "Failed to update card",
           });
-        } else {
-          // Refresh to get updated draw chances
+          // Revert on error
           await fetchCards();
         }
       })
@@ -184,6 +257,9 @@ export function BoxCardManager({
         toast({ type: "error", title: "Network error" });
       });
   }
+
+  const WEIGHT_MIN = 0.001;
+  const WEIGHT_MAX = 1000;
 
   function handleWeightChange(cardId: string, value: string) {
     // Allow digits, dots, commas
@@ -194,9 +270,16 @@ export function BoxCardManager({
     if (debounceTimers.current[cardId]) clearTimeout(debounceTimers.current[cardId]);
     debounceTimers.current[cardId] = setTimeout(() => {
       const num = parseFloat(sanitised.replace(",", "."));
-      if (!isNaN(num) && num >= 0) {
-        patchCard(cardId, { weight: num });
+      if (isNaN(num) || num < WEIGHT_MIN || num > WEIGHT_MAX) {
+        toast({
+          type: "error",
+          title: isDe
+            ? `Gewicht muss zwischen ${WEIGHT_MIN} und ${WEIGHT_MAX} liegen`
+            : `Weight must be between ${WEIGHT_MIN} and ${WEIGHT_MAX}`,
+        });
+        return;
       }
+      patchCard(cardId, { weight: num });
     }, 600);
   }
 
@@ -219,8 +302,43 @@ export function BoxCardManager({
     return Array.from(raritySet).map((r) => ({ label: r, value: r }));
   }
 
+  const [showHelp, setShowHelp] = useState(false);
+
+  // --- Weight Distribution Validator (shared logic) ---
+  const validationResults = useMemo(() => {
+    if (cards.length === 0) return [];
+
+    const results = validateBoxWeights({
+      cards: cards.map((c) => ({ name: c.name, weight: c.weight, rarity: c.rarity })),
+      rarityWeights,
+      cardsPerPack,
+    });
+
+    // If no issues, show "all good"
+    if (results.length === 0) {
+      return [{
+        level: "ok" as ValidationLevel,
+        message: {
+          de: "Die Gewichtung sieht gut aus — keine Probleme gefunden.",
+          en: "Weight distribution looks good — no issues found.",
+        },
+      }] satisfies ValidationItem[];
+    }
+
+    return results;
+  }, [cards, rarityWeights, cardsPerPack]);
+
+  // Notify parent about validation state and breakdown
+  useEffect(() => {
+    onValidationChange?.(validationResults);
+  }, [validationResults, onValidationChange]);
+
+  useEffect(() => {
+    onBreakdownChange?.(rarityBreakdown);
+  }, [rarityBreakdown, onBreakdownChange]);
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {selectedCard && (
         <CardDetailModal
           card={selectedCard}
@@ -232,8 +350,8 @@ export function BoxCardManager({
       )}
 
       {/* Card search section */}
-      <div className="bg-surface border border-border rounded-[14px] p-6 space-y-4">
-        <h3 className="text-base font-semibold text-text-primary">
+      <div className="bg-surface border border-border rounded-[14px] p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-text-primary">
           {isDe ? "Karten hinzufügen" : "Add Cards"}
         </h3>
         <JustTCGCardSearch
@@ -245,15 +363,63 @@ export function BoxCardManager({
       </div>
 
       {/* Current cards section */}
-      <div className="bg-surface border border-border rounded-[14px] p-6 space-y-4">
+      <div className="bg-surface border border-border rounded-[14px] p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-text-primary">
+          <h3 className="text-sm font-semibold text-text-primary">
             {isDe ? `Aktuelle Karten (${cards.length})` : `Current Cards (${cards.length})`}
           </h3>
-          <span className="text-xs text-text-muted">
-            {isDe ? "Ziehchance = Gewicht / Gesamtgewicht" : "Draw chance = weight / total weight"}
-          </span>
+          <button
+            type="button"
+            onClick={() => setShowHelp((v) => !v)}
+            className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors"
+          >
+            <HelpCircle className="w-3.5 h-3.5" />
+            {isDe ? "Wie funktioniert das?" : "How does this work?"}
+          </button>
         </div>
+
+        {showHelp && (
+          <div className="bg-white/4 border border-border rounded-xl p-4 text-sm text-text-secondary space-y-3">
+            <p className="font-medium text-text-primary">
+              {isDe ? "So funktioniert die Gewichtung:" : "How weighting works:"}
+            </p>
+            <ul className="list-disc list-inside space-y-1.5 text-[13px]">
+              <li>
+                {isDe
+                  ? "Jede Karte bekommt ein Gewicht — je höher, desto wahrscheinlicher wird sie gezogen."
+                  : "Each card gets a weight — the higher it is, the more likely it will be drawn."}
+              </li>
+              <li>
+                {isDe
+                  ? "Die Ziehchance berechnet sich automatisch: Gewicht der Karte geteilt durch die Summe aller Gewichte."
+                  : "Draw chance is calculated automatically: card weight divided by the sum of all weights."}
+              </li>
+              <li>
+                {isDe
+                  ? "Erlaubte Werte: 0.001 (extrem selten) bis 1000 (sehr häufig)."
+                  : "Allowed values: 0.001 (extremely rare) to 1000 (very common)."}
+              </li>
+              <li>
+                {isDe
+                  ? "Es zählt nur das Verhältnis — ob du 1, 10 oder 100 als Basis nutzt, ist egal."
+                  : "Only the ratio matters — whether you use 1, 10, or 100 as your base doesn't matter."}
+              </li>
+            </ul>
+            <div className="bg-white/4 rounded-lg p-3 text-[13px] space-y-1">
+              <p className="font-medium text-text-primary">{isDe ? "Beispiel:" : "Example:"}</p>
+              <p>
+                {isDe
+                  ? "3 Karten mit Gewicht 80, 15 und 5 → Ziehchancen: 80%, 15% und 5%."
+                  : "3 cards with weight 80, 15 and 5 → draw chances: 80%, 15% and 5%."}
+              </p>
+              <p>
+                {isDe
+                  ? "Die gleichen Chancen bekommst du auch mit 8, 1.5 und 0.5 — das Verhältnis bleibt gleich."
+                  : "You get the same chances with 8, 1.5 and 0.5 — the ratio stays the same."}
+              </p>
+            </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="py-8 text-center text-text-muted text-sm">
@@ -417,41 +583,6 @@ export function BoxCardManager({
         )}
       </div>
 
-      {/* Rarity Summary */}
-      {rarityBreakdown.length > 0 && (
-        <div className="bg-surface border border-border rounded-[14px] p-6 space-y-4">
-          <h3 className="text-base font-semibold text-text-primary">
-            {isDe ? "Rarität-Zusammenfassung" : "Rarity Summary"}
-          </h3>
-          <div className="space-y-3">
-            {rarityBreakdown.map((entry) => (
-              <div key={entry.rarity} className="space-y-1">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-text-primary font-medium">{entry.rarity}</span>
-                  <span className="text-text-secondary tabular-nums">
-                    {entry.percentage < 0.01
-                      ? `${entry.percentage.toFixed(4)}%`
-                      : entry.percentage < 1
-                      ? `${entry.percentage.toFixed(3)}%`
-                      : `${entry.percentage.toFixed(2)}%`}
-                  </span>
-                </div>
-                <div className="h-2 bg-white/6 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-pa-green/70 rounded-full transition-all"
-                    style={{ width: `${Math.min(100, entry.percentage)}%`, minWidth: entry.percentage > 0 ? "2px" : "0" }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center justify-end">
-            <span className="text-xs text-text-muted">
-              {isDe ? "Gesamt" : "Total"}: {rarityBreakdown.reduce((a, e) => a + e.percentage, 0).toFixed(2)}%
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

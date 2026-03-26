@@ -11,7 +11,7 @@ export interface IBox extends Document {
   description: { de: string; en: string } | null;
   game: string;
   image: string | null;
-  status: "draft" | "published" | "archived";
+  status: "draft" | "published" | "paused" | "archived";
   priceInCoins: number;
   cardsPerPack: number;
   totalPacks: number | null;
@@ -43,7 +43,7 @@ const BoxSchema = new Schema<IBox>(
     image: { type: String, default: null },
     status: {
       type: String,
-      enum: ["draft", "published", "archived"],
+      enum: ["draft", "published", "paused", "archived"],
       default: "draft",
     },
     priceInCoins: { type: Number, required: true },
@@ -59,7 +59,7 @@ const BoxSchema = new Schema<IBox>(
     cards: [
       {
         card: { type: Schema.Types.ObjectId, ref: "Card", required: true },
-        weight: { type: Number, required: true, default: 1 },
+        weight: { type: Number, required: true, default: 1, min: 0.001, max: 1000 },
         rarity: { type: String, required: true },
       },
     ],

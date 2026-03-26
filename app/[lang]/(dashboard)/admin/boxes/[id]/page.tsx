@@ -10,7 +10,7 @@ interface BoxData {
   name: { de: string; en: string };
   description: { de: string; en: string } | null;
   game: string;
-  status: "draft" | "published" | "archived";
+  status: "draft" | "published" | "paused" | "archived";
   priceInCoins: number;
   cardsPerPack: number;
   totalPacks: number | null;
@@ -30,7 +30,7 @@ async function getBox(id: string): Promise<BoxData | null> {
       name: { de: box.name?.de ?? "", en: box.name?.en ?? "" },
       description: box.description ? { de: box.description.de ?? "", en: box.description.en ?? "" } : null,
       game: box.game,
-      status: box.status as "draft" | "published" | "archived",
+      status: box.status as "draft" | "published" | "paused" | "archived",
       priceInCoins: box.priceInCoins,
       cardsPerPack: box.cardsPerPack,
       totalPacks: box.totalPacks ?? null,

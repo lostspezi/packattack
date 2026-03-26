@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Box from "@/models/box";
+import Card from "@/models/card";
+import { validateBoxWeights, hasPublishBlockingErrors, hasWarnings } from "@/lib/box-validation";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
   draft: ["published"],
-  published: ["archived"],
+  published: ["paused", "archived"],
+  paused: ["published", "archived"],
   archived: ["draft"],
 };
 
@@ -71,6 +74,7 @@ export async function PATCH(
     rarityWeights?: Array<{ rarity: string; weight?: number }>;
     status?: string;
     image?: string | null;
+    force?: boolean;
   };
 
   if (updates.rarityWeights !== undefined) {
@@ -104,6 +108,48 @@ export async function PATCH(
           },
           { status: 400 }
         );
+      }
+
+      // Validate weight distribution before publishing
+      if (updates.status === "published") {
+        const cardEntries = (box.cards ?? []) as Array<{ card: { toString(): string }; weight: number; rarity: string }>;
+        const cardIds = cardEntries.map((e) => e.card.toString());
+        const cardDocs = await Card.find({ _id: { $in: cardIds } }).select("name").lean();
+        const cardNameMap = new Map(cardDocs.map((c) => [c._id.toString(), c.name as string]));
+
+        const validationInput = {
+          cards: cardEntries.map((e) => ({
+            name: cardNameMap.get(e.card.toString()) ?? "Unknown",
+            weight: e.weight,
+            rarity: e.rarity,
+          })),
+          rarityWeights: box.rarityWeights ?? [],
+          cardsPerPack: box.cardsPerPack,
+        };
+
+        const results = validateBoxWeights(validationInput);
+
+        if (hasPublishBlockingErrors(results)) {
+          const errors = results.filter((r) => r.level === "error").map((r) => r.message.en);
+          return NextResponse.json(
+            { error: `Cannot publish: ${errors.join("; ")}`, validationResults: results },
+            { status: 400 }
+          );
+        }
+
+        if (hasWarnings(results)) {
+          const lang = req.headers.get("x-lang") ?? "en";
+          const warnings = results.filter((r) => r.level === "warning").map((r) => lang === "de" ? r.message.de : r.message.en);
+          // Allow publish but include warnings in response for the UI to show
+          // Only block if `force` is not set
+          const forcePublish = (body as { force?: boolean })?.force === true;
+          if (!forcePublish) {
+            return NextResponse.json(
+              { error: "warnings", warnings, validationResults: results },
+              { status: 422 }
+            );
+          }
+        }
       }
     }
 

@@ -100,152 +100,113 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Names */}
-      <div className="bg-surface border border-border rounded-[14px] p-6 space-y-5">
-        <h3 className="text-base font-semibold text-text-primary">
+    <form id="box-form" onSubmit={handleSubmit} className="space-y-4">
+      {/* Names & Descriptions */}
+      <div className="bg-surface border border-border rounded-[14px] p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-text-primary">
           {isDe ? "Grundinformationen" : "Basic Information"}
         </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-text-secondary">
-              {isDe ? "Name (Deutsch)" : "Name (German)"}
-            </label>
-            <Input
-              value={nameDe}
-              onChange={(e) => setNameDe(e.target.value)}
-              placeholder="z.B. Pokémon Booster Box"
-              className="py-2 text-sm"
-            />
-            {errors.nameDe && <p className="text-xs text-red-400">{errors.nameDe}</p>}
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-text-secondary">
-              {isDe ? "Name (Englisch)" : "Name (English)"}
-            </label>
-            <Input
-              value={nameEn}
-              onChange={(e) => setNameEn(e.target.value)}
-              placeholder="e.g. Pokémon Booster Box"
-              className="py-2 text-sm"
-            />
-            {errors.nameEn && <p className="text-xs text-red-400">{errors.nameEn}</p>}
-          </div>
+        <div className="space-y-1">
+          <label className="block text-xs font-medium text-text-muted">
+            {isDe ? "Name (DE)" : "Name (DE)"}
+          </label>
+          <Input value={nameDe} onChange={(e) => setNameDe(e.target.value)} placeholder="z.B. Pokémon Booster Box" className="py-1.5 text-sm" />
+          {errors.nameDe && <p className="text-[11px] text-red-400">{errors.nameDe}</p>}
         </div>
 
-        {/* Descriptions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-text-secondary">
-              {isDe ? "Beschreibung (Deutsch)" : "Description (German)"}
-            </label>
-            <textarea
-              value={descDe}
-              onChange={(e) => setDescDe(e.target.value)}
-              rows={3}
-              placeholder="Deutschsprachige Beschreibung…"
-              className="w-full bg-white/4 border border-white/8 text-text-primary text-sm rounded-[10px] px-3 py-2 outline-none focus:border-pa-green/35 resize-y"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-text-secondary">
-              {isDe ? "Beschreibung (Englisch)" : "Description (English)"}
-            </label>
-            <textarea
-              value={descEn}
-              onChange={(e) => setDescEn(e.target.value)}
-              rows={3}
-              placeholder="English description…"
-              className="w-full bg-white/4 border border-white/8 text-text-primary text-sm rounded-[10px] px-3 py-2 outline-none focus:border-pa-green/35 resize-y"
-            />
-          </div>
+        <div className="space-y-1">
+          <label className="block text-xs font-medium text-text-muted">
+            {isDe ? "Name (EN)" : "Name (EN)"}
+          </label>
+          <Input value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="e.g. Pokémon Booster Box" className="py-1.5 text-sm" />
+          {errors.nameEn && <p className="text-[11px] text-red-400">{errors.nameEn}</p>}
         </div>
 
-        {/* Game */}
-        <div className="space-y-1.5">
-          <label className="block text-sm font-medium text-text-secondary">
+        <div className="space-y-1">
+          <label className="block text-xs font-medium text-text-muted">
+            {isDe ? "Beschreibung (DE)" : "Description (DE)"}
+          </label>
+          <textarea
+            value={descDe}
+            onChange={(e) => setDescDe(e.target.value)}
+            rows={2}
+            placeholder={isDe ? "Optional…" : "Optional…"}
+            className="w-full bg-white/4 border border-white/8 text-text-primary text-sm rounded-[10px] px-3 py-1.5 outline-none focus:border-pa-green/35 resize-y"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="block text-xs font-medium text-text-muted">
+            {isDe ? "Beschreibung (EN)" : "Description (EN)"}
+          </label>
+          <textarea
+            value={descEn}
+            onChange={(e) => setDescEn(e.target.value)}
+            rows={2}
+            placeholder="Optional…"
+            className="w-full bg-white/4 border border-white/8 text-text-primary text-sm rounded-[10px] px-3 py-1.5 outline-none focus:border-pa-green/35 resize-y"
+          />
+        </div>
+
+        <div className="space-y-1">
+          <label className="block text-xs font-medium text-text-muted">
             {isDe ? "Spiel" : "Game"}
           </label>
-          <Select
-            options={gameOptions}
-            value={game}
-            onChange={setGame}
-            size="md"
-            disabled={gamesLoading}
-            className="w-full max-w-xs"
-          />
-          {errors.game && <p className="text-xs text-red-400">{errors.game}</p>}
+          <Select options={gameOptions} value={game} onChange={setGame} size="sm" disabled={gamesLoading} />
+          {errors.game && <p className="text-[11px] text-red-400">{errors.game}</p>}
         </div>
       </div>
 
-      {/* Pricing & Pack config */}
-      <div className="bg-surface border border-border rounded-[14px] p-6 space-y-5">
-        <h3 className="text-base font-semibold text-text-primary">
-          {isDe ? "Preis & Pack-Konfiguration" : "Pricing & Pack Configuration"}
+      {/* Pricing & Pack config — compact 2-col grid */}
+      <div className="bg-surface border border-border rounded-[14px] p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-text-primary">
+          {isDe ? "Preis & Packs" : "Pricing & Packs"}
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-text-secondary">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-text-muted">
               {isDe ? "Preis (Coins)" : "Price (Coins)"}
             </label>
-            <Input
-              type="number"
-              min={0}
-              value={priceInCoins}
-              onChange={(e) => setPriceInCoins(e.target.value)}
-              placeholder="e.g. 500"
-              className="py-2 text-sm"
-            />
-            {errors.priceInCoins && <p className="text-xs text-red-400">{errors.priceInCoins}</p>}
+            <Input type="number" min={0} value={priceInCoins} onChange={(e) => setPriceInCoins(e.target.value)} placeholder="500" className="py-1.5 text-sm" />
+            {errors.priceInCoins && <p className="text-[11px] text-red-400">{errors.priceInCoins}</p>}
           </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-text-secondary">
-              {isDe ? "Karten pro Pack" : "Cards per Pack"}
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-text-muted">
+              {isDe ? "Karten/Pack" : "Cards/Pack"}
             </label>
-            <Input
-              type="number"
-              min={1}
-              value={cardsPerPack}
-              onChange={(e) => setCardsPerPack(e.target.value)}
-              placeholder="e.g. 5"
-              className="py-2 text-sm"
-            />
-            {errors.cardsPerPack && <p className="text-xs text-red-400">{errors.cardsPerPack}</p>}
+            <Input type="number" min={1} value={cardsPerPack} onChange={(e) => setCardsPerPack(e.target.value)} placeholder="5" className="py-1.5 text-sm" />
+            {errors.cardsPerPack && <p className="text-[11px] text-red-400">{errors.cardsPerPack}</p>}
           </div>
 
-          <div className="space-y-1.5">
-            <label className="block text-sm font-medium text-text-secondary">
+          <div className="space-y-1 col-span-2">
+            <label className="block text-xs font-medium text-text-muted">
               {isDe ? "Gesamte Packs" : "Total Packs"}
             </label>
-            <Input
-              type="number"
-              min={1}
-              value={totalPacksStr}
-              onChange={(e) => setTotalPacksStr(e.target.value)}
-              placeholder={isDe ? "Unbegrenzt" : "Unlimited"}
-              className="py-2 text-sm"
-            />
+            <Input type="number" min={1} value={totalPacksStr} onChange={(e) => setTotalPacksStr(e.target.value)} placeholder={isDe ? "Unbegrenzt" : "Unlimited"} className="py-1.5 text-sm" />
           </div>
         </div>
       </div>
 
       {/* Rarity weights */}
-      <div className="bg-surface border border-border rounded-[14px] p-6">
-        <RarityWeightEditor weights={rarityWeights} onChange={setRarityWeights} game={game} />
+      <div className="bg-surface border border-border rounded-[14px] p-4">
+        <RarityWeightEditor weights={rarityWeights} onChange={setRarityWeights} game={game} lang={lang} />
         {errors.rarityWeights && (
-          <p className="text-xs text-red-400 mt-2">{errors.rarityWeights}</p>
+          <p className="text-[11px] text-red-400 mt-2">{errors.rarityWeights}</p>
         )}
       </div>
 
-      {/* Save */}
-      <div className="flex justify-end">
-        <Button type="submit" variant="primary" size="md" loading={loading}>
-          {isDe ? "Speichern" : "Save Box"}
-        </Button>
-      </div>
     </form>
+  );
+}
+
+export function BoxFormSaveButton({ loading, lang }: { loading: boolean; lang: string }) {
+  const isDe = lang === "de";
+  return (
+    <Button type="submit" form="box-form" variant="primary" size="md" loading={loading} className="w-full">
+      {isDe ? "Speichern" : "Save Box"}
+    </Button>
   );
 }

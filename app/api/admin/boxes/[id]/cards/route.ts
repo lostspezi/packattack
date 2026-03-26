@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Box from "@/models/box";
 import Card from "@/models/card";
+import Rarity from "@/models/rarity";
 
 export async function GET(
   _req: NextRequest,
@@ -168,6 +169,13 @@ export async function POST(
     );
   }
 
+  if (weight !== undefined && (typeof weight !== "number" || isNaN(weight) || weight < 0.001 || weight > 1000)) {
+    return NextResponse.json(
+      { error: "Weight must be between 0.001 and 1000" },
+      { status: 400 }
+    );
+  }
+
   try {
     await connectDB();
 
@@ -228,6 +236,15 @@ export async function POST(
       box.rarityWeights.push({ rarity: effectiveRarity, weight: 0 });
     }
 
+    // Persist rarity globally for autocomplete reuse
+    if (effectiveRarity) {
+      Rarity.updateOne(
+        { name: effectiveRarity, game: box.game },
+        { $setOnInsert: { name: effectiveRarity, game: box.game } },
+        { upsert: true }
+      ).catch(() => {});
+    }
+
     // Prevent duplicates — check by card ObjectId in subdocument array
     const alreadyInBox = box.cards.some(
       (e) => e.card.toString() === cardObjectId.toString()
@@ -277,6 +294,13 @@ export async function PATCH(
 
   if (!cardId) {
     return NextResponse.json({ error: "cardId is required" }, { status: 400 });
+  }
+
+  if (weight !== undefined && (typeof weight !== "number" || isNaN(weight) || weight < 0.001 || weight > 1000)) {
+    return NextResponse.json(
+      { error: "Weight must be between 0.001 and 1000" },
+      { status: 400 }
+    );
   }
 
   try {
