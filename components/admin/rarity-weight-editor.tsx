@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
-import { Trash2, Plus, Download, Search } from "lucide-react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { Trash2, Plus, Download, Search, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 
@@ -139,6 +139,37 @@ export function RarityWeightEditor({ weights, onChange, game, lang }: RarityWeig
     }
   }
 
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [overIdx, setOverIdx] = useState<number | null>(null);
+
+  const handleDragStart = useCallback((idx: number) => {
+    setDragIdx(idx);
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    setOverIdx(idx);
+  }, []);
+
+  const handleDrop = useCallback((idx: number) => {
+    if (dragIdx === null || dragIdx === idx) {
+      setDragIdx(null);
+      setOverIdx(null);
+      return;
+    }
+    const updated = [...weights];
+    const [moved] = updated.splice(dragIdx, 1);
+    updated.splice(idx, 0, moved);
+    onChange(updated);
+    setDragIdx(null);
+    setOverIdx(null);
+  }, [dragIdx, weights, onChange]);
+
+  const handleDragEnd = useCallback(() => {
+    setDragIdx(null);
+    setOverIdx(null);
+  }, []);
+
   return (
     <div className="space-y-3">
       {/* Header row */}
@@ -161,8 +192,8 @@ export function RarityWeightEditor({ weights, onChange, game, lang }: RarityWeig
         )}
       </div>
 
-      {/* Rarity rows */}
-      <div className="space-y-2">
+      {/* Rarity rows with drag & drop */}
+      <div className="space-y-1">
         {weights.length === 0 ? (
           <p className="text-sm text-text-muted py-2">
             {isDe
@@ -171,7 +202,20 @@ export function RarityWeightEditor({ weights, onChange, game, lang }: RarityWeig
           </p>
         ) : (
           weights.map((w, i) => (
-            <div key={i} className="flex items-center gap-2">
+            <div
+              key={`${w.rarity}-${i}`}
+              draggable
+              onDragStart={() => handleDragStart(i)}
+              onDragOver={(e) => handleDragOver(e, i)}
+              onDrop={() => handleDrop(i)}
+              onDragEnd={handleDragEnd}
+              className={[
+                "flex items-center gap-2 rounded-[10px] transition-all",
+                dragIdx === i ? "opacity-40" : "",
+                overIdx === i && dragIdx !== i ? "border-t-2 border-t-pa-green" : "",
+              ].join(" ")}
+            >
+              <GripVertical className="w-4 h-4 text-text-muted shrink-0 cursor-grab active:cursor-grabbing" />
               <span className="flex-1 text-sm text-text-primary truncate min-w-0 bg-white/4 border border-border rounded-[10px] px-3 py-2">
                 {w.rarity}
               </span>

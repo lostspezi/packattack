@@ -344,9 +344,12 @@ export function BoxCardManager({
 
   // Build rarity options: box rarities + card's own rarity
   function buildRarityOptions(cardRarity: string): SelectOption[] {
-    const raritySet = new Set<string>(rarityWeights.map((rw) => rw.rarity));
-    if (cardRarity) raritySet.add(cardRarity);
-    return Array.from(raritySet).map((r) => ({ label: r, value: r }));
+    // Preserve order from rarityWeights (drag & drop order)
+    const ordered = rarityWeights.map((rw) => rw.rarity);
+    if (cardRarity && !ordered.includes(cardRarity)) {
+      ordered.push(cardRarity);
+    }
+    return ordered.map((r) => ({ label: r, value: r }));
   }
 
   const [showHelp, setShowHelp] = useState(false);
