@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import { X } from "lucide-react";
 
-type ModalSize = "sm" | "md" | "lg";
+type ModalSize = "sm" | "md" | "lg" | "xl";
 
 interface ModalProps {
   open: boolean;
@@ -17,6 +17,7 @@ const sizeClasses: Record<ModalSize, string> = {
   sm: "max-w-sm",
   md: "max-w-md",
   lg: "max-w-lg",
+  xl: "max-w-4xl",
 };
 
 function Modal({ open, onClose, title, children, size = "md" }: ModalProps) {
@@ -48,6 +49,7 @@ function Modal({ open, onClose, title, children, size = "md" }: ModalProps) {
         className={[
           "relative w-full bg-surface-elevated border border-border rounded-[14px] shadow-xl p-6",
           sizeClasses[size],
+          size === "xl" ? "max-h-[90vh] overflow-y-auto" : "",
         ].join(" ")}
       >
         <div className="flex items-start justify-between gap-4 mb-4">
