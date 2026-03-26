@@ -76,6 +76,15 @@ export interface JustTCGCardVariant {
   condition: string;
   printing: string;
   price: number;
+  priceHistory?: Array<{ p: number; t: number }>;
+  priceHistory30d?: Array<{ p: number; t: number }>;
+  priceChange7d?: number | null;
+  priceChange30d?: number | null;
+  priceChange90d?: number | null;
+  avgPrice?: number | null;
+  avgPrice30d?: number | null;
+  minPrice7d?: number | null;
+  maxPrice7d?: number | null;
 }
 
 export interface JustTCGCard {
@@ -108,6 +117,15 @@ function normalizeCard(raw: Record<string, unknown>): JustTCGCard {
       condition: (v.condition as string) ?? "",
       printing: (v.printing as string) ?? "",
       price: (v.price as number) ?? 0,
+      priceHistory: Array.isArray(v.priceHistory) ? v.priceHistory as Array<{ p: number; t: number }> : undefined,
+      priceHistory30d: Array.isArray(v.priceHistory30d) ? v.priceHistory30d as Array<{ p: number; t: number }> : undefined,
+      priceChange7d: (v.priceChange7d as number | null | undefined) ?? null,
+      priceChange30d: (v.priceChange30d as number | null | undefined) ?? null,
+      priceChange90d: (v.priceChange90d as number | null | undefined) ?? null,
+      avgPrice: (v.avgPrice as number | null | undefined) ?? null,
+      avgPrice30d: (v.avgPrice30d as number | null | undefined) ?? null,
+      minPrice7d: (v.minPrice7d as number | null | undefined) ?? null,
+      maxPrice7d: (v.maxPrice7d as number | null | undefined) ?? null,
     })) : [],
   };
 }

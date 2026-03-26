@@ -12,7 +12,20 @@ export interface ICard extends Omit<Document, "set"> {
   marketPrice: number | null;
   internalPrice: number | null;
   lastPriceUpdate: Date | null;
-  variants: Array<{ condition: string; printing: string; price: number }>;
+  variants: Array<{
+    condition: string;
+    printing: string;
+    price: number;
+    priceHistory?: Array<{ p: number; t: number }>;
+    priceHistory30d?: Array<{ p: number; t: number }>;
+    priceChange7d?: number | null;
+    priceChange30d?: number | null;
+    priceChange90d?: number | null;
+    avgPrice?: number | null;
+    avgPrice30d?: number | null;
+    minPrice7d?: number | null;
+    maxPrice7d?: number | null;
+  }>;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +48,15 @@ const CardSchema = new Schema<ICard>(
         condition: { type: String, required: true },
         printing: { type: String, required: true },
         price: { type: Number, required: true },
+        priceHistory: { type: [{ p: Number, t: Number }], default: undefined },
+        priceHistory30d: { type: [{ p: Number, t: Number }], default: undefined },
+        priceChange7d: { type: Number, default: null },
+        priceChange30d: { type: Number, default: null },
+        priceChange90d: { type: Number, default: null },
+        avgPrice: { type: Number, default: null },
+        avgPrice30d: { type: Number, default: null },
+        minPrice7d: { type: Number, default: null },
+        maxPrice7d: { type: Number, default: null },
       },
     ],
   },

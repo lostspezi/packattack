@@ -7,8 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { JustTCGCardSearch } from "@/components/admin/justtcg-card-search";
+import { CardDetailModal } from "@/components/admin/card-detail-modal";
 import type { AddCardPayload } from "@/components/admin/justtcg-card-search";
 import type { RarityWeight } from "@/components/admin/rarity-weight-editor";
+import type { JustTCGCardVariant } from "@/lib/justtcg";
 
 interface BoxCard {
   _id: string;
@@ -19,6 +21,10 @@ interface BoxCard {
   marketPrice: number | null;
   internalPrice: number | null;
   drawChance: number;
+  set?: string;
+  setName?: string;
+  tcgplayerId?: string | null;
+  variants?: JustTCGCardVariant[];
 }
 
 interface BoxCardManagerProps {
@@ -44,6 +50,8 @@ export function BoxCardManager({
   const [loading, setLoading] = useState(false);
   const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
   const [internalPrices, setInternalPrices] = useState<Record<string, string>>({});
+  const [selectedCard, setSelectedCard] = useState<BoxCard | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const existingCardIds = cards.map((c) => c.justTcgId);
 
@@ -129,8 +137,21 @@ export function BoxCardManager({
     return `${chance.toFixed(2)}%`;
   }
 
+  function handleRowClick(card: BoxCard) {
+    setSelectedCard(card);
+    setModalOpen(true);
+  }
+
   return (
     <div className="space-y-6">
+      {selectedCard && (
+        <CardDetailModal
+          card={selectedCard}
+          open={modalOpen}
+          onClose={() => setModalOpen(false)}
+          lang={lang}
+        />
+      )}
       {/* Card search section */}
       <div className="bg-surface border border-border rounded-[14px] p-6 space-y-4">
         <h3 className="text-base font-semibold text-text-primary">
@@ -193,7 +214,11 @@ export function BoxCardManager({
               </thead>
               <tbody>
                 {cards.map((card) => (
-                  <tr key={card._id} className="border-b border-border last:border-0">
+                  <tr
+                    key={card._id}
+                    className="border-b border-border last:border-0 cursor-pointer hover:bg-white/3 transition-colors"
+                    onClick={() => handleRowClick(card)}
+                  >
                     {/* Image */}
                     <td className="px-3 py-2">
                       {card.image ? (
@@ -233,7 +258,7 @@ export function BoxCardManager({
                     </td>
 
                     {/* Internal price (editable, accepts , and . for decimals) */}
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                       <Input
                         type="text"
                         inputMode="decimal"
@@ -259,7 +284,7 @@ export function BoxCardManager({
                     </td>
 
                     {/* Remove */}
-                    <td className="px-3 py-2">
+                    <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                       <Button
                         type="button"
                         variant="danger"
