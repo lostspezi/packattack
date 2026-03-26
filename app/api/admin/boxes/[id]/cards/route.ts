@@ -5,6 +5,7 @@ import connectDB from "@/lib/db";
 import Box from "@/models/box";
 import Card from "@/models/card";
 import Rarity from "@/models/rarity";
+import { getUsdToEur } from "@/lib/currency";
 
 export async function GET(
   _req: NextRequest,
@@ -109,7 +110,9 @@ export async function GET(
       percentage: totalWeight > 0 ? (weight / totalWeight) * 100 : 0,
     }));
 
-    return NextResponse.json({ cards: populatedCards, rarityBreakdown });
+    const usdToEur = await getUsdToEur();
+
+    return NextResponse.json({ cards: populatedCards, rarityBreakdown, usdToEur });
   } catch (err) {
     console.error("[admin/boxes/[id]/cards GET]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

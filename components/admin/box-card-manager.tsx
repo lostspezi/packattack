@@ -116,6 +116,7 @@ export function BoxCardManager({
   const [weights, setWeights] = useState<Record<string, string>>({});
   const [selectedCard, setSelectedCard] = useState<BoxCard | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [usdToEur, setUsdToEur] = useState<number | null>(null);
 
   const existingCardIds = cards.map((c) => c.justTcgId);
 
@@ -130,10 +131,11 @@ export function BoxCardManager({
         toast({ type: "error", title: "Failed to load cards" });
         return;
       }
-      const data: { cards: BoxCard[]; rarityBreakdown?: RarityBreakdownEntry[] } = await res.json();
+      const data: { cards: BoxCard[]; rarityBreakdown?: RarityBreakdownEntry[]; usdToEur?: number } = await res.json();
       const fetched = data.cards ?? [];
       setCards(fetched);
       setRarityBreakdown(data.rarityBreakdown ?? []);
+      if (data.usdToEur) setUsdToEur(data.usdToEur);
 
       const priceMap: Record<string, string> = {};
       const weightMap: Record<string, string> = {};
@@ -578,7 +580,9 @@ export function BoxCardManager({
                         {card.marketPrice !== null && card.marketPrice !== undefined ? (
                           <div className="flex flex-col gap-0.5">
                             <span className="text-pa-green font-medium">
-                              ${card.marketPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              {isDe && usdToEur
+                                ? `${(card.marketPrice * usdToEur).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`
+                                : `$${card.marketPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
                             </span>
                             {card.priceChange7d !== null && card.priceChange7d !== undefined && (
                               <span className={[
