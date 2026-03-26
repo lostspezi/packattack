@@ -5,6 +5,18 @@ import connectDB from "@/lib/db";
 import Box from "@/models/box";
 import Card from "@/models/card";
 import { getCard as fetchJustTCGCard } from "@/lib/justtcg";
+import type { JustTCGCard } from "@/lib/justtcg";
+
+// Extract the best market price from card variants (Near Mint preferred, in USD cents → dollars)
+function extractMarketPrice(card: JustTCGCard): number | null {
+  if (!card.variants || card.variants.length === 0) return null;
+  // Prefer Near Mint, then any condition
+  const nearMint = card.variants.find((v) => v.condition === "Near Mint");
+  const best = nearMint ?? card.variants[0];
+  if (!best || !best.price) return null;
+  // Price from API is in cents (e.g. 49499 = $494.99)
+  return best.price / 100;
+}
 
 function calcDrawChance(
   rarity: string,
@@ -105,7 +117,7 @@ export async function POST(
 
     if (!card) {
       // Fetch from JustTCG
-      const tcgData = await fetchJustTCGCard(justTcgId);
+      const tcgData = await fetchJustTCGCard(justTcgId, box.game);
       if (!tcgData) {
         return NextResponse.json(
           { error: "Card not found in JustTCG" },
@@ -120,9 +132,9 @@ export async function POST(
         set: tcgData.set,
         setName: tcgData.setName,
         rarity: tcgData.rarity,
-        image: tcgData.image ?? null,
+        image: tcgData.image ?? (tcgData.tcgplayerId ? `https://tcgplayer-cdn.tcgplayer.com/product/${tcgData.tcgplayerId}_200w.jpg` : null),
         tcgplayerId: tcgData.tcgplayerId ?? null,
-        marketPrice: tcgData.marketPrice ?? null,
+        marketPrice: extractMarketPrice(tcgData),
         internalPrice: internalPrice ?? null,
         lastPriceUpdate: tcgData.marketPrice !== null ? new Date() : null,
         variants: tcgData.variants ?? [],

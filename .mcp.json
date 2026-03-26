@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "justtcg": {
+      "type": "http",
+      "url": "https://mcp.justtcg.com",
+      "headers": {
+        "x-api-key": "tcg_957d5a222b8c438ca12325713ef6fef3"
+      }
+    }
+  }
+}

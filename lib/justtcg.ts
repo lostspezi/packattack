@@ -163,13 +163,12 @@ export async function searchCards(
   });
 }
 
-export async function getCard(id: string): Promise<JustTCGCard | null> {
+export async function getCard(id: string, game: string): Promise<JustTCGCard | null> {
   const cacheKey = `justtcg:card:${id}`;
   return cached<JustTCGCard>(cacheKey, 300, async () => {
-    const res = await fetchJustTCG<{ data: JustTCGCard } | JustTCGCard>(`/cards/${encodeURIComponent(id)}`);
-    if (!res) return null;
-    // Single card may be wrapped in { data: {...} }
-    if ("data" in res && !("name" in res)) return (res as { data: JustTCGCard }).data;
-    return res as JustTCGCard;
+    // Single card lookup requires game filter
+    const res = await fetchJustTCG<{ data: JustTCGCard[] }>(`/cards?game=${encodeURIComponent(game)}&id=${encodeURIComponent(id)}`);
+    if (!res || !res.data || res.data.length === 0) return null;
+    return res.data[0];
   });
 }

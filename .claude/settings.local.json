@@ -56,7 +56,8 @@
       "Bash(npx eslint:*)",
       "WebFetch(domain:justtcg.com)",
       "Bash(mkdir -p \"C:\\\\Users\\\\marce\\\\Desktop\\\\packattackgg\\\\app\\\\[lang]\\\\\\(dashboard\\)\\\\admin\\\\boxes\\\\new\")",
-      "Bash(mkdir -p \"C:\\\\Users\\\\marce\\\\Desktop\\\\packattackgg\\\\app\\\\[lang]\\\\\\(dashboard\\)\\\\admin\\\\boxes\\\\[id]\")"
+      "Bash(mkdir -p \"C:\\\\Users\\\\marce\\\\Desktop\\\\packattackgg\\\\app\\\\[lang]\\\\\\(dashboard\\)\\\\admin\\\\boxes\\\\[id]\")",
+      "Bash(curl -sI \"https://tcgplayer-cdn.tcgplayer.com/product/650853_200w.jpg\")"
     ]
   }
 }

@@ -152,13 +152,14 @@ export function JustTCGCardSearch({
               >
                 {/* Card image */}
                 <div className="aspect-[2/3] bg-white/4 flex items-center justify-center overflow-hidden">
-                  {card.image ? (
+                  {(card.image || card.tcgplayerId) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
-                      src={card.image}
+                      src={card.image || `https://tcgplayer-cdn.tcgplayer.com/product/${card.tcgplayerId}_200w.jpg`}
                       alt={card.name}
                       className="w-full h-full object-cover"
                       loading="lazy"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
                     />
                   ) : (
                     <span className="text-text-muted text-xs text-center px-2">
