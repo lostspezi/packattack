@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Box from "@/models/box";
@@ -35,8 +36,9 @@ export async function GET(
     const box = await Box.findById(boxId).lean();
     if (!box) return NextResponse.json({ error: "Box not found" }, { status: 404 });
 
-    const pullFilter: Record<string, unknown> = { boxId };
-    const txFilter: Record<string, unknown> = { relatedBoxId: boxId };
+    const objectId = new Types.ObjectId(boxId);
+    const pullFilter: Record<string, unknown> = { boxId: objectId };
+    const txFilter: Record<string, unknown> = { relatedBoxId: objectId };
     if (since) {
       pullFilter.createdAt = { $gte: since };
       txFilter.createdAt = { $gte: since };
@@ -68,7 +70,7 @@ export async function GET(
       ]),
       // Daily pulls for chart (last 30 days)
       PackPull.aggregate([
-        { $match: { boxId, createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } },
+        { $match: { boxId: objectId, createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } } },
         { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } },
       ]),
