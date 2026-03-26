@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-// useSession removed — redirect via full page reload, proxy handles session state
 import { Button } from "@/components/ui/button";
 
 interface VerifyEmailFormProps {
@@ -11,6 +10,8 @@ interface VerifyEmailFormProps {
   token?: string;
 }
 
+const RESEND_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes
+
 export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
   const router = useRouter();
   const [status, setStatus] = useState<"idle" | "verifying" | "success" | "error">(
@@ -18,8 +19,12 @@ export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
   );
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [resendLoading, setResendLoading] = useState(false);
-  const [resendSent, setResendSent] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [cooldownEnd, setCooldownEnd] = useState(0);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
+  const autoSentRef = useRef(false);
 
+  // Auto-verify if token is in URL
   useEffect(() => {
     if (!token) return;
 
@@ -33,8 +38,6 @@ export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
 
         if (res.ok) {
           setStatus("success");
-          // Redirect via full page reload — proxy reads emailVerified from DB
-          // on next request, so no need to wait for session refresh
           window.location.replace(`/${lang}/dashboard`);
           return;
         } else {
@@ -56,8 +59,30 @@ export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  async function handleResend() {
+  // Auto-send verification email on first visit (no token = first time on page)
+  useEffect(() => {
+    if (token || autoSentRef.current) return;
+    autoSentRef.current = true;
+    sendVerificationEmail();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Countdown timer
+  useEffect(() => {
+    if (cooldownEnd <= Date.now()) return;
+
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, cooldownEnd - Date.now());
+      setCooldownRemaining(remaining);
+      if (remaining <= 0) clearInterval(interval);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [cooldownEnd]);
+
+  async function sendVerificationEmail() {
     setResendLoading(true);
+    setErrorMsg(null);
     try {
       const res = await fetch("/api/auth/resend-verification", {
         method: "POST",
@@ -66,15 +91,20 @@ export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
       });
 
       if (res.ok) {
-        setResendSent(true);
+        setEmailSent(true);
+        const end = Date.now() + RESEND_COOLDOWN_MS;
+        setCooldownEnd(end);
+        setCooldownRemaining(RESEND_COOLDOWN_MS);
       } else {
         const data = await res.json();
         if (data.error === "already_verified") {
-          setErrorMsg(dict["error_already_verified"] ?? "Your email is already verified.");
+          // Already verified — redirect
+          window.location.replace(`/${lang}/dashboard`);
+          return;
         } else if (data.error === "unauthorized") {
           router.push(`/${lang}/login`);
         } else {
-          setErrorMsg(dict["error_resend_failed"] ?? "Failed to resend verification email.");
+          setErrorMsg(dict["error_resend_failed"] ?? "Failed to send verification email.");
         }
       }
     } catch {
@@ -83,6 +113,14 @@ export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
       setResendLoading(false);
     }
   }
+
+  function formatCooldown(ms: number): string {
+    const minutes = Math.floor(ms / 60000);
+    const seconds = Math.floor((ms % 60000) / 1000);
+    return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+  }
+
+  const isCooldownActive = cooldownRemaining > 0;
 
   if (status === "verifying") {
     return (
@@ -103,7 +141,7 @@ export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
           {dict["success_title"] ?? "Email verified!"}
         </p>
         <p className="text-text-secondary text-sm mt-1">
-          {dict["success_message"] ?? "Redirecting to dashboard..."}
+          {dict["success_message"] ?? "Redirecting..."}
         </p>
       </div>
     );
@@ -112,44 +150,34 @@ export function VerifyEmailForm({ dict, lang, token }: VerifyEmailFormProps) {
   return (
     <div className="flex flex-col gap-4 text-center">
       {status === "error" && errorMsg ? (
-        <>
-          <p className="text-error text-sm">{errorMsg}</p>
-          <Button
-            type="button"
-            variant="primary"
-            size="md"
-            loading={resendLoading}
-            onClick={handleResend}
-            className="w-full"
-          >
-            {dict["button_resend"] ?? "Resend Verification Email"}
-          </Button>
-        </>
-      ) : resendSent ? (
+        <p className="text-error text-sm">{errorMsg}</p>
+      ) : emailSent ? (
         <p className="text-pa-green text-sm">
           {dict["resend_success"] ?? "Verification email sent! Check your inbox."}
         </p>
       ) : (
-        <>
-          <p className="text-text-secondary text-sm">
-            {dict["check_email"] ?? "Check your email for a verification link."}
-          </p>
-          <Button
-            type="button"
-            variant="primary"
-            size="md"
-            loading={resendLoading}
-            onClick={handleResend}
-            className="w-full"
-          >
-            {dict["button_resend"] ?? "Resend Verification Email"}
-          </Button>
-        </>
+        <p className="text-text-secondary text-sm">
+          {dict["check_email"] ?? "We're sending you a verification email..."}
+        </p>
       )}
 
       {errorMsg && status !== "error" && (
         <p className="text-error text-sm">{errorMsg}</p>
       )}
+
+      <Button
+        type="button"
+        variant="secondary"
+        size="md"
+        loading={resendLoading}
+        disabled={isCooldownActive || resendLoading}
+        onClick={sendVerificationEmail}
+        className="w-full"
+      >
+        {isCooldownActive
+          ? `${dict["resend_wait"] ?? "Erneut senden in"} ${formatCooldown(cooldownRemaining)}`
+          : (dict["button_resend"] ?? "Resend Verification Email")}
+      </Button>
     </div>
   );
 }
