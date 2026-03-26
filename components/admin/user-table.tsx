@@ -1,9 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
+import { Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Modal } from "@/components/ui/modal";
 import { RoleSelector } from "@/components/admin/role-selector";
 import { useToast } from "@/components/ui/toast";
 import { Select } from "@/components/ui/select";
@@ -37,6 +40,7 @@ interface UserTableProps {
 }
 
 const ALL_ROLES: Role[] = ["user", "shop", "moderator", "admin", "super_admin"];
+const ADMIN_DELETABLE_ROLES: Role[] = ["user", "shop", "moderator"];
 
 export function UserTable({
   lang,
@@ -44,8 +48,9 @@ export function UserTable({
   sessionUserId,
   sessionUserRole,
 }: UserTableProps) {
-  void lang;
   void dict;
+
+  const isDe = lang === "de";
 
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [total, setTotal] = useState(0);
@@ -56,6 +61,10 @@ export function UserTable({
   const [roleFilter, setRoleFilter] = useState("");
   const [verifiedFilter, setVerifiedFilter] = useState("");
   const { toast } = useToast();
+
+  // Delete modal state
+  const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -111,6 +120,45 @@ export function UserTable({
       return d.toLocaleDateString();
     } catch {
       return "—";
+    }
+  }
+
+  function canDeleteUser(targetRole: Role): boolean {
+    if (sessionUserRole === "super_admin") return true;
+    if (sessionUserRole === "admin") {
+      return ADMIN_DELETABLE_ROLES.includes(targetRole);
+    }
+    return false;
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    setDeleteLoading(true);
+    try {
+      const res = await fetch(`/api/admin/users/${deleteTarget._id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast({
+          type: "error",
+          title: (data as { error?: string }).error ?? "Failed to delete user",
+        });
+        return;
+      }
+      setUsers((prev) => prev.filter((u) => u._id !== deleteTarget._id));
+      setTotal((prev) => prev - 1);
+      toast({
+        type: "success",
+        title: isDe
+          ? `${deleteTarget.username} wurde gelöscht.`
+          : `${deleteTarget.username} has been deleted.`,
+      });
+      setDeleteTarget(null);
+    } catch {
+      toast({ type: "error", title: "Network error" });
+    } finally {
+      setDeleteLoading(false);
     }
   }
 
@@ -189,13 +237,14 @@ export function UserTable({
               <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                 Registered
               </th>
+              <th className="px-4 py-3 w-12" aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-8 text-center text-text-muted text-sm"
                 >
                   Loading…
@@ -204,7 +253,7 @@ export function UserTable({
             ) : users.length === 0 ? (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={7}
                   className="px-4 py-8 text-center text-text-muted text-sm"
                 >
                   No users found.
@@ -213,6 +262,7 @@ export function UserTable({
             ) : (
               users.map((user) => {
                 const isOwnUser = user._id === sessionUserId;
+                const showDelete = !isOwnUser && canDeleteUser(user.role);
 
                 return (
                   <tr
@@ -267,6 +317,21 @@ export function UserTable({
                     <td className="px-4 py-3 text-sm text-text-muted">
                       {formatDate(user.createdAt)}
                     </td>
+
+                    {/* Delete action */}
+                    <td className="px-4 py-3">
+                      {showDelete && (
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          aria-label={isDe ? "Benutzer löschen" : "Delete user"}
+                          loading={deleteLoading && deleteTarget?._id === user._id}
+                          onClick={() => setDeleteTarget(user)}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      )}
+                    </td>
                   </tr>
                 );
               })
@@ -285,6 +350,40 @@ export function UserTable({
           />
         </div>
       )}
+
+      {/* Delete confirmation modal */}
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => {
+          if (!deleteLoading) setDeleteTarget(null);
+        }}
+        title={isDe ? "Benutzer löschen" : "Delete user"}
+        size="sm"
+      >
+        <p className="text-sm text-text-secondary mb-6">
+          {isDe
+            ? `Diese Aktion ist unwiderruflich. Alle Daten von ${deleteTarget?.username ?? ""} werden permanent gelöscht.`
+            : `This action cannot be undone. All data for ${deleteTarget?.username ?? ""} will be permanently deleted.`}
+        </p>
+        <div className="flex gap-3 justify-end">
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={deleteLoading}
+            onClick={() => setDeleteTarget(null)}
+          >
+            {isDe ? "Abbrechen" : "Cancel"}
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            loading={deleteLoading}
+            onClick={() => void handleDeleteConfirm()}
+          >
+            {isDe ? "Unwiderruflich löschen" : "Delete permanently"}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
