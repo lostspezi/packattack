@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import { useParams } from "next/navigation";
-import { PendingCards } from "@/components/inventory/pending-cards";
 import { InventoryGrid } from "@/components/inventory/inventory-grid";
 
 export default function InventoryPage() {
@@ -10,7 +9,7 @@ export default function InventoryPage() {
   const lang = params.lang ?? "en";
   const isDe = lang === "de";
 
-  const [refreshKey, setRefreshKey] = useState(0);
+  const [refreshKey] = useState(0);
 
   return (
     <div className="space-y-6">
@@ -19,14 +18,10 @@ export default function InventoryPage() {
           {isDe ? "Meine Sammlung" : "My Collection"}
         </h2>
         <p className="text-text-secondary mt-1 text-sm">
-          {isDe ? "Deine geclaimten Karten und ausstehende Entscheidungen." : "Your claimed cards and pending decisions."}
+          {isDe ? "Deine geclaimten Karten." : "Your claimed cards."}
         </p>
       </div>
 
-      {/* Pending cards (with countdown) */}
-      <PendingCards lang={lang} onDecision={() => setRefreshKey((k) => k + 1)} />
-
-      {/* Claimed cards grid */}
       <InventoryGrid lang={lang} refreshKey={refreshKey} />
     </div>
   );

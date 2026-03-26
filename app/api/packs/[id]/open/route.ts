@@ -115,25 +115,8 @@ export async function POST(
 
     // 6. Create PackPulls and update stock
     const packGroupId = randomUUID();
-    const claimDeadline = new Date(Date.now() + (box.claimDeadlineHours ?? 24) * 60 * 60 * 1000);
-
-    const pullDocs = result.drawnCards.map((d) => ({
-      userId,
-      boxId,
-      cardId: d.cardId,
-      rarity: d.rarity,
-      coinValue: d.coinValue,
-      conversionValue: d.conversionValue,
-      status: "pending" as const,
-      claimDeadline,
-      packGroupId,
-      packIndex: d.packIndex,
-      cardIndex: d.cardIndex,
-      ipAddress: ip,
-      userAgent: ua,
-    }));
-
-    await PackPull.insertMany(pullDocs);
+    // Store drawn cards temporarily — actual PackPull records created on each decision
+    // We pass packGroupId + card info to frontend, decisions come back via /api/pulls/decide
 
     // 7. Update box: packsOpened + reduce stock per drawn card
     const stockUpdates: Record<string, number> = {};
@@ -167,7 +150,6 @@ export async function POST(
       packCount,
       totalCost,
       newBalance: user.coins,
-      claimDeadline: claimDeadline.toISOString(),
       cards: result.drawnCards,
     });
   } catch (err) {

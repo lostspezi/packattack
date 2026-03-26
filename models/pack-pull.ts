@@ -7,9 +7,8 @@ export interface IPackPull extends Document {
   rarity: string;
   coinValue: number;
   conversionValue: number;
-  status: "pending" | "claimed" | "converted" | "expired";
-  claimDeadline: Date;
-  decidedAt: Date | null;
+  status: "claimed" | "converted";
+  decidedAt: Date;
   packGroupId: string;
   packIndex: number;
   cardIndex: number;
@@ -28,11 +27,10 @@ const PackPullSchema = new Schema<IPackPull>(
     conversionValue: { type: Number, required: true },
     status: {
       type: String,
-      enum: ["pending", "claimed", "converted", "expired"],
-      default: "pending",
+      enum: ["claimed", "converted"],
+      required: true,
     },
-    claimDeadline: { type: Date, required: true },
-    decidedAt: { type: Date, default: null },
+    decidedAt: { type: Date, required: true },
     packGroupId: { type: String, required: true },
     packIndex: { type: Number, required: true },
     cardIndex: { type: Number, required: true },
@@ -44,7 +42,6 @@ const PackPullSchema = new Schema<IPackPull>(
 
 PackPullSchema.index({ userId: 1, status: 1 });
 PackPullSchema.index({ userId: 1, packGroupId: 1 });
-PackPullSchema.index({ claimDeadline: 1, status: 1 });
 PackPullSchema.index({ boxId: 1, createdAt: -1 });
 
 const PackPull: Model<IPackPull> =

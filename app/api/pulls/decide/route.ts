@@ -22,14 +22,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { packGroupId, cardIndex, decision } = body as {
+  const { packGroupId, cardId, cardIndex, packIndex, rarity, coinValue, conversionValue, decision, boxId } = body as {
     packGroupId?: string;
+    cardId?: string;
     cardIndex?: number;
+    packIndex?: number;
+    rarity?: string;
+    coinValue?: number;
+    conversionValue?: number;
     decision?: "claim" | "convert";
+    boxId?: string;
   };
 
-  if (!packGroupId || cardIndex === undefined || !decision) {
-    return NextResponse.json({ error: "packGroupId, cardIndex, and decision are required" }, { status: 400 });
+  if (!packGroupId || !cardId || cardIndex === undefined || !decision || !boxId) {
+    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
   if (decision !== "claim" && decision !== "convert") {
@@ -39,56 +45,58 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    // Find the pull
-    const pulls = await PackPull.find({ userId, packGroupId }).sort({ packIndex: 1, cardIndex: 1 });
-    const pull = pulls[cardIndex];
-
-    if (!pull) {
-      return NextResponse.json({ error: "Pull not found" }, { status: 404 });
+    // Check for duplicate decision (same packGroupId + cardIndex)
+    const existing = await PackPull.findOne({ userId, packGroupId, cardIndex });
+    if (existing) {
+      return NextResponse.json({ error: "Already decided for this card" }, { status: 400 });
     }
 
-    if (pull.status !== "pending") {
-      return NextResponse.json({ error: "Pull already decided" }, { status: 400 });
-    }
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+      ?? req.headers.get("x-real-ip")
+      ?? "unknown";
+    const ua = req.headers.get("user-agent") ?? "unknown";
 
-    // Check deadline
-    if (new Date() > pull.claimDeadline) {
-      return NextResponse.json({ error: "Claim deadline expired" }, { status: 400 });
-    }
+    // Create the PackPull record with final status
+    const pull = await PackPull.create({
+      userId,
+      boxId,
+      cardId,
+      rarity: rarity ?? "",
+      coinValue: coinValue ?? 0,
+      conversionValue: conversionValue ?? 0,
+      status: decision === "claim" ? "claimed" : "converted",
+      decidedAt: new Date(),
+      packGroupId,
+      packIndex: packIndex ?? 0,
+      cardIndex,
+      ipAddress: ip,
+      userAgent: ua,
+    });
 
     if (decision === "claim") {
-      // Claim: move to inventory, stock stays reduced
-      pull.status = "claimed";
-      pull.decidedAt = new Date();
-      await pull.save();
-
+      // Claim: card goes to inventory, stock stays reduced
       await UserInventory.create({
         userId,
-        cardId: pull.cardId,
-        boxId: pull.boxId,
+        cardId,
+        boxId,
         pullId: pull._id,
-        rarity: pull.rarity,
+        rarity: rarity ?? "",
       });
 
       const user = await User.findById(userId).select("coins").lean();
       return NextResponse.json({ success: true, decision: "claimed", newBalance: user?.coins ?? 0 });
     } else {
       // Convert: give coins back, restore stock
-      pull.status = "converted";
-      pull.decidedAt = new Date();
-      await pull.save();
-
-      // Give conversion value coins
       const user = await User.findByIdAndUpdate(
         userId,
-        { $inc: { coins: pull.conversionValue } },
+        { $inc: { coins: conversionValue ?? 0 } },
         { returnDocument: "after" }
       );
 
       // Restore stock in box
-      const box = await Box.findById(pull.boxId);
+      const box = await Box.findById(boxId);
       if (box) {
-        const cardEntry = box.cards.find((c) => c.card.toString() === pull.cardId.toString());
+        const cardEntry = box.cards.find((c) => c.card.toString() === cardId);
         if (cardEntry) {
           cardEntry.stock = (cardEntry.stock ?? 0) + 1;
           await box.save();
@@ -98,10 +106,10 @@ export async function POST(req: NextRequest) {
       // Record transaction
       await CoinTransaction.create({
         userId,
-        amount: pull.conversionValue,
+        amount: conversionValue ?? 0,
         type: "card_conversion",
         relatedPullId: pull._id,
-        relatedBoxId: pull.boxId,
+        relatedBoxId: boxId,
       });
 
       return NextResponse.json({ success: true, decision: "converted", newBalance: user?.coins ?? 0 });

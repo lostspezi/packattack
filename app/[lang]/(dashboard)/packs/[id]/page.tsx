@@ -41,7 +41,6 @@ interface OpenResult {
   packCount: number;
   totalCost: number;
   newBalance: number;
-  claimDeadline: string;
   cards: DrawnCard[];
 }
 
@@ -229,8 +228,8 @@ export default function PackDetailPage() {
         {/* Info */}
         <p className="text-[11px] text-text-muted text-center">
           {isDe
-            ? `Umwandlungsrate: ${box.coinConversionRate}% · Entscheidungsfrist: ${box.claimDeadlineHours}h`
-            : `Conversion rate: ${box.coinConversionRate}% · Claim deadline: ${box.claimDeadlineHours}h`}
+            ? `Umwandlungsrate: ${box.coinConversionRate}%`
+            : `Conversion rate: ${box.coinConversionRate}%`}
         </p>
       </div>
     </div>

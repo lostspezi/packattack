@@ -25,8 +25,6 @@ interface StatsData {
   claimRate: number;
   claimed: number;
   converted: number;
-  expired: number;
-  pending: number;
   outOfStock: number;
   lowStock: number;
   avgPackValue: number;
@@ -137,8 +135,6 @@ export function BoxStats({ boxId, lang }: BoxStatsProps) {
           <div className="flex flex-wrap gap-2 text-xs">
             <Badge variant="success">{data.claimed} {isDe ? "Geclaimed" : "Claimed"}</Badge>
             <Badge variant="info">{data.converted} {isDe ? "Umgewandelt" : "Converted"}</Badge>
-            <Badge variant="warning">{data.pending} {isDe ? "Ausstehend" : "Pending"}</Badge>
-            <Badge variant="error">{data.expired} {isDe ? "Abgelaufen" : "Expired"}</Badge>
             {data.outOfStock > 0 && <Badge variant="error">{data.outOfStock} {isDe ? "Ausverkauft" : "Out of Stock"}</Badge>}
             {data.lowStock > 0 && <Badge variant="warning">{data.lowStock} {isDe ? "Niedriger Bestand" : "Low Stock"}</Badge>}
           </div>

@@ -4,7 +4,6 @@ import connectDB from "@/lib/db";
 import UserInventory from "@/models/user-inventory";
 import "@/models/card";
 import "@/models/box";
-import { expireOverduePulls } from "@/lib/expire-pulls";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -20,9 +19,6 @@ export async function GET(req: NextRequest) {
 
   try {
     await connectDB();
-
-    // Lazy expire overdue pulls
-    await expireOverduePulls(userId);
 
     const [items, total] = await Promise.all([
       UserInventory.find({ userId })

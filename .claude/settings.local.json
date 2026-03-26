@@ -67,7 +67,10 @@
       "WebFetch(domain:www.pricecharting.com)",
       "WebFetch(domain:scryfall.com)",
       "WebFetch(domain:poketrace.com)",
-      "Bash(xargs grep:*)"
+      "Bash(xargs grep:*)",
+      "Bash(find /c/Users/marce/Desktop/packattackgg/app/[lang]/\\\\\\(dashboard\\\\\\) -type f -name \"*.tsx\")",
+      "Bash(cat /c/Users/marce/Desktop/packattackgg/app/api/admin/users/[id]/route.ts)",
+      "Bash(wc:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -52,7 +52,6 @@ export async function GET(
       rarities,
       rarityInfo,
       coinConversionRate: box.coinConversionRate ?? 50,
-      claimDeadlineHours: box.claimDeadlineHours ?? 24,
     });
   } catch (err) {
     console.error("[packs/[id] GET]", err);

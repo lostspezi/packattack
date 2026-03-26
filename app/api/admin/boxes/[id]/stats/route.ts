@@ -95,9 +95,7 @@ export async function GET(
     for (const s of statusCounts) statusMap[s._id as string] = s.count as number;
     const claimed = statusMap["claimed"] ?? 0;
     const converted = statusMap["converted"] ?? 0;
-    const expired = statusMap["expired"] ?? 0;
-    const pending = statusMap["pending"] ?? 0;
-    const decided = claimed + converted + expired;
+    const decided = claimed + converted;
     const claimRate = decided > 0 ? Math.round((claimed / decided) * 10000) / 100 : 0;
 
     const cardEntries = (box.cards ?? []) as Array<{ stock?: number; minStock?: number }>;
@@ -122,8 +120,6 @@ export async function GET(
       claimRate,
       claimed,
       converted,
-      expired,
-      pending,
       outOfStock,
       lowStock,
       avgPackValue,

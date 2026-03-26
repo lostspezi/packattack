@@ -4,7 +4,6 @@ import connectDB from "@/lib/db";
 import PackPull from "@/models/pack-pull";
 import "@/models/card";
 import "@/models/box";
-import { expireOverduePulls } from "@/lib/expire-pulls";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -21,9 +20,6 @@ export async function GET(req: NextRequest) {
 
   try {
     await connectDB();
-
-    // Lazy expire overdue pulls
-    await expireOverduePulls(userId);
 
     const query: Record<string, unknown> = { userId };
     if (status) query.status = status;
@@ -48,7 +44,6 @@ export async function GET(req: NextRequest) {
         coinValue: p.coinValue,
         conversionValue: p.conversionValue,
         status: p.status,
-        claimDeadline: p.claimDeadline,
         decidedAt: p.decidedAt,
         packGroupId: p.packGroupId,
         packIndex: p.packIndex,

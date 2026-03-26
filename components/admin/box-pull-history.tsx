@@ -34,10 +34,8 @@ function statusBadge(status: string) {
 
 function statusLabel(status: string, isDe: boolean) {
   const map: Record<string, { de: string; en: string }> = {
-    pending: { de: "Ausstehend", en: "Pending" },
     claimed: { de: "Geclaimed", en: "Claimed" },
     converted: { de: "Umgewandelt", en: "Converted" },
-    expired: { de: "Abgelaufen", en: "Expired" },
   };
   return isDe ? (map[status]?.de ?? status) : (map[status]?.en ?? status);
 }
@@ -70,10 +68,8 @@ export function BoxPullHistory({ boxId, lang }: BoxPullHistoryProps) {
 
   const statusOptions: SelectOption[] = [
     { label: isDe ? "Alle Status" : "All Status", value: "" },
-    { label: isDe ? "Ausstehend" : "Pending", value: "pending" },
     { label: isDe ? "Geclaimed" : "Claimed", value: "claimed" },
     { label: isDe ? "Umgewandelt" : "Converted", value: "converted" },
-    { label: isDe ? "Abgelaufen" : "Expired", value: "expired" },
   ];
 
   return (
