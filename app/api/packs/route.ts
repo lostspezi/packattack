@@ -13,7 +13,7 @@ export async function GET() {
     await connectDB();
 
     const boxes = await Box.find({ status: "published" })
-      .select("_id name description game image priceInCoins cardsPerPack totalPacks packsOpened cards rarityWeights")
+      .select("_id slug name description game image priceInCoins cardsPerPack totalPacks packsOpened cards rarityWeights")
       .sort({ createdAt: -1 })
       .lean();
 
