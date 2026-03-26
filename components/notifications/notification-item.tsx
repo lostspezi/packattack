@@ -60,6 +60,7 @@ export function NotificationItem({
   dict: _dict,
   onMarkRead,
 }: NotificationItemProps) {
+  void _dict;
   const { icon: Icon, color } = typeConfig[notification.type] ?? typeConfig.info;
 
   function handleClick() {

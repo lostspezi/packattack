@@ -26,9 +26,14 @@ export function NotificationBell() {
     }
   }, []);
 
-  // Fetch on mount
+  // Fetch on mount (ref flag prevents double-fetch in StrictMode)
+  const didFetchRef = useRef(false);
   useEffect(() => {
-    fetchUnreadCount();
+    if (didFetchRef.current) return;
+    didFetchRef.current = true;
+    void (async () => {
+      await fetchUnreadCount();
+    })();
   }, [fetchUnreadCount]);
 
   // Poll every 30 seconds

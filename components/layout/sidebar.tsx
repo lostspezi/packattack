@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Menu, X } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { mainNavItems, adminNavItems, soonNavItems, type NavItem } from "./sidebar-nav";
@@ -129,6 +129,7 @@ function SidebarContent({
     <>
       {/* Logo */}
       <div className="px-6 py-5 flex-shrink-0">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/logo.svg"
           alt="PackAttack.gg"
@@ -222,8 +223,13 @@ export function Sidebar(props: SidebarProps) {
   const pathname = usePathname();
 
   // Close on route change
+  const prevPathnameRef = useRef(pathname);
   useEffect(() => {
-    setMobileOpen(false);
+    if (prevPathnameRef.current !== pathname) {
+      prevPathnameRef.current = pathname;
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMobileOpen(false);
+    }
   }, [pathname]);
 
   // Prevent body scroll when open

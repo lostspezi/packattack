@@ -36,6 +36,7 @@ export function ErrorPage({
     <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-4 py-12">
       <div className="flex flex-col items-center gap-8 max-w-md">
         {/* Logo */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/logo.svg"
           alt="PackAttack.gg"

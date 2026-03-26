@@ -212,9 +212,6 @@ export function UserTable({
               </tr>
             ) : (
               users.map((user) => {
-                const initial = (user.name || user.username || "?")
-                  .charAt(0)
-                  .toUpperCase();
                 const isOwnUser = user._id === sessionUserId;
 
                 return (

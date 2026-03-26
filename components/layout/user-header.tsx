@@ -12,7 +12,6 @@ interface UserHeaderProps {
   lang: string;
   dict: Record<string, string>;
   userName: string;
-  userInitial: string;
   userImage?: string | null;
   userRole: string;
 }
@@ -21,7 +20,6 @@ export function UserHeader({
   lang,
   dict,
   userName,
-  userInitial,
   userImage,
   userRole,
 }: UserHeaderProps) {
@@ -40,14 +38,15 @@ export function UserHeader({
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setAvatarUrl(userImage || "/images/default-avatar.png");
   }, [userImage]);
 
   // Close mobile menu on route change (but not on language switch)
   const pathnameWithoutLang = pathname.replace(/^\/(de|en)/, "");
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileMenuOpen(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathnameWithoutLang]);
 
   // Prevent body scroll when mobile menu is open
@@ -88,6 +87,7 @@ export function UserHeader({
 
           {/* Logo */}
           <Link href={dashboardHref} className="flex-shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/images/logo.svg"
               alt="PackAttack.gg"
@@ -145,6 +145,7 @@ export function UserHeader({
               className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/4 transition-colors"
             >
               {/* Avatar */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={avatarUrl}
                 alt={userName}
@@ -199,6 +200,7 @@ export function UserHeader({
         >
             {/* Drawer header */}
             <div className="h-16 flex items-center px-4 border-b border-border flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/images/logo.svg"
                 alt="PackAttack.gg"
@@ -250,6 +252,7 @@ export function UserHeader({
             {/* User info at bottom of drawer */}
             <div className="px-3 pb-6 flex-shrink-0">
               <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-white/3 border border-white/6">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={avatarUrl}
                   alt={userName}

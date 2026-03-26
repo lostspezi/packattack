@@ -9,6 +9,7 @@ export default function GlobalNotFound() {
     <html lang="en">
       <body style={{ background: "#12111A", color: "#C8C8D0", margin: 0, minHeight: "100vh", display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", padding: "3rem 1rem", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>
         {/* Logo */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/images/logo.svg" alt="PackAttack.gg" style={{ height: 28, marginBottom: 32, opacity: 0.8 }} />
 
         {/* Pack SVG */}
@@ -36,6 +37,7 @@ export default function GlobalNotFound() {
         <p style={{ fontSize: "0.875rem", color: "#6B6B78", textAlign: "center", maxWidth: "24rem", lineHeight: 1.6, marginBottom: 32 }}>
           The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
         <a href="/" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", padding: "12px 28px", background: "linear-gradient(135deg, #9BFF00, #85DD00)", color: "#12111A", fontWeight: 700, fontSize: "0.875rem", borderRadius: 10, textDecoration: "none" }}>
           Back to Home
         </a>

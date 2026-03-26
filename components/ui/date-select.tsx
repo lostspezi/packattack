@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Select } from "@/components/ui/select";
 import type { SelectOption } from "@/components/ui/select";
 
@@ -33,21 +33,25 @@ export function DateSelect({
   const max = maxYear ?? currentYear;
   const min = minYear ?? 1920;
 
-  // Parse initial value
-  const [year, setYear] = useState("");
-  const [month, setMonth] = useState("");
-  const [day, setDay] = useState("");
-
-  useEffect(() => {
-    if (value) {
-      const parts = value.split("-");
+  // Parse initial value from props directly
+  function parseValue(v: string) {
+    if (v) {
+      const parts = v.split("-");
       if (parts.length === 3) {
-        setYear(parts[0]);
-        setMonth(String(parseInt(parts[1], 10)));
-        setDay(String(parseInt(parts[2], 10)));
+        return {
+          year: parts[0],
+          month: String(parseInt(parts[1], 10)),
+          day: String(parseInt(parts[2], 10)),
+        };
       }
     }
-  }, [value]);
+    return { year: "", month: "", day: "" };
+  }
+
+  const initial = parseValue(value);
+  const [year, setYear] = useState(initial.year);
+  const [month, setMonth] = useState(initial.month);
+  const [day, setDay] = useState(initial.day);
 
   function emitChange(y: string, m: string, d: string) {
     if (y && m && d) {

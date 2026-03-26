@@ -21,7 +21,6 @@ export default async function DashboardLayout({
   const commonDict = await getDictionary(lang as Locale, "common");
 
   const userName = session.user.name ?? session.user.email ?? "User";
-  const userInitial = userName.charAt(0).toUpperCase();
   const userRole = (session.user as { role?: string }).role ?? "user";
   const userImage = session.user.image ?? null;
 
@@ -31,7 +30,6 @@ export default async function DashboardLayout({
         lang={lang}
         dict={commonDict}
         userName={userName}
-        userInitial={userInitial}
         userImage={userImage}
         userRole={userRole}
       />

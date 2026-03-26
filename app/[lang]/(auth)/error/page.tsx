@@ -3,13 +3,6 @@ import type { Locale } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import Link from "next/link";
 
-const ERROR_MESSAGES: Record<string, string> = {
-  OAuthSignin: "Problem bei der Anmeldung",
-  OAuthCallback: "Problem bei der Anmeldung",
-  OAuthAccountNotLinked: "Problem bei der Anmeldung",
-  CredentialsSignin: "Ungültige Anmeldedaten",
-};
-
 function getErrorMessage(
   error: string | undefined,
   dict: Record<string, string>

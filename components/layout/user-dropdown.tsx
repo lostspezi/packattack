@@ -14,6 +14,7 @@ interface UserDropdownProps {
 }
 
 export function UserDropdown({ lang, dict: _dict, userRole, open, onClose }: UserDropdownProps) {
+  void _dict;
   const ref = useRef<HTMLDivElement>(null);
   const isAdmin = userRole === "admin" || userRole === "super_admin";
 
