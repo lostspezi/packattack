@@ -349,7 +349,7 @@ export default function PackDetailPage() {
                         }}
                       />
                     </div>
-                    <span className="text-[10px] text-text-muted tabular-nums w-7 text-right">~{r.percentage}%</span>
+                    <span className="text-[10px] text-text-muted tabular-nums w-12 text-right">{r.percentage < 0.01 ? r.percentage.toFixed(3) : r.percentage < 1 ? r.percentage.toFixed(2) : r.percentage.toFixed(1)}%</span>
                   </div>
                 ))}
               </div>
@@ -435,7 +435,7 @@ export default function PackDetailPage() {
                       }}
                     />
                   </div>
-                  <span className="text-sm text-text-secondary tabular-nums w-10 text-right">~{r.percentage}%</span>
+                  <span className="text-sm text-text-secondary tabular-nums w-14 text-right">{r.percentage < 0.01 ? r.percentage.toFixed(3) : r.percentage < 1 ? r.percentage.toFixed(2) : r.percentage.toFixed(1)}%</span>
                 </div>
               ))}
             </div>

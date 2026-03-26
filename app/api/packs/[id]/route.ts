@@ -77,7 +77,7 @@ export async function GET(
     const rarityInfo = Object.entries(rarityBreakdown)
       .map(([rarity, weight]) => ({
         rarity,
-        percentage: totalWeight > 0 ? Math.round((weight / totalWeight) * 100) : 0,
+        percentage: totalWeight > 0 ? (weight / totalWeight) * 100 : 0,
       }))
       .sort((a, b) => b.percentage - a.percentage);
 
