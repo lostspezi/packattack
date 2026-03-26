@@ -57,14 +57,13 @@ export async function POST(req: NextRequest) {
     const privacyVersion = settings?.privacyVersion ?? "";
     const now = new Date();
 
-    // Build update object — ensure role is set to "user" if not already present
+    // Build onboarding updates without overwriting an existing role
     const updateData: Record<string, unknown> = {
       name,
       username,
       email,
       dateOfBirth: dob,
       onboardingCompleted: true,
-      role: "user",
       "consents.tos": { accepted: true, version: tosVersion, acceptedAt: now },
       "consents.privacy": { accepted: true, version: privacyVersion, acceptedAt: now },
       "consents.ageVerification": { accepted: true, acceptedAt: now },
@@ -79,11 +78,16 @@ export async function POST(req: NextRequest) {
     const userId = session.user.id;
     const isObjectId = Types.ObjectId.isValid(userId) && new Types.ObjectId(userId).toString() === userId;
 
+    const updateOperation = {
+      $set: updateData,
+      $setOnInsert: { role: "user" },
+    };
+
     if (isObjectId) {
-      await User.findByIdAndUpdate(userId, updateData, { upsert: true });
+      await User.findByIdAndUpdate(userId, updateOperation, { upsert: true });
     } else {
       // UUID from adapter — find by email and update, or create via upsert
-      await User.findOneAndUpdate({ email }, updateData, { upsert: true });
+      await User.findOneAndUpdate({ email }, updateOperation, { upsert: true });
     }
 
     const ip =
