@@ -4,6 +4,7 @@ export interface IBoxCard {
   card: Types.ObjectId;
   weight: number;
   rarity: string;
+  stock: number;
 }
 
 export interface IBox extends Document {
@@ -16,6 +17,7 @@ export interface IBox extends Document {
   cardsPerPack: number;
   totalPacks: number | null;
   packsOpened: number;
+  minStock: number;
   rarityWeights: Array<{ rarity: string; weight: number }>;
   cards: IBoxCard[];
   createdBy: Types.ObjectId;
@@ -50,6 +52,7 @@ const BoxSchema = new Schema<IBox>(
     cardsPerPack: { type: Number, required: true },
     totalPacks: { type: Number, default: null },
     packsOpened: { type: Number, default: 0 },
+    minStock: { type: Number, default: 5 },
     rarityWeights: [
       {
         rarity: { type: String, required: true },
@@ -61,6 +64,7 @@ const BoxSchema = new Schema<IBox>(
         card: { type: Schema.Types.ObjectId, ref: "Card", required: true },
         weight: { type: Number, required: true, default: 1, min: 0.001, max: 1000 },
         rarity: { type: String, required: true },
+        stock: { type: Number, required: true, default: 0, min: 0 },
       },
     ],
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },

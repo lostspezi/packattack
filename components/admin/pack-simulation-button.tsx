@@ -34,10 +34,12 @@ export function PackSimulationButton({
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [showResults, setShowResults] = useState(false);
 
-  const hasCards = cards.length > 0;
+  const availableCards = cards.filter((c) => (c.stock ?? 0) > 0);
+  const outOfStock = cards.length - availableCards.length;
+  const hasCards = availableCards.length > 0;
   const numPacks = Math.max(MIN_PACKS, Math.min(MAX_PACKS, parseInt(packCount, 10) || 0));
   const totalDraws = numPacks * cardsPerPack;
-  const cardsWithoutPrice = cards.filter((c) => !c.internalPrice).length;
+  const cardsWithoutPrice = availableCards.filter((c) => !c.internalPrice).length;
 
   const handleStartSimulation = useCallback(() => {
     setShowParams(false);
@@ -46,8 +48,10 @@ export function PackSimulationButton({
 
     // setTimeout so the loading state renders before synchronous computation
     setTimeout(() => {
+      // Exclude out-of-stock cards from simulation
+      const availableCards = cards.filter((c) => (c.stock ?? 0) > 0);
       const simResult = runSimulation({
-        cards: cards.map((c) => ({
+        cards: availableCards.map((c) => ({
           _id: c._id,
           name: c.name,
           rarity: c.rarity,
@@ -143,8 +147,16 @@ export function PackSimulationButton({
 
           {/* Info text */}
           <p className="text-xs text-text-muted">
-            {cards.length} {isDe ? "Karten" : "cards"} × {cardsPerPack} {isDe ? "pro Pack" : "per pack"} = {totalDraws.toLocaleString()} {isDe ? "Ziehungen" : "draws"}
+            {availableCards.length} {isDe ? "Karten" : "cards"} × {cardsPerPack} {isDe ? "pro Pack" : "per pack"} = {totalDraws.toLocaleString()} {isDe ? "Ziehungen" : "draws"}
           </p>
+
+          {outOfStock > 0 && (
+            <p className="text-xs text-yellow-400">
+              {isDe
+                ? `${outOfStock} Karte(n) ohne Bestand — werden von der Simulation ausgeschlossen.`
+                : `${outOfStock} card(s) out of stock — excluded from simulation.`}
+            </p>
+          )}
 
           {/* Price warning */}
           {cardsWithoutPrice > 0 && (

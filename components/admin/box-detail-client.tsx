@@ -26,6 +26,7 @@ interface BoxData {
   cardsPerPack: number;
   totalPacks: number | null;
   rarityWeights: RarityWeight[];
+  minStock: number;
   packsOpened: number;
   cardsCount: number;
   createdAt: string;
@@ -121,6 +122,7 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
         cardsPerPack: updated.cardsPerPack ?? box.cardsPerPack,
         totalPacks: updated.totalPacks ?? box.totalPacks,
         rarityWeights: updated.rarityWeights ?? box.rarityWeights,
+        minStock: updated.minStock ?? box.minStock,
       });
       toast({ type: "success", title: isDe ? "Box gespeichert!" : "Box saved!" });
     } catch {
@@ -415,6 +417,7 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
                 priceInCoins: box.priceInCoins,
                 cardsPerPack: box.cardsPerPack,
                 totalPacks: box.totalPacks,
+                minStock: box.minStock ?? 5,
                 rarityWeights: box.rarityWeights,
               }}
               onSave={(data) => void handleSave(data)}
