@@ -51,7 +51,9 @@
       "Bash(for file:*)",
       "Read(//c/Users/marce/Desktop/packattackgg/**)",
       "Bash(grep -h ^export C:UsersmarceDesktoppackattackggcomponentslayout/*.tsx)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(npm run:*)",
+      "Bash(npx eslint:*)"
     ]
   }
 }
