@@ -43,6 +43,7 @@ const PackPullSchema = new Schema<IPackPull>(
 PackPullSchema.index({ userId: 1, status: 1 });
 PackPullSchema.index({ userId: 1, packGroupId: 1 });
 PackPullSchema.index({ boxId: 1, createdAt: -1 });
+PackPullSchema.index({ packGroupId: 1, cardIndex: 1 }, { unique: true });
 
 const PackPull: Model<IPackPull> =
   mongoose.models.PackPull ?? mongoose.model<IPackPull>("PackPull", PackPullSchema);

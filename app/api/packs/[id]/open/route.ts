@@ -118,20 +118,30 @@ export async function POST(
     // Store drawn cards temporarily — actual PackPull records created on each decision
     // We pass packGroupId + card info to frontend, decisions come back via /api/pulls/decide
 
-    // 7. Update box: packsOpened + reduce stock per drawn card
+    // 7. Atomically reduce stock per drawn card (race-condition safe)
     const stockUpdates: Record<string, number> = {};
     for (const d of result.drawnCards) {
       stockUpdates[d.cardId] = (stockUpdates[d.cardId] ?? 0) + 1;
     }
 
+    let failedDecrements = 0;
     for (const [cardId, count] of Object.entries(stockUpdates)) {
-      const cardIdx = box.cards.findIndex((c) => c.card.toString() === cardId);
-      if (cardIdx !== -1) {
-        box.cards[cardIdx].stock = Math.max(0, (box.cards[cardIdx].stock ?? 0) - count);
+      const cardObjectId = new (await import("mongoose")).Types.ObjectId(cardId);
+      // Decrement one at a time with atomic $gte guard
+      for (let i = 0; i < count; i++) {
+        const res = await Box.updateOne(
+          { _id: boxId, "cards.card": cardObjectId, "cards.stock": { $gte: 1 } },
+          { $inc: { "cards.$.stock": -1 } }
+        );
+        if (res.modifiedCount === 0) failedDecrements++;
       }
     }
-    box.packsOpened = (box.packsOpened ?? 0) + packCount;
-    await box.save();
+
+    // Atomically increment packsOpened
+    await Box.updateOne({ _id: boxId }, { $inc: { packsOpened: packCount } });
+
+    // Reload box for stock alerts (need current state)
+    const updatedBox = await Box.findById(boxId);
 
     // 8. Record coin transaction
     await CoinTransaction.create({
@@ -142,7 +152,7 @@ export async function POST(
     });
 
     // 9. Check for low-stock / out-of-stock notifications (only for drawn cards)
-    void sendStockAlerts(box, cardMap, stockUpdates);
+    if (updatedBox) void sendStockAlerts(updatedBox, cardMap, stockUpdates);
 
     // 10. Response
     return NextResponse.json({

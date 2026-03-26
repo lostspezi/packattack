@@ -45,33 +45,36 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    // Check for duplicate decision (same packGroupId + cardIndex)
-    const existing = await PackPull.findOne({ userId, packGroupId, cardIndex });
-    if (existing) {
-      return NextResponse.json({ error: "Already decided for this card" }, { status: 400 });
-    }
-
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
       ?? req.headers.get("x-real-ip")
       ?? "unknown";
     const ua = req.headers.get("user-agent") ?? "unknown";
 
     // Create the PackPull record with final status
-    const pull = await PackPull.create({
-      userId,
-      boxId,
-      cardId,
-      rarity: rarity ?? "",
-      coinValue: coinValue ?? 0,
-      conversionValue: conversionValue ?? 0,
-      status: decision === "claim" ? "claimed" : "converted",
-      decidedAt: new Date(),
-      packGroupId,
-      packIndex: packIndex ?? 0,
-      cardIndex,
-      ipAddress: ip,
-      userAgent: ua,
-    });
+    // Unique index on (packGroupId, cardIndex) prevents duplicates atomically
+    let pull;
+    try {
+      pull = await PackPull.create({
+        userId,
+        boxId,
+        cardId,
+        rarity: rarity ?? "",
+        coinValue: coinValue ?? 0,
+        conversionValue: conversionValue ?? 0,
+        status: decision === "claim" ? "claimed" : "converted",
+        decidedAt: new Date(),
+        packGroupId,
+        packIndex: packIndex ?? 0,
+        cardIndex,
+        ipAddress: ip,
+        userAgent: ua,
+      });
+    } catch (err: unknown) {
+      if ((err as { code?: number }).code === 11000) {
+        return NextResponse.json({ error: "Already decided for this card" }, { status: 400 });
+      }
+      throw err;
+    }
 
     if (decision === "claim") {
       // Claim: card goes to inventory, stock stays reduced
@@ -93,15 +96,13 @@ export async function POST(req: NextRequest) {
         { returnDocument: "after" }
       );
 
-      // Restore stock in box
-      const box = await Box.findById(boxId);
-      if (box) {
-        const cardEntry = box.cards.find((c) => c.card.toString() === cardId);
-        if (cardEntry) {
-          cardEntry.stock = (cardEntry.stock ?? 0) + 1;
-          await box.save();
-        }
-      }
+      // Atomically restore stock in box (race-condition safe)
+      const { Types } = await import("mongoose");
+      const cardObjectId = new Types.ObjectId(cardId);
+      await Box.updateOne(
+        { _id: boxId, "cards.card": cardObjectId },
+        { $inc: { "cards.$.stock": 1 } }
+      );
 
       // Record transaction
       await CoinTransaction.create({
