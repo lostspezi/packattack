@@ -2,7 +2,7 @@ import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
 export interface IConsentLog extends Document {
   userId: Types.ObjectId;
-  type: "tos" | "privacy";
+  type: "tos" | "privacy" | "age_verification";
   version: string;
   action: "accepted" | "revoked";
   ip: string;
@@ -13,7 +13,7 @@ export interface IConsentLog extends Document {
 const ConsentLogSchema = new Schema<IConsentLog>(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    type: { type: String, enum: ["tos", "privacy"], required: true },
+    type: { type: String, enum: ["tos", "privacy", "age_verification"], required: true },
     version: { type: String, required: true },
     action: { type: String, enum: ["accepted", "revoked"], required: true },
     ip: { type: String, required: true },
