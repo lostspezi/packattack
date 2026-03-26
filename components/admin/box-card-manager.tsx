@@ -546,9 +546,12 @@ export function BoxCardManager({
                         )}
                       </td>
 
-                      {/* Name */}
-                      <td className="px-3 py-2 text-sm text-text-primary font-medium max-w-[200px]">
-                        <span className="line-clamp-2">{card.name}</span>
+                      {/* Name + Set */}
+                      <td className="px-3 py-2 max-w-[200px]">
+                        <p className="text-sm text-text-primary font-medium line-clamp-2">{card.name}</p>
+                        {card.setName && (
+                          <p className="text-xs text-text-muted truncate">{card.setName}</p>
+                        )}
                       </td>
 
                       {/* Rarity dropdown */}
