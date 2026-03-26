@@ -10,22 +10,22 @@ export default async function AuthLayout({
   const { lang } = await params;
 
   return (
-    <div className="relative flex items-center justify-center min-h-screen px-4 py-8">
-      {/* Language switcher top right */}
-      <div className="absolute top-4 right-4">
+    <div className="relative flex flex-col items-center min-h-screen px-4 py-8">
+      {/* Header: logo left, language switcher right */}
+      <div className="w-full max-w-md flex items-center justify-between mb-8">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/logo.svg"
+          alt="PackAttack.gg"
+          className="h-6 sm:h-7 w-auto"
+        />
         <LanguageSwitcher lang={lang} />
       </div>
 
-      <div className="w-full max-w-md">
-        <div className="mb-8 flex justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/logo.svg"
-            alt="PackAttack.gg"
-            className="h-7 w-auto"
-          />
+      <div className="w-full max-w-md flex-1 flex items-center">
+        <div className="w-full">
+          {children}
         </div>
-        {children}
       </div>
     </div>
   );
