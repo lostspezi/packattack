@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DateSelect } from "@/components/ui/date-select";
 import Link from "next/link";
 
 interface RegisterFormProps {
@@ -25,12 +26,7 @@ export function RegisterForm({ dict, lang }: RegisterFormProps) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Max date: 18 years ago from today
-  const maxDob = (() => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 18);
-    return d.toISOString().split("T")[0];
-  })();
+  const maxYear = new Date().getFullYear() - 18;
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -119,13 +115,11 @@ export function RegisterForm({ dict, lang }: RegisterFormProps) {
         autoComplete="new-password"
       />
 
-      <Input
+      <DateSelect
         label={dict["label_date_of_birth"] ?? "Date of Birth"}
-        type="date"
         value={dateOfBirth}
-        onChange={(e) => setDateOfBirth(e.target.value)}
-        required
-        max={maxDob}
+        onChange={setDateOfBirth}
+        maxYear={maxYear}
       />
 
       <div className="flex flex-col gap-3">
