@@ -536,11 +536,11 @@ export function BoxCardManager({
                           <img
                             src={card.image}
                             alt={card.name}
-                            className="w-14 h-20 object-contain rounded"
+                            className="w-16 h-22 object-cover rounded"
                             loading="lazy"
                           />
                         ) : (
-                          <div className="w-14 h-20 bg-white/4 rounded flex items-center justify-center">
+                          <div className="w-16 h-22 bg-white/4 rounded flex items-center justify-center">
                             <span className="text-text-muted text-xs">?</span>
                           </div>
                         )}
