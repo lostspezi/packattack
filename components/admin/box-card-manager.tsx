@@ -321,10 +321,14 @@ export function BoxCardManager({
   function handleStockChange(cardId: string, value: string) {
     const sanitised = value.replace(/[^0-9]/g, "");
     setStocks((prev) => ({ ...prev, [cardId]: sanitised }));
+    // Optimistic local update for row coloring
+    const num = parseInt(sanitised, 10);
+    if (!isNaN(num) && num >= 0) {
+      setCards((prev) => prev.map((c) => c._id === cardId ? { ...c, stock: num } : c));
+    }
 
     if (debounceTimers.current[`stock_${cardId}`]) clearTimeout(debounceTimers.current[`stock_${cardId}`]);
     debounceTimers.current[`stock_${cardId}`] = setTimeout(() => {
-      const num = parseInt(sanitised, 10);
       if (isNaN(num) || num < 0) return;
       patchCard(cardId, { stock: num });
     }, 600);
@@ -333,10 +337,14 @@ export function BoxCardManager({
   function handleMinStockChange(cardId: string, value: string) {
     const sanitised = value.replace(/[^0-9]/g, "");
     setMinStocks((prev) => ({ ...prev, [cardId]: sanitised }));
+    // Optimistic local update for row coloring
+    const num = parseInt(sanitised, 10);
+    if (!isNaN(num) && num >= 0) {
+      setCards((prev) => prev.map((c) => c._id === cardId ? { ...c, minStock: num } : c));
+    }
 
     if (debounceTimers.current[`mstock_${cardId}`]) clearTimeout(debounceTimers.current[`mstock_${cardId}`]);
     debounceTimers.current[`mstock_${cardId}`] = setTimeout(() => {
-      const num = parseInt(sanitised, 10);
       if (isNaN(num) || num < 0) return;
       patchCard(cardId, { minStock: num });
     }, 600);
