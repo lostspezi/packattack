@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { User, Settings, Shield, BarChart3, LogOut } from "lucide-react";
+import { User, Settings, Shield, BarChart3, LogOut, Bell } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 interface UserDropdownProps {
@@ -47,6 +47,18 @@ export function UserDropdown({ lang, dict: _dict, userRole, open, onClose }: Use
           : "opacity-0 scale-95 pointer-events-none",
       ].join(" ")}
     >
+      {/* Notifications — mobile only */}
+      <Link
+        href={`/${lang}/dashboard`}
+        onClick={onClose}
+        className={`${itemClass} sm:hidden`}
+      >
+        <Bell className="w-4 h-4 flex-shrink-0 text-text-muted" />
+        <span>Benachrichtigungen</span>
+      </Link>
+
+      <div className="my-1 h-px bg-border sm:hidden" />
+
       <Link
         href={`/${lang}/profile`}
         onClick={onClose}

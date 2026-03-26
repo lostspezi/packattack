@@ -142,7 +142,9 @@ export function UserHeader({
           <div className="hidden sm:block">
             <LanguageSwitcher lang={lang} />
           </div>
-          <NotificationBell />
+          <div className="hidden sm:block">
+            <NotificationBell />
+          </div>
           <CoinBalance />
 
           {/* User dropdown trigger */}
