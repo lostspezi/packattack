@@ -191,53 +191,76 @@ export default function PackDetailPage() {
       <div className="bg-surface border border-border rounded-[16px] p-5 md:p-7 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-radial from-pa-green/5 to-transparent pointer-events-none" />
 
-        <div className="flex flex-col lg:flex-row gap-6 relative">
-          {/* Best Hit Card with gold pulse */}
+        <div className="flex flex-col lg:flex-row gap-5 relative">
+          {/* Mobile: Card + Title row / Desktop: Card standalone */}
           {(() => {
             const bestHit = box.topHits[0];
             const hitImage = bestHit?.image;
-            return (
-              <div className="relative w-full lg:w-40 shrink-0 flex items-center justify-center">
-                {/* Gold pulse rings */}
-                <div className="absolute inset-0 rounded-xl animate-[goldPulse_2s_ease-in-out_infinite] pointer-events-none" />
-                <div className="absolute inset-0 rounded-xl animate-[goldPulse_2s_ease-in-out_infinite_0.5s] pointer-events-none" />
-                {hitImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={hitImage}
-                    alt={bestHit?.name ?? name}
-                    className="w-32 lg:w-full rounded-xl relative z-10 border-2 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.15)]"
-                  />
-                ) : box.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={box.image} alt={name} className="w-full h-48 lg:h-52 object-cover rounded-xl relative z-10" />
-                ) : (
-                  <div className="w-full h-48 lg:h-52 bg-white/4 rounded-xl flex items-center justify-center relative z-10">
-                    <Package className="w-10 h-10 text-text-muted" />
-                  </div>
-                )}
+            const cardElement = (
+              <div className="relative w-20 sm:w-28 lg:w-40 shrink-0">
+                <div className="animate-[goldPulse_2s_ease-in-out_infinite] rounded-xl">
+                  {hitImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={hitImage}
+                      alt={bestHit?.name ?? name}
+                      className="w-full rounded-xl border-2 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.15)]"
+                    />
+                  ) : box.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={box.image} alt={name} className="w-full rounded-xl" />
+                  ) : (
+                    <div className="w-full aspect-[63/88] bg-white/4 rounded-xl flex items-center justify-center">
+                      <Package className="w-8 h-8 text-text-muted" />
+                    </div>
+                  )}
+                </div>
                 {bestHit && (
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-lg text-center">
-                    <p className="text-[9px] text-yellow-400 font-bold">{isDe ? "Seltenste Karte" : "Rarest Card"}</p>
-                    <p className="text-[10px] text-text-primary font-semibold truncate max-w-[120px]">{bestHit.name}</p>
+                  <div className="absolute bottom-1.5 left-1/2 -translate-x-1/2 z-20 bg-black/70 backdrop-blur-sm px-2 py-0.5 rounded-md text-center whitespace-nowrap">
+                    <p className="text-[8px] sm:text-[9px] text-yellow-400 font-bold">{isDe ? "Seltenste Karte" : "Rarest Card"}</p>
                   </div>
                 )}
               </div>
+            );
+
+            return (
+              <>
+                {/* Mobile: card + name side by side */}
+                <div className="flex gap-4 items-start lg:hidden">
+                  {cardElement}
+                  <div className="flex-1 min-w-0 pt-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h1 className="text-lg font-extrabold text-text-primary">{name}</h1>
+                      <span className="bg-pa-green/8 border border-pa-green/15 text-pa-green text-[10px] px-2 py-0.5 rounded-md">
+                        🔥 {box.packsOpened.toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-xs text-text-muted mt-0.5">{box.game}</p>
+                    <div className="flex gap-3 mt-2 text-[11px] text-text-muted flex-wrap">
+                      <span>{box.cardsPerPack} {isDe ? "Karten/Pack" : "cards/pack"}</span>
+                      <span>{box.availableCards} {isDe ? "verfügbar" : "available"}</span>
+                    </div>
+                  </div>
+                </div>
+                {/* Desktop: card standalone */}
+                <div className="hidden lg:block">{cardElement}</div>
+              </>
             );
           })()}
 
           {/* Middle: CTA */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-xl md:text-2xl font-extrabold text-text-primary">{name}</h1>
+            {/* Desktop only title (mobile title is in the card row above) */}
+            <div className="hidden lg:flex items-center gap-3 flex-wrap">
+              <h1 className="text-2xl font-extrabold text-text-primary">{name}</h1>
               <span className="bg-pa-green/8 border border-pa-green/15 text-pa-green text-xs px-2.5 py-1 rounded-lg">
                 🔥 {box.packsOpened.toLocaleString()} {isDe ? "geöffnet" : "opened"}
               </span>
             </div>
-            <p className="text-xs text-text-muted mt-0.5">{box.game}</p>
+            <p className="hidden lg:block text-xs text-text-muted mt-0.5">{box.game}</p>
 
             {/* Pack selector */}
-            <div className="mt-5">
+            <div className="lg:mt-5">
               <p className="text-xs text-text-muted mb-2">{isDe ? "Wie viele Packs?" : "How many packs?"}</p>
               <div className="flex gap-2 flex-wrap">
                 {[1, 2, 3, 5, 10].map((n) => (
@@ -277,7 +300,7 @@ export default function PackDetailPage() {
               </div>
             </div>
 
-            <div className="flex gap-4 mt-3 text-xs text-text-muted flex-wrap">
+            <div className="hidden lg:flex gap-4 mt-3 text-xs text-text-muted flex-wrap">
               <span>{box.cardsPerPack} {isDe ? "Karten/Pack" : "cards/pack"}</span>
               <span>·</span>
               <span>{box.availableCards} {isDe ? "verfügbar" : "available"}</span>
@@ -287,7 +310,7 @@ export default function PackDetailPage() {
           </div>
 
           {/* Right: Description + Rarities side by side */}
-          <div className="lg:w-[480px] shrink-0 grid grid-cols-2 gap-3">
+          <div className="lg:w-[480px] shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Description */}
             <div className="bg-white/4 rounded-xl p-3.5">
               <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5">
