@@ -14,10 +14,20 @@ interface JustTCGCardResult {
   tcgplayerId?: string | null;
 }
 
+export interface AddCardPayload {
+  justTcgId: string;
+  name: string;
+  game: string;
+  set: string;
+  setName: string;
+  rarity: string;
+  tcgplayerId: string | null;
+}
+
 interface JustTCGCardSearchProps {
   game: string;
   existingCardIds: string[];
-  onAddCard: (justTcgId: string) => void;
+  onAddCard: (payload: AddCardPayload) => void;
   lang: string;
 }
 
@@ -89,7 +99,15 @@ export function JustTCGCardSearch({
     if (existingCardIds.includes(card.id)) return;
     setAddingId(card.id);
     try {
-      await onAddCard(card.id);
+      await onAddCard({
+        justTcgId: card.id,
+        name: card.name,
+        game,
+        set: (card as unknown as Record<string, string>).set ?? "",
+        setName: card.set_name ?? card.setName ?? "",
+        rarity: card.rarity,
+        tcgplayerId: card.tcgplayerId ?? null,
+      });
       toast({ type: "success", title: `${card.name} ${isDe ? "hinzugefügt" : "added"}` });
       // Don't close — user might want to add more
     } catch {

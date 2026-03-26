@@ -4,20 +4,6 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Box from "@/models/box";
 import Card from "@/models/card";
-import { getCard as fetchJustTCGCard } from "@/lib/justtcg";
-import type { JustTCGCard } from "@/lib/justtcg";
-
-// Extract the best market price from card variants (Near Mint preferred, in USD cents → dollars)
-function extractMarketPrice(card: JustTCGCard): number | null {
-  if (!card.variants || card.variants.length === 0) return null;
-  // Prefer Near Mint, then any condition
-  const nearMint = card.variants.find((v) => v.condition === "Near Mint");
-  const best = nearMint ?? card.variants[0];
-  if (!best || !best.price) return null;
-  // Price from API is in cents (e.g. 49499 = $494.99)
-  return best.price / 100;
-}
-
 function calcDrawChance(
   rarity: string,
   rarityWeights: Array<{ rarity: string; weight: number }>,
@@ -92,8 +78,14 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { justTcgId, internalPrice } = body as {
+  const { justTcgId, name, game: cardGame, set: cardSet, setName, rarity, tcgplayerId, internalPrice } = body as {
     justTcgId?: string;
+    name?: string;
+    game?: string;
+    set?: string;
+    setName?: string;
+    rarity?: string;
+    tcgplayerId?: string | null;
     internalPrice?: number;
   };
 
@@ -112,32 +104,27 @@ export async function POST(
       return NextResponse.json({ error: "Box not found" }, { status: 404 });
     }
 
-    // Find or create card
+    // Find or create card — use data sent from client (from search results)
     let card = await Card.findOne({ justTcgId });
 
     if (!card) {
-      // Fetch from JustTCG
-      const tcgData = await fetchJustTCGCard(justTcgId, box.game);
-      if (!tcgData) {
-        return NextResponse.json(
-          { error: "Card not found in JustTCG" },
-          { status: 404 }
-        );
-      }
+      const imageUrl = tcgplayerId
+        ? `https://tcgplayer-cdn.tcgplayer.com/product/${tcgplayerId}_200w.jpg`
+        : null;
 
       card = await Card.create({
-        justTcgId: tcgData.id,
-        name: tcgData.name,
-        game: tcgData.game,
-        set: tcgData.set,
-        setName: tcgData.setName ?? (tcgData as unknown as Record<string, string>).set_name ?? "",
-        rarity: tcgData.rarity,
-        image: tcgData.image ?? (tcgData.tcgplayerId ? `https://tcgplayer-cdn.tcgplayer.com/product/${tcgData.tcgplayerId}_200w.jpg` : null),
-        tcgplayerId: tcgData.tcgplayerId ?? null,
-        marketPrice: extractMarketPrice(tcgData),
+        justTcgId,
+        name: name ?? "Unknown",
+        game: cardGame ?? box.game,
+        set: cardSet ?? "",
+        setName: setName ?? "",
+        rarity: rarity ?? "",
+        image: imageUrl,
+        tcgplayerId: tcgplayerId ?? null,
+        marketPrice: null,
         internalPrice: internalPrice ?? null,
-        lastPriceUpdate: tcgData.marketPrice !== null ? new Date() : null,
-        variants: tcgData.variants ?? [],
+        lastPriceUpdate: null,
+        variants: [],
       });
     } else {
       if (internalPrice !== undefined) {

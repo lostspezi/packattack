@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { JustTCGCardSearch } from "@/components/admin/justtcg-card-search";
+import type { AddCardPayload } from "@/components/admin/justtcg-card-search";
 import type { RarityWeight } from "@/components/admin/rarity-weight-editor";
 
 interface BoxCard {
@@ -76,11 +77,11 @@ export function BoxCardManager({
     void fetchCards();
   }, [fetchCards]);
 
-  async function handleAddCard(justTcgId: string) {
+  async function handleAddCard(payload: AddCardPayload) {
     const res = await fetch(`/api/admin/boxes/${boxId}/cards`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ justTcgId }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
