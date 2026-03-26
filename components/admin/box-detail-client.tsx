@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { BoxForm, BoxFormSaveButton } from "@/components/admin/box-form";
 import type { BoxFormData } from "@/components/admin/box-form";
 import { BoxCardManager, ValidationRow } from "@/components/admin/box-card-manager";
-import type { RarityBreakdownEntry } from "@/components/admin/box-card-manager";
+import type { RarityBreakdownEntry, BoxCard } from "@/components/admin/box-card-manager";
+import { PackSimulationButton } from "@/components/admin/pack-simulation-button";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Badge } from "@/components/ui/badge";
@@ -79,6 +80,7 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [validationItems, setValidationItems] = useState<ValidationItem[]>([]);
   const [rarityBreakdown, setRarityBreakdown] = useState<RarityBreakdownEntry[]>([]);
+  const [boxCards, setBoxCards] = useState<BoxCard[]>([]);
   const [showPublishWarnings, setShowPublishWarnings] = useState(false);
   const [publishWarnings, setPublishWarnings] = useState<string[]>([]);
 
@@ -174,6 +176,26 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
     setRarityBreakdown(breakdown);
   }, []);
 
+  const handleCardsChange = useCallback((cards: BoxCard[]) => {
+    setBoxCards(cards);
+  }, []);
+
+  const handlePackPriceSuggestion = useCallback((price: number) => {
+    setBox((prev) => ({ ...prev, priceInCoins: price }));
+    // Also save to API
+    fetch(`/api/admin/boxes/${box._id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ priceInCoins: price }),
+    }).catch(() => {});
+    toast({
+      type: "info",
+      title: isDe
+        ? `Pack-Preis auf ${price} Coins gesetzt`
+        : `Pack price set to ${price} coins`,
+    });
+  }, [box._id, isDe, toast]);
+
   async function handleDelete() {
     setDeleteLoading(true);
     try {
@@ -222,6 +244,12 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
 
         {/* Status + delete actions */}
         <div className="flex gap-2 flex-wrap shrink-0 items-start">
+          <PackSimulationButton
+            cards={boxCards}
+            cardsPerPack={box.cardsPerPack}
+            priceInCoins={box.priceInCoins}
+            lang={lang}
+          />
           {actions.map((action) => {
             const isPublish = action.to === "published";
             const blocked = hasBlockingErrors && isPublish;
@@ -272,6 +300,8 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
             dict={dict}
             onValidationChange={handleValidationChange}
             onBreakdownChange={handleBreakdownChange}
+            onCardsChange={handleCardsChange}
+            onPackPriceSuggestion={handlePackPriceSuggestion}
           />
         </div>
 

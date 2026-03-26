@@ -286,10 +286,11 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { cardId, weight, rarity } = body as {
+  const { cardId, weight, rarity, internalPrice } = body as {
     cardId?: string;
     weight?: number;
     rarity?: string;
+    internalPrice?: number;
   };
 
   if (!cardId) {
@@ -330,6 +331,14 @@ export async function PATCH(
     }
 
     await box.save();
+
+    // Update internalPrice on the Card document (not box subdocument)
+    if (internalPrice !== undefined) {
+      if (typeof internalPrice !== "number" || !Number.isInteger(internalPrice) || internalPrice < 1) {
+        return NextResponse.json({ error: "Coin value must be a whole number >= 1" }, { status: 400 });
+      }
+      await Card.findByIdAndUpdate(cardId, { internalPrice });
+    }
 
     return NextResponse.json({ success: true });
   } catch (err) {

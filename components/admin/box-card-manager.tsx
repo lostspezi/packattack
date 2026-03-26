@@ -14,8 +14,9 @@ import { CardDetailModal } from "@/components/admin/card-detail-modal";
 import type { AddCardPayload } from "@/components/admin/justtcg-card-search";
 import type { RarityWeight } from "@/components/admin/rarity-weight-editor";
 import type { JustTCGCardVariant } from "@/lib/justtcg";
+import { AutoWeightCalculator } from "@/components/admin/auto-weight-calculator";
 
-interface BoxCard {
+export interface BoxCard {
   _id: string;
   justTcgId: string;
   name: string;
@@ -48,6 +49,8 @@ interface BoxCardManagerProps {
   dict: Record<string, string>;
   onValidationChange?: (items: ValidationItem[]) => void;
   onBreakdownChange?: (breakdown: RarityBreakdownEntry[]) => void;
+  onCardsChange?: (cards: BoxCard[]) => void;
+  onPackPriceSuggestion?: (price: number) => void;
 }
 
 export type { RarityBreakdownEntry };
@@ -98,6 +101,8 @@ export function BoxCardManager({
   dict,
   onValidationChange,
   onBreakdownChange,
+  onCardsChange,
+  onPackPriceSuggestion,
 }: BoxCardManagerProps) {
   void dict;
   const isDe = lang === "de";
@@ -222,8 +227,8 @@ export function BoxCardManager({
     );
   }
 
-  function patchCard(cardId: string, patch: { weight?: number; rarity?: string }) {
-    // Optimistic local update
+  function patchCard(cardId: string, patch: { weight?: number; rarity?: string; internalPrice?: number }) {
+    // Optimistic local update for weight/rarity
     if (patch.weight !== undefined || patch.rarity !== undefined) {
       setCards((prev) => {
         const updated = prev.map((c) =>
@@ -283,6 +288,46 @@ export function BoxCardManager({
     }, 600);
   }
 
+  function handleCoinChange(cardId: string, value: string) {
+    const sanitised = value.replace(/[^0-9]/g, "");
+    setInternalPrices((prev) => ({ ...prev, [cardId]: sanitised }));
+
+    if (debounceTimers.current[`coin_${cardId}`]) clearTimeout(debounceTimers.current[`coin_${cardId}`]);
+    debounceTimers.current[`coin_${cardId}`] = setTimeout(() => {
+      const num = parseInt(sanitised, 10);
+      if (isNaN(num) || num < 1) {
+        toast({
+          type: "error",
+          title: isDe ? "Coin-Wert muss mindestens 1 sein" : "Coin value must be at least 1",
+        });
+        return;
+      }
+      patchCard(cardId, { internalPrice: num });
+    }, 600);
+  }
+
+  async function handleAutoWeightApply(
+    updates: { cardId: string; weight: number; coinValue: number }[],
+    suggestedPackPrice: number
+  ) {
+    // Apply all weight + coin updates via PATCH
+    const promises = updates.map((u) =>
+      fetch(`/api/admin/boxes/${boxId}/cards`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cardId: u.cardId, weight: u.weight, internalPrice: u.coinValue }),
+      })
+    );
+    await Promise.all(promises);
+
+    // Notify parent about suggested pack price
+    onPackPriceSuggestion?.(suggestedPackPrice);
+
+    // Refresh cards to show updated values
+    await fetchCards();
+    toast({ type: "success", title: isDe ? "Gewichte & Coins übernommen" : "Weights & coins applied" });
+  }
+
   function handleRarityChange(cardId: string, rarity: string) {
     setCards((prev) =>
       prev.map((c) => (c._id === cardId ? { ...c, rarity } : c))
@@ -337,6 +382,10 @@ export function BoxCardManager({
     onBreakdownChange?.(rarityBreakdown);
   }, [rarityBreakdown, onBreakdownChange]);
 
+  useEffect(() => {
+    onCardsChange?.(cards);
+  }, [cards, onCardsChange]);
+
   return (
     <div className="space-y-4">
       {selectedCard && (
@@ -364,18 +413,26 @@ export function BoxCardManager({
 
       {/* Current cards section */}
       <div className="bg-surface border border-border rounded-[14px] p-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-text-primary">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-text-primary shrink-0">
             {isDe ? `Aktuelle Karten (${cards.length})` : `Current Cards (${cards.length})`}
           </h3>
-          <button
-            type="button"
-            onClick={() => setShowHelp((v) => !v)}
-            className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors"
-          >
-            <HelpCircle className="w-3.5 h-3.5" />
-            {isDe ? "Wie funktioniert das?" : "How does this work?"}
-          </button>
+          <div className="flex items-center gap-2">
+            <AutoWeightCalculator
+              cards={cards}
+              cardsPerPack={cardsPerPack}
+              lang={lang}
+              onApply={handleAutoWeightApply}
+            />
+            <button
+              type="button"
+              onClick={() => setShowHelp((v) => !v)}
+              className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              {isDe ? "?" : "?"}
+            </button>
+          </div>
         </div>
 
         {showHelp && (
@@ -450,7 +507,7 @@ export function BoxCardManager({
                     {isDe ? "Marktpreis" : "Market Price"}
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
-                    {isDe ? "Int. Preis" : "Int. Price"}
+                    {isDe ? "Coins" : "Coins"}
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                     {isDe ? "Ziehchance" : "Draw Chance"}
@@ -459,7 +516,7 @@ export function BoxCardManager({
                 </tr>
               </thead>
               <tbody>
-                {cards.map((card) => {
+                {[...cards].sort((a, b) => (a.marketPrice ?? 0) - (b.marketPrice ?? 0)).map((card) => {
                   const rarityOptions = buildRarityOptions(card.rarity);
                   return (
                     <tr
@@ -536,19 +593,13 @@ export function BoxCardManager({
                         ) : "—"}
                       </td>
 
-                      {/* Internal price (editable) */}
+                      {/* Internal price in Coins (whole numbers only) */}
                       <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                         <Input
                           type="text"
-                          inputMode="decimal"
+                          inputMode="numeric"
                           value={internalPrices[card._id] ?? ""}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/[^0-9.,]/g, "");
-                            setInternalPrices((prev) => ({
-                              ...prev,
-                              [card._id]: val,
-                            }));
-                          }}
+                          onChange={(e) => handleCoinChange(card._id, e.target.value)}
                           placeholder="—"
                           className="py-1 text-sm w-24"
                         />

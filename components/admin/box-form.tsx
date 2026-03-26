@@ -55,6 +55,13 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
   const [gamesLoading, setGamesLoading] = useState(true);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Sync priceInCoins when parent updates it (e.g. auto-calculate)
+  useEffect(() => {
+    if (initialData?.priceInCoins !== undefined) {
+      setPriceInCoins(String(initialData.priceInCoins));
+    }
+  }, [initialData?.priceInCoins]);
+
   useEffect(() => {
     fetch("/api/justtcg/games")
       .then((r) => r.json())
