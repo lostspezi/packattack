@@ -27,14 +27,17 @@ async function getBox(id: string): Promise<BoxData | null> {
     if (!box) return null;
     return {
       _id: box._id.toString(),
-      name: box.name,
-      description: box.description ?? null,
+      name: { de: box.name?.de ?? "", en: box.name?.en ?? "" },
+      description: box.description ? { de: box.description.de ?? "", en: box.description.en ?? "" } : null,
       game: box.game,
       status: box.status as "draft" | "published" | "archived",
       priceInCoins: box.priceInCoins,
       cardsPerPack: box.cardsPerPack,
       totalPacks: box.totalPacks ?? null,
-      rarityWeights: box.rarityWeights ?? [],
+      rarityWeights: (box.rarityWeights ?? []).map((w: { rarity: string; weight: number }) => ({
+        rarity: w.rarity,
+        weight: w.weight,
+      })),
       packsOpened: box.packsOpened ?? 0,
       cardsCount: Array.isArray(box.cards) ? box.cards.length : 0,
       createdAt: box.createdAt ? new Date(box.createdAt as Date).toISOString() : "",
