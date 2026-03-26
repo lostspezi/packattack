@@ -13,10 +13,13 @@ import { MongoClient } from "mongodb";
 
 export default async function AccountPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ lang: string }>;
+  searchParams: Promise<{ error?: string }>;
 }) {
   const { lang } = await params;
+  const { error } = await searchParams;
 
   const session = await auth();
 
@@ -50,6 +53,15 @@ export default async function AccountPage({
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
+      {error === "OAuthAccountNotLinked" && (
+        <div className="rounded-lg border border-error/20 bg-error/10 p-4">
+          <p className="text-error text-sm font-medium">
+            {lang === "de"
+              ? "Dieser Account ist bereits mit einem anderen Konto verknüpft und kann nicht erneut verknüpft werden."
+              : "This account is already linked to another user and cannot be linked again."}
+          </p>
+        </div>
+      )}
       <div>
         <h2 className="text-2xl font-bold text-text-primary">
           {accountDict["pageTitle"] ?? "Account"}

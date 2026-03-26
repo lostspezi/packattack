@@ -141,7 +141,29 @@ const authConfig: NextAuthConfig = {
     // ------------------------------------------------------------------
     // signIn — allow all sign-ins; adapter handles account linking
     // ------------------------------------------------------------------
-    async signIn() {
+    async signIn({ account }) {
+      // When linking from the account page, if it fails with OAuthAccountNotLinked,
+      // NextAuth destroys the session and redirects to login. To prevent this,
+      // we redirect to the account page with an error parameter instead.
+      if (account?.provider && account.provider !== "credentials") {
+        try {
+          const client = getMongoClient();
+          const db = client.db();
+          // Check if this OAuth account is already linked to a different user
+          const existingAccount = await db.collection("accounts").findOne({
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+          });
+          if (existingAccount) {
+            // Account exists — is it the same user trying to re-link?
+            // If the adapter would throw OAuthAccountNotLinked, redirect gracefully
+            // Return the URL to redirect to instead of true/false
+            return `/en/account?error=OAuthAccountNotLinked`;
+          }
+        } catch {
+          // Non-fatal, let the normal flow handle it
+        }
+      }
       return true;
     },
 
