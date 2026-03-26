@@ -1,14 +1,18 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { Plus, Search } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Search, Plus, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Select } from "@/components/ui/select";
-import type { SelectOption } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
-import type { JustTCGCard, JustTCGSet } from "@/lib/justtcg";
+
+interface JustTCGCardResult {
+  id: string;
+  name: string;
+  rarity: string;
+  set_name?: string;
+  setName?: string;
+  tcgplayerId?: string | null;
+}
 
 interface JustTCGCardSearchProps {
   game: string;
@@ -16,8 +20,6 @@ interface JustTCGCardSearchProps {
   onAddCard: (justTcgId: string) => void;
   lang: string;
 }
-
-const PAGE_LIMIT = 12;
 
 export function JustTCGCardSearch({
   game,
@@ -28,205 +30,148 @@ export function JustTCGCardSearch({
   const isDe = lang === "de";
   const { toast } = useToast();
 
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [setFilter, setSetFilter] = useState("");
-  const [page, setPage] = useState(1);
-
-  const [sets, setSets] = useState<JustTCGSet[]>([]);
-  const [cards, setCards] = useState<JustTCGCard[]>([]);
-  const [total, setTotal] = useState(0);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<JustTCGCardResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [addingIds, setAddingIds] = useState<Set<string>>(new Set());
+  const [open, setOpen] = useState(false);
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // Fetch sets for filter
+  // Debounced search — fires after 400ms, minimum 3 chars
   useEffect(() => {
-    if (!game) return;
-    fetch(`/api/justtcg/sets?game=${encodeURIComponent(game)}`)
-      .then((r) => r.json())
-      .then((data: { sets?: JustTCGSet[] }) => {
-        if (Array.isArray(data.sets)) setSets(data.sets);
-      })
-      .catch(() => {/* silently ignore */});
-  }, [game]);
-
-  // Debounce search input
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setSearch(searchInput);
-      setPage(1);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [searchInput]);
-
-  const fetchCards = useCallback(async () => {
-    if (!game) return;
-    setLoading(true);
-    try {
-      const params = new URLSearchParams();
-      params.set("game", game);
-      params.set("page", String(page));
-      params.set("limit", String(PAGE_LIMIT));
-      if (search) params.set("search", search);
-      if (setFilter) params.set("set", setFilter);
-
-      const res = await fetch(`/api/justtcg/cards?${params.toString()}`);
-      if (!res.ok) {
-        toast({ type: "error", title: "Failed to load cards" });
-        return;
-      }
-      const data: { cards: JustTCGCard[]; total?: number } = await res.json();
-      setCards(data.cards ?? []);
-      setTotal(data.total ?? 0);
-    } catch {
-      toast({ type: "error", title: "Network error" });
-    } finally {
-      setLoading(false);
+    if (query.length < 3) {
+      setResults([]);
+      setOpen(false);
+      return;
     }
-  }, [game, page, search, setFilter, toast]);
 
+    setLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          game,
+          search: query,
+          limit: "20",
+        });
+        const res = await fetch(`/api/justtcg/cards?${params.toString()}`);
+        if (!res.ok) {
+          setResults([]);
+          return;
+        }
+        const data = await res.json() as { cards?: JustTCGCardResult[] };
+        setResults(data.cards ?? []);
+        setOpen(true);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 400);
+
+    return () => {
+      clearTimeout(timer);
+      setLoading(false);
+    };
+  }, [query, game]);
+
+  // Close dropdown on click outside
   useEffect(() => {
-    void fetchCards();
-  }, [fetchCards]);
+    function handleClick(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
-  const setOptions: SelectOption[] = [
-    { label: isDe ? "Alle Sets" : "All sets", value: "" },
-    ...sets.map((s): SelectOption => ({ label: s.name, value: s.id })),
-  ];
-
-  const totalPages = Math.ceil(total / PAGE_LIMIT);
-
-  async function handleAdd(justTcgId: string) {
-    setAddingIds((prev) => new Set(prev).add(justTcgId));
+  async function handleAdd(card: JustTCGCardResult) {
+    if (existingCardIds.includes(card.id)) return;
+    setAddingId(card.id);
     try {
-      await onAddCard(justTcgId);
+      await onAddCard(card.id);
+      toast({ type: "success", title: `${card.name} ${isDe ? "hinzugefügt" : "added"}` });
+      // Don't close — user might want to add more
+    } catch {
+      toast({ type: "error", title: isDe ? "Fehler beim Hinzufügen" : "Failed to add card" });
     } finally {
-      setAddingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(justTcgId);
-        return next;
-      });
+      setAddingId(null);
     }
   }
 
   return (
-    <div className="space-y-4">
-      {/* Search controls */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
-          <Input
-            placeholder={isDe ? "Karte suchen…" : "Search cards…"}
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="py-2 text-sm pl-9"
-          />
-        </div>
-        <Select
-          options={setOptions}
-          value={setFilter}
-          onChange={(val) => { setSetFilter(val); setPage(1); }}
-          size="md"
-          className="w-full sm:w-52"
+    <div ref={containerRef} className="relative">
+      {/* Search input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted pointer-events-none" />
+        {loading && (
+          <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-pa-green animate-spin" />
+        )}
+        <Input
+          placeholder={isDe ? "Karte suchen (mind. 3 Zeichen)…" : "Search cards (min. 3 characters)…"}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onFocus={() => { if (results.length > 0) setOpen(true); }}
+          className="py-2.5 text-sm pl-9 pr-9"
         />
       </div>
 
-      {/* Results */}
-      {loading ? (
-        <div className="py-8 text-center text-text-muted text-sm">
-          {isDe ? "Laden…" : "Loading…"}
-        </div>
-      ) : cards.length === 0 ? (
-        <div className="py-8 text-center text-text-muted text-sm">
-          {isDe ? "Keine Karten gefunden." : "No cards found."}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          {cards.map((card) => {
+      {/* Autocomplete dropdown */}
+      {open && results.length > 0 && (
+        <div className="absolute z-50 mt-1 w-full max-h-[320px] overflow-y-auto bg-surface-elevated border border-border rounded-[12px] shadow-xl">
+          {results.map((card) => {
             const alreadyAdded = existingCardIds.includes(card.id);
-            const isAdding = addingIds.has(card.id);
-            return (
-              <div
-                key={card.id}
-                className="bg-surface border border-border rounded-[12px] overflow-hidden flex flex-col"
-              >
-                {/* Card image */}
-                <div className="aspect-[2/3] bg-white/4 flex items-center justify-center overflow-hidden">
-                  {(card.image || card.tcgplayerId) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={card.image || `https://tcgplayer-cdn.tcgplayer.com/product/${card.tcgplayerId}_200w.jpg`}
-                      alt={card.name}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                      onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-                    />
-                  ) : (
-                    <span className="text-text-muted text-xs text-center px-2">
-                      {isDe ? "Kein Bild" : "No image"}
-                    </span>
-                  )}
-                </div>
+            const isAdding = addingId === card.id;
+            const setName = card.set_name ?? card.setName ?? "";
 
+            return (
+              <button
+                key={card.id}
+                type="button"
+                disabled={alreadyAdded || isAdding}
+                onClick={() => void handleAdd(card)}
+                className={[
+                  "w-full flex items-center gap-3 px-3 py-2.5 text-left transition-colors border-b border-border/50 last:border-b-0",
+                  alreadyAdded
+                    ? "opacity-40 cursor-not-allowed"
+                    : "hover:bg-white/4 cursor-pointer",
+                ].join(" ")}
+              >
                 {/* Card info */}
-                <div className="p-2 flex flex-col gap-1 flex-1">
-                  <p className="text-xs font-medium text-text-primary line-clamp-2 leading-tight">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-text-primary truncate">
                     {card.name}
                   </p>
-                  <p className="text-xs text-text-muted truncate">{card.setName}</p>
-                  <Badge variant="info" className="self-start text-xs">
-                    {card.rarity}
-                  </Badge>
-                  {card.marketPrice !== null && card.marketPrice !== undefined && (
-                    <p className="text-xs text-text-secondary">
-                      ${card.marketPrice.toFixed(2)}
-                    </p>
-                  )}
-                  <Button
-                    type="button"
-                    variant={alreadyAdded ? "secondary" : "primary"}
-                    size="sm"
-                    disabled={alreadyAdded}
-                    loading={isAdding}
-                    onClick={() => void handleAdd(card.id)}
-                    className="mt-auto w-full text-xs"
-                  >
-                    {!isAdding && <Plus className="w-3.5 h-3.5" />}
-                    {alreadyAdded
-                      ? (isDe ? "Hinzugefügt" : "Added")
-                      : (isDe ? "Hinzufügen" : "Add")}
-                  </Button>
+                  <p className="text-xs text-text-muted truncate">
+                    {setName}{setName && card.rarity ? " · " : ""}{card.rarity}
+                  </p>
                 </div>
-              </div>
+
+                {/* Rarity badge */}
+                <span className="shrink-0 text-[10px] font-semibold px-2 py-0.5 rounded bg-white/6 text-text-secondary border border-border">
+                  {card.rarity || "—"}
+                </span>
+
+                {/* Add indicator */}
+                <span className="shrink-0 w-6 h-6 flex items-center justify-center">
+                  {isAdding ? (
+                    <Loader2 className="w-4 h-4 text-pa-green animate-spin" />
+                  ) : alreadyAdded ? (
+                    <span className="text-xs text-text-muted">✓</span>
+                  ) : (
+                    <Plus className="w-4 h-4 text-pa-green" />
+                  )}
+                </span>
+              </button>
             );
           })}
         </div>
       )}
 
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-3 pt-2">
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={page <= 1 || loading}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            {isDe ? "Zurück" : "Prev"}
-          </Button>
-          <span className="text-sm text-text-muted">
-            {page} / {totalPages}
-          </span>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            disabled={page >= totalPages || loading}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            {isDe ? "Weiter" : "Next"}
-          </Button>
+      {/* No results message */}
+      {open && query.length >= 3 && !loading && results.length === 0 && (
+        <div className="absolute z-50 mt-1 w-full bg-surface-elevated border border-border rounded-[12px] shadow-xl p-4 text-center text-sm text-text-muted">
+          {isDe ? "Keine Karten gefunden." : "No cards found."}
         </div>
       )}
     </div>
