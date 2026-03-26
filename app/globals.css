@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+@keyframes goldPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.12); }
+  50% { box-shadow: 0 0 12px 4px rgba(234, 179, 8, 0.08); }
+}
+
 @theme {
   /* Background */
   --color-bg: #12111A;

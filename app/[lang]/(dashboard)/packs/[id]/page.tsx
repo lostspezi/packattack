@@ -50,6 +50,7 @@ interface BoxDetail {
     status: string;
     createdAt: string;
   }>;
+  myPullCounts: Record<string, number>;
   liveEvents: Array<{
     user: { name?: string; username?: string; image?: string | null } | null;
     card: { name?: string; image?: string | null } | null;
@@ -191,15 +192,39 @@ export default function PackDetailPage() {
         <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-radial from-pa-green/5 to-transparent pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row gap-6 relative">
-          {/* Box Image */}
-          {box.image ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={box.image} alt={name} className="w-full lg:w-40 h-48 lg:h-52 object-cover rounded-xl shrink-0" />
-          ) : (
-            <div className="w-full lg:w-40 h-48 lg:h-52 bg-white/4 rounded-xl shrink-0 flex items-center justify-center">
-              <Package className="w-10 h-10 text-text-muted" />
-            </div>
-          )}
+          {/* Best Hit Card with gold pulse */}
+          {(() => {
+            const bestHit = box.topHits[0];
+            const hitImage = bestHit?.image;
+            return (
+              <div className="relative w-full lg:w-40 shrink-0 flex items-center justify-center">
+                {/* Gold pulse rings */}
+                <div className="absolute inset-0 rounded-xl animate-[goldPulse_2s_ease-in-out_infinite] pointer-events-none" />
+                <div className="absolute inset-0 rounded-xl animate-[goldPulse_2s_ease-in-out_infinite_0.5s] pointer-events-none" />
+                {hitImage ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={hitImage}
+                    alt={bestHit?.name ?? name}
+                    className="w-32 lg:w-full rounded-xl relative z-10 border-2 border-yellow-500/30 shadow-[0_0_20px_rgba(234,179,8,0.15)]"
+                  />
+                ) : box.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={box.image} alt={name} className="w-full h-48 lg:h-52 object-cover rounded-xl relative z-10" />
+                ) : (
+                  <div className="w-full h-48 lg:h-52 bg-white/4 rounded-xl flex items-center justify-center relative z-10">
+                    <Package className="w-10 h-10 text-text-muted" />
+                  </div>
+                )}
+                {bestHit && (
+                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-20 bg-black/70 backdrop-blur-sm px-2.5 py-1 rounded-lg text-center">
+                    <p className="text-[9px] text-yellow-400 font-bold">{isDe ? "Seltenste Karte" : "Rarest Card"}</p>
+                    <p className="text-[10px] text-text-primary font-semibold truncate max-w-[120px]">{bestHit.name}</p>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Middle: CTA */}
           <div className="flex-1 min-w-0">
@@ -312,13 +337,13 @@ export default function PackDetailPage() {
 
       {/* ═══ THREE COLUMNS ═══ */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <TopHits cards={box.topHits} lang={lang} />
+        <TopHits cards={box.topHits} lang={lang} pullCounts={box.myPullCounts} />
         <LiveEvents boxId={box._id} initialEvents={initialEvents} cardPool={box.cardPool} lang={lang} />
         <MyPulls pulls={box.recentPulls} lang={lang} />
       </div>
 
       {/* ═══ CARD POOL ═══ */}
-      <CardPool cards={box.cardPool} lang={lang} />
+      <CardPool cards={box.cardPool} lang={lang} pullCounts={box.myPullCounts} />
 
       {/* ═══ BOX INFO MODAL ═══ */}
       <Modal open={showBoxInfo} onClose={() => setShowBoxInfo(false)} title={name} size="xl">

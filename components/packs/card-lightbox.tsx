@@ -12,9 +12,10 @@ interface CardInfo {
   coinValue: number;
   marketPrice: number | null;
   chance: number;
+  cardId?: string;
 }
 
-export function CardLightbox({ card, lang, open, onClose }: { card: CardInfo; lang: string; open: boolean; onClose: () => void }) {
+export function CardLightbox({ card, lang, open, onClose, pullCount }: { card: CardInfo; lang: string; open: boolean; onClose: () => void; pullCount?: number }) {
   const isDe = lang === "de";
 
   function formatChance(c: number) {
@@ -51,6 +52,12 @@ export function CardLightbox({ card, lang, open, onClose }: { card: CardInfo; la
               <p className="text-[10px] text-text-muted">{isDe ? "Ziehchance" : "Draw Chance"}</p>
               <p className="text-lg font-bold text-yellow-400">{formatChance(card.chance)}</p>
             </div>
+            {pullCount !== undefined && (
+              <div className="bg-white/4 border border-border rounded-xl px-4 py-2.5">
+                <p className="text-[10px] text-text-muted">{isDe ? "Gezogen" : "Pulled"}</p>
+                <p className="text-lg font-bold text-text-primary">{pullCount}×</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

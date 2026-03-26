@@ -27,7 +27,7 @@ function formatChance(c: number) {
   return `${c.toFixed(1)}%`;
 }
 
-export function CardPool({ cards, lang }: { cards: CardInfo[]; lang: string }) {
+export function CardPool({ cards, lang, pullCounts }: { cards: CardInfo[]; lang: string; pullCounts?: Record<string, number> }) {
   const isDe = lang === "de";
   const [selected, setSelected] = useState<CardInfo | null>(null);
 
@@ -64,7 +64,7 @@ export function CardPool({ cards, lang }: { cards: CardInfo[]; lang: string }) {
       </div>
 
       {selected && (
-        <CardLightbox card={selected} lang={lang} open={true} onClose={() => setSelected(null)} />
+        <CardLightbox card={selected} lang={lang} open={true} onClose={() => setSelected(null)} pullCount={pullCounts?.[selected.cardId]} />
       )}
     </>
   );

@@ -81,6 +81,16 @@ export async function GET(
       }))
       .sort((a, b) => b.percentage - a.percentage);
 
+    // User's pull counts per card in this box
+    const pullCountsAgg = await PackPull.aggregate([
+      { $match: { userId: new (await import("mongoose")).Types.ObjectId(userId), boxId: box._id } },
+      { $group: { _id: "$cardId", count: { $sum: 1 } } },
+    ]);
+    const myPullCounts: Record<string, number> = {};
+    for (const pc of pullCountsAgg) {
+      myPullCounts[pc._id.toString()] = pc.count as number;
+    }
+
     // User's recent pulls for this box (last 5)
     const myPulls = await PackPull.find({ userId, boxId: box._id })
       .sort({ createdAt: -1 })
@@ -133,6 +143,7 @@ export async function GET(
       topHits,
       recentPulls,
       liveEvents,
+      myPullCounts,
     });
   } catch (err) {
     console.error("[packs/[id] GET]", err);
