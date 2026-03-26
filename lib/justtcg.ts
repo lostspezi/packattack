@@ -180,8 +180,8 @@ export async function searchCards(
   const query = new URLSearchParams();
   if (params.game) query.set("game", params.game);
   if (params.set) query.set("set", params.set);
-  if (params.search) query.set("search", params.search);
-  if (params.page !== undefined) query.set("page", String(params.page));
+  if (params.search) query.set("q", params.search);
+  if (params.page !== undefined) query.set("offset", String(((params.page - 1) * (params.limit ?? 20))));
   if (params.limit !== undefined) query.set("limit", String(params.limit));
 
   const queryString = query.toString();
