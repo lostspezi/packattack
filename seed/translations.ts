@@ -21,9 +21,10 @@ export const translationSeedData = [
   { namespace: "auth.login", key: "forgotPassword", values: { de: "Passwort vergessen?", en: "Forgot password?" } },
   { namespace: "auth.login", key: "rememberMe", values: { de: "Angemeldet bleiben", en: "Remember me" } },
   { namespace: "auth.login", key: "orContinueWith", values: { de: "oder", en: "or" } },
-  { namespace: "auth.login", key: "withDiscord", values: { de: "Mit Discord einloggen", en: "Log in with Discord" } },
-  { namespace: "auth.login", key: "withTwitch", values: { de: "Mit Twitch einloggen", en: "Log in with Twitch" } },
-  { namespace: "auth.login", key: "withGoogle", values: { de: "Mit Google einloggen", en: "Log in with Google" } },
+  { namespace: "auth.login", key: "withDiscord", values: { de: "Weiter mit Discord", en: "Continue with Discord" } },
+  { namespace: "auth.login", key: "withTwitch", values: { de: "Weiter mit Twitch", en: "Continue with Twitch" } },
+  { namespace: "auth.login", key: "withGoogle", values: { de: "Weiter mit Google", en: "Continue with Google" } },
+  { namespace: "auth.login", key: "connecting", values: { de: "Verbinden...", en: "Connecting..." } },
 
   // auth.register
   { namespace: "auth.register", key: "subtitle", values: { de: "Konto erstellen", en: "Create your account" } },

@@ -35,7 +35,12 @@ function Spinner() {
   return <Loader2 className="w-4 h-4 animate-spin" />;
 }
 
-export function OAuthButtons({ callbackUrl = "/dashboard" }: { callbackUrl?: string }) {
+interface OAuthButtonsProps {
+  callbackUrl?: string;
+  dict?: Record<string, string>;
+}
+
+export function OAuthButtons({ callbackUrl = "/dashboard", dict = {} }: OAuthButtonsProps) {
   const [loading, setLoading] = useState<string | null>(null);
 
   function handleSignIn(provider: string) {
@@ -57,7 +62,7 @@ export function OAuthButtons({ callbackUrl = "/dashboard" }: { callbackUrl?: str
         ].join(" ")}
       >
         {loading === "discord" ? <Spinner /> : <DiscordIcon />}
-        {loading === "discord" ? "Connecting..." : "Continue with Discord"}
+        {loading === "discord" ? (dict["connecting"] ?? "Verbinden...") : (dict["withDiscord"] ?? "Weiter mit Discord")}
       </button>
 
       {/* Twitch + Google side by side */}
@@ -72,7 +77,7 @@ export function OAuthButtons({ callbackUrl = "/dashboard" }: { callbackUrl?: str
           ].join(" ")}
         >
           {loading === "twitch" ? <Spinner /> : <TwitchIcon />}
-          {loading === "twitch" ? "..." : "Twitch"}
+          {loading === "twitch" ? "..." : (dict["withTwitch"] ?? "Twitch")}
         </button>
 
         <button

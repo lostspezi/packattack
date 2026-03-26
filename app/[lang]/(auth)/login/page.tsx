@@ -23,7 +23,7 @@ export default async function LoginPage({
 
       {/* OAuth buttons */}
       <div className="mb-6">
-        <OAuthButtons />
+        <OAuthButtons dict={dict} />
       </div>
 
       {/* Divider */}
