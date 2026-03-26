@@ -47,6 +47,7 @@ export async function GET(
       weight: number;
       drawChance: number;
       stock: number;
+      minStock: number;
       priceChange7d: number | null;
       priceChange30d: number | null;
     }>;
@@ -65,6 +66,7 @@ export async function GET(
           _id: card._id.toString(),
           weight: 1,
           stock: 0,
+          minStock: 5,
           drawChance: totalWeight > 0 ? (1 / totalWeight) * 100 : 0,
           priceChange7d: (primaryVariant?.priceChange7d as number | null) ?? null,
           priceChange30d: (primaryVariant?.priceChange30d as number | null) ?? null,
@@ -72,7 +74,7 @@ export async function GET(
       });
     } else {
       // New format: cards is IBoxCard[]
-      const typedEntries = cardEntries as Array<{ card: Types.ObjectId; weight: number; rarity: string; stock?: number; _id?: Types.ObjectId }>;
+      const typedEntries = cardEntries as Array<{ card: Types.ObjectId; weight: number; rarity: string; stock?: number; minStock?: number; _id?: Types.ObjectId }>;
       const cardIds = typedEntries.map((e) => e.card);
       const cardDocs = await Card.find({ _id: { $in: cardIds } }).lean();
       const cardMap = new Map(cardDocs.map((c) => [c._id.toString(), c]));
@@ -94,6 +96,7 @@ export async function GET(
           rarity: entry.rarity,
           weight: entry.weight,
           stock: entry.stock ?? 0,
+          minStock: entry.minStock ?? 5,
           drawChance: totalWeight > 0 ? (entry.weight / totalWeight) * 100 : 0,
           priceChange7d: (primaryVariant?.priceChange7d as number | null) ?? null,
           priceChange30d: (primaryVariant?.priceChange30d as number | null) ?? null,
@@ -115,7 +118,7 @@ export async function GET(
 
     const usdToEur = await getUsdToEur();
 
-    return NextResponse.json({ cards: populatedCards, rarityBreakdown, usdToEur, minStock: box.minStock ?? 5 });
+    return NextResponse.json({ cards: populatedCards, rarityBreakdown, usdToEur });
   } catch (err) {
     console.error("[admin/boxes/[id]/cards GET]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
@@ -262,6 +265,7 @@ export async function POST(
         weight: weight ?? 1,
         rarity: effectiveRarity,
         stock: 0,
+        minStock: 5,
       });
       await box.save();
     }
@@ -293,12 +297,13 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { cardId, weight, rarity, internalPrice, stock } = body as {
+  const { cardId, weight, rarity, internalPrice, stock, minStock } = body as {
     cardId?: string;
     weight?: number;
     rarity?: string;
     internalPrice?: number;
     stock?: number;
+    minStock?: number;
   };
 
   if (!cardId) {
@@ -334,6 +339,13 @@ export async function PATCH(
         return NextResponse.json({ error: "Stock must be a whole number >= 0" }, { status: 400 });
       }
       entry.stock = stock;
+    }
+
+    if (minStock !== undefined) {
+      if (typeof minStock !== "number" || !Number.isInteger(minStock) || minStock < 0) {
+        return NextResponse.json({ error: "Min stock must be a whole number >= 0" }, { status: 400 });
+      }
+      entry.minStock = minStock;
     }
 
     if (rarity !== undefined) {

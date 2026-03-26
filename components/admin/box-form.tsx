@@ -16,7 +16,6 @@ export interface BoxFormData {
   priceInCoins: number;
   cardsPerPack: number;
   totalPacks: number | null;
-  minStock: number;
   rarityWeights: RarityWeight[];
 }
 
@@ -47,9 +46,6 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
     initialData?.totalPacks !== null && initialData?.totalPacks !== undefined
       ? String(initialData.totalPacks)
       : ""
-  );
-  const [minStockStr, setMinStockStr] = useState<string>(
-    initialData?.minStock !== undefined ? String(initialData.minStock) : "5"
   );
   const [rarityWeights, setRarityWeights] = useState<RarityWeight[]>(
     initialData?.rarityWeights ?? []
@@ -106,7 +102,6 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
       priceInCoins: parseInt(priceInCoins, 10),
       cardsPerPack: parseInt(cardsPerPack, 10),
       totalPacks: totalPacksParsed !== null && !isNaN(totalPacksParsed) ? totalPacksParsed : null,
-      minStock: Math.max(0, parseInt(minStockStr, 10) || 5),
       rarityWeights,
     });
   }
@@ -193,18 +188,11 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
             {errors.cardsPerPack && <p className="text-[11px] text-red-400">{errors.cardsPerPack}</p>}
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 col-span-2">
             <label className="block text-xs font-medium text-text-muted">
               {isDe ? "Gesamte Packs" : "Total Packs"}
             </label>
             <Input type="number" min={1} value={totalPacksStr} onChange={(e) => setTotalPacksStr(e.target.value)} placeholder={isDe ? "Unbegrenzt" : "Unlimited"} className="py-1.5 text-sm" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-text-muted">
-              {isDe ? "Mindestbestand" : "Min Stock"}
-            </label>
-            <Input type="number" min={0} value={minStockStr} onChange={(e) => setMinStockStr(e.target.value)} placeholder="5" className="py-1.5 text-sm" />
           </div>
         </div>
       </div>

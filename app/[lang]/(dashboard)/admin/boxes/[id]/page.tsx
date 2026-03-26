@@ -14,7 +14,6 @@ interface BoxData {
   priceInCoins: number;
   cardsPerPack: number;
   totalPacks: number | null;
-  minStock: number;
   rarityWeights: Array<{ rarity: string; weight: number }>;
   packsOpened: number;
   cardsCount: number;
@@ -35,7 +34,6 @@ async function getBox(id: string): Promise<BoxData | null> {
       priceInCoins: box.priceInCoins,
       cardsPerPack: box.cardsPerPack,
       totalPacks: box.totalPacks ?? null,
-      minStock: box.minStock ?? 5,
       rarityWeights: (box.rarityWeights ?? []).map((w: { rarity: string; weight: number }) => ({
         rarity: w.rarity,
         weight: w.weight ?? 0,

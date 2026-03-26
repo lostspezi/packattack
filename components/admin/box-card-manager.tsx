@@ -27,6 +27,7 @@ export interface BoxCard {
   drawChance: number;
   weight: number;
   stock: number;
+  minStock: number;
   set?: string;
   setName?: string;
   tcgplayerId?: string | null;
@@ -119,7 +120,7 @@ export function BoxCardManager({
   const [modalOpen, setModalOpen] = useState(false);
   const [usdToEur, setUsdToEur] = useState<number | null>(null);
   const [stocks, setStocks] = useState<Record<string, string>>({});
-  const [minStock, setMinStock] = useState(5);
+  const [minStocks, setMinStocks] = useState<Record<string, string>>({});
 
   const existingCardIds = cards.map((c) => c.justTcgId);
 
@@ -134,26 +135,28 @@ export function BoxCardManager({
         toast({ type: "error", title: "Failed to load cards" });
         return;
       }
-      const data: { cards: BoxCard[]; rarityBreakdown?: RarityBreakdownEntry[]; usdToEur?: number; minStock?: number } = await res.json();
+      const data: { cards: BoxCard[]; rarityBreakdown?: RarityBreakdownEntry[]; usdToEur?: number } = await res.json();
       const fetched = data.cards ?? [];
       setCards(fetched);
       setRarityBreakdown(data.rarityBreakdown ?? []);
       if (data.usdToEur) setUsdToEur(data.usdToEur);
-      if (data.minStock !== undefined) setMinStock(data.minStock);
 
       const priceMap: Record<string, string> = {};
       const weightMap: Record<string, string> = {};
       const stockMap: Record<string, string> = {};
+      const minStockMap: Record<string, string> = {};
       for (const card of fetched) {
         priceMap[card._id] = card.internalPrice !== null && card.internalPrice !== undefined
           ? String(card.internalPrice)
           : "";
         weightMap[card._id] = card.weight !== undefined ? String(card.weight) : "1";
         stockMap[card._id] = String(card.stock ?? 0);
+        minStockMap[card._id] = String(card.minStock ?? 5);
       }
       setInternalPrices(priceMap);
       setWeights(weightMap);
       setStocks(stockMap);
+      setMinStocks(minStockMap);
     } catch {
       toast({ type: "error", title: "Network error" });
     } finally {
@@ -236,7 +239,7 @@ export function BoxCardManager({
     );
   }
 
-  function patchCard(cardId: string, patch: { weight?: number; rarity?: string; internalPrice?: number; stock?: number }) {
+  function patchCard(cardId: string, patch: { weight?: number; rarity?: string; internalPrice?: number; stock?: number; minStock?: number }) {
     // Optimistic local update for weight/rarity
     if (patch.weight !== undefined || patch.rarity !== undefined) {
       setCards((prev) => {
@@ -324,6 +327,18 @@ export function BoxCardManager({
       const num = parseInt(sanitised, 10);
       if (isNaN(num) || num < 0) return;
       patchCard(cardId, { stock: num });
+    }, 600);
+  }
+
+  function handleMinStockChange(cardId: string, value: string) {
+    const sanitised = value.replace(/[^0-9]/g, "");
+    setMinStocks((prev) => ({ ...prev, [cardId]: sanitised }));
+
+    if (debounceTimers.current[`mstock_${cardId}`]) clearTimeout(debounceTimers.current[`mstock_${cardId}`]);
+    debounceTimers.current[`mstock_${cardId}`] = setTimeout(() => {
+      const num = parseInt(sanitised, 10);
+      if (isNaN(num) || num < 0) return;
+      patchCard(cardId, { minStock: num });
     }, 600);
   }
 
@@ -537,6 +552,9 @@ export function BoxCardManager({
                     {isDe ? "Bestand" : "Stock"}
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                    {isDe ? "Min." : "Min."}
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                     {isDe ? "Ziehchance" : "Draw Chance"}
                   </th>
                   <th className="px-3 py-2 w-10" aria-label="Actions" />
@@ -550,7 +568,7 @@ export function BoxCardManager({
                       key={card._id}
                       className={[
                         "border-b border-border last:border-0 cursor-pointer hover:bg-white/3 transition-colors",
-                        (card.stock ?? 0) === 0 ? "bg-red-500/5" : (card.stock ?? 0) <= minStock ? "bg-yellow-500/5" : "",
+                        (card.stock ?? 0) === 0 ? "bg-red-500/5" : (card.stock ?? 0) <= (card.minStock ?? 5) ? "bg-yellow-500/5" : "",
                       ].join(" ")}
                       onClick={() => handleRowClick(card)}
                     >
@@ -642,20 +660,38 @@ export function BoxCardManager({
 
                       {/* Stock */}
                       <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                          const stockVal = parseInt(stocks[card._id] ?? "0", 10) || 0;
+                          const minStockVal = parseInt(minStocks[card._id] ?? "5", 10) || 0;
+                          return (
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={stocks[card._id] ?? "0"}
+                              onChange={(e) => handleStockChange(card._id, e.target.value)}
+                              placeholder="0"
+                              className={[
+                                "py-1 text-sm w-16",
+                                stockVal === 0
+                                  ? "!border-red-500/40 !text-red-400"
+                                  : stockVal <= minStockVal
+                                  ? "!border-yellow-500/40 !text-yellow-400"
+                                  : "",
+                              ].join(" ")}
+                            />
+                          );
+                        })()}
+                      </td>
+
+                      {/* Min Stock */}
+                      <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
                         <Input
                           type="text"
                           inputMode="numeric"
-                          value={stocks[card._id] ?? "0"}
-                          onChange={(e) => handleStockChange(card._id, e.target.value)}
-                          placeholder="0"
-                          className={[
-                            "py-1 text-sm w-16",
-                            (parseInt(stocks[card._id] ?? "0", 10) || 0) === 0
-                              ? "!border-red-500/40 !text-red-400"
-                              : (parseInt(stocks[card._id] ?? "0", 10) || 0) <= minStock
-                              ? "!border-yellow-500/40 !text-yellow-400"
-                              : "",
-                          ].join(" ")}
+                          value={minStocks[card._id] ?? "5"}
+                          onChange={(e) => handleMinStockChange(card._id, e.target.value)}
+                          placeholder="5"
+                          className="py-1 text-sm w-14"
                         />
                       </td>
 
