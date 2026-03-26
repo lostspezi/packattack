@@ -25,6 +25,8 @@ interface BoxCard {
   setName?: string;
   tcgplayerId?: string | null;
   variants?: JustTCGCardVariant[];
+  priceChange7d?: number | null;
+  priceChange30d?: number | null;
 }
 
 interface BoxCardManagerProps {
@@ -247,13 +249,24 @@ export function BoxCardManager({
                       <Badge variant="info">{card.rarity}</Badge>
                     </td>
 
-                    {/* Market price (average from variants) */}
-                    <td className="px-3 py-2 text-sm text-text-secondary">
+                    {/* Market price + trend indicator */}
+                    <td className="px-3 py-2 text-sm">
                       {card.marketPrice !== null && card.marketPrice !== undefined
                         ? (
-                          <span className="text-pa-green font-medium">
-                            ${card.marketPrice.toFixed(2)}
-                          </span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-pa-green font-medium">
+                              ${card.marketPrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                            {card.priceChange7d !== null && card.priceChange7d !== undefined && (
+                              <span className={[
+                                "inline-flex items-center gap-1 text-[11px] font-medium",
+                                card.priceChange7d > 0 ? "text-green-400" : card.priceChange7d < 0 ? "text-red-400" : "text-text-muted",
+                              ].join(" ")}>
+                                <span>{card.priceChange7d > 0 ? "▲" : card.priceChange7d < 0 ? "▼" : "•"}</span>
+                                {card.priceChange7d > 0 ? "+" : ""}{card.priceChange7d.toFixed(1)}% {isDe ? "7 Tage" : "7 days"}
+                              </span>
+                            )}
+                          </div>
                         )
                         : "—"}
                     </td>

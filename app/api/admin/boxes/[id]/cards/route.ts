@@ -45,11 +45,22 @@ export async function GET(
       cardsByRarity.set(card.rarity, (cardsByRarity.get(card.rarity) ?? 0) + 1);
     }
 
-    const cardsWithChance = cards.map((card) => ({
-      ...card,
-      _id: card._id.toString(),
-      drawChance: calcDrawChance(card.rarity, box.rarityWeights, cardsByRarity),
-    }));
+    const cardsWithChance = cards.map((card) => {
+      // Extract price change from Near Mint variant (or first available)
+      const variants = (card.variants ?? []) as Array<Record<string, unknown>>;
+      const nearMint = variants.find((v) => v.condition === "Near Mint");
+      const primaryVariant = nearMint ?? variants[0];
+      const priceChange7d = (primaryVariant?.priceChange7d as number | null) ?? null;
+      const priceChange30d = (primaryVariant?.priceChange30d as number | null) ?? null;
+
+      return {
+        ...card,
+        _id: card._id.toString(),
+        drawChance: calcDrawChance(card.rarity, box.rarityWeights, cardsByRarity),
+        priceChange7d,
+        priceChange30d,
+      };
+    });
 
     return NextResponse.json({ cards: cardsWithChance });
   } catch (err) {
