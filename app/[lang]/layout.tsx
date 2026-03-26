@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import { ToastProvider } from "@/components/ui/toast";
+import { Footer } from "@/components/layout/footer";
 import "@/app/globals.css";
 
 const geistSans = Geist({
@@ -40,9 +41,12 @@ export default async function LangLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
-      <body className="bg-bg text-text-primary min-h-screen safe-top safe-bottom">
+      <body className="bg-bg text-text-primary min-h-screen safe-top safe-bottom flex flex-col">
         <SessionProvider>
-          <ToastProvider>{children}</ToastProvider>
+          <ToastProvider>
+            <div className="flex-1">{children}</div>
+            <Footer lang={lang} />
+          </ToastProvider>
         </SessionProvider>
       </body>
     </html>
