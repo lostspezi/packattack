@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import CoinPurchase from "@/models/coin-purchase";
-import InvoiceSettings from "@/models/invoice-settings";
-import { generateInvoicePdf } from "@/lib/invoice-generator";
 
 export async function GET(
   _req: NextRequest,
@@ -19,43 +17,34 @@ export async function GET(
   const { id } = await params;
   await connectDB();
 
-  const purchase = await CoinPurchase.findById(id)
-    .populate("userId", "name email username")
-    .lean();
+  const purchase = await CoinPurchase.findById(id).lean();
 
   if (!purchase) {
     return NextResponse.json({ error: "Purchase not found" }, { status: 404 });
   }
 
-  // Auth: user can only download own invoices, admins can download any
-  const isOwner = purchase.userId._id?.toString() === userId;
+  // Auth: user can only access own invoices, admins can access any
+  const isOwner = purchase.userId?.toString() === userId;
   const isAdmin = role === "admin" || role === "super_admin";
   if (!isOwner && !isAdmin) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  if (purchase.status !== "completed" || !purchase.invoiceNumber) {
+  if (purchase.status !== "completed") {
     return NextResponse.json(
       { error: "Invoice not available" },
       { status: 404 }
     );
   }
 
-  const settings = await InvoiceSettings.findOne().lean();
-  if (!settings) {
+  // Redirect to Stripe hosted invoice or PDF
+  const url = purchase.stripeInvoiceUrl || purchase.stripeReceiptUrl;
+  if (!url) {
     return NextResponse.json(
-      { error: "Invoice settings not configured" },
-      { status: 500 }
+      { error: "Invoice not available" },
+      { status: 404 }
     );
   }
 
-  const lang = (session.user as { language?: string }).language === "en" ? "en" : "de";
-  const pdfBuffer = await generateInvoicePdf(purchase as any, settings as any, lang);
-
-  return new NextResponse(new Uint8Array(pdfBuffer), {
-    headers: {
-      "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="Rechnung-${purchase.invoiceNumber}.pdf"`,
-    },
-  });
+  return NextResponse.redirect(url);
 }

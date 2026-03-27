@@ -13,7 +13,7 @@ interface Purchase {
   };
   status: string;
   coinsGranted: number;
-  invoiceNumber: string | null;
+  stripeInvoiceUrl: string | null;
   createdAt: string;
 }
 
@@ -46,16 +46,8 @@ export function PurchaseHistory({ lang, dict }: PurchaseHistoryProps) {
     fetchPurchases();
   }, [fetchPurchases]);
 
-  async function downloadInvoice(purchaseId: string, invoiceNumber: string) {
-    const res = await fetch(`/api/coins/purchases/${purchaseId}/invoice`);
-    if (!res.ok) return;
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `Rechnung-${invoiceNumber}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
+  function openInvoice(url: string) {
+    window.open(url, "_blank", "noopener,noreferrer");
   }
 
   if (loading && purchases.length === 0) {
@@ -112,9 +104,9 @@ export function PurchaseHistory({ lang, dict }: PurchaseHistoryProps) {
               >
                 {p.status === "completed" ? `+${total} 🪙` : "—"}
               </div>
-              {p.invoiceNumber && p.status === "completed" && (
+              {p.stripeInvoiceUrl && p.status === "completed" && (
                 <button
-                  onClick={() => downloadInvoice(p._id, p.invoiceNumber!)}
+                  onClick={() => openInvoice(p.stripeInvoiceUrl!)}
                   className="bg-white/5 px-3 py-1 rounded-md text-xs text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1"
                 >
                   <FileText className="h-3 w-3" />

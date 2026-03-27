@@ -30,7 +30,6 @@ export const adminNavItems: NavItem[] = [
   { key: "adminInventory", href: "/admin/inventory", icon: "Layers" },
   { key: "inventoryOverview", href: "/admin/inventory/overview", icon: "Eye" },
   { key: "coinPackages", href: "/admin/coin-packages", icon: "CreditCard" },
-  { key: "invoiceSettings", href: "/admin/invoice-settings", icon: "FileText" },
 ];
 
 export const shopNavItems: NavItem[] = [

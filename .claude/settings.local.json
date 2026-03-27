@@ -99,7 +99,15 @@
       "Bash(cp seed/translations.ts.tmp seed/translations.ts)",
       "Bash(rm seed/translations.ts.tmp)",
       "Bash(npm uninstall:*)",
-      "Bash(grep -A 10 \"AvatarSelector\" /c/Users/marce/Desktop/packattackgg/app/[lang]/\\\\\\(dashboard\\\\\\)/profile/page.tsx)"
+      "Bash(grep -A 10 \"AvatarSelector\" /c/Users/marce/Desktop/packattackgg/app/[lang]/\\\\\\(dashboard\\\\\\)/profile/page.tsx)",
+      "Bash(find /c/Users/marce/Desktop/packattackgg -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\) -path *context* -o -path *hooks*)",
+      "WebFetch(domain:docs.stripe.com)",
+      "Bash(ls \"C:/Users/marce/Desktop/packattackgg/app/[lang]/\\(dashboard\\)/\")",
+      "Bash(printf '')",
+      "Bash(\"C:/Users/marce/Desktop/packattackgg/public/sounds/chest-open.mp3\")",
+      "Bash(\"C:/Users/marce/Desktop/packattackgg/public/sounds/coins-rain.mp3\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\marce\\\\Desktop\\\\packattackgg\\\\app\\\\[lang]\\\\\\(dashboard\\)\\\\admin\\\\coin-packages\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\marce\\\\Desktop\\\\packattackgg\\\\app\\\\[lang]\\\\\\(dashboard\\)\\\\admin\\\\invoice-settings\")"
     ]
   },
   "enableAllProjectMcpServers": true,

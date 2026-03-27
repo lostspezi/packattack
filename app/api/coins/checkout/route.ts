@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
     mode: "payment",
     customer: stripeCustomerId,
     line_items: [{ price: coinPackage.stripePriceId, quantity: 1 }],
+    invoice_creation: { enabled: true },
     metadata: {
       userId: userId,
       packageId: coinPackage._id.toString(),

@@ -278,7 +278,6 @@ export const translationSeedData = [
   { namespace: "admin", key: "adminInventory", values: { de: "Plattform-Inventar" } },
   { namespace: "admin", key: "inventoryOverview", values: { de: "Inventar-Übersicht" } },
   { namespace: "admin", key: "coinPackages", values: { de: "Münzpakete" } },
-  { namespace: "admin", key: "invoiceSettings", values: { de: "Rechnungseinstellungen" } },
   { namespace: "admin", key: "administration", values: { de: "Administration" } },
   { namespace: "admin", key: "totalUsers", values: { de: "Benutzer gesamt" } },
   { namespace: "admin", key: "newUsers", values: { de: "Neue Benutzer (7 Tage)" } },
@@ -358,7 +357,6 @@ export const translationSeedData = [
   { namespace: "sidebar", key: "packs", values: { de: "Packs" } },
   { namespace: "sidebar", key: "balance", values: { de: "Guthaben" } },
   { namespace: "sidebar", key: "coinPackages", values: { de: "Münzpakete" } },
-  { namespace: "sidebar", key: "invoiceSettings", values: { de: "Rechnungseinstellungen" } },
 
   // balance
   { namespace: "balance", key: "pageTitle", values: { de: "Guthaben" } },

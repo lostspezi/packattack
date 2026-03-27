@@ -103,34 +103,3 @@ export const checkoutSchema = z.object({
   withdrawalConsent: z.literal(true, { error: "Withdrawal consent is required" }),
 });
 
-export const invoiceSettingsSchema = z.object({
-  companyName: z.string().min(1).max(200),
-  companyAddress: z.object({
-    street: z.string().min(1).max(200),
-    zip: z.string().min(1).max(20),
-    city: z.string().min(1).max(100),
-    country: z.string().min(1).max(100),
-  }),
-  taxId: z.string().min(1).max(50),
-  taxRate: z.number().min(0).max(100),
-  bankDetails: z
-    .object({
-      iban: z.string().min(1).max(50),
-      bic: z.string().min(1).max(20),
-      bankName: z.string().min(1).max(100),
-    })
-    .nullable()
-    .default(null),
-  email: z.string().email().max(200),
-  phone: z.string().max(50).nullable().default(null),
-  website: z.string().url().max(200).nullable().default(null),
-  logoUrl: z.string().max(500).nullable().default(null),
-  invoicePrefix: z.string().min(1).max(10),
-  footerText: z
-    .object({
-      de: z.string().max(500),
-      en: z.string().max(500),
-    })
-    .nullable()
-    .default(null),
-});

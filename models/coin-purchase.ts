@@ -20,8 +20,8 @@ export interface ICoinPurchase extends Document {
   status: PurchaseStatus;
   stripeSessionId: string;
   stripePaymentIntentId: string | null;
-  invoiceNumber: string | null;
-  invoiceGeneratedAt: Date | null;
+  stripeInvoiceUrl: string | null;
+  stripeReceiptUrl: string | null;
   coinsGranted: number;
   withdrawalConsentAt: Date | null;
   createdAt: Date;
@@ -52,8 +52,8 @@ const CoinPurchaseSchema = new Schema<ICoinPurchase>(
     },
     stripeSessionId: { type: String, required: true, unique: true },
     stripePaymentIntentId: { type: String, default: null },
-    invoiceNumber: { type: String, default: null },
-    invoiceGeneratedAt: { type: Date, default: null },
+    stripeInvoiceUrl: { type: String, default: null },
+    stripeReceiptUrl: { type: String, default: null },
     coinsGranted: { type: Number, default: 0 },
     withdrawalConsentAt: { type: Date, default: null },
   },
@@ -62,10 +62,6 @@ const CoinPurchaseSchema = new Schema<ICoinPurchase>(
 
 CoinPurchaseSchema.index({ userId: 1, createdAt: -1 });
 CoinPurchaseSchema.index({ stripeSessionId: 1 }, { unique: true });
-CoinPurchaseSchema.index(
-  { invoiceNumber: 1 },
-  { unique: true, sparse: true }
-);
 CoinPurchaseSchema.index({ status: 1 });
 
 const CoinPurchase =

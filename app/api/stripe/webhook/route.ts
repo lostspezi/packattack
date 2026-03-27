@@ -5,7 +5,6 @@ import stripe from "@/lib/stripe";
 import User from "@/models/user";
 import CoinPurchase from "@/models/coin-purchase";
 import CoinTransaction from "@/models/coin-transaction";
-import InvoiceSettings from "@/models/invoice-settings";
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
@@ -67,17 +66,6 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 
   const totalCoins = parseInt(baseCoins, 10) + parseInt(bonusCoins, 10);
 
-  // Generate invoice number atomically
-  const invoiceSettings = await InvoiceSettings.findOneAndUpdate(
-    {},
-    { $inc: { nextInvoiceSequence: 1 } },
-    { new: false, upsert: true }
-  );
-  const seq = invoiceSettings?.nextInvoiceSequence || 1;
-  const year = new Date().getFullYear();
-  const prefix = invoiceSettings?.invoicePrefix || "PA";
-  const invoiceNumber = `${prefix}-${year}-${String(seq).padStart(6, "0")}`;
-
   // Grant coins atomically
   await User.findByIdAndUpdate(userId, { $inc: { coins: totalCoins } });
 
@@ -90,12 +78,25 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     relatedPurchaseId: purchase._id,
   });
 
+  // Fetch Stripe invoice URLs (created via invoice_creation on checkout)
+  let stripeInvoiceUrl: string | null = null;
+  let stripeReceiptUrl: string | null = null;
+  if (session.invoice) {
+    try {
+      const invoice = await stripe.invoices.retrieve(session.invoice as string);
+      stripeInvoiceUrl = invoice.hosted_invoice_url ?? null;
+      stripeReceiptUrl = invoice.invoice_pdf ?? null;
+    } catch (err) {
+      console.error("Failed to retrieve Stripe invoice:", err);
+    }
+  }
+
   // Update purchase
   purchase.status = "completed";
   purchase.stripePaymentIntentId = session.payment_intent as string;
   purchase.coinsGranted = totalCoins;
-  purchase.invoiceNumber = invoiceNumber;
-  purchase.invoiceGeneratedAt = new Date();
+  purchase.stripeInvoiceUrl = stripeInvoiceUrl;
+  purchase.stripeReceiptUrl = stripeReceiptUrl;
   await purchase.save();
 }
 
