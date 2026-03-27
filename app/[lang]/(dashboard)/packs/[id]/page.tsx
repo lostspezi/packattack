@@ -312,7 +312,7 @@ export default function PackDetailPage() {
           </div>
 
           {/* Right: Description + Condition + Rarities */}
-          <div className="lg:flex-1 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="lg:w-[680px] shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* Description */}
             <div className="bg-white/4 rounded-xl p-3.5">
               <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5">
