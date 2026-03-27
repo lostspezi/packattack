@@ -34,7 +34,7 @@ export async function GET(
       stock?: number;
       rarity?: string;
       weight?: number;
-      condition?: string;
+      conditions?: string[];
     }>;
 
     // Load card documents for images/names
@@ -61,7 +61,7 @@ export async function GET(
         marketPrice: doc?.marketPrice ?? null,
         chance,
         stock: entry.stock ?? 0,
-        condition: entry.condition ?? "Near Mint",
+        conditions: (entry.conditions as string[] | undefined) ?? ["Near Mint"],
       };
     }).sort((a, b) => b.chance - a.chance); // Most likely first
 
@@ -146,12 +146,15 @@ export async function GET(
       conditionInfo: (() => {
         const condCount: Record<string, number> = {};
         for (const c of cardPool) {
-          condCount[c.condition] = (condCount[c.condition] ?? 0) + 1;
+          for (const cond of c.conditions) {
+            condCount[cond] = (condCount[cond] ?? 0) + 1;
+          }
         }
-        const total = cardPool.length;
-        return Object.entries(condCount)
-          .map(([condition, count]) => ({ condition, percentage: total > 0 ? (count / total) * 100 : 0 }))
-          .sort((a, b) => b.percentage - a.percentage);
+        const order = ["Mint", "Near Mint", "Lightly Played", "Moderately Played", "Heavily Played"];
+        const total = Object.values(condCount).reduce((a, b) => a + b, 0);
+        return order
+          .filter((cond) => condCount[cond])
+          .map((condition) => ({ condition, percentage: total > 0 ? ((condCount[condition] ?? 0) / total) * 100 : 0 }));
       })(),
       recentPulls,
       liveEvents,

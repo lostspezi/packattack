@@ -23,7 +23,7 @@ interface CardInfo {
   marketPrice: number | null;
   chance: number;
   stock: number;
-  condition: string;
+  conditions: string[];
 }
 
 interface BoxDetail {

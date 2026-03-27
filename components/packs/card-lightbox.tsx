@@ -12,7 +12,7 @@ interface CardInfo {
   coinValue: number;
   marketPrice: number | null;
   chance: number;
-  condition?: string;
+  conditions?: string[];
   cardId?: string;
 }
 
@@ -43,7 +43,17 @@ export function CardLightbox({ card, lang, open, onClose, pullCount }: { card: C
             {card.setName && <p className="text-xs text-text-muted mt-0.5">{card.setName}</p>}
             <div className="flex gap-2 mt-2 flex-wrap">
               <Badge variant="info">{card.rarity}</Badge>
-              {card.condition && <Badge variant="success">{card.condition}</Badge>}
+              {card.conditions && card.conditions.length > 0 && (
+                <Badge variant="success">
+                  {card.conditions.length === 1
+                    ? card.conditions[0]
+                    : (() => {
+                        const order = ["Mint", "Near Mint", "Lightly Played", "Moderately Played", "Heavily Played"];
+                        const sorted = [...card.conditions].sort((a, b) => order.indexOf(a) - order.indexOf(b));
+                        return `${sorted[0]} – ${sorted[sorted.length - 1]}`;
+                      })()}
+                </Badge>
+              )}
             </div>
           </div>
 

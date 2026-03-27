@@ -13,7 +13,17 @@ interface CardInfo {
   marketPrice: number | null;
   chance: number;
   stock: number;
-  condition: string;
+  conditions: string[];
+}
+
+const COND_ORDER = ["Mint", "Near Mint", "Lightly Played", "Moderately Played", "Heavily Played"];
+const COND_SHORT: Record<string, string> = { "Mint": "M", "Near Mint": "NM", "Lightly Played": "LP", "Moderately Played": "MP", "Heavily Played": "HP" };
+
+function formatConditionRange(conditions: string[]): string {
+  if (conditions.length === 0) return "NM";
+  if (conditions.length === 1) return COND_SHORT[conditions[0]] ?? conditions[0];
+  const sorted = [...conditions].sort((a, b) => COND_ORDER.indexOf(a) - COND_ORDER.indexOf(b));
+  return `${COND_SHORT[sorted[0]] ?? sorted[0]} – ${COND_SHORT[sorted[sorted.length - 1]] ?? sorted[sorted.length - 1]}`;
 }
 
 function chanceColor(chance: number): string {
@@ -56,7 +66,7 @@ export function CardPool({ cards, lang, pullCounts }: { cards: CardInfo[]; lang:
                 <div className="w-full aspect-[63/88] bg-white/4 rounded-lg mb-1.5" />
               )}
               <p className="text-[10px] font-semibold text-text-primary truncate">{card.name}</p>
-              <p className="text-[9px] text-text-muted">{card.condition}</p>
+              <p className="text-[9px] text-text-muted">{formatConditionRange(card.conditions)}</p>
               <p className={`text-[10px] font-bold tabular-nums ${chanceColor(card.chance)}`}>
                 {formatChance(card.chance)}
               </p>

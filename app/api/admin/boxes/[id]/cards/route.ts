@@ -48,7 +48,7 @@ export async function GET(
       drawChance: number;
       stock: number;
       minStock: number;
-      condition: string;
+      conditions: string[];
       priceChange7d: number | null;
       priceChange30d: number | null;
     }>;
@@ -68,7 +68,7 @@ export async function GET(
           weight: 1,
           stock: 0,
           minStock: 5,
-          condition: "Near Mint",
+          conditions: ["Near Mint"],
           drawChance: totalWeight > 0 ? (1 / totalWeight) * 100 : 0,
           priceChange7d: (primaryVariant?.priceChange7d as number | null) ?? null,
           priceChange30d: (primaryVariant?.priceChange30d as number | null) ?? null,
@@ -76,7 +76,7 @@ export async function GET(
       });
     } else {
       // New format: cards is IBoxCard[]
-      const typedEntries = cardEntries as Array<{ card: Types.ObjectId; weight: number; rarity: string; stock?: number; minStock?: number; condition?: string; _id?: Types.ObjectId }>;
+      const typedEntries = cardEntries as Array<{ card: Types.ObjectId; weight: number; rarity: string; stock?: number; minStock?: number; conditions?: string[]; _id?: Types.ObjectId }>;
       const cardIds = typedEntries.map((e) => e.card);
       const cardDocs = await Card.find({ _id: { $in: cardIds } }).lean();
       const cardMap = new Map(cardDocs.map((c) => [c._id.toString(), c]));
@@ -99,7 +99,7 @@ export async function GET(
           weight: entry.weight,
           stock: entry.stock ?? 0,
           minStock: entry.minStock ?? 5,
-          condition: entry.condition ?? "Near Mint",
+          conditions: entry.conditions ?? ["Near Mint"],
           drawChance: totalWeight > 0 ? (entry.weight / totalWeight) * 100 : 0,
           priceChange7d: (primaryVariant?.priceChange7d as number | null) ?? null,
           priceChange30d: (primaryVariant?.priceChange30d as number | null) ?? null,
@@ -269,7 +269,7 @@ export async function POST(
         rarity: effectiveRarity,
         stock: 0,
         minStock: 5,
-        condition: "Near Mint" as const,
+        conditions: ["Near Mint"] as ("Mint" | "Near Mint" | "Lightly Played" | "Moderately Played" | "Heavily Played")[],
       });
       await box.save();
     }
@@ -301,14 +301,14 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { cardId, weight, rarity, internalPrice, stock, minStock, condition } = body as {
+  const { cardId, weight, rarity, internalPrice, stock, minStock, conditions } = body as {
     cardId?: string;
     weight?: number;
     rarity?: string;
     internalPrice?: number;
     stock?: number;
     minStock?: number;
-    condition?: string;
+    conditions?: string[];
   };
 
   if (!cardId) {
@@ -353,12 +353,12 @@ export async function PATCH(
       entry.minStock = minStock;
     }
 
-    if (condition !== undefined) {
+    if (conditions !== undefined) {
       const validConditions = ["Mint", "Near Mint", "Lightly Played", "Moderately Played", "Heavily Played"];
-      if (!validConditions.includes(condition)) {
-        return NextResponse.json({ error: "Invalid condition" }, { status: 400 });
+      if (!Array.isArray(conditions) || conditions.length === 0 || !conditions.every((c) => validConditions.includes(c))) {
+        return NextResponse.json({ error: "Invalid conditions" }, { status: 400 });
       }
-      entry.condition = condition as "Mint" | "Near Mint" | "Lightly Played" | "Moderately Played" | "Heavily Played";
+      entry.conditions = conditions as ("Mint" | "Near Mint" | "Lightly Played" | "Moderately Played" | "Heavily Played")[];
     }
 
     if (rarity !== undefined) {

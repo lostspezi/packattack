@@ -28,7 +28,7 @@ export interface BoxCard {
   weight: number;
   stock: number;
   minStock: number;
-  condition: string;
+  conditions: string[];
   set?: string;
   setName?: string;
   tcgplayerId?: string | null;
@@ -248,7 +248,7 @@ export function BoxCardManager({
     { label: "Heavily Played", value: "Heavily Played" },
   ];
 
-  function patchCard(cardId: string, patch: { weight?: number; rarity?: string; internalPrice?: number; stock?: number; minStock?: number; condition?: string }) {
+  function patchCard(cardId: string, patch: { weight?: number; rarity?: string; internalPrice?: number; stock?: number; minStock?: number; conditions?: string[] }) {
     // Optimistic local update for weight/rarity
     if (patch.weight !== undefined || patch.rarity !== undefined) {
       setCards((prev) => {
@@ -715,18 +715,35 @@ export function BoxCardManager({
                         />
                       </td>
 
-                      {/* Condition */}
+                      {/* Conditions (multi-select) */}
                       <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
-                        <Select
-                          options={conditionOptions}
-                          value={card.condition ?? "Near Mint"}
-                          onChange={(val) => {
-                            setCards((prev) => prev.map((c) => c._id === card._id ? { ...c, condition: val } : c));
-                            patchCard(card._id, { condition: val });
-                          }}
-                          size="sm"
-                          className="min-w-[100px]"
-                        />
+                        <div className="flex flex-wrap gap-1">
+                          {conditionOptions.map((opt) => {
+                            const active = (card.conditions ?? ["Near Mint"]).includes(opt.value);
+                            return (
+                              <button
+                                key={opt.value}
+                                type="button"
+                                onClick={() => {
+                                  const current = card.conditions ?? ["Near Mint"];
+                                  const next = active
+                                    ? current.filter((c) => c !== opt.value)
+                                    : [...current, opt.value];
+                                  if (next.length === 0) return; // At least one required
+                                  setCards((prev) => prev.map((c) => c._id === card._id ? { ...c, conditions: next } : c));
+                                  patchCard(card._id, { conditions: next });
+                                }}
+                                className={`px-1.5 py-0.5 text-[9px] font-medium rounded border transition-colors ${
+                                  active
+                                    ? "bg-pa-green/15 text-pa-green border-pa-green/30"
+                                    : "bg-white/4 text-text-muted border-border hover:bg-white/6"
+                                }`}
+                              >
+                                {opt.label.split(" ").map((w) => w[0]).join("")}
+                              </button>
+                            );
+                          })}
+                        </div>
                       </td>
 
                       {/* Draw chance */}
