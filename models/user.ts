@@ -6,6 +6,10 @@ export interface IUser extends Document {
   username: string;
   email: string;
   coins: number;
+  stripeCustomerId: string | null;
+  stripeIdentityVerificationId: string | null;
+  identityVerified: boolean;
+  identityVerifiedAt: Date | null;
   emailVerified: Date | null;
   password: string | null;
   image: string | null;
@@ -104,6 +108,10 @@ const UserSchema = new Schema<IUser>(
     },
     onboardingCompleted: { type: Boolean, default: false },
     coins: { type: Number, default: 0 },
+    stripeCustomerId: { type: String, default: null },
+    stripeIdentityVerificationId: { type: String, default: null },
+    identityVerified: { type: Boolean, default: false },
+    identityVerifiedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );
