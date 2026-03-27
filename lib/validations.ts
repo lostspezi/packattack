@@ -70,3 +70,7 @@ export const resetPasswordSchema = z.object({
   token: z.string().min(1),
   password: z.string().min(8).max(100),
 });
+
+export const shopApplySchema = z.object({
+  companyName: z.string().min(2).max(100),
+});
