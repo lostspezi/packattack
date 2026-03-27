@@ -23,16 +23,24 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { stock, ean, sku, notes, pricePerUnit } = body as {
+  const { stock, ean, sku, notes, netPrice, condition } = body as {
     stock?: number;
     ean?: string | null;
     sku?: string | null;
     notes?: string | null;
-    pricePerUnit?: number | null;
+    netPrice?: number | null;
+    condition?: string;
   };
 
   if (stock !== undefined && (stock < 0 || !Number.isInteger(stock))) {
     return NextResponse.json({ error: "stock must be a non-negative integer" }, { status: 400 });
+  }
+
+  if (condition !== undefined) {
+    const validConditions = ["Mint", "Near Mint", "Lightly Played", "Moderately Played", "Heavily Played"];
+    if (!validConditions.includes(condition)) {
+      return NextResponse.json({ error: "Invalid condition" }, { status: 400 });
+    }
   }
 
   try {
@@ -46,7 +54,8 @@ export async function PATCH(
     if (ean !== undefined) item.ean = ean;
     if (sku !== undefined) item.sku = sku;
     if (notes !== undefined) item.notes = notes;
-    if (pricePerUnit !== undefined) item.pricePerUnit = pricePerUnit;
+    if (netPrice !== undefined) item.netPrice = netPrice;
+    if (condition !== undefined) item.condition = condition as typeof item.condition;
 
     await item.save();
     return NextResponse.json({ success: true });
