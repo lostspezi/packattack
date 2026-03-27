@@ -12,6 +12,7 @@ import { CoinBalance } from "./coin-balance";
 interface UserHeaderProps {
   lang: string;
   dict: Record<string, string>;
+  languages: { code: string; name: string }[];
   userName: string;
   userImage?: string | null;
   userRole: string;
@@ -20,6 +21,7 @@ interface UserHeaderProps {
 export function UserHeader({
   lang,
   dict,
+  languages,
   userName,
   userImage,
   userRole,
@@ -44,7 +46,7 @@ export function UserHeader({
   }, [userImage]);
 
   // Close mobile menu on route change (but not on language switch)
-  const pathnameWithoutLang = pathname.replace(/^\/(de|en)/, "");
+  const pathnameWithoutLang = pathname.replace(/^\/[a-z]{2}/, "");
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMobileMenuOpen(false);
@@ -137,7 +139,7 @@ export function UserHeader({
               ].join(" ")}
             >
               <Layers className="w-4 h-4 flex-shrink-0" />
-              <span>{dict["claimed"] ?? (lang === "de" ? "Sammlung" : "Collection")}</span>
+              <span>{dict["claimed"] ?? "Sammlung"}</span>
             </Link>
 
             {/* Marketplace — soon */}
@@ -154,7 +156,7 @@ export function UserHeader({
         {/* Right side */}
         <div className="flex items-center gap-2 md:gap-3">
           <div className="hidden sm:block">
-            <LanguageSwitcher lang={lang} />
+            <LanguageSwitcher lang={lang} languages={languages} />
           </div>
           <div className="hidden sm:block">
             <NotificationBell />
@@ -272,7 +274,7 @@ export function UserHeader({
                 ].join(" ")}
               >
                 <Layers className="w-5 h-5 flex-shrink-0" />
-                <span>{dict["claimed"] ?? (lang === "de" ? "Sammlung" : "Collection")}</span>
+                <span>{dict["claimed"] ?? "Sammlung"}</span>
               </Link>
 
               <span className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
@@ -288,7 +290,7 @@ export function UserHeader({
             <div className="px-3 py-3 border-t border-border">
               <div className="flex items-center justify-between px-3">
                 <span className="text-sm text-text-muted">{dict["language"] ?? "Language"}</span>
-                <LanguageSwitcher lang={lang} />
+                <LanguageSwitcher lang={lang} languages={languages} />
               </div>
             </div>
 

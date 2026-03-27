@@ -2,10 +2,12 @@ import connectDB from "./db";
 import User from "@/models/user";
 import PlatformSettings from "@/models/platform-settings";
 import Translation from "@/models/translation";
+import Language from "@/models/language";
 import EmailTemplate from "@/models/email-template";
 import bcrypt from "bcryptjs";
 import { translationSeedData } from "@/seed/translations";
 import { emailTemplateSeedData } from "@/seed/email-templates";
+import { invalidateTranslationCache, invalidateLanguageCache } from "@/lib/i18n";
 
 async function runInitialSeed() {
   const userCount = await User.countDocuments();
@@ -30,7 +32,7 @@ async function runInitialSeed() {
         password: hashedPassword,
         role: "super_admin",
         dateOfBirth: new Date("1990-01-01"),
-        preferences: { language: "en", theme: "dark", notifications: { email: true, browser: true } },
+        preferences: { language: "de", theme: "dark", notifications: { email: true, browser: true } },
         publicProfile: false,
         onboardingCompleted: true,
         consents: {
@@ -65,6 +67,40 @@ async function runInitialSeed() {
   }
 }
 
+async function syncLanguages() {
+  const result = await Language.updateOne(
+    { code: "de" },
+    {
+      $setOnInsert: {
+        code: "de",
+        name: "Deutsch",
+        isDefault: true,
+        isActive: true,
+      },
+    },
+    { upsert: true }
+  );
+
+  if (result.upsertedCount > 0) {
+    await invalidateLanguageCache();
+    console.log("[seed]   ✓ Default language created (de — Deutsch)");
+  } else {
+    console.log("[seed]   ✓ Default language already exists");
+  }
+
+  // Migration: remove English values from existing translations if English is not an active language
+  const englishLang = await Language.findOne({ code: "en", isActive: true });
+  if (!englishLang) {
+    const migrated = await Translation.updateMany(
+      { "values.en": { $exists: true } },
+      { $unset: { "values.en": "" } }
+    );
+    if (migrated.modifiedCount > 0) {
+      console.log(`[seed]   ✓ Migrated ${migrated.modifiedCount} translation(s): removed English values`);
+    }
+  }
+}
+
 async function syncTranslations() {
   const total = translationSeedData.length;
   const existingCount = await Translation.countDocuments();
@@ -80,7 +116,10 @@ async function syncTranslations() {
   }
 
   if (inserted > 0) {
-    console.log(`[seed]   ✓ Translations: ${inserted} new key(s) inserted (${existingCount} already existed, ${total} total in seed)`);
+    // Invalidate Redis cache for all affected namespaces
+    const namespaces = [...new Set(translationSeedData.map((item) => item.namespace))];
+    await Promise.all(namespaces.map((ns) => invalidateTranslationCache(ns)));
+    console.log(`[seed]   ✓ Translations: ${inserted} new key(s) inserted (${existingCount} already existed, ${total} total in seed) — cache invalidated`);
   } else {
     console.log(`[seed]   ✓ Translations: all ${total} key(s) up to date`);
   }
@@ -127,6 +166,7 @@ export async function runSeed() {
   console.log("[seed] Database connected.");
 
   await runInitialSeed();
+  await syncLanguages();
   await syncTranslations();
   await syncEmailTemplates();
   await migrateBoxSlugs();

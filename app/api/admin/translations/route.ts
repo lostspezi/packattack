@@ -47,7 +47,9 @@ export async function GET(req: NextRequest) {
       _id: doc._id.toString(),
       namespace: doc.namespace,
       key: doc.key,
-      values: doc.values,
+      values: doc.values instanceof Map
+        ? Object.fromEntries(doc.values)
+        : doc.values,
       updatedAt: doc.updatedAt,
     }));
 
@@ -67,7 +69,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  let body: { namespace?: string; key?: string; values?: { de?: string; en?: string } };
+  let body: { namespace?: string; key?: string; values?: Record<string, string> };
   try {
     body = await req.json();
   } catch {
@@ -87,19 +89,20 @@ export async function PATCH(req: NextRequest) {
     await connectDB();
 
     const update: Record<string, unknown> = {};
-    if (values?.de !== undefined) update["values.de"] = values.de;
-    if (values?.en !== undefined) update["values.en"] = values.en;
+    if (values) {
+      for (const [lang, val] of Object.entries(values)) {
+        if (val !== undefined) {
+          update[`values.${lang}`] = val;
+        }
+      }
+    }
     if (userId) update.updatedBy = userId;
 
     const doc = await Translation.findOneAndUpdate(
       { namespace, key },
       { $set: update },
-      { new: true }
+      { new: true, upsert: true }
     ).lean();
-
-    if (!doc) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
 
     await invalidateTranslationCache(namespace);
 
@@ -107,7 +110,9 @@ export async function PATCH(req: NextRequest) {
       _id: doc._id.toString(),
       namespace: doc.namespace,
       key: doc.key,
-      values: doc.values,
+      values: doc.values instanceof Map
+        ? Object.fromEntries(doc.values)
+        : doc.values,
       updatedAt: doc.updatedAt,
     });
   } catch (err) {

@@ -16,16 +16,18 @@ export const mainNavItems: NavItem[] = [
 ];
 
 export const adminNavItems: NavItem[] = [
-  { key: "adminDashboard", href: "/admin", icon: "BarChart3" },
+  { key: "dashboard", href: "/admin", icon: "BarChart3" },
   { key: "users", href: "/admin/users", icon: "Users" },
   { key: "platform", href: "/admin/platform", icon: "Cog" },
   { key: "notifications", href: "/admin/notifications", icon: "Bell" },
   { key: "emailTemplates", href: "/admin/email-templates", icon: "Mail" },
   { key: "translations", href: "/admin/translations", icon: "Languages" },
+  { key: "languages", href: "/admin/languages", icon: "Globe" },
   { key: "boxes", href: "/admin/boxes", icon: "Package" },
   { key: "coins", href: "/admin/coins", icon: "Coins" },
   { key: "shops", href: "/admin/shops", icon: "Store" },
   { key: "adminInventory", href: "/admin/inventory", icon: "Layers" },
+  { key: "inventoryOverview", href: "/admin/inventory/overview", icon: "Eye" },
 ];
 
 export const shopNavItems: NavItem[] = [

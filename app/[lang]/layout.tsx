@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import { ToastProvider } from "@/components/ui/toast";
 import { Footer } from "@/components/layout/footer";
+import { getActiveLocales, getDefaultLocale, getDictionary } from "@/lib/i18n";
 import "@/app/globals.css";
 
 const geistSans = Geist({
@@ -17,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "PackAttack.gg",
-  description: "PackAttack.gg — your pack opening platform",
+  description: "PackAttack.gg — deine Pack-Opening-Plattform",
   icons: {
     icon: "/favicon.png",
   },
@@ -32,6 +34,15 @@ export default async function LangLayout({
 }) {
   const { lang } = await params;
 
+  // Validate locale — redirect to default if invalid
+  const activeLocales = await getActiveLocales();
+  if (!activeLocales.includes(lang)) {
+    const defaultLocale = await getDefaultLocale();
+    redirect(`/${defaultLocale}/dashboard`);
+  }
+
+  const footerDict = await getDictionary(lang, "footer");
+
   return (
     <html
       lang={lang}
@@ -44,8 +55,8 @@ export default async function LangLayout({
       <body className="bg-bg text-text-primary min-h-screen safe-top safe-bottom flex flex-col">
         <SessionProvider>
           <ToastProvider>
-            <div className="flex-1">{children}</div>
-            <Footer lang={lang} />
+            <div className="flex-1 flex flex-col">{children}</div>
+            <Footer lang={lang} dict={footerDict} />
           </ToastProvider>
         </SessionProvider>
       </body>

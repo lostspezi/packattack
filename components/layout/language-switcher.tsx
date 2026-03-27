@@ -4,16 +4,15 @@ import { usePathname, useRouter } from "next/navigation";
 
 interface LanguageSwitcherProps {
   lang: string;
+  languages: { code: string; name: string }[];
 }
 
-const locales = [
-  { code: "de", label: "DE" },
-  { code: "en", label: "EN" },
-];
-
-export function LanguageSwitcher({ lang }: LanguageSwitcherProps) {
+export function LanguageSwitcher({ lang, languages }: LanguageSwitcherProps) {
   const pathname = usePathname();
   const router = useRouter();
+
+  // Only show when 2+ languages are active
+  if (languages.length < 2) return null;
 
   function switchLocale(newLang: string) {
     if (newLang === lang) return;
@@ -28,7 +27,7 @@ export function LanguageSwitcher({ lang }: LanguageSwitcherProps) {
 
   return (
     <div className="flex items-center gap-1 rounded-lg bg-white/4 border border-white/8 p-0.5">
-      {locales.map(({ code, label }) => (
+      {languages.map(({ code }) => (
         <button
           key={code}
           onClick={() => switchLocale(code)}
@@ -39,7 +38,7 @@ export function LanguageSwitcher({ lang }: LanguageSwitcherProps) {
               : "text-text-muted hover:text-text-primary",
           ].join(" ")}
         >
-          {label}
+          {code.toUpperCase()}
         </button>
       ))}
     </div>

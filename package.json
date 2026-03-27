@@ -12,14 +12,12 @@
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.1",
-    "@formatjs/intl-localematcher": "^0.8.2",
     "apexcharts": "^5.10.4",
     "bcryptjs": "^3.0.3",
     "ioredis": "^5.10.1",
     "lucide-react": "^1.6.0",
     "mongodb": "^6.21.0",
     "mongoose": "^9.3.2",
-    "negotiator": "^1.0.0",
     "next": "16.2.1",
     "next-auth": "^5.0.0-beta.30",
     "nodemailer": "^7.0.13",
@@ -32,7 +30,6 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
-    "@types/negotiator": "^0.6.4",
     "@types/node": "^20",
     "@types/nodemailer": "^7.0.11",
     "@types/react": "^19",

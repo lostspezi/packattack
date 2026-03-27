@@ -1,17 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/toast";
 
 interface SettingsData {
-  language: "de" | "en";
+  language: string;
   theme: "dark" | "light";
   notifications: {
     email: boolean;
     browser: boolean;
   };
+}
+
+interface LanguageOption {
+  code: string;
+  name: string;
+  isActive: boolean;
 }
 
 interface SettingsFormProps {
@@ -23,8 +29,9 @@ interface SettingsFormProps {
 export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [availableLanguages, setAvailableLanguages] = useState<LanguageOption[]>([]);
 
-  const [language, setLanguage] = useState<"de" | "en">(initialSettings.language);
+  const [language, setLanguage] = useState(initialSettings.language);
   const [theme, setTheme] = useState<"dark" | "light">(initialSettings.theme);
   const [emailNotifications, setEmailNotifications] = useState(
     initialSettings.notifications.email
@@ -32,6 +39,19 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
   const [browserNotifications, setBrowserNotifications] = useState(
     initialSettings.notifications.browser
   );
+
+  useEffect(() => {
+    fetch("/api/admin/languages")
+      .then((res) => res.json())
+      .then((data: { languages?: LanguageOption[] }) => {
+        const active = (data.languages ?? []).filter((l) => l.isActive);
+        setAvailableLanguages(active);
+      })
+      .catch(() => {
+        // Fallback: just show current language
+        setAvailableLanguages([{ code: initialSettings.language, name: initialSettings.language.toUpperCase(), isActive: true }]);
+      });
+  }, [initialSettings.language]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -56,19 +76,19 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
       if (!res.ok) {
         toast({
           type: "error",
-          title: data.error ?? (dict["error_save"] ?? "Failed to save settings"),
+          title: data.error ?? (dict["error_save"] ?? "Einstellungen konnten nicht gespeichert werden"),
         });
         return;
       }
 
       toast({
         type: "success",
-        title: dict["success_saved"] ?? "Settings saved successfully",
+        title: dict["success_saved"] ?? "Einstellungen erfolgreich gespeichert",
       });
     } catch {
       toast({
         type: "error",
-        title: dict["error_unexpected"] ?? "An unexpected error occurred",
+        title: dict["error_unexpected"] ?? "Ein unerwarteter Fehler ist aufgetreten",
       });
     } finally {
       setLoading(false);
@@ -82,39 +102,34 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {/* Language */}
-      <div>
-        <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
-          {dict["section_language"] ?? "Language"}
-        </h3>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={() => setLanguage("de")}
-            className={[
-              "flex-1 sm:flex-none px-5 py-2 rounded-[10px] text-sm font-medium cursor-pointer transition-colors",
-              language === "de" ? activeClass : inactiveClass,
-            ].join(" ")}
-          >
-            DE
-          </button>
-          <button
-            type="button"
-            onClick={() => setLanguage("en")}
-            className={[
-              "flex-1 sm:flex-none px-5 py-2 rounded-[10px] text-sm font-medium cursor-pointer transition-colors",
-              language === "en" ? activeClass : inactiveClass,
-            ].join(" ")}
-          >
-            EN
-          </button>
+      {/* Language — only show if 2+ languages available */}
+      {availableLanguages.length >= 2 && (
+        <div>
+          <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
+            {dict["section_language"] ?? "Sprache"}
+          </h3>
+          <div className="flex flex-wrap gap-3">
+            {availableLanguages.map((l) => (
+              <button
+                key={l.code}
+                type="button"
+                onClick={() => setLanguage(l.code)}
+                className={[
+                  "flex-1 sm:flex-none px-5 py-2 rounded-[10px] text-sm font-medium cursor-pointer transition-colors",
+                  language === l.code ? activeClass : inactiveClass,
+                ].join(" ")}
+              >
+                {l.name}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Theme */}
       <div>
         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
-          {dict["section_theme"] ?? "Theme"}
+          {dict["section_theme"] ?? "Design"}
         </h3>
         <div className="flex flex-wrap gap-3">
           <button
@@ -125,7 +140,7 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
               theme === "dark" ? activeClass : inactiveClass,
             ].join(" ")}
           >
-            {dict["theme_dark"] ?? "Dark"}
+            {dict["theme_dark"] ?? "Dunkel"}
           </button>
           <button
             type="button"
@@ -135,7 +150,7 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
               theme === "light" ? activeClass : inactiveClass,
             ].join(" ")}
           >
-            {dict["theme_light"] ?? "Light"}
+            {dict["theme_light"] ?? "Hell"}
           </button>
         </div>
       </div>
@@ -143,18 +158,18 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
       {/* Notifications */}
       <div>
         <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
-          {dict["section_notifications"] ?? "Notifications"}
+          {dict["section_notifications"] ?? "Benachrichtigungen"}
         </h3>
         <div className="flex flex-col gap-3">
           <Checkbox
             id="email-notifications"
-            label={dict["label_email_notifications"] ?? "Email notifications"}
+            label={dict["label_email_notifications"] ?? "E-Mail-Benachrichtigungen"}
             checked={emailNotifications}
             onCheckedChange={setEmailNotifications}
           />
           <Checkbox
             id="browser-notifications"
-            label={dict["label_browser_notifications"] ?? "Browser notifications"}
+            label={dict["label_browser_notifications"] ?? "Browser-Benachrichtigungen"}
             checked={browserNotifications}
             onCheckedChange={setBrowserNotifications}
           />
@@ -163,7 +178,7 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
 
       <div className="flex">
         <Button type="submit" variant="primary" size="md" loading={loading} className="w-full md:w-auto">
-          {dict["button_save"] ?? "Save Settings"}
+          {dict["button_save"] ?? "Einstellungen speichern"}
         </Button>
       </div>
     </form>

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getDictionary } from "@/lib/i18n";
-import type { Locale } from "@/lib/i18n";
+import { getDictionary, getActiveLanguages } from "@/lib/i18n";
 import { UserHeader } from "@/components/layout/user-header";
 
 export default async function DashboardLayout({
@@ -18,22 +17,26 @@ export default async function DashboardLayout({
     redirect(`/${lang}/login`);
   }
 
-  const commonDict = await getDictionary(lang as Locale, "common");
+  const [commonDict, languages] = await Promise.all([
+    getDictionary(lang, "common"),
+    getActiveLanguages(),
+  ]);
 
   const userName = session.user.name ?? session.user.email ?? "User";
   const userRole = (session.user as { role?: string }).role ?? "user";
   const userImage = session.user.image ?? null;
 
   return (
-    <div className="min-h-screen bg-bg">
+    <div className="flex-1 bg-bg flex flex-col">
       <UserHeader
         lang={lang}
         dict={commonDict}
+        languages={languages}
         userName={userName}
         userImage={userImage}
         userRole={userRole}
       />
-      <div className="flex-1">{children}</div>
+      <div className="flex-1 flex flex-col">{children}</div>
     </div>
   );
 }

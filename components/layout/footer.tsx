@@ -1,11 +1,11 @@
 const LINKS = [
-  { key: "terms", href: "https://packattack.gg/nutzungsbedingungen/", de: "Nutzungsbedingungen", en: "Terms of Use" },
-  { key: "tos", href: "https://packattack.gg/agb/", de: "AGB", en: "Terms of Service" },
-  { key: "privacy", href: "https://packattack.gg/datenschutz/", de: "Datenschutz", en: "Privacy Policy" },
-  { key: "imprint", href: "https://packattack.gg/impressum/", de: "Impressum", en: "Imprint" },
+  { key: "link_terms", href: "https://packattack.gg/nutzungsbedingungen/", fallback: "Nutzungsbedingungen" },
+  { key: "link_tos", href: "https://packattack.gg/agb/", fallback: "AGB" },
+  { key: "link_privacy", href: "https://packattack.gg/datenschutz/", fallback: "Datenschutz" },
+  { key: "link_imprint", href: "https://packattack.gg/impressum/", fallback: "Impressum" },
 ];
 
-export function Footer({ lang = "en" }: { lang?: string }) {
+export function Footer({ lang, dict }: { lang: string; dict: Record<string, string> }) {
   const year = new Date().getFullYear();
 
   return (
@@ -21,7 +21,7 @@ export function Footer({ lang = "en" }: { lang?: string }) {
               rel="noopener noreferrer"
               className="hover:text-text-secondary transition-colors"
             >
-              {lang === "de" ? link.de : link.en}
+              {dict[link.key] ?? link.fallback}
             </a>
           ))}
         </nav>
