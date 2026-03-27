@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import InventoryItem from "@/models/inventory-item";
+import Card from "@/models/card";
 
 export async function GET(req: NextRequest) {
   const session = await auth();
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
     await connectDB();
     const [items, total] = await Promise.all([
       InventoryItem.find({ shop: userId })
-        .populate("card", "name game rarity image internalPrice")
+        .populate("card", "name game rarity image tcgplayerId setName set")
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -32,11 +33,12 @@ export async function GET(req: NextRequest) {
       items: items.map((i) => ({
         _id: i._id.toString(),
         card: i.card,
+        condition: i.condition,
         stock: i.stock,
         ean: i.ean,
         sku: i.sku,
         notes: i.notes,
-        pricePerUnit: i.pricePerUnit,
+        netPrice: i.netPrice,
         createdAt: i.createdAt,
         updatedAt: i.updatedAt,
       })),
@@ -66,41 +68,101 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { cardId, stock, ean, sku, notes, pricePerUnit } = body as {
-    cardId?: string;
+  const {
+    justTcgId,
+    name,
+    game,
+    set,
+    setName,
+    rarity,
+    tcgplayerId,
+    tcgplayerSkuId,
+    condition,
+    stock,
+    variants,
+  } = body as {
+    justTcgId?: string;
+    name?: string;
+    game?: string;
+    set?: string;
+    setName?: string;
+    rarity?: string;
+    tcgplayerId?: string | null;
+    tcgplayerSkuId?: string | null;
+    condition?: string;
     stock?: number;
-    ean?: string;
-    sku?: string;
-    notes?: string;
-    pricePerUnit?: number;
+    variants?: Array<{ condition: string; printing: string; price: number }>;
   };
 
-  if (!cardId) {
-    return NextResponse.json({ error: "cardId is required" }, { status: 400 });
+  if (!justTcgId) {
+    return NextResponse.json({ error: "justTcgId is required" }, { status: 400 });
   }
-  if (stock === undefined || stock < 0 || !Number.isInteger(stock)) {
-    return NextResponse.json({ error: "stock must be a non-negative integer" }, { status: 400 });
+
+  const itemCondition = condition ?? "Near Mint";
+  const validConditions = ["Mint", "Near Mint", "Lightly Played", "Moderately Played", "Heavily Played"];
+  if (!validConditions.includes(itemCondition)) {
+    return NextResponse.json({ error: "Invalid condition" }, { status: 400 });
   }
 
   try {
     await connectDB();
 
-    const existing = await InventoryItem.findOne({ shop: userId, card: cardId });
+    // Find or create Card record (same logic as POST /api/admin/boxes/[id]/cards)
+    let card = await Card.findOne({ justTcgId });
+
+    if (!card) {
+      const imageUrl = tcgplayerId
+        ? `https://tcgplayer-cdn.tcgplayer.com/product/${tcgplayerId}_200w.jpg`
+        : null;
+
+      const cardVariants = variants ?? [];
+      let marketPrice: number | null = null;
+      if (cardVariants.length > 0) {
+        const nearMint = cardVariants.find((v) => v.condition === "Near Mint" && v.price > 0);
+        const bestVariant = nearMint ?? cardVariants.find((v) => v.price > 0);
+        if (bestVariant) {
+          marketPrice = Math.round(bestVariant.price * 100) / 100;
+        }
+      }
+
+      card = await Card.create({
+        justTcgId,
+        name: name ?? "Unknown",
+        game: game ?? "",
+        set: set ?? "",
+        setName: setName ?? "",
+        rarity: rarity ?? "",
+        image: imageUrl,
+        tcgplayerId: tcgplayerId ?? null,
+        marketPrice,
+        internalPrice: marketPrice,
+        lastPriceUpdate: marketPrice !== null ? new Date() : null,
+        variants: cardVariants,
+      });
+    }
+
+    // Duplicate check: same shop + card + condition
+    const existing = await InventoryItem.findOne({
+      shop: userId,
+      card: card._id,
+      condition: itemCondition,
+    });
     if (existing) {
       return NextResponse.json(
-        { error: "Dieser Artikel existiert bereits. Bitte Bestand anpassen." },
+        { error: "Dieser Artikel mit diesem Zustand existiert bereits." },
         { status: 409 }
       );
     }
 
     const item = await InventoryItem.create({
-      card: cardId,
+      card: card._id,
       shop: userId,
-      stock,
-      ean: ean ?? null,
-      sku: sku ?? null,
-      notes: notes ?? null,
-      pricePerUnit: pricePerUnit ?? null,
+      condition: itemCondition,
+      stock: stock ?? 0,
+      sku: tcgplayerSkuId ?? null,
+      ean: null,
+      notes: null,
+      netPrice: null,
     });
 
     return NextResponse.json({ _id: item._id.toString() }, { status: 201 });
