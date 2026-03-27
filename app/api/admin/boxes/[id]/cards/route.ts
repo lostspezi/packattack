@@ -270,6 +270,8 @@ export async function POST(
         stock: 0,
         minStock: 5,
         conditions: ["Near Mint"] as ("Mint" | "Near Mint" | "Lightly Played" | "Moderately Played" | "Heavily Played")[],
+        isSubstitute: false,
+        originalCard: null,
       });
       await box.save();
     }
