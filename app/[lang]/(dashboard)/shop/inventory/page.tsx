@@ -1,4 +1,4 @@
-import { ShopInventoryTable } from "@/components/shop/shop-inventory-table";
+import { ShopInventoryManager } from "@/components/shop/shop-inventory-manager";
 
 export default async function ShopInventoryPage({
   params,
@@ -9,18 +9,18 @@ export default async function ShopInventoryPage({
   const isDe = lang === "de";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div>
         <h2 className="text-2xl font-bold text-text-primary">
-          {isDe ? "Mein Inventar" : "My Inventory"}
+          {isDe ? "Inventar-Verwaltung" : "Inventory Management"}
         </h2>
         <p className="text-text-secondary mt-1 text-sm">
           {isDe
-            ? "Verwalte deinen Kartenbestand. Verfügbare Karten werden automatisch als Ersatz in Boxen verwendet."
-            : "Manage your card stock. Available cards are automatically used as substitutes in boxes."}
+            ? "Suche Karten und verwalte deinen Bestand mit Zustand und Netto-Preisen."
+            : "Search cards and manage your stock with condition and net prices."}
         </p>
       </div>
-      <ShopInventoryTable lang={lang} />
+      <ShopInventoryManager lang={lang} />
     </div>
   );
 }
