@@ -3,10 +3,11 @@ import mongoose, { Document, Model, Schema, Types } from "mongoose";
 export interface ICoinTransaction extends Document {
   userId: Types.ObjectId;
   amount: number;
-  type: "admin_grant" | "admin_deduct" | "pack_purchase" | "card_conversion";
+  type: "admin_grant" | "admin_deduct" | "pack_purchase" | "card_conversion" | "coin_purchase";
   reason: string | null;
   relatedPullId: Types.ObjectId | null;
   relatedBoxId: Types.ObjectId | null;
+  relatedPurchaseId: Types.ObjectId | null;
   performedBy: Types.ObjectId | null;
   createdAt: Date;
 }
@@ -17,12 +18,13 @@ const CoinTransactionSchema = new Schema<ICoinTransaction>(
     amount: { type: Number, required: true },
     type: {
       type: String,
-      enum: ["admin_grant", "admin_deduct", "pack_purchase", "card_conversion"],
+      enum: ["admin_grant", "admin_deduct", "pack_purchase", "card_conversion", "coin_purchase"],
       required: true,
     },
     reason: { type: String, default: null },
     relatedPullId: { type: Schema.Types.ObjectId, ref: "PackPull", default: null },
     relatedBoxId: { type: Schema.Types.ObjectId, ref: "Box", default: null },
+    relatedPurchaseId: { type: Schema.Types.ObjectId, ref: "CoinPurchase", default: null },
     performedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
