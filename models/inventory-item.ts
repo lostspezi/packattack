@@ -21,7 +21,7 @@ const InventoryItemSchema = new Schema<IInventoryItem>(
     ean: { type: String, default: null },
     sku: { type: String, default: null },
     notes: { type: String, default: null },
-    pricePerUnit: { type: Number, default: null },
+    pricePerUnit: { type: Number, default: null, min: 0 },
   },
   { timestamps: true }
 );
