@@ -82,7 +82,7 @@ async function syncLanguages() {
   );
 
   if (result.upsertedCount > 0) {
-    await invalidateLanguageCache();
+    try { await invalidateLanguageCache(); } catch { /* Redis unavailable during build */ }
     console.log("[seed]   ✓ Default language created (de — Deutsch)");
   } else {
     console.log("[seed]   ✓ Default language already exists");
@@ -116,10 +116,14 @@ async function syncTranslations() {
   }
 
   if (inserted > 0) {
-    // Invalidate Redis cache for all affected namespaces
-    const namespaces = [...new Set(translationSeedData.map((item) => item.namespace))];
-    await Promise.all(namespaces.map((ns) => invalidateTranslationCache(ns)));
-    console.log(`[seed]   ✓ Translations: ${inserted} new key(s) inserted (${existingCount} already existed, ${total} total in seed) — cache invalidated`);
+    // Invalidate Redis cache for all affected namespaces (skip if Redis unavailable, e.g. during build)
+    try {
+      const namespaces = [...new Set(translationSeedData.map((item) => item.namespace))];
+      await Promise.all(namespaces.map((ns) => invalidateTranslationCache(ns)));
+      console.log(`[seed]   ✓ Translations: ${inserted} new key(s) inserted (${existingCount} already existed, ${total} total in seed) — cache invalidated`);
+    } catch {
+      console.log(`[seed]   ✓ Translations: ${inserted} new key(s) inserted (${existingCount} already existed, ${total} total in seed) — cache skip (Redis unavailable)`);
+    }
   } else {
     console.log(`[seed]   ✓ Translations: all ${total} key(s) up to date`);
   }

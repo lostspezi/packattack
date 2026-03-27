@@ -7,7 +7,16 @@ if (!cached.redis) cached.redis = null;
 
 export function getRedis(): Redis {
   if (!cached.redis) {
-    cached.redis = new Redis(REDIS_URL);
+    cached.redis = new Redis(REDIS_URL, {
+      maxRetriesPerRequest: 3,
+      retryStrategy(times) {
+        if (times > 3) return null;
+        return Math.min(times * 200, 2000);
+      },
+    });
+    cached.redis.on("error", (err) => {
+      console.warn("[redis] Connection error:", err.message);
+    });
   }
   return cached.redis;
 }
