@@ -6,6 +6,7 @@ export interface IShopProfile extends Document {
   user: Types.ObjectId;
   companyName: string;
   status: ShopStatus;
+  isSmallBusiness: boolean;
   rejectReason: string | null;
   licenseFileId: string | null;
   licenseFileName: string | null;
@@ -25,6 +26,7 @@ const ShopProfileSchema = new Schema<IShopProfile>(
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
+    isSmallBusiness: { type: Boolean, default: false },
     rejectReason: { type: String, default: null },
     licenseFileId: { type: String, default: null },
     licenseFileName: { type: String, default: null },
