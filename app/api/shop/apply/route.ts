@@ -21,6 +21,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const companyName = formData.get("companyName");
     const file = formData.get("file");
+    const isSmallBusiness = formData.get("isSmallBusiness") === "true";
 
     const parsed = shopApplySchema.safeParse({ companyName });
     if (!parsed.success) {
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
       user: userId,
       companyName: parsed.data.companyName,
       status: "pending",
+      isSmallBusiness,
       licenseFileId: fileId,
       licenseFileName: filename,
       submittedAt: new Date(),

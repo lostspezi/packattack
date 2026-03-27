@@ -14,6 +14,7 @@ export function ShopApplyForm({ lang }: { lang: string }) {
   const [profile, setProfile] = useState<ShopProfileData | null | undefined>(undefined);
   const [companyName, setCompanyName] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [isSmallBusiness, setIsSmallBusiness] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -36,6 +37,7 @@ export function ShopApplyForm({ lang }: { lang: string }) {
     const fd = new FormData();
     fd.append("companyName", companyName);
     fd.append("file", file);
+    fd.append("isSmallBusiness", isSmallBusiness ? "true" : "false");
     try {
       const res = await fetch("/api/shop/apply", { method: "POST", body: fd });
       const data = (await res.json()) as { error?: string };
@@ -117,6 +119,21 @@ export function ShopApplyForm({ lang }: { lang: string }) {
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
           className="w-full text-sm text-text-secondary file:mr-3 file:rounded file:border-0 file:bg-surface file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text-primary"
         />
+      </div>
+
+      <div className="flex items-start gap-2">
+        <input
+          type="checkbox"
+          id="isSmallBusiness"
+          checked={isSmallBusiness}
+          onChange={(e) => setIsSmallBusiness(e.target.checked)}
+          className="mt-1 rounded border-border"
+        />
+        <label htmlFor="isSmallBusiness" className="text-sm text-text-primary">
+          {isDe
+            ? "Ich unterliege der Kleinunternehmerregelung (§19 UStG)"
+            : "I am subject to the small business regulation (§19 UStG)"}
+        </label>
       </div>
 
       <button
