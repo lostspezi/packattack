@@ -51,7 +51,7 @@ export async function PATCH(
     await item.save();
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("[inventory/[id] PATCH]", err);
+    console.error("[shop/inventory/[id] PATCH]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }
@@ -76,7 +76,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    // Block deletion if card is currently a substitute in any box
     const inUse = await Box.findOne({
       "cards.card": item.card,
       "cards.isSubstitute": true,
@@ -94,7 +93,7 @@ export async function DELETE(
     await item.deleteOne();
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error("[inventory/[id] DELETE]", err);
+    console.error("[shop/inventory/[id] DELETE]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }
