@@ -12,6 +12,7 @@ export interface InventoryItemRow {
     rarity: string;
     image: string | null;
     tcgplayerId: string | null;
+    justTcgId?: string;
     setName: string;
     set: string;
   };
@@ -27,6 +28,7 @@ interface ShopInventoryListProps {
   lang: string;
   newItemId: string | null;
   onNewItemHandled: () => void;
+  onItemsLoaded?: (items: InventoryItemRow[]) => void;
   refreshKey: number;
 }
 
@@ -49,6 +51,7 @@ export function ShopInventoryList({
   lang,
   newItemId,
   onNewItemHandled,
+  onItemsLoaded,
   refreshKey,
 }: ShopInventoryListProps) {
   const isDe = lang === "de";
@@ -83,7 +86,9 @@ export function ShopInventoryList({
       if (!res.ok) {
         setError(data.error ?? (isDe ? "Ladefehler" : "Load error"));
       } else {
-        setItems(data.items ?? []);
+        const loadedItems = data.items ?? [];
+        setItems(loadedItems);
+        onItemsLoaded?.(loadedItems);
       }
     } catch {
       setError(isDe ? "Ladefehler" : "Load error");
@@ -222,7 +227,7 @@ export function ShopInventoryList({
               <th className="py-2 pr-3">{isDe ? "Karte" : "Card"}</th>
               <th className="py-2 pr-3">{isDe ? "Zustand" : "Condition"}</th>
               <th className="py-2 pr-3">{isDe ? "Bestand" : "Stock"}</th>
-              <th className="py-2 pr-3">{isDe ? "EK-Preis" : "Net Price"}</th>
+              <th className="py-2 pr-3">{isDe ? "Netto-Preis" : "Net Price"}</th>
               <th className="py-2 pr-3">SKU</th>
               <th className="py-2 pr-3">EAN</th>
               <th className="py-2 pr-3">{isDe ? "Notiz" : "Notes"}</th>

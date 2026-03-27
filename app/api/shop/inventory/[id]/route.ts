@@ -43,11 +43,31 @@ export async function PATCH(
     }
   }
 
+  if (netPrice !== undefined && netPrice !== null && (typeof netPrice !== "number" || isNaN(netPrice))) {
+    return NextResponse.json({ error: "netPrice must be a valid number" }, { status: 400 });
+  }
+
   try {
     await connectDB();
     const item = await InventoryItem.findOne({ _id: id, shop: userId });
     if (!item) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // Duplicate check when changing condition
+    if (condition !== undefined && condition !== item.condition) {
+      const dup = await InventoryItem.findOne({
+        shop: userId,
+        card: item.card,
+        condition,
+        _id: { $ne: id },
+      });
+      if (dup) {
+        return NextResponse.json(
+          { error: "Dieser Artikel mit diesem Zustand existiert bereits." },
+          { status: 409 }
+        );
+      }
     }
 
     if (stock !== undefined) item.stock = stock;

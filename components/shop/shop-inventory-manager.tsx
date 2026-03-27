@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from "react";
 import { Search, Layers } from "lucide-react";
 import { ShopCardSearch, ShopAddCardPayload } from "./shop-card-search";
-import { ShopInventoryList } from "./shop-inventory-list";
+import { ShopInventoryList, InventoryItemRow } from "./shop-inventory-list";
 
 interface ShopInventoryManagerProps {
   lang: string;
@@ -16,6 +16,7 @@ export function ShopInventoryManager({ lang }: ShopInventoryManagerProps) {
   const [newItemId, setNewItemId] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [activeTab, setActiveTab] = useState<"search" | "inventory">("search");
+  const [inventoryCount, setInventoryCount] = useState(0);
 
   const handleAdd = useCallback(async (payload: ShopAddCardPayload) => {
     const res = await fetch("/api/shop/inventory", {
@@ -46,6 +47,17 @@ export function ShopInventoryManager({ lang }: ShopInventoryManagerProps) {
     setNewItemId(null);
   }, []);
 
+  const handleItemsLoaded = useCallback((items: InventoryItemRow[]) => {
+    const ids = new Set<string>();
+    for (const item of items) {
+      if (item.card.justTcgId) {
+        ids.add(`${item.card.justTcgId}_${item.condition}`);
+      }
+    }
+    setExistingInventoryIds(ids);
+    setInventoryCount(items.length);
+  }, []);
+
   return (
     <div className="h-full">
       {/* Mobile tabs */}
@@ -71,6 +83,11 @@ export function ShopInventoryManager({ lang }: ShopInventoryManagerProps) {
         >
           <Layers className="w-4 h-4" />
           {isDe ? "Inventar" : "Inventory"}
+          {inventoryCount > 0 && (
+            <span className="ml-1 px-1.5 py-0.5 text-[10px] rounded-full bg-pa-green/15 text-pa-green font-medium">
+              {inventoryCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -99,6 +116,7 @@ export function ShopInventoryManager({ lang }: ShopInventoryManagerProps) {
             lang={lang}
             newItemId={newItemId}
             onNewItemHandled={handleNewItemHandled}
+            onItemsLoaded={handleItemsLoaded}
             refreshKey={refreshKey}
           />
         </div>

@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     await connectDB();
     const [items, total] = await Promise.all([
       InventoryItem.find({ shop: userId })
-        .populate("card", "name game rarity image tcgplayerId setName set")
+        .populate("card", "name game rarity image tcgplayerId setName set justTcgId")
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
