@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { User, Settings, Shield, BarChart3, LogOut, Bell } from "lucide-react";
+import { User, Settings, Shield, BarChart3, Store, LogOut, Bell } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 interface UserDropdownProps {
@@ -86,17 +86,29 @@ export function UserDropdown({ lang, dict: _dict, userRole, open, onClose }: Use
         <span>Account</span>
       </Link>
 
-      {isAdmin && (
+      {(isAdmin || userRole === "shop") && (
         <>
           <div className="my-1 h-px bg-border" />
-          <Link
-            href={`/${lang}/admin`}
-            onClick={onClose}
-            className={itemClass}
-          >
-            <BarChart3 className="w-4 h-4 flex-shrink-0 text-text-muted" />
-            <span>Admin Panel</span>
-          </Link>
+          {userRole === "shop" && (
+            <Link
+              href={`/${lang}/shop/inventory`}
+              onClick={onClose}
+              className={itemClass}
+            >
+              <Store className="w-4 h-4 flex-shrink-0 text-text-muted" />
+              <span>Shopverwaltung</span>
+            </Link>
+          )}
+          {isAdmin && (
+            <Link
+              href={`/${lang}/admin`}
+              onClick={onClose}
+              className={itemClass}
+            >
+              <BarChart3 className="w-4 h-4 flex-shrink-0 text-text-muted" />
+              <span>Admin Panel</span>
+            </Link>
+          )}
         </>
       )}
 
