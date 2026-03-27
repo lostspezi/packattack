@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { Menu, X } from "lucide-react";
 import * as LucideIcons from "lucide-react";
-import { mainNavItems, adminNavItems, soonNavItems, type NavItem } from "./sidebar-nav";
+import { mainNavItems, adminNavItems, shopNavItems, soonNavItems, type NavItem } from "./sidebar-nav";
 
 interface SidebarProps {
   lang: string;
@@ -15,8 +15,8 @@ interface SidebarProps {
   userRole: string;
   userName: string;
   userInitial: string;
-  /** "full" = original sidebar with all sections; "admin" = admin nav items only */
-  mode?: "full" | "admin";
+  /** "full" = original sidebar with all sections; "admin" = admin nav items only; "shop" = shop nav items only */
+  mode?: "full" | "admin" | "shop";
 }
 
 function NavIcon({ name, className }: { name: string; className?: string }) {
@@ -98,6 +98,45 @@ function SidebarContent({
                   item={item}
                   lang={lang}
                   dict={adminDict}
+                  isActive={isActiveItem(item)}
+                  onClick={onNavClick}
+                />
+              </li>
+            ))}
+          </ul>
+        </nav>
+
+        {/* User card */}
+        <div className="px-3 pb-4 flex-shrink-0">
+          <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-white/3 border border-white/6">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pa-green/60 to-pa-lila/60 flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
+              {userInitial}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-text-primary truncate">{userName}</p>
+              <p className="text-xs text-text-muted">{levelLabel} 1</p>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (mode === "shop") {
+    const shopLabel = dashboardDict["shopManagement"] ?? "Shopverwaltung";
+    return (
+      <>
+        <nav className="flex-1 px-3 py-4">
+          <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-text-muted">
+            {shopLabel}
+          </p>
+          <ul className="space-y-1">
+            {shopNavItems.map((item) => (
+              <li key={item.key}>
+                <NavLink
+                  item={item}
+                  lang={lang}
+                  dict={dashboardDict}
                   isActive={isActiveItem(item)}
                   onClick={onNavClick}
                 />
@@ -244,7 +283,8 @@ export function Sidebar(props: SidebarProps) {
     };
   }, [mobileOpen]);
 
-  if (mode === "admin") {
+  if (mode === "admin" || mode === "shop") {
+    const mobileTitle = mode === "admin" ? "Admin" : "Shop";
     return (
       <>
         {/* Mobile toggle button */}
@@ -267,7 +307,7 @@ export function Sidebar(props: SidebarProps) {
             <aside className="relative w-64 flex flex-col bg-gradient-to-b from-bg to-pa-lila/8 border-r border-border overflow-y-auto">
               <div className="h-14 flex items-center justify-between px-4 border-b border-border flex-shrink-0">
                 <span className="text-sm font-semibold text-text-secondary uppercase tracking-wider">
-                  Admin
+                  {mobileTitle}
                 </span>
                 <button
                   onClick={() => setMobileOpen(false)}

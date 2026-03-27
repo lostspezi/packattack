@@ -28,6 +28,10 @@ export const adminNavItems: NavItem[] = [
   { key: "adminInventory", href: "/admin/inventory", icon: "Layers" },
 ];
 
+export const shopNavItems: NavItem[] = [
+  { key: "shopInventory", href: "/shop/inventory", icon: "Layers" },
+];
+
 export const soonNavItems: NavItem[] = [
   { key: "marketplace", href: "#", icon: "ShoppingBag", soon: true },
 ];
