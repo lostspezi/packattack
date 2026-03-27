@@ -13,6 +13,7 @@ export const mainNavItems: NavItem[] = [
   { key: "profile", href: "/profile", icon: "User" },
   { key: "settings", href: "/settings", icon: "Settings" },
   { key: "account", href: "/account", icon: "Shield" },
+  { key: "balance", href: "/balance", icon: "Wallet" },
 ];
 
 export const adminNavItems: NavItem[] = [
@@ -28,6 +29,8 @@ export const adminNavItems: NavItem[] = [
   { key: "shops", href: "/admin/shops", icon: "Store" },
   { key: "adminInventory", href: "/admin/inventory", icon: "Layers" },
   { key: "inventoryOverview", href: "/admin/inventory/overview", icon: "Eye" },
+  { key: "coinPackages", href: "/admin/coin-packages", icon: "CreditCard" },
+  { key: "invoiceSettings", href: "/admin/invoice-settings", icon: "FileText" },
 ];
 
 export const shopNavItems: NavItem[] = [
