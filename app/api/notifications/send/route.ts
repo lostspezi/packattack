@@ -113,11 +113,18 @@ export async function POST(req: NextRequest) {
 
     await Notification.insertMany(docs);
 
-    // Invalidate Redis unread count cache for all affected users
+    // Update cache and push real-time SSE updates for all affected users
     const redis = getRedis();
+    const pipeline = redis.pipeline();
     for (const userId of userIds) {
-      await redis.del(`notifications:unread:${userId}`);
+      const count = await Notification.countDocuments({ userId, read: false });
+      pipeline.set(`notifications:unread:${userId}`, count, "EX", 60);
+      pipeline.publish(
+        `notifications:${userId}`,
+        JSON.stringify({ unreadCount: count })
+      );
     }
+    await pipeline.exec();
 
     return NextResponse.json({ count: userIds.length });
   } catch (err) {

@@ -96,13 +96,22 @@ export async function POST(req: NextRequest) {
         { _id: id, userId },
         { read: true }
       );
-      await redis.del(unreadKey(userId));
+      const count = await Notification.countDocuments({ userId, read: false });
+      await redis.set(unreadKey(userId), count, "EX", UNREAD_CACHE_TTL);
+      await redis.publish(
+        `notifications:${userId}`,
+        JSON.stringify({ unreadCount: count })
+      );
       return NextResponse.json({ ok: true });
     }
 
     if (action === "markAllRead") {
       await Notification.updateMany({ userId, read: false }, { read: true });
-      await redis.del(unreadKey(userId));
+      await redis.set(unreadKey(userId), 0, "EX", UNREAD_CACHE_TTL);
+      await redis.publish(
+        `notifications:${userId}`,
+        JSON.stringify({ unreadCount: 0 })
+      );
       return NextResponse.json({ ok: true });
     }
 

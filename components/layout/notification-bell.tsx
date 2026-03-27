@@ -4,8 +4,6 @@ import { Bell } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 
-const POLL_INTERVAL_MS = 10_000;
-
 interface UnreadResponse {
   unreadCount: number;
 }
@@ -36,11 +34,27 @@ export function NotificationBell() {
     })();
   }, [fetchUnreadCount]);
 
-  // Poll every 30 seconds
+  // SSE stream for real-time unread count updates
   useEffect(() => {
-    const interval = setInterval(fetchUnreadCount, POLL_INTERVAL_MS);
-    return () => clearInterval(interval);
-  }, [fetchUnreadCount]);
+    const es = new EventSource("/api/notifications/events");
+
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (typeof data.unreadCount === "number") {
+          setUnreadCount(data.unreadCount);
+        }
+      } catch {
+        // ignore parse errors
+      }
+    };
+
+    es.onerror = () => {
+      // EventSource auto-reconnects
+    };
+
+    return () => es.close();
+  }, []);
 
   // Refresh on window focus
   useEffect(() => {
