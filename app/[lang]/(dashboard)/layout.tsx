@@ -33,7 +33,7 @@ export default async function DashboardLayout({
         userImage={userImage}
         userRole={userRole}
       />
-      <main className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">{children}</main>
+      <div className="flex-1">{children}</div>
     </div>
   );
 }

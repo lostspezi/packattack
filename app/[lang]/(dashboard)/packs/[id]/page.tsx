@@ -178,7 +178,7 @@ export default function PackDetailPage() {
   }));
 
   return (
-    <div className="space-y-4">
+    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-4">
       {/* Back */}
       <button
         type="button"
