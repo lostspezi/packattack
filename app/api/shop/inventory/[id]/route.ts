@@ -11,7 +11,7 @@ export async function PATCH(
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   const role = (session?.user as { role?: string } | undefined)?.role;
-  if (!session?.user || !userId || role !== "shop") {
+  if (!session?.user || !userId || !["shop", "admin", "super_admin"].includes(role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -63,7 +63,7 @@ export async function DELETE(
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   const role = (session?.user as { role?: string } | undefined)?.role;
-  if (!session?.user || !userId || role !== "shop") {
+  if (!session?.user || !userId || !["shop", "admin", "super_admin"].includes(role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

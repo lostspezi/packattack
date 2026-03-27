@@ -7,7 +7,8 @@ export async function GET(req: NextRequest) {
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   const role = (session?.user as { role?: string } | undefined)?.role;
-  if (!session?.user || !userId || role !== "shop") {
+  const allowedRoles = ["shop", "admin", "super_admin"];
+  if (!session?.user || !userId || !role || !allowedRoles.includes(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -53,7 +54,8 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   const role = (session?.user as { role?: string } | undefined)?.role;
-  if (!session?.user || !userId || role !== "shop") {
+  const allowedRolesPost = ["shop", "admin", "super_admin"];
+  if (!session?.user || !userId || !role || !allowedRolesPost.includes(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
