@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role;
 
-  if (!session?.user || (role !== "admin" && role !== "super_admin")) {
+  if (!session?.user || !["admin", "super_admin", "shop"].includes(role ?? "")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
