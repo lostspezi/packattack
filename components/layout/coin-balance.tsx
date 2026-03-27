@@ -15,6 +15,16 @@ export function CoinBalance() {
         setCoins(data.coins ?? 0);
       })
       .catch(() => {});
+
+    function handleRefresh() {
+      fetch("/api/profile")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.coins !== undefined) setCoins(data.coins);
+        });
+    }
+    window.addEventListener("coin-balance-refresh", handleRefresh);
+    return () => window.removeEventListener("coin-balance-refresh", handleRefresh);
   }, []);
 
   if (coins === null) return null;

@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
 
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const { userId, packageId, baseCoins, bonusCoins } = session.metadata || {};
-  if (!userId || !packageId || !baseCoins || !bonusCoins) {
+  if (!userId || !packageId || baseCoins == null || bonusCoins == null) {
     console.error("Webhook missing metadata:", session.id);
     return;
   }

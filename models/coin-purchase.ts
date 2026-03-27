@@ -23,6 +23,7 @@ export interface ICoinPurchase extends Document {
   invoiceNumber: string | null;
   invoiceGeneratedAt: Date | null;
   coinsGranted: number;
+  withdrawalConsentAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
