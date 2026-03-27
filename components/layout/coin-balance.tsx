@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from "react";
 import { Coins } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function CoinBalance() {
   const [coins, setCoins] = useState<number | null>(null);
+  const pathname = usePathname();
+  const lang = pathname.split("/")[1] || "de";
 
   useEffect(() => {
     fetch("/api/profile")
@@ -30,7 +33,7 @@ export function CoinBalance() {
   if (coins === null) return null;
 
   return (
-    <Link href="/balance" className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-pa-green/8 border border-pa-green/15 cursor-pointer hover:opacity-80 transition-opacity">
+    <Link href={`/${lang}/balance`} className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-pa-green/8 border border-pa-green/15 cursor-pointer hover:opacity-80 transition-opacity">
       <Coins className="w-4 h-4 text-pa-green" />
       <span className="text-sm font-semibold text-pa-green tabular-nums">{coins.toLocaleString()}</span>
     </Link>
