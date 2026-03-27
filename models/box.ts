@@ -11,6 +11,8 @@ export interface IBoxCard {
   stock: number;
   minStock: number;
   conditions: CardCondition[];
+  isSubstitute: boolean;
+  originalCard: Types.ObjectId | null;
 }
 
 export interface IBox extends Document {
@@ -75,6 +77,8 @@ const BoxSchema = new Schema<IBox>(
         stock: { type: Number, required: true, default: 0, min: 0 },
         minStock: { type: Number, required: true, default: 5, min: 0 },
         conditions: { type: [String], enum: ["Mint", "Near Mint", "Lightly Played", "Moderately Played", "Heavily Played"], default: ["Near Mint"] },
+        isSubstitute: { type: Boolean, default: false },
+        originalCard: { type: Schema.Types.ObjectId, ref: "Card", default: null },
       },
     ],
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
