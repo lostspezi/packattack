@@ -1,12 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Coins, Zap } from "lucide-react";
-import { useSearchParams } from "next/navigation";
 import { IdentityVerificationBanner } from "./identity-verification-banner";
 import { PackageCard } from "./package-card";
 import { PurchaseHistory } from "./purchase-history";
-import { CoinChestAnimation } from "./coin-chest-animation";
 import { CheckoutConfirmationModal } from "./checkout-confirmation-modal";
 import { useToast } from "@/components/ui/toast";
 import { Card } from "@/components/ui/card";
@@ -27,15 +25,12 @@ interface BalancePageProps {
 }
 
 export function BalancePage({ lang, dict }: BalancePageProps) {
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [packages, setPackages] = useState<CoinPackageData[]>([]);
   const [balance, setBalance] = useState<number>(0);
   const [identityVerified, setIdentityVerified] = useState<boolean | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [selectedPackage, setSelectedPackage] = useState<CoinPackageData | null>(null);
-  const [showAnimation, setShowAnimation] = useState(false);
-  const [animationCoins, setAnimationCoins] = useState(0);
 
   // Fetch initial data
   useEffect(() => {
@@ -49,54 +44,6 @@ export function BalancePage({ lang, dict }: BalancePageProps) {
       setIdentityVerified(identity?.identityVerified ?? false);
     });
   }, []);
-
-  // Handle success return from Stripe Checkout
-  useEffect(() => {
-    const success = searchParams.get("success");
-    const sessionId = searchParams.get("session_id");
-    const canceled = searchParams.get("canceled");
-
-    if (canceled) {
-      toast({ type: "info", title: dict.paymentCanceled || "Zahlung abgebrochen" });
-      return;
-    }
-
-    if (success && sessionId) {
-      pollPurchaseStatus(sessionId);
-    }
-  }, [searchParams]);
-
-  const pollPurchaseStatus = useCallback(
-    async (sessionId: string) => {
-      const maxAttempts = 10;
-      for (let i = 0; i < maxAttempts; i++) {
-        const res = await fetch(
-          `/api/coins/purchases?sessionId=${sessionId}`
-        );
-        const data = await res.json();
-        if (data.purchase?.status === "completed") {
-          setAnimationCoins(data.purchase.coinsGranted);
-          setShowAnimation(true);
-          // Refresh balance after animation
-          const profileRes = await fetch("/api/profile");
-          const profile = await profileRes.json();
-          setBalance(profile?.coins || 0);
-          // Dispatch event for header coin balance refresh
-          window.dispatchEvent(new CustomEvent("coin-balance-refresh"));
-          return;
-        }
-        await new Promise((r) => setTimeout(r, 1500));
-      }
-      toast({
-        type: "info",
-        title: dict.paymentProcessing || "Zahlung wird verarbeitet...",
-        message:
-          dict.paymentProcessingDesc ||
-          "Deine Münzen werden in Kürze gutgeschrieben.",
-      });
-    },
-    [toast, dict]
-  );
 
   function handleSelectPackage(packageId: string) {
     if (!identityVerified) {
@@ -151,14 +98,6 @@ export function BalancePage({ lang, dict }: BalancePageProps) {
 
   return (
     <div className="space-y-6">
-      {/* Animation overlay */}
-      {showAnimation && (
-        <CoinChestAnimation
-          coinsGranted={animationCoins}
-          onClose={() => setShowAnimation(false)}
-        />
-      )}
-
       {/* Checkout confirmation modal (Widerrufsrecht consent) */}
       {selectedPackage && (
         <CheckoutConfirmationModal

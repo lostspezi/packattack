@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
       baseCoins: coinPackage.baseCoins.toString(),
       bonusCoins: coinPackage.bonusCoins.toString(),
     },
-    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/${lang}/balance?success=true&session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${process.env.NEXT_PUBLIC_APP_URL}/${lang}/packs?purchase=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/${lang}/balance?canceled=true`,
     locale: lang === "de" ? "de" : "en",
   });

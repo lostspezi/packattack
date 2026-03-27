@@ -21,6 +21,8 @@ export async function POST() {
     return NextResponse.json({ error: "Already verified" }, { status: 400 });
   }
 
+  const lang = (session.user as { language?: string }).language || "de";
+
   const verificationSession = await stripe.identity.verificationSessions.create(
     {
       type: "document",
@@ -30,7 +32,7 @@ export async function POST() {
           require_matching_selfie: true,
         },
       },
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/balance?verification=complete`,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/${lang}/balance?verification=complete`,
     }
   );
 
