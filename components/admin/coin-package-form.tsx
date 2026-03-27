@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
-import { useToast } from "@/components/ui/toast-context";
+import { useToast } from "@/components/ui/toast";
 
 interface CoinPackageFormProps {
   lang: string;

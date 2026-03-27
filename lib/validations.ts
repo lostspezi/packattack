@@ -100,9 +100,7 @@ export const coinPackageUpdateSchema = coinPackageSchema.partial();
 
 export const checkoutSchema = z.object({
   packageId: z.string().min(1),
-  withdrawalConsent: z.literal(true, {
-    errorMap: () => ({ message: "Withdrawal consent is required" }),
-  }),
+  withdrawalConsent: z.literal(true, { error: "Withdrawal consent is required" }),
 });
 
 export const invoiceSettingsSchema = z.object({

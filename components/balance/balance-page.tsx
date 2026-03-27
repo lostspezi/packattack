@@ -8,7 +8,7 @@ import { PackageCard } from "./package-card";
 import { PurchaseHistory } from "./purchase-history";
 import { CoinChestAnimation } from "./coin-chest-animation";
 import { CheckoutConfirmationModal } from "./checkout-confirmation-modal";
-import { useToast } from "@/components/ui/toast-context";
+import { useToast } from "@/components/ui/toast";
 
 interface CoinPackageData {
   _id: string;

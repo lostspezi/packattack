@@ -2,7 +2,7 @@ import PDFDocument from "pdfkit";
 import { ICoinPurchase } from "@/models/coin-purchase";
 import { IInvoiceSettings } from "@/models/invoice-settings";
 
-interface PopulatedPurchase extends ICoinPurchase {
+interface PopulatedPurchase extends Omit<ICoinPurchase, "userId"> {
   userId: { name?: string; email: string; username?: string };
 }
 

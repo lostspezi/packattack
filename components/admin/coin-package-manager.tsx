@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Plus, Edit2, Trash2, ArrowUpDown } from "lucide-react";
 import { CoinPackageForm } from "./coin-package-form";
-import { useToast } from "@/components/ui/toast-context";
+import { useToast } from "@/components/ui/toast";
 
 interface CoinPackageData {
   _id: string;

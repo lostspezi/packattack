@@ -52,7 +52,7 @@ export async function GET(
   const lang = (session.user as { language?: string }).language === "en" ? "en" : "de";
   const pdfBuffer = await generateInvoicePdf(purchase as any, settings as any, lang);
 
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="Rechnung-${purchase.invoiceNumber}.pdf"`,

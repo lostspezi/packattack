@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useToast } from "@/components/ui/toast-context";
+import { useToast } from "@/components/ui/toast";
 
 interface InvoiceSettingsFormProps {
   dict: Record<string, string>;
