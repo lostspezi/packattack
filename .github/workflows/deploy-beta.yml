@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - beta
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -34,6 +35,8 @@ jobs:
             GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
             RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
             JUSTTCG_API_KEY=${{ secrets.JUSTTCG_API_KEY }}
+            STRIPE_SECRET_KEY=${{ secrets.STRIPE_SECRET_KEY }}
+            STRIPE_WEBHOOK_SECRET=${{ secrets.STRIPE_WEBHOOK_SECRET }}
             SMTP_FROM=no-reply@mail.packattack.gg
             AUTH_TRUST_HOST=true
             ENVEOF
