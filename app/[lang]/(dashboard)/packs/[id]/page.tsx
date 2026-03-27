@@ -311,8 +311,28 @@ export default function PackDetailPage() {
             </div>
           </div>
 
-          {/* Right: Condition + Description + Rarities */}
+          {/* Right: Description + Condition + Rarities */}
           <div className="lg:w-[540px] shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Description */}
+            <div className="bg-white/4 rounded-xl p-3.5">
+              <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5">
+                {isDe ? "Beschreibung" : "Description"}
+              </p>
+              <div className="text-xs text-text-secondary leading-relaxed max-h-24 overflow-hidden">
+                {desc || (isDe ? "Keine Beschreibung" : "No description")}
+              </div>
+              {desc && desc.length > 80 && (
+                <button
+                  type="button"
+                  onClick={() => setShowBoxInfo(true)}
+                  className="text-[10px] text-pa-green mt-1.5 flex items-center gap-0.5 hover:underline"
+                >
+                  {isDe ? "Mehr anzeigen" : "Show more"}
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+              )}
+            </div>
+
             {/* Condition distribution */}
             <div className="bg-white/4 rounded-xl p-3.5">
               <p className="text-[10px] text-text-muted uppercase tracking-wider mb-2">
@@ -334,26 +354,6 @@ export default function PackDetailPage() {
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Description */}
-            <div className="bg-white/4 rounded-xl p-3.5">
-              <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5">
-                {isDe ? "Beschreibung" : "Description"}
-              </p>
-              <div className="text-xs text-text-secondary leading-relaxed max-h-24 overflow-hidden">
-                {desc || (isDe ? "Keine Beschreibung" : "No description")}
-              </div>
-              {desc && desc.length > 80 && (
-                <button
-                  type="button"
-                  onClick={() => setShowBoxInfo(true)}
-                  className="text-[10px] text-pa-green mt-1.5 flex items-center gap-0.5 hover:underline"
-                >
-                  {isDe ? "Mehr anzeigen" : "Show more"}
-                  <ChevronDown className="w-3 h-3" />
-                </button>
-              )}
             </div>
 
             {/* Rarity distribution */}
