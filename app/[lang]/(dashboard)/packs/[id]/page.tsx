@@ -282,11 +282,11 @@ export default function PackDetailPage() {
               </div>
             </div>
 
-            {/* CTA + Balance */}
-            <div className="flex items-center gap-4 mt-4 flex-wrap">
+            {/* CTA + Balance inline */}
+            <div className="flex items-center gap-3 mt-3 flex-wrap">
               <Button
                 variant="primary"
-                size="lg"
+                size="md"
                 loading={opening}
                 disabled={!canAfford || box.availableCards === 0}
                 onClick={() => void handleOpen()}
@@ -294,20 +294,12 @@ export default function PackDetailPage() {
               >
                 🎴 {isDe ? "Pack öffnen" : "Open Pack"} — {totalCost} Coins
               </Button>
-              <div className="text-center">
-                <p className="text-[10px] text-text-muted">{isDe ? "Guthaben" : "Balance"}</p>
-                <p className={`text-xl font-extrabold tabular-nums ${canAfford ? "text-pa-green" : "text-red-400"}`}>
-                  {(userCoins ?? 0).toLocaleString()}
-                </p>
-              </div>
-            </div>
-
-            <div className="hidden lg:flex gap-4 mt-3 text-xs text-text-muted flex-wrap">
-              <span>{box.cardsPerPack} {isDe ? "Karten/Pack" : "cards/pack"}</span>
-              <span>·</span>
-              <span>{box.availableCards} {isDe ? "verfügbar" : "available"}</span>
-              <span>·</span>
-              <span>{box.coinConversionRate}% {isDe ? "Umwandlung" : "conversion"}</span>
+              <span className={`text-sm font-bold tabular-nums ${canAfford ? "text-pa-green" : "text-red-400"}`}>
+                {(userCoins ?? 0).toLocaleString()} Coins
+              </span>
+              <span className="hidden lg:inline text-xs text-text-muted">
+                {box.cardsPerPack} {isDe ? "Karten/Pack" : "cards/pack"} · {box.availableCards} {isDe ? "verfügbar" : "available"} · {box.coinConversionRate}% {isDe ? "Umwandlung" : "conversion"}
+              </span>
             </div>
           </div>
 
