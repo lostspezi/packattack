@@ -1,0 +1,100 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
+import connectDB from "@/lib/db";
+import InventoryItem from "@/models/inventory-item";
+import Box from "@/models/box";
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (!session?.user || !userId || role !== "shop") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const { stock, ean, sku, notes, pricePerUnit } = body as {
+    stock?: number;
+    ean?: string | null;
+    sku?: string | null;
+    notes?: string | null;
+    pricePerUnit?: number | null;
+  };
+
+  if (stock !== undefined && (stock < 0 || !Number.isInteger(stock))) {
+    return NextResponse.json({ error: "stock must be a non-negative integer" }, { status: 400 });
+  }
+
+  try {
+    await connectDB();
+    const item = await InventoryItem.findOne({ _id: id, shop: userId });
+    if (!item) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    if (stock !== undefined) item.stock = stock;
+    if (ean !== undefined) item.ean = ean;
+    if (sku !== undefined) item.sku = sku;
+    if (notes !== undefined) item.notes = notes;
+    if (pricePerUnit !== undefined) item.pricePerUnit = pricePerUnit;
+
+    await item.save();
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("[inventory/[id] PATCH]", err);
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  const userId = (session?.user as { id?: string } | undefined)?.id;
+  const role = (session?.user as { role?: string } | undefined)?.role;
+  if (!session?.user || !userId || role !== "shop") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+
+  try {
+    await connectDB();
+    const item = await InventoryItem.findOne({ _id: id, shop: userId });
+    if (!item) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    // Block deletion if card is currently a substitute in any box
+    const inUse = await Box.findOne({
+      "cards.card": item.card,
+      "cards.isSubstitute": true,
+    });
+    if (inUse) {
+      const boxName = inUse.name?.de ?? inUse.name?.en ?? "einer Box";
+      return NextResponse.json(
+        {
+          error: `Diese Karte wird aktuell in "${boxName}" als Ersatz verwendet und kann nicht gelöscht werden.`,
+        },
+        { status: 409 }
+      );
+    }
+
+    await item.deleteOne();
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("[inventory/[id] DELETE]", err);
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
+}
