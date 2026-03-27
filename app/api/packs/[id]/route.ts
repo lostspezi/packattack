@@ -34,6 +34,7 @@ export async function GET(
       stock?: number;
       rarity?: string;
       weight?: number;
+      condition?: string;
     }>;
 
     // Load card documents for images/names
@@ -60,6 +61,7 @@ export async function GET(
         marketPrice: doc?.marketPrice ?? null,
         chance,
         stock: entry.stock ?? 0,
+        condition: entry.condition ?? "Near Mint",
       };
     }).sort((a, b) => b.chance - a.chance); // Most likely first
 
@@ -141,6 +143,16 @@ export async function GET(
       coinConversionRate: box.coinConversionRate ?? 50,
       cardPool,
       topHits,
+      conditionInfo: (() => {
+        const condCount: Record<string, number> = {};
+        for (const c of cardPool) {
+          condCount[c.condition] = (condCount[c.condition] ?? 0) + 1;
+        }
+        const total = cardPool.length;
+        return Object.entries(condCount)
+          .map(([condition, count]) => ({ condition, percentage: total > 0 ? (count / total) * 100 : 0 }))
+          .sort((a, b) => b.percentage - a.percentage);
+      })(),
       recentPulls,
       liveEvents,
       myPullCounts,

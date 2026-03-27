@@ -23,6 +23,7 @@ interface CardInfo {
   marketPrice: number | null;
   chance: number;
   stock: number;
+  condition: string;
 }
 
 interface BoxDetail {
@@ -38,6 +39,7 @@ interface BoxDetail {
   availableCards: number;
   packsOpened: number;
   rarityInfo: Array<{ rarity: string; percentage: number }>;
+  conditionInfo: Array<{ condition: string; percentage: number }>;
   coinConversionRate: number;
   cardPool: CardInfo[];
   topHits: CardInfo[];
@@ -309,8 +311,31 @@ export default function PackDetailPage() {
             </div>
           </div>
 
-          {/* Right: Description + Rarities side by side */}
-          <div className="lg:w-[480px] shrink-0 grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Right: Condition + Description + Rarities */}
+          <div className="lg:w-[540px] shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Condition distribution */}
+            <div className="bg-white/4 rounded-xl p-3.5">
+              <p className="text-[10px] text-text-muted uppercase tracking-wider mb-2">
+                {isDe ? "Zustand" : "Condition"}
+              </p>
+              <div className="space-y-2">
+                {(box.conditionInfo ?? []).map((c) => (
+                  <div key={c.condition} className="flex items-center gap-2">
+                    <span className="text-[9px] text-text-secondary min-w-[50px] truncate">{c.condition}</span>
+                    <div className="flex-1 h-1.5 bg-white/6 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-pa-green/60"
+                        style={{ width: `${Math.max(2, c.percentage)}%` }}
+                      />
+                    </div>
+                    <span className="text-[10px] text-text-muted tabular-nums w-10 text-right">
+                      {c.percentage < 1 ? c.percentage.toFixed(1) : Math.round(c.percentage)}%
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Description */}
             <div className="bg-white/4 rounded-xl p-3.5">
               <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5">

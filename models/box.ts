@@ -1,11 +1,14 @@
 import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
+export type CardCondition = "Mint" | "Near Mint" | "Lightly Played" | "Moderately Played" | "Heavily Played";
+
 export interface IBoxCard {
   card: Types.ObjectId;
   weight: number;
   rarity: string;
   stock: number;
   minStock: number;
+  condition: CardCondition;
 }
 
 export interface IBox extends Document {
@@ -69,6 +72,7 @@ const BoxSchema = new Schema<IBox>(
         rarity: { type: String, required: true },
         stock: { type: Number, required: true, default: 0, min: 0 },
         minStock: { type: Number, required: true, default: 5, min: 0 },
+        condition: { type: String, enum: ["Mint", "Near Mint", "Lightly Played", "Moderately Played", "Heavily Played"], default: "Near Mint" },
       },
     ],
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },

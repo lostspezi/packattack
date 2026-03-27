@@ -12,6 +12,7 @@ interface CardInfo {
   coinValue: number;
   marketPrice: number | null;
   chance: number;
+  condition?: string;
   cardId?: string;
 }
 
@@ -40,7 +41,10 @@ export function CardLightbox({ card, lang, open, onClose, pullCount }: { card: C
           <div>
             <h3 className="text-xl font-bold text-text-primary">{card.name}</h3>
             {card.setName && <p className="text-xs text-text-muted mt-0.5">{card.setName}</p>}
-            <Badge variant="info" className="mt-2">{card.rarity}</Badge>
+            <div className="flex gap-2 mt-2 flex-wrap">
+              <Badge variant="info">{card.rarity}</Badge>
+              {card.condition && <Badge variant="success">{card.condition}</Badge>}
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-3">

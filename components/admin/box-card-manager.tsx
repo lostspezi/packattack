@@ -28,6 +28,7 @@ export interface BoxCard {
   weight: number;
   stock: number;
   minStock: number;
+  condition: string;
   set?: string;
   setName?: string;
   tcgplayerId?: string | null;
@@ -239,7 +240,15 @@ export function BoxCardManager({
     );
   }
 
-  function patchCard(cardId: string, patch: { weight?: number; rarity?: string; internalPrice?: number; stock?: number; minStock?: number }) {
+  const conditionOptions: SelectOption[] = [
+    { label: "Mint", value: "Mint" },
+    { label: "Near Mint", value: "Near Mint" },
+    { label: "Lightly Played", value: "Lightly Played" },
+    { label: "Moderately Played", value: "Moderately Played" },
+    { label: "Heavily Played", value: "Heavily Played" },
+  ];
+
+  function patchCard(cardId: string, patch: { weight?: number; rarity?: string; internalPrice?: number; stock?: number; minStock?: number; condition?: string }) {
     // Optimistic local update for weight/rarity
     if (patch.weight !== undefined || patch.rarity !== undefined) {
       setCards((prev) => {
@@ -563,6 +572,9 @@ export function BoxCardManager({
                     {isDe ? "Min." : "Min."}
                   </th>
                   <th className="px-3 py-2 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                    {isDe ? "Zustand" : "Condition"}
+                  </th>
+                  <th className="px-3 py-2 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                     {isDe ? "Ziehchance" : "Draw Chance"}
                   </th>
                   <th className="px-3 py-2 w-10" aria-label="Actions" />
@@ -700,6 +712,20 @@ export function BoxCardManager({
                           onChange={(e) => handleMinStockChange(card._id, e.target.value)}
                           placeholder="5"
                           className="py-1 text-sm w-14"
+                        />
+                      </td>
+
+                      {/* Condition */}
+                      <td className="px-3 py-2" onClick={(e) => e.stopPropagation()}>
+                        <Select
+                          options={conditionOptions}
+                          value={card.condition ?? "Near Mint"}
+                          onChange={(val) => {
+                            setCards((prev) => prev.map((c) => c._id === card._id ? { ...c, condition: val } : c));
+                            patchCard(card._id, { condition: val });
+                          }}
+                          size="sm"
+                          className="min-w-[100px]"
                         />
                       </td>
 

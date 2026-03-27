@@ -13,6 +13,7 @@ interface CardInfo {
   marketPrice: number | null;
   chance: number;
   stock: number;
+  condition: string;
 }
 
 function chanceColor(chance: number): string {
@@ -55,6 +56,7 @@ export function CardPool({ cards, lang, pullCounts }: { cards: CardInfo[]; lang:
                 <div className="w-full aspect-[63/88] bg-white/4 rounded-lg mb-1.5" />
               )}
               <p className="text-[10px] font-semibold text-text-primary truncate">{card.name}</p>
+              <p className="text-[9px] text-text-muted">{card.condition}</p>
               <p className={`text-[10px] font-bold tabular-nums ${chanceColor(card.chance)}`}>
                 {formatChance(card.chance)}
               </p>
