@@ -46,6 +46,7 @@ Users currently receive coins only through admin grants. We need a self-service 
 | stripePaymentIntentId | `string \| null` | Filled by webhook |
 | invoiceNumber | `string \| null` | e.g. "PA-2026-000042" |
 | coinsGranted | `number` | Total coins actually granted |
+| withdrawalConsentAt | `Date` | Timestamp when user consented to waive Widerrufsrecht |
 
 **Indexes:** `{ userId, createdAt: -1 }`, `{ stripeSessionId: 1 }` (unique), `{ invoiceNumber: 1 }` (unique sparse)
 
@@ -139,16 +140,37 @@ NEXT_PUBLIC_APP_URL=https://packattack.gg
 
 Singleton Stripe instance with latest API version.
 
+### Widerrufsrecht (Right of Withdrawal) Compliance
+
+German law (§ 356 Abs. 5 BGB) requires explicit consent before delivering digital content immediately. Since Stripe Checkout (redirect) does not support custom checkboxes, a **confirmation step** is needed before redirecting to Stripe:
+
+**Confirmation Modal/Page** (shown after user selects a package, before Stripe redirect):
+- Package summary (name, coins, price)
+- Link to full Widerrufsbelehrung
+- **Unticked checkbox** (mandatory opt-in):
+  > "Ich stimme ausdrücklich zu, dass PackAttack.gg sofort mit der Bereitstellung der digitalen Inhalte (Coins) beginnt. Mir ist bekannt, dass ich dadurch mein Widerrufsrecht mit vollständiger Bereitstellung der digitalen Inhalte verliere. Ich habe die Widerrufsbelehrung zur Kenntnis genommen."
+- "Weiter zur Zahlung" button (disabled until checkbox is ticked)
+- Consent timestamp stored on CoinPurchase record
+
+**Additional requirements:**
+- Full Widerrufsbelehrung page accessible from the checkout flow and footer
+- Muster-Widerrufsformular (withdrawal form template) must be provided
+- Confirmation email after purchase must include the withdrawal waiver acknowledgment
+- Coins must NOT be cashable/exchangeable to real money (would trigger BaFin/ZAG e-money requirements)
+
+**Note:** Have a German e-commerce lawyer review all legal texts before launch.
+
 ### Checkout Flow
 
-1. User selects package → `POST /api/coins/checkout { packageId }`
-2. Server validates: package exists, isActive, user is identityVerified
-3. Get or create Stripe Customer (store `stripeCustomerId` on User)
-4. Create Checkout Session with `mode: "payment"`, `line_items: [{ price: stripePriceId, quantity: 1 }]`
-5. Metadata: `{ userId, packageId, baseCoins, bonusCoins }`
-6. Create CoinPurchase with `status: "pending"`
-7. Return `{ checkoutUrl }` → Frontend redirects
-8. After payment → Webhook grants coins (see below)
+1. User selects package → Confirmation modal with Widerrufsrecht checkbox
+2. User consents → `POST /api/coins/checkout { packageId, withdrawalConsent: true }`
+3. Server validates: package exists, isActive, user is identityVerified, withdrawalConsent is true
+4. Get or create Stripe Customer (store `stripeCustomerId` on User)
+5. Create Checkout Session with `mode: "payment"`, `line_items: [{ price: stripePriceId, quantity: 1 }]`
+6. Metadata: `{ userId, packageId, baseCoins, bonusCoins }`
+7. Create CoinPurchase with `status: "pending"`, `withdrawalConsentAt: timestamp`
+8. Return `{ checkoutUrl }` → Frontend redirects
+9. After payment → Webhook grants coins (see below)
 
 ### Webhook Coin Granting (`checkout.session.completed`)
 
