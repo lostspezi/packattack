@@ -28,10 +28,10 @@ export function IdentityVerificationBanner({
   }
 
   return (
-    <div className="bg-gradient-to-r from-pa-lila to-[#3a0a5c] border border-pa-green rounded-xl p-4 flex items-center gap-4">
+    <div className="bg-gradient-to-r from-pa-lila/20 to-white/2 border border-pa-green/20 rounded-[14px] p-4 flex items-center gap-4">
       <ShieldCheck className="h-8 w-8 text-pa-green flex-shrink-0" />
       <div className="flex-1">
-        <p className="text-white font-semibold text-sm">
+        <p className="text-text-primary font-semibold text-sm">
           {dict.verificationRequired || "Altersverifizierung erforderlich"}
         </p>
         <p className="text-text-secondary text-xs mt-0.5">

@@ -9,6 +9,7 @@ import { PurchaseHistory } from "./purchase-history";
 import { CoinChestAnimation } from "./coin-chest-animation";
 import { CheckoutConfirmationModal } from "./checkout-confirmation-modal";
 import { useToast } from "@/components/ui/toast";
+import { Card } from "@/components/ui/card";
 
 interface CoinPackageData {
   _id: string;
@@ -149,7 +150,7 @@ export function BalancePage({ lang, dict }: BalancePageProps) {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Animation overlay */}
       {showAnimation && (
         <CoinChestAnimation
@@ -175,11 +176,11 @@ export function BalancePage({ lang, dict }: BalancePageProps) {
       )}
 
       {/* Balance display */}
-      <div className="text-center py-4">
+      <Card variant="accent" className="p-6 md:p-8 text-center">
         <div className="text-text-secondary text-xs uppercase tracking-widest">
           {dict.yourBalance || "Dein Guthaben"}
         </div>
-        <div className="text-5xl font-extrabold text-pa-green my-2 tabular-nums flex items-center justify-center gap-3">
+        <div className="text-5xl font-extrabold text-pa-green my-3 tabular-nums flex items-center justify-center gap-3">
           <Coins className="h-10 w-10" />
           {balance.toLocaleString("de-DE")}
         </div>
@@ -191,11 +192,11 @@ export function BalancePage({ lang, dict }: BalancePageProps) {
           })}{" "}
           €
         </div>
-      </div>
+      </Card>
 
       {/* Packages grid */}
       <div>
-        <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-4">
+        <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2 mb-4">
           <Zap className="h-5 w-5 text-pa-green" />
           {dict.topUp || "Münzen aufladen"}
         </h3>
@@ -214,7 +215,7 @@ export function BalancePage({ lang, dict }: BalancePageProps) {
 
       {/* Transaction history */}
       <div>
-        <h3 className="text-lg font-bold text-white mb-4">
+        <h3 className="text-lg font-semibold text-text-primary mb-4">
           {dict.transactionHistory || "Transaktionshistorie"}
         </h3>
         <PurchaseHistory lang={lang} dict={dict} />

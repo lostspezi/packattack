@@ -60,7 +60,7 @@ export function PurchaseHistory({ lang, dict }: PurchaseHistoryProps) {
 
   if (loading && purchases.length === 0) {
     return (
-      <div className="bg-surface border border-border rounded-xl p-8 text-center text-text-secondary">
+      <div className="bg-white/3 border border-white/6 rounded-[14px] p-8 text-center text-text-secondary">
         {dict.loading || "Laden..."}
       </div>
     );
@@ -68,7 +68,7 @@ export function PurchaseHistory({ lang, dict }: PurchaseHistoryProps) {
 
   if (purchases.length === 0) {
     return (
-      <div className="bg-surface border border-border rounded-xl p-8 text-center text-text-secondary">
+      <div className="bg-white/3 border border-white/6 rounded-[14px] p-8 text-center text-text-secondary">
         {dict.noPurchases || "Noch keine Käufe."}
       </div>
     );
@@ -76,7 +76,7 @@ export function PurchaseHistory({ lang, dict }: PurchaseHistoryProps) {
 
   return (
     <div>
-      <div className="bg-surface border border-border rounded-xl overflow-hidden">
+      <div className="bg-white/3 border border-white/6 rounded-[14px] overflow-hidden">
         {purchases.map((p, i) => {
           const name =
             lang === "en"
@@ -92,7 +92,7 @@ export function PurchaseHistory({ lang, dict }: PurchaseHistoryProps) {
             <div
               key={p._id}
               className={`flex items-center px-4 py-3 ${
-                i < purchases.length - 1 ? "border-b border-border" : ""
+                i < purchases.length - 1 ? "border-b border-white/6" : ""
               }`}
             >
               <div className="flex-1 min-w-0">
@@ -115,7 +115,7 @@ export function PurchaseHistory({ lang, dict }: PurchaseHistoryProps) {
               {p.invoiceNumber && p.status === "completed" && (
                 <button
                   onClick={() => downloadInvoice(p._id, p.invoiceNumber!)}
-                  className="bg-surface-elevated px-3 py-1 rounded-md text-xs text-text-secondary hover:text-white transition-colors flex items-center gap-1"
+                  className="bg-white/5 px-3 py-1 rounded-md text-xs text-text-secondary hover:text-text-primary transition-colors flex items-center gap-1"
                 >
                   <FileText className="h-3 w-3" />
                   {dict.invoice || "Rechnung"}

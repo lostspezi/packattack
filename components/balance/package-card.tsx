@@ -1,6 +1,7 @@
 "use client";
 
 import { Coins } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 interface PackageCardProps {
   pkg: {
@@ -33,36 +34,38 @@ export function PackageCard({
     <button
       onClick={() => onSelect(pkg._id)}
       disabled={disabled}
-      className={`
-        relative bg-surface border rounded-xl p-5 text-center transition-all
-        hover:border-pa-green hover:shadow-[0_0_20px_rgba(155,255,0,0.1)]
-        disabled:opacity-50 disabled:cursor-not-allowed
-        ${highlight ? "border-pa-green shadow-[0_0_20px_rgba(155,255,0,0.1)]" : "border-border"}
-      `}
+      className="text-left w-full disabled:opacity-50 disabled:cursor-not-allowed group"
     >
-      {highlight && (
-        <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-pa-green text-bg text-[11px] font-extrabold px-3 py-0.5 rounded-full uppercase">
-          {highlight}
-        </span>
-      )}
-
-      <div className="text-3xl mb-2">{pkg.icon || "🪙"}</div>
-      <div className="font-bold text-white text-[15px]">{name}</div>
-      <div className="text-2xl font-extrabold text-pa-green my-2">
-        {pkg.baseCoins}
-        {pkg.bonusCoins > 0 && (
-          <span className="text-sm text-pa-green-hover ml-1">
-            +{pkg.bonusCoins}
+      <Card
+        variant={highlight ? "accent" : "soft"}
+        className={`relative p-5 text-center transition-all group-hover:border-pa-green/40 group-hover:shadow-[0_0_20px_rgba(155,255,0,0.08)] ${
+          highlight ? "border-pa-green/30 shadow-[0_0_20px_rgba(155,255,0,0.08)]" : ""
+        }`}
+      >
+        {highlight && (
+          <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-pa-green text-bg text-[11px] font-extrabold px-3 py-0.5 rounded-full uppercase">
+            {highlight}
           </span>
         )}
-      </div>
-      <div className="text-text-secondary text-xs flex items-center justify-center gap-1">
-        <Coins className="h-3 w-3" />
-        Münzen
-      </div>
-      <div className="bg-surface-elevated rounded-lg py-2 mt-3">
-        <span className="font-bold text-white">{priceEur} €</span>
-      </div>
+
+        <div className="text-3xl mb-2">{pkg.icon || "🪙"}</div>
+        <div className="font-bold text-text-primary text-[15px]">{name}</div>
+        <div className="text-2xl font-extrabold text-pa-green my-2">
+          {pkg.baseCoins}
+          {pkg.bonusCoins > 0 && (
+            <span className="text-sm text-pa-green/70 ml-1">
+              +{pkg.bonusCoins}
+            </span>
+          )}
+        </div>
+        <div className="text-text-secondary text-xs flex items-center justify-center gap-1">
+          <Coins className="h-3 w-3" />
+          Münzen
+        </div>
+        <div className="bg-white/5 rounded-lg py-2 mt-3">
+          <span className="font-bold text-text-primary">{priceEur} €</span>
+        </div>
+      </Card>
     </button>
   );
 }
