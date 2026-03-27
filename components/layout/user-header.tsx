@@ -126,18 +126,18 @@ export function UserHeader({
               <span>{dict["packs"] ?? "Packs"}</span>
             </Link>
 
-            {/* Inventory / Collection */}
+            {/* Claimed / Collection */}
             <Link
-              href={`/${lang}/inventory`}
+              href={`/${lang}/claimed`}
               className={[
                 "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                pathname.includes("/inventory")
+                pathname.startsWith(`/${lang}/claimed`)
                   ? "bg-white/6 text-pa-green"
                   : "text-text-secondary hover:text-text-primary hover:bg-white/4",
               ].join(" ")}
             >
               <Layers className="w-4 h-4 flex-shrink-0" />
-              <span>{dict["inventory"] ?? (lang === "de" ? "Sammlung" : "Collection")}</span>
+              <span>{dict["claimed"] ?? (lang === "de" ? "Sammlung" : "Collection")}</span>
             </Link>
 
             {/* Marketplace — soon */}
@@ -262,17 +262,17 @@ export function UserHeader({
               </Link>
 
               <Link
-                href={`/${lang}/inventory`}
+                href={`/${lang}/claimed`}
                 onClick={() => setMobileMenuOpen(false)}
                 className={[
                   "flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium transition-colors",
-                  pathname.includes("/inventory")
+                  pathname.startsWith(`/${lang}/claimed`)
                     ? "text-pa-green bg-pa-green/6"
                     : "text-text-muted hover:text-text-primary",
                 ].join(" ")}
               >
                 <Layers className="w-5 h-5 flex-shrink-0" />
-                <span>{dict["inventory"] ?? (lang === "de" ? "Sammlung" : "Collection")}</span>
+                <span>{dict["claimed"] ?? (lang === "de" ? "Sammlung" : "Collection")}</span>
               </Link>
 
               <span className="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-medium opacity-35 cursor-default select-none text-text-muted">
