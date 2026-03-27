@@ -38,7 +38,7 @@ export function InventoryGrid({ lang, refreshKey }: InventoryGridProps) {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/inventory?page=${page}&limit=30`)
+    fetch(`/api/claimed?page=${page}&limit=30`)
       .then(async (res) => {
         if (!res.ok) return;
         const data = await res.json() as { items?: InventoryItem[]; total?: number; totalPages?: number };
