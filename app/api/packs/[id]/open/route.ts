@@ -9,6 +9,7 @@ import PackPull from "@/models/pack-pull";
 import CoinTransaction from "@/models/coin-transaction";
 import Notification from "@/models/notification";
 import { drawPacks, type PackCard } from "@/lib/pack-engine";
+import { runSubstitutions } from "@/lib/substitution";
 
 export async function POST(
   req: NextRequest,
@@ -158,7 +159,21 @@ export async function POST(
     // 9. Check for low-stock / out-of-stock notifications (only for drawn cards)
     if (updatedBox) void sendStockAlerts(updatedBox, cardMap, stockUpdates);
 
-    // 10. Response
+    // 10. Substitute depleted cards from global inventory
+    const depletedCards: Record<string, number> = {};
+    if (updatedBox) {
+      for (const [cardId, drawnCount] of Object.entries(stockUpdates)) {
+        const entry = updatedBox.cards.find((c) => c.card.toString() === cardId);
+        if (entry && (entry.stock ?? 0) === 0) {
+          depletedCards[cardId] = drawnCount;
+        }
+      }
+    }
+    if (Object.keys(depletedCards).length > 0) {
+      void runSubstitutions({ boxId: realBoxId.toString(), depletedCards });
+    }
+
+    // 11. Response
     return NextResponse.json({
       packGroupId,
       packCount,
