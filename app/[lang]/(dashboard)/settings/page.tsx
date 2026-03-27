@@ -3,6 +3,7 @@ import { getDictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { SettingsForm } from "@/components/settings/settings-form";
+import { ShopApplyForm } from "@/components/shop/shop-apply-form";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
 
@@ -48,6 +49,19 @@ export default async function SettingsPage({
           lang={lang}
           initialSettings={initialSettings}
         />
+      </Card>
+
+      {/* Als Shop bewerben */}
+      <Card variant="soft" className="p-4 md:p-6">
+        <h3 className="text-base font-semibold text-text-primary mb-1">
+          {lang === "de" ? "Als Shop bewerben" : "Apply as a shop"}
+        </h3>
+        <p className="text-sm text-text-secondary mb-4">
+          {lang === "de"
+            ? "Registriere dich als Partner-Shop und verwalte dein Karteninventar."
+            : "Register as a partner shop and manage your card inventory."}
+        </p>
+        <ShopApplyForm lang={lang} />
       </Card>
     </div>
   );
