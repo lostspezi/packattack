@@ -72,6 +72,7 @@ export function BalancePage({ lang, dict }: BalancePageProps) {
         body: JSON.stringify({
           packageId: selectedPackage._id,
           withdrawalConsent: true,
+          lang,
         }),
       });
       const data = await res.json();

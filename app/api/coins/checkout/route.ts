@@ -66,8 +66,8 @@ export async function POST(req: NextRequest) {
     await user.save();
   }
 
-  // Determine language for Stripe Checkout
-  const lang = (session.user as { language?: string }).language || "de";
+  // Use lang from request body (sent by frontend based on current URL)
+  const lang = body.lang === "en" ? "en" : "de";
 
   const checkoutSession = await stripe.checkout.sessions.create({
     mode: "payment",

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
+import { usePathname } from "next/navigation";
 
 interface IdentityVerificationBannerProps {
   dict: Record<string, string>;
@@ -11,12 +12,16 @@ export function IdentityVerificationBanner({
   dict,
 }: IdentityVerificationBannerProps) {
   const [loading, setLoading] = useState(false);
+  const pathname = usePathname();
+  const lang = pathname.split("/")[1] || "de";
 
   async function handleVerify() {
     setLoading(true);
     try {
       const res = await fetch("/api/coins/verify-identity", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lang }),
       });
       const data = await res.json();
       if (data.verificationUrl) {

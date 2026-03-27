@@ -1,10 +1,10 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
 import stripe from "@/lib/stripe";
 
-export async function POST() {
+export async function POST(req: NextRequest) {
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;
   if (!session?.user || !userId) {
@@ -21,7 +21,9 @@ export async function POST() {
     return NextResponse.json({ error: "Already verified" }, { status: 400 });
   }
 
-  const lang = (session.user as { language?: string }).language || "de";
+  // Use lang from request body (sent by frontend based on current URL)
+  const body = await req.json().catch(() => ({}));
+  const lang = body.lang === "en" ? "en" : "de";
 
   const verificationSession = await stripe.identity.verificationSessions.create(
     {
