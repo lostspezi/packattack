@@ -1,6 +1,11 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
+import { Upload } from "lucide-react";
 
 interface ShopProfileData {
   status: "pending" | "approved" | "rejected";
@@ -11,13 +16,13 @@ interface ShopProfileData {
 
 export function ShopApplyForm({ lang }: { lang: string }) {
   const isDe = lang === "de";
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [profile, setProfile] = useState<ShopProfileData | null | undefined>(undefined);
   const [companyName, setCompanyName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [isSmallBusiness, setIsSmallBusiness] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   useEffect(() => {
     fetch("/api/shop/profile")
@@ -29,11 +34,13 @@ export function ShopApplyForm({ lang }: { lang: string }) {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!file) {
-      setError(isDe ? "Bitte Gewerbenachweis hochladen" : "Please upload your business license");
+      toast({
+        type: "error",
+        title: isDe ? "Bitte Gewerbenachweis hochladen" : "Please upload your business license",
+      });
       return;
     }
     setLoading(true);
-    setError(null);
     const fd = new FormData();
     fd.append("companyName", companyName);
     fd.append("file", file);
@@ -42,9 +49,12 @@ export function ShopApplyForm({ lang }: { lang: string }) {
       const res = await fetch("/api/shop/apply", { method: "POST", body: fd });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? "Fehler");
+        toast({ type: "error", title: data.error ?? "Fehler" });
       } else {
-        setSuccess(true);
+        toast({
+          type: "success",
+          title: isDe ? "Bewerbung eingereicht!" : "Application submitted!",
+        });
         setProfile({
           status: "pending",
           companyName,
@@ -53,7 +63,7 @@ export function ShopApplyForm({ lang }: { lang: string }) {
         });
       }
     } catch {
-      setError("Netzwerkfehler");
+      toast({ type: "error", title: "Netzwerkfehler" });
     } finally {
       setLoading(false);
     }
@@ -80,71 +90,61 @@ export function ShopApplyForm({ lang }: { lang: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-6">
       {profile?.status === "rejected" && (
-        <div className="rounded-lg border border-error/20 bg-error/10 p-3 text-sm text-error">
+        <div className="rounded-[10px] border border-error/20 bg-error/10 p-3 text-sm text-error">
           {isDe ? "Abgelehnt" : "Rejected"}: {profile.rejectReason}
         </div>
       )}
-      {success && (
-        <p className="text-sm text-success">
-          {isDe ? "Bewerbung eingereicht!" : "Application submitted!"}
-        </p>
-      )}
-      {error && <p className="text-sm text-error">{error}</p>}
 
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-text-primary">
-          {isDe ? "Firmenname" : "Company name"}
-        </label>
-        <input
-          type="text"
-          required
-          value={companyName}
-          onChange={(e) => setCompanyName(e.target.value)}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-primary"
-          placeholder={isDe ? "Musterfirma GmbH" : "Acme Corp"}
-        />
-      </div>
+      <Input
+        label={isDe ? "Firmenname" : "Company name"}
+        required
+        value={companyName}
+        onChange={(e) => setCompanyName(e.target.value)}
+        placeholder={isDe ? "Musterfirma GmbH" : "Acme Corp"}
+      />
 
-      <div className="space-y-1">
-        <label className="text-sm font-medium text-text-primary">
+      <div className="flex flex-col gap-1.5">
+        <span className="text-text-secondary text-sm font-medium">
           {isDe ? "Gewerbenachweis" : "Business license"}{" "}
-          <span className="text-text-secondary font-normal">(PDF, PNG, JPG · max 5 MB)</span>
-        </label>
+          <span className="font-normal text-text-muted">(PDF, PNG, JPG · max 5 MB)</span>
+        </span>
         <input
+          ref={fileInputRef}
           type="file"
-          required
           accept=".pdf,.png,.jpg,.jpeg"
           onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          className="w-full text-sm text-text-secondary file:mr-3 file:rounded file:border-0 file:bg-surface file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-text-primary"
+          className="hidden"
         />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="flex items-center gap-2 bg-white/3 border border-white/8 rounded-[10px] px-4 py-3 text-sm text-text-secondary hover:border-white/16 transition-colors cursor-pointer text-left"
+        >
+          <Upload className="w-4 h-4 flex-shrink-0 text-text-muted" />
+          {file ? (
+            <span className="text-text-primary truncate">{file.name}</span>
+          ) : (
+            <span>{isDe ? "Datei auswählen…" : "Choose file…"}</span>
+          )}
+        </button>
       </div>
 
-      <div className="flex items-start gap-2">
-        <input
-          type="checkbox"
-          id="isSmallBusiness"
-          checked={isSmallBusiness}
-          onChange={(e) => setIsSmallBusiness(e.target.checked)}
-          className="mt-1 rounded border-border"
-        />
-        <label htmlFor="isSmallBusiness" className="text-sm text-text-primary">
-          {isDe
+      <Checkbox
+        id="isSmallBusiness"
+        label={
+          isDe
             ? "Ich unterliege der Kleinunternehmerregelung (§19 UStG)"
-            : "I am subject to the small business regulation (§19 UStG)"}
-        </label>
-      </div>
+            : "I am subject to the small business regulation (§19 UStG)"
+        }
+        checked={isSmallBusiness}
+        onCheckedChange={setIsSmallBusiness}
+      />
 
-      <button
-        type="submit"
-        disabled={loading}
-        className="rounded-md bg-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-      >
-        {loading
-          ? isDe ? "Wird gesendet…" : "Submitting…"
-          : isDe ? "Bewerbung einreichen" : "Submit application"}
-      </button>
+      <Button type="submit" variant="primary" size="md" loading={loading} className="w-full md:w-auto">
+        {isDe ? "Bewerbung einreichen" : "Submit application"}
+      </Button>
     </form>
   );
 }

@@ -41,7 +41,7 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
   );
 
   useEffect(() => {
-    fetch("/api/admin/languages")
+    fetch("/api/languages")
       .then((res) => res.json())
       .then((data: { languages?: LanguageOption[] }) => {
         const active = (data.languages ?? []).filter((l) => l.isActive);
