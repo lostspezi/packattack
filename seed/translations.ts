@@ -277,6 +277,8 @@ export const translationSeedData = [
   { namespace: "admin", key: "shops", values: { de: "Shops" } },
   { namespace: "admin", key: "adminInventory", values: { de: "Plattform-Inventar" } },
   { namespace: "admin", key: "inventoryOverview", values: { de: "Inventar-Übersicht" } },
+  { namespace: "admin", key: "coinPackages", values: { de: "Münzpakete" } },
+  { namespace: "admin", key: "invoiceSettings", values: { de: "Rechnungseinstellungen" } },
   { namespace: "admin", key: "administration", values: { de: "Administration" } },
   { namespace: "admin", key: "totalUsers", values: { de: "Benutzer gesamt" } },
   { namespace: "admin", key: "newUsers", values: { de: "Neue Benutzer (7 Tage)" } },
