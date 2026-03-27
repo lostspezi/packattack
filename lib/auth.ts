@@ -29,6 +29,18 @@ async function findUserById(id: string) {
   return null;
 }
 
+// Helper: get the OAuth profile image from the adapter's native user doc
+async function getAdapterUserImage(id: string): Promise<string | null> {
+  try {
+    const client = getMongoClient();
+    const db = client.db();
+    const nativeUser = await db.collection("users").findOne({ _id: id as unknown as Types.ObjectId });
+    return (nativeUser?.image as string) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Native MongoClient for the Auth adapter (separate from Mongoose connection)
 // ---------------------------------------------------------------------------
@@ -116,7 +128,7 @@ const authConfig: NextAuthConfig = {
           emailVerified: user.emailVerified ?? null,
           userTosVersion: user.consents?.tos?.version ?? "",
           userPrivacyVersion: user.consents?.privacy?.version ?? "",
-          language: user.preferences?.language ?? "en",
+          language: user.preferences?.language ?? "de",
         };
       },
     }),
@@ -158,7 +170,7 @@ const authConfig: NextAuthConfig = {
             const ownerId = existingAccount.userId?.toString() ?? "";
             if (currentUserId && ownerId && currentUserId !== ownerId) {
               // Different user owns this account — redirect with error instead of crashing
-              return `/en/account?error=OAuthAccountNotLinked`;
+              return `/de/account?error=OAuthAccountNotLinked`;
             }
             // Same user — this is a normal login, allow through
           }
@@ -189,8 +201,13 @@ const authConfig: NextAuthConfig = {
             token.emailVerified = dbUser.emailVerified ?? null;
             token.userTosVersion = dbUser.consents?.tos?.version ?? "";
             token.userPrivacyVersion = dbUser.consents?.privacy?.version ?? "";
-            token.language = dbUser.preferences?.language ?? "en";
-            token.picture = dbUser.image ?? null;
+            token.language = dbUser.preferences?.language ?? "de";
+            // Only override the OAuth profile picture if the user uploaded a custom avatar
+            if (dbUser.image) {
+              token.picture = dbUser.image;
+            } else if (!token.picture) {
+              token.picture = user.image ?? null;
+            }
             token.onboardingCompleted = dbUser.onboardingCompleted ?? false;
           } else {
             // Fallback for brand-new OAuth users created by the adapter
@@ -198,7 +215,7 @@ const authConfig: NextAuthConfig = {
             token.emailVerified = null;
             token.userTosVersion = "";
             token.userPrivacyVersion = "";
-            token.language = "en";
+            token.language = "de";
             token.onboardingCompleted = false;
           }
         } catch {
@@ -207,7 +224,7 @@ const authConfig: NextAuthConfig = {
           token.emailVerified = token.emailVerified ?? null;
           token.userTosVersion = token.userTosVersion ?? "";
           token.userPrivacyVersion = token.userPrivacyVersion ?? "";
-          token.language = token.language ?? "en";
+          token.language = token.language ?? "de";
           token.onboardingCompleted = token.onboardingCompleted ?? false;
         }
       }
@@ -233,9 +250,15 @@ const authConfig: NextAuthConfig = {
             token.emailVerified = dbUser.emailVerified ?? null;
             token.userTosVersion = dbUser.consents?.tos?.version ?? "";
             token.userPrivacyVersion = dbUser.consents?.privacy?.version ?? "";
-            token.language = dbUser.preferences?.language ?? (token.language as string) ?? "en";
+            token.language = dbUser.preferences?.language ?? (token.language as string) ?? "de";
             token.role = dbUser.role ?? (token.role as string) ?? "user";
-            token.picture = dbUser.image ?? null;
+            // Only override OAuth picture if user has a custom avatar
+            if (dbUser.image) {
+              token.picture = dbUser.image;
+            } else if (!token.picture && token.sub) {
+              // Restore OAuth profile picture from the adapter's native user doc
+              token.picture = await getAdapterUserImage(token.sub);
+            }
             token.onboardingCompleted = dbUser.onboardingCompleted ?? false;
           }
         } catch {
