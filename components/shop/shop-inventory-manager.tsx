@@ -59,7 +59,7 @@ export function ShopInventoryManager({ lang }: ShopInventoryManagerProps) {
   }, []);
 
   return (
-    <div className="h-full">
+    <div className="flex flex-col flex-1 min-h-0">
       {/* Mobile tabs */}
       <div className="flex lg:hidden border-b border-border mb-4">
         <button
@@ -92,7 +92,7 @@ export function ShopInventoryManager({ lang }: ShopInventoryManagerProps) {
       </div>
 
       {/* Two columns desktop / tab content mobile */}
-      <div className="flex gap-6 h-[calc(100vh-200px)]">
+      <div className="flex gap-6 flex-1 min-h-0">
         <div className={`lg:w-[40%] lg:border-r lg:border-border lg:pr-6 overflow-y-auto ${
           activeTab === "search" ? "block" : "hidden lg:block"
         }`}>

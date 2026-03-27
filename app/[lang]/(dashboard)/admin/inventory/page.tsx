@@ -1,4 +1,4 @@
-import { InventoryOverviewTable } from "@/components/admin/inventory-overview-table";
+import { ShopInventoryManager } from "@/components/shop/shop-inventory-manager";
 
 export default async function AdminInventoryPage({
   params,
@@ -6,20 +6,21 @@ export default async function AdminInventoryPage({
   params: Promise<{ lang: string }>;
 }) {
   const { lang } = await params;
+  const isDe = lang === "de";
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <div className="flex flex-col flex-1 min-h-0 gap-4">
       <div>
         <h2 className="text-2xl font-bold text-text-primary">
-          {lang === "de" ? "Globales Inventar" : "Global Inventory"}
+          {isDe ? "Plattform-Inventar" : "Platform Inventory"}
         </h2>
         <p className="text-text-secondary mt-1 text-sm">
-          {lang === "de"
-            ? "Übersicht aller Shop-Inventare. Bestand kann hier manuell überschrieben werden."
-            : "Overview of all shop inventories. Stock can be overridden manually here."}
+          {isDe
+            ? "Verwalte den eigenen Kartenbestand der Plattform."
+            : "Manage the platform's own card stock."}
         </p>
       </div>
-      <InventoryOverviewTable lang={lang} />
+      <ShopInventoryManager lang={lang} />
     </div>
   );
 }

@@ -29,7 +29,7 @@ export default async function AdminLayout({
   const userInitial = userName.charAt(0).toUpperCase();
 
   return (
-    <div className="flex min-h-[calc(100vh-64px)]">
+    <div className="flex flex-1">
       <Sidebar
         lang={lang}
         dict={{}}
@@ -40,7 +40,7 @@ export default async function AdminLayout({
         userInitial={userInitial}
         mode="admin"
       />
-      <main className="flex-1 p-4 md:p-6 min-w-0">
+      <main className="flex-1 p-4 md:p-6 min-w-0 flex flex-col">
         {children}
       </main>
     </div>

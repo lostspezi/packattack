@@ -9,7 +9,7 @@ export default async function ShopInventoryPage({
   const isDe = lang === "de";
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col flex-1 min-h-0 gap-4">
       <div>
         <h2 className="text-2xl font-bold text-text-primary">
           {isDe ? "Inventar-Verwaltung" : "Inventory Management"}
