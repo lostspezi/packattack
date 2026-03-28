@@ -45,6 +45,7 @@ next-env.d.ts
 
 # Claude Code
 .claude/projects/
+.claude/settings.local.json
 *.iml
 
 # brainstorm mockups
