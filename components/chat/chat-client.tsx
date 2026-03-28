@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
+import { ChatAvatar } from "@/components/chat/chat-avatar";
 import { MentionSuggestions } from "@/components/chat/mention-suggestions";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
 import type { ChatDictionary } from "@/lib/chat-i18n";
@@ -401,29 +402,36 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
             messages.map((message) => (
               <div key={message.id} className="rounded-[14px] border border-white/6 bg-white/3 p-3">
                 <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-text-primary">{message.author?.name ?? "System"}</span>
-                      {message.author?.roleBadge && (
-                        <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
-                          {message.author.roleBadge}
-                        </span>
-                      )}
-                      {message.author?.identityVerified && (
-                        <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
-                          {copy.badges.verified}
-                        </span>
-                      )}
-                    </div>
-                    {message.author?.profileBadges.length ? (
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        {message.author.profileBadges.map((badge) => (
-                          <span key={badge.key} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${toneClass(badge.tone)}`}>
-                            {badge.label}
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <ChatAvatar
+                      name={message.author?.name ?? "System"}
+                      src={message.author?.avatarUrl ?? null}
+                      size="sm"
+                    />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-text-primary">{message.author?.name ?? "System"}</span>
+                        {message.author?.roleBadge && (
+                          <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
+                            {message.author.roleBadge}
                           </span>
-                        ))}
+                        )}
+                        {message.author?.identityVerified && (
+                          <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
+                            {copy.badges.verified}
+                          </span>
+                        )}
                       </div>
-                    ) : null}
+                      {message.author?.profileBadges.length ? (
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {message.author.profileBadges.map((badge) => (
+                            <span key={badge.key} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${toneClass(badge.tone)}`}>
+                              {badge.label}
+                            </span>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-text-muted">
                     <time title={new Date(message.createdAt).toLocaleString("de-DE")}>{formatTime(message.createdAt)}</time>

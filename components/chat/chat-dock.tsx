@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
+import { ChatAvatar } from "@/components/chat/chat-avatar";
 import { MentionSuggestions } from "@/components/chat/mention-suggestions";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
 import type { ChatDictionary } from "@/lib/chat-i18n";
@@ -132,7 +133,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const hiddenOnRoute = pathname === `/${lang}/chat` || pathname.startsWith(`/${lang}/admin/chat`);
 
   const [isDesktop, setIsDesktop] = useState(false);
-  const [desktopOpen, setDesktopOpen] = useState(true);
+  const [desktopOpen, setDesktopOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -144,6 +145,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [pendingNewCount, setPendingNewCount] = useState(0);
+  const [pendingMentionCount, setPendingMentionCount] = useState(0);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState<ChatMessageSummary | null>(null);
   const [reportCategory, setReportCategory] = useState("spam");
@@ -229,21 +231,9 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   }, []);
 
   useEffect(() => {
-    const stored = window.localStorage.getItem("chat:dock:desktop-open");
-    if (stored === null) {
-      setDesktopOpen(true);
-      return;
-    }
-    setDesktopOpen(stored === "1");
-  }, []);
-
-  useEffect(() => {
-    window.localStorage.setItem("chat:dock:desktop-open", desktopOpen ? "1" : "0");
-  }, [desktopOpen]);
-
-  useEffect(() => {
     if (!isPanelOpen) return;
     pendingScrollToBottomRef.current = true;
+    setPendingMentionCount(0);
   }, [isPanelOpen]);
 
   useEffect(() => {
@@ -306,6 +296,14 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
       setReadState(payload.readState);
       setPermissions(payload.permissions);
       setSelfUsername(payload.selfUsername);
+      setPendingMentionCount(
+        payload.messages.filter(
+          (message) =>
+            (message.visibleSeq ?? 0) > payload.readState.lastReadVisibleSeq &&
+            message.author?.id !== currentUserId &&
+            message.mentionTargets.some((target) => target.userId === currentUserId)
+        ).length
+      );
     } catch {
       setLoadError(copy.states.loadError);
     } finally {
@@ -370,6 +368,9 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
             pendingScrollToBottomRef.current = true;
           } else {
             setPendingNewCount((count) => count + 1);
+            if (mentionsCurrentUser && !isPanelOpen) {
+              setPendingMentionCount((count) => count + 1);
+            }
           }
         }
 
@@ -786,29 +787,36 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           messages.map((message) => (
             <div key={message.id} className="rounded-[16px] border border-white/7 bg-black/12 p-3">
               <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-text-primary">
-                      {message.author?.name ?? "System"}
-                    </span>
-                    {message.author?.roleBadge ? (
-                      <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
-                        {message.author.roleBadge}
+                <div className="flex min-w-0 flex-1 items-center gap-3">
+                  <ChatAvatar
+                    name={message.author?.name ?? "System"}
+                    src={message.author?.avatarUrl ?? null}
+                    size="sm"
+                  />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-semibold text-text-primary">
+                        {message.author?.name ?? "System"}
                       </span>
+                      {message.author?.roleBadge ? (
+                        <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
+                          {message.author.roleBadge}
+                        </span>
+                      ) : null}
+                    </div>
+                    {message.author?.profileBadges.length ? (
+                      <div className="mt-1 flex flex-wrap gap-1.5">
+                        {message.author.profileBadges.map((badge) => (
+                          <span
+                            key={badge.key}
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${toneClass(badge.tone)}`}
+                          >
+                            {badge.label}
+                          </span>
+                        ))}
+                      </div>
                     ) : null}
                   </div>
-                  {message.author?.profileBadges.length ? (
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {message.author.profileBadges.map((badge) => (
-                        <span
-                          key={badge.key}
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${toneClass(badge.tone)}`}
-                        >
-                          {badge.label}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
                 </div>
                 <div className="flex items-center gap-2 text-xs text-text-muted">
                   <time title={new Date(message.createdAt).toLocaleString("de-DE")}>
@@ -978,6 +986,10 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     </div>
   );
 
+  const triggerBadgeCount = pendingMentionCount > 0 ? pendingMentionCount : badgeCount;
+  const triggerBadgeClassName =
+    pendingMentionCount > 0 ? "bg-red-500 text-white" : "bg-pa-green text-bg";
+
   return (
     <>
       <div className="hidden xl:block">
@@ -993,9 +1005,9 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
             >
               <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-pa-green/10 text-pa-green">
                 <MessagesSquare className="h-5 w-5" />
-                {badgeCount > 0 ? (
-                  <span className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-pa-green px-1.5 text-[10px] font-bold text-bg">
-                    {badgeCount > 99 ? "99+" : badgeCount}
+                {triggerBadgeCount > 0 ? (
+                  <span className={`absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${triggerBadgeClassName}`}>
+                    {triggerBadgeCount > 99 ? "99+" : triggerBadgeCount}
                   </span>
                 ) : null}
               </span>
@@ -1017,9 +1029,9 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
             title={copy.page.expand}
           >
             <MessagesSquare className="h-5 w-5" />
-            {badgeCount > 0 ? (
-              <span className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-pa-green px-1.5 text-[10px] font-bold text-bg">
-                {badgeCount > 99 ? "99+" : badgeCount}
+            {triggerBadgeCount > 0 ? (
+              <span className={`absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${triggerBadgeClassName}`}>
+                {triggerBadgeCount > 99 ? "99+" : triggerBadgeCount}
               </span>
             ) : null}
           </button>
