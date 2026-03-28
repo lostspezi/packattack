@@ -1,6 +1,5 @@
 ﻿import { redirect } from "next/navigation";
 import { ChatDock } from "@/components/chat/chat-dock";
-import { BuildIndicator } from "@/components/layout/build-indicator";
 import { UserHeader } from "@/components/layout/user-header";
 import { auth } from "@/lib/auth";
 import { getActiveLanguages, getDictionary } from "@/lib/i18n";
@@ -40,7 +39,6 @@ export default async function DashboardLayout({
         userRole={userRole}
       />
       <div className="flex flex-1 flex-col">{children}</div>
-      <BuildIndicator userRole={userRole} />
       <ChatDock
         lang={lang}
         dict={chatDict}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
+import { BuildIndicator } from "@/components/layout/build-indicator";
 import { ToastProvider } from "@/components/ui/toast";
 import { Footer } from "@/components/layout/footer";
 import { getActiveLocales, getDefaultLocale, getDictionary } from "@/lib/i18n";
@@ -57,6 +58,7 @@ export default async function LangLayout({
           <ToastProvider>
             <div className="flex-1 flex flex-col overflow-y-auto">{children}</div>
             <Footer lang={lang} dict={footerDict} />
+            <BuildIndicator />
           </ToastProvider>
         </SessionProvider>
       </body>

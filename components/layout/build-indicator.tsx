@@ -1,20 +1,19 @@
 import { connection } from "next/server";
-import { isChatStaff } from "@/lib/chat-constants";
 
-type BuildIndicatorProps = {
-  userRole: string;
-};
-
-export async function BuildIndicator({ userRole }: BuildIndicatorProps) {
-  if (!isChatStaff(userRole)) {
-    return null;
-  }
+export async function BuildIndicator() {
+  const appUrl = process.env.NEXTAUTH_URL?.trim() ?? process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "";
 
   await connection();
 
   const buildSha = process.env.BUILD_SHA?.trim() ?? "";
   const buildBranch = process.env.BUILD_BRANCH?.trim() ?? "";
   const isLocalDev = process.env.NODE_ENV !== "production";
+  const isBeta = appUrl.includes("beta.packattack.gg");
+
+  if (!isLocalDev && !isBeta) {
+    return null;
+  }
+
   const shortSha = buildSha ? buildSha.slice(0, 7) : null;
   const label = shortSha
     ? `${buildBranch || "build"} · ${shortSha}`
