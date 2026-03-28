@@ -5,6 +5,12 @@ import stripe from "@/lib/stripe";
 import User from "@/models/user";
 import CoinPurchase from "@/models/coin-purchase";
 import CoinTransaction from "@/models/coin-transaction";
+import CartItem from "@/models/cart-item";
+import PackPull from "@/models/pack-pull";
+import Order from "@/models/order";
+import Notification from "@/models/notification";
+import { decrementShopStock } from "@/lib/fulfillment-assignment";
+import { runRedisCommand } from "@/lib/redis";
 
 export async function POST(req: NextRequest) {
   const rawBody = await req.text();
@@ -29,12 +35,24 @@ export async function POST(req: NextRequest) {
   await connectDB();
 
   switch (event.type) {
-    case "checkout.session.completed":
-      await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session);
+    case "checkout.session.completed": {
+      const checkoutSession = event.data.object as Stripe.Checkout.Session;
+      if (checkoutSession.metadata?.type === "shipping") {
+        await handleShippingCheckoutCompleted(checkoutSession);
+      } else {
+        await handleCheckoutCompleted(checkoutSession);
+      }
       break;
-    case "checkout.session.expired":
-      await handleCheckoutExpired(event.data.object as Stripe.Checkout.Session);
+    }
+    case "checkout.session.expired": {
+      const expiredSession = event.data.object as Stripe.Checkout.Session;
+      if (expiredSession.metadata?.type === "shipping") {
+        await handleShippingCheckoutExpired(expiredSession);
+      } else {
+        await handleCheckoutExpired(expiredSession);
+      }
       break;
+    }
     case "identity.verification_session.verified":
       await handleIdentityVerified(event.data.object);
       break;
@@ -146,4 +164,85 @@ async function handleIdentityFailed(verificationSession: Stripe.Identity.Verific
     identityVerified: false,
     stripeIdentityVerificationId: null,
   });
+}
+
+async function handleShippingCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const { orderId, userId } = session.metadata || {};
+  if (!orderId || !userId) {
+    console.error("Shipping webhook missing metadata:", session.id);
+    return;
+  }
+
+  const order = await Order.findById(orderId);
+  if (!order || order.paymentStatus === "paid") return;
+
+  order.paymentStatus = "paid";
+  order.status = "paid";
+  order.stripePaymentIntentId = session.payment_intent as string;
+  await order.save();
+
+  const cartItemIds = order.items.map((i: { cartItemId: unknown }) => i.cartItemId) as string[];
+  await CartItem.updateMany(
+    { _id: { $in: cartItemIds }, status: "reserved" },
+    { status: "checked_out", orderId: order._id }
+  );
+
+  const cartItems = await CartItem.find({ _id: { $in: cartItemIds } }).select("pullId").lean();
+  const pullIds = cartItems.map((c) => c.pullId);
+  await PackPull.updateMany(
+    { _id: { $in: pullIds }, status: "reserved" },
+    { status: "claimed" }
+  );
+
+  await decrementShopStock(order.fulfillments);
+
+  await CoinTransaction.create({
+    userId,
+    amount: 0,
+    type: "shipping_payment",
+    reason: `Stripe shipping payment for order ${order.orderNumber}`,
+    relatedOrderId: order._id,
+  });
+
+  for (const f of order.fulfillments) {
+    if (!f.shopId) continue;
+    await Notification.create({
+      userId: f.shopId,
+      title: "Neuer Versandauftrag",
+      message: `Bestellung ${order.orderNumber}: ${f.items.length} Karte${f.items.length > 1 ? "n" : ""} zum Versand.`,
+      type: "info",
+      cta: { label: "Aufträge ansehen", url: "/shop/fulfillments" },
+      category: "fulfillment",
+      entityType: "order",
+      entityId: orderId,
+    });
+  }
+
+  await Notification.create({
+    userId,
+    title: "Bestellung bestätigt",
+    message: `Deine Bestellung ${order.orderNumber} wurde bezahlt und wird bearbeitet.`,
+    type: "success",
+    cta: { label: "Bestellung ansehen", url: `/orders/${orderId}` },
+    category: "order",
+    entityType: "order",
+    entityId: orderId,
+  });
+
+  await runRedisCommand("notify-order", null, async (redis) => {
+    const count = await Notification.countDocuments({ userId, read: false });
+    await redis.set(`notifications:unread:${userId}`, count, "EX", 60);
+    await redis.publish(`notifications:${userId}`, JSON.stringify({ unreadCount: count }));
+    return null;
+  });
+}
+
+async function handleShippingCheckoutExpired(session: Stripe.Checkout.Session) {
+  const { orderId } = session.metadata || {};
+  if (!orderId) return;
+
+  await Order.findByIdAndUpdate(
+    orderId,
+    { paymentStatus: "failed", status: "cancelled" }
+  );
 }
