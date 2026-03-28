@@ -16,6 +16,17 @@ export interface ChatBadgeSummary {
   tone: "neutral" | "green" | "gold" | "lilac" | "blue";
 }
 
+export interface ChatGifSummary {
+  provider: "giphy";
+  id: string;
+  title: string;
+  rating: string | null;
+  previewUrl: string;
+  displayUrl: string;
+  width: number;
+  height: number;
+}
+
 export interface ChatMentionTargetSummary {
   userId: string;
   username: string | null;
@@ -58,6 +69,7 @@ export interface ChatMessageSummary {
   submissionSeq: number;
   visibleSeq: number | null;
   body: string;
+  gif: ChatGifSummary | null;
   status: ChatMessageStatus;
   author: ChatAuthorSummary | null;
   mentionTargets: ChatMentionTargetSummary[];
@@ -90,6 +102,7 @@ export interface ChatRoomSummary {
 export interface ChatUserPermissions {
   canPost: boolean;
   canPostLinks: boolean;
+  canUseGifs: boolean;
   requiresEmailVerification: boolean;
   moderationReady: boolean;
   timeoutUntil: string | null;
@@ -107,6 +120,19 @@ export interface ChatOverviewResponse {
 
 export interface ChatMentionSearchResponse {
   users: ChatMentionCandidateSummary[];
+}
+
+export interface ChatGifPickerResponse {
+  gifs: ChatGifSummary[];
+  mode: "trending" | "search";
+  query: string;
+  offset: number;
+  nextOffset: number | null;
+  total: number | null;
+}
+
+export interface ChatGifFavoritesResponse {
+  gifs: ChatGifSummary[];
 }
 
 export interface ChatOnlineUsersResponse {

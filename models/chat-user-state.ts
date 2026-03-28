@@ -20,6 +20,18 @@ interface IActiveChatRestriction {
   expiresAt: Date | null;
 }
 
+interface IChatFavoriteGif {
+  provider: "giphy";
+  id: string;
+  title: string;
+  rating: string | null;
+  previewUrl: string;
+  displayUrl: string;
+  width: number;
+  height: number;
+  savedAt: Date;
+}
+
 export interface IChatUserState extends Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
@@ -30,6 +42,7 @@ export interface IChatUserState extends Document {
   activeRestriction: IActiveChatRestriction | null;
   strikeCount: number;
   successfulMessageCount: number;
+  favoriteGifs: IChatFavoriteGif[];
   lastSubmittedAt: Date | null;
   lastVisibleAt: Date | null;
   duplicateWindowHash: string | null;
@@ -64,6 +77,26 @@ const ActiveChatRestrictionSchema = new Schema<IActiveChatRestriction>(
   { _id: false }
 );
 
+const ChatFavoriteGifSchema = new Schema<IChatFavoriteGif>(
+  {
+    provider: {
+      type: String,
+      enum: ["giphy"],
+      default: "giphy",
+      required: true,
+    },
+    id: { type: String, required: true, maxlength: 64 },
+    title: { type: String, required: true, maxlength: 300 },
+    rating: { type: String, default: null, maxlength: 16 },
+    previewUrl: { type: String, required: true, maxlength: 500 },
+    displayUrl: { type: String, required: true, maxlength: 500 },
+    width: { type: Number, required: true, min: 1 },
+    height: { type: Number, required: true, min: 1 },
+    savedAt: { type: Date, default: Date.now },
+  },
+  { _id: false }
+);
+
 const ChatUserStateSchema = new Schema<IChatUserState>(
   {
     userId: {
@@ -88,6 +121,7 @@ const ChatUserStateSchema = new Schema<IChatUserState>(
     activeRestriction: { type: ActiveChatRestrictionSchema, default: null },
     strikeCount: { type: Number, default: 0 },
     successfulMessageCount: { type: Number, default: 0 },
+    favoriteGifs: { type: [ChatFavoriteGifSchema], default: [] },
     lastSubmittedAt: { type: Date, default: null },
     lastVisibleAt: { type: Date, default: null },
     duplicateWindowHash: { type: String, default: null, maxlength: 128 },

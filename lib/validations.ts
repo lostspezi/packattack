@@ -163,8 +163,22 @@ export const updateFeedbackMessageSchema = z.object({
   body: z.string().trim().min(1).max(5000),
 });
 
+export const chatGifSchema = z.object({
+  provider: z.literal("giphy"),
+  id: z.string().trim().min(1).max(64),
+  title: z.string().trim().min(1).max(300),
+  rating: z.string().trim().max(16).nullable().optional(),
+  previewUrl: z.string().url().max(500),
+  displayUrl: z.string().url().max(500),
+  width: z.number().int().min(1).max(5000),
+  height: z.number().int().min(1).max(5000),
+});
+
 export const createChatMessageSchema = z.object({
-  body: z.string().trim().min(1).max(500),
+  body: z.string().trim().max(500).optional().default(""),
+  gif: chatGifSchema.optional(),
+}).refine((value) => value.body.trim().length > 0 || Boolean(value.gif), {
+  message: "Message must contain text or a GIF",
 });
 
 export const chatHistoryQuerySchema = z.object({

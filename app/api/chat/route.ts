@@ -23,6 +23,7 @@ import {
 } from "@/lib/chat-constants";
 import { escapeMentionRegex, extractMentionUsernames } from "@/lib/chat-mentions";
 import { containsChatLink, normalizeChatBody } from "@/lib/chat-links";
+import { sanitizeIncomingChatGif } from "@/lib/giphy";
 import { moderateChatMessage } from "@/lib/chat-moderation";
 import { assertChatSubmissionAllowed } from "@/lib/chat-rate-limit";
 import connectDB from "@/lib/db";
@@ -52,6 +53,7 @@ function getErrorStatus(code: string): number {
     case "slow_mode_active":
       return 429;
     case "moderation_unavailable":
+    case "gifs_unavailable":
       return 503;
     default:
       return 400;
@@ -157,6 +159,9 @@ export async function POST(req: NextRequest) {
     if (!permissions.moderationReady && !isChatStaff(user.role)) {
       return NextResponse.json({ error: "moderation_unavailable" }, { status: 503 });
     }
+    if (parsed.data.gif && !permissions.canUseGifs) {
+      return NextResponse.json({ error: "gifs_unavailable" }, { status: 503 });
+    }
     if (room.mode === "read_only") {
       return NextResponse.json({ error: "read_only" }, { status: 400 });
     }
@@ -165,6 +170,10 @@ export async function POST(req: NextRequest) {
     }
 
     const normalizedBody = normalizeChatBody(parsed.data.body);
+    const gif = sanitizeIncomingChatGif(parsed.data.gif);
+    if (parsed.data.gif && !gif) {
+      return NextResponse.json({ error: "invalid_gif" }, { status: 400 });
+    }
     const hasLink = containsChatLink(normalizedBody);
     if (hasLink && !canPostChatLinks(user.role)) {
       return NextResponse.json({ error: "links_not_allowed" }, { status: 400 });
@@ -172,7 +181,10 @@ export async function POST(req: NextRequest) {
 
     const rateLimit = await assertChatSubmissionAllowed({
       userId,
-      normalizedBody,
+      normalizedBody: JSON.stringify({
+        body: normalizedBody,
+        gifId: gif?.id ?? null,
+      }),
       trustTier: permissions.trustTier,
       slowModeSeconds: room.mode === "slow_mode" ? room.slowModeSeconds : 0,
       lastSubmittedAt: userState.lastSubmittedAt,
@@ -188,12 +200,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const moderation = await moderateChatMessage({
-      body: normalizedBody,
-      lang: user.preferences?.language ?? "de",
-      isAdminLinkMessage: hasLink && canPostChatLinks(user.role),
-      trustTier: permissions.trustTier,
-    });
+    const moderation =
+      normalizedBody.length > 0
+        ? await moderateChatMessage({
+            body: normalizedBody,
+            lang: user.preferences?.language ?? "de",
+            isAdminLinkMessage: hasLink && canPostChatLinks(user.role),
+            trustTier: permissions.trustTier,
+          })
+        : {
+            provider: "local" as const,
+            action: "allow" as const,
+            reasonCodes: [],
+            bodyDisplay: "",
+            hasPII: false,
+          };
 
     const shadowMuted = userState.chatStatus === "shadow_muted";
     const shouldBeVisible =
@@ -225,7 +246,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "server_error" }, { status: 500 });
     }
 
-    const mentionUsernames = extractMentionUsernames(normalizedBody).slice(0, 8);
+    const mentionUsernames = normalizedBody
+      ? extractMentionUsernames(normalizedBody).slice(0, 8)
+      : [];
     const mentionUsers =
       mentionUsernames.length > 0
         ? await User.find(
@@ -278,6 +301,7 @@ export async function POST(req: NextRequest) {
       bodyOriginal: normalizedBody,
       bodyNormalized: normalizedBody.toLowerCase(),
       bodyDisplay: moderation.bodyDisplay,
+      gif,
       status,
       clientNonce: randomUUID(),
       mentionTargets,
@@ -299,6 +323,7 @@ export async function POST(req: NextRequest) {
       actorUserId: userId,
       payload: {
         bodyOriginal: normalizedBody,
+        gif,
         status: message.status,
         moderation: message.moderation,
         authorSnapshot: message.authorSnapshot,
@@ -327,7 +352,10 @@ export async function POST(req: NextRequest) {
         messageId: message._id,
         submissionSeq: message.submissionSeq,
         actorUserId: userId,
-        payload: { visibleSeq: message.visibleSeq },
+        payload: {
+          visibleSeq: message.visibleSeq,
+          gif,
+        },
       });
 
       await publishRoomEvent(room.slug, {
@@ -343,7 +371,10 @@ export async function POST(req: NextRequest) {
         messageId: message._id,
         submissionSeq: message.submissionSeq,
         actorUserId: userId,
-        payload: { reasonCodes: moderation.reasonCodes },
+        payload: {
+          reasonCodes: moderation.reasonCodes,
+          gif,
+        },
       });
       await publishRoomEvent(room.slug, {
         type: "message_held",
@@ -361,6 +392,7 @@ export async function POST(req: NextRequest) {
         payload: {
           reasonCodes: moderation.reasonCodes,
           shadowMuted,
+          gif,
         },
       });
     }

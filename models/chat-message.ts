@@ -33,6 +33,17 @@ interface IChatMentionTarget {
   name: string;
 }
 
+interface IChatGif {
+  provider: "giphy";
+  id: string;
+  title: string;
+  rating: string | null;
+  previewUrl: string;
+  displayUrl: string;
+  width: number;
+  height: number;
+}
+
 export interface IChatMessage extends Document {
   _id: Types.ObjectId;
   roomId: Types.ObjectId;
@@ -45,6 +56,7 @@ export interface IChatMessage extends Document {
   bodyOriginal: string;
   bodyNormalized: string;
   bodyDisplay: string;
+  gif: IChatGif | null;
   status: ChatMessageStatus;
   clientNonce: string;
   mentionTargets: IChatMentionTarget[];
@@ -107,6 +119,25 @@ const ChatMentionTargetSchema = new Schema<IChatMentionTarget>(
   { _id: false }
 );
 
+const ChatGifSchema = new Schema<IChatGif>(
+  {
+    provider: {
+      type: String,
+      enum: ["giphy"],
+      default: "giphy",
+      required: true,
+    },
+    id: { type: String, required: true, maxlength: 64 },
+    title: { type: String, required: true, maxlength: 300 },
+    rating: { type: String, default: null, maxlength: 16 },
+    previewUrl: { type: String, required: true, maxlength: 500 },
+    displayUrl: { type: String, required: true, maxlength: 500 },
+    width: { type: Number, required: true, min: 1 },
+    height: { type: Number, required: true, min: 1 },
+  },
+  { _id: false }
+);
+
 const ChatMessageSchema = new Schema<IChatMessage>(
   {
     roomId: {
@@ -130,9 +161,10 @@ const ChatMessageSchema = new Schema<IChatMessage>(
       default: "user",
     },
     authorSnapshot: { type: ChatAuthorSnapshotSchema, default: null },
-    bodyOriginal: { type: String, required: true, trim: true, maxlength: 500 },
-    bodyNormalized: { type: String, required: true, trim: true, maxlength: 500 },
-    bodyDisplay: { type: String, required: true, trim: true, maxlength: 500 },
+    bodyOriginal: { type: String, default: "", trim: true, maxlength: 500 },
+    bodyNormalized: { type: String, default: "", trim: true, maxlength: 500 },
+    bodyDisplay: { type: String, default: "", trim: true, maxlength: 500 },
+    gif: { type: ChatGifSchema, default: null },
     status: {
       type: String,
       enum: CHAT_MESSAGE_STATUSES,

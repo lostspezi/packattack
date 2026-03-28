@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ChatMessageContent } from "@/components/chat/chat-message-content";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
@@ -557,13 +558,16 @@ export function AdminChatConsole({
                           </span>
                         ) : null}
                       </div>
-                      <p
-                        className={`mt-2 whitespace-pre-wrap break-words text-sm ${
+                      <ChatMessageContent
+                        body={message.body}
+                        gif={message.gif}
+                        className="mt-2 space-y-2"
+                        gifClassName="max-w-[240px]"
+                        gifImageClassName="max-h-[220px]"
+                        bodyClassName={`whitespace-pre-wrap break-words text-sm ${
                           message.isDeleted ? "italic text-text-muted" : "text-text-primary"
                         }`}
-                      >
-                        {message.body}
-                      </p>
+                      />
                     </div>
                     <time className="text-xs text-text-muted">
                       {formatTime(message.createdAt)}
@@ -973,9 +977,14 @@ export function AdminChatConsole({
                                 {message.status}
                               </span>
                             </div>
-                            <p className="mt-2 whitespace-pre-wrap break-words text-sm text-text-primary">
-                              {message.body}
-                            </p>
+                            <ChatMessageContent
+                              body={message.body}
+                              gif={message.gif}
+                              className="mt-2 space-y-2"
+                              gifClassName="max-w-[220px]"
+                              gifImageClassName="max-h-[200px]"
+                              bodyClassName="whitespace-pre-wrap break-words text-sm text-text-primary"
+                            />
                           </div>
                         ))
                       )}
@@ -1146,9 +1155,14 @@ export function AdminChatConsole({
                     <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
                       {message.author?.name ?? "Nutzer"}
                     </p>
-                    <p className="mt-2 whitespace-pre-wrap break-words text-sm text-text-primary">
-                      {message.body}
-                    </p>
+                    <ChatMessageContent
+                      body={message.body}
+                      gif={message.gif}
+                      className="mt-2 space-y-2"
+                      gifClassName="max-w-[220px]"
+                      gifImageClassName="max-h-[200px]"
+                      bodyClassName="whitespace-pre-wrap break-words text-sm text-text-primary"
+                    />
                     <div className="mt-3 flex gap-2">
                       <Button
                         size="sm"

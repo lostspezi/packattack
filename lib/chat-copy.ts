@@ -21,6 +21,7 @@ export interface ChatUiCopy {
     placeholder: string;
     send: string;
     sending: string;
+    gifsUnavailable: string;
     verificationRequired: string;
     linkAdminOnly: string;
     readOnly: string;
@@ -44,6 +45,23 @@ export interface ChatUiCopy {
     badgeMentionsOnly: string;
     badgeMentionsAndStaff: string;
     saved: string;
+  };
+  gifs: {
+    title: string;
+    button: string;
+    searchPlaceholder: string;
+    favorites: string;
+    attached: string;
+    removeAttachment: string;
+    saveFavorite: string;
+    removeFavorite: string;
+    emptyTrending: string;
+    emptySearch: string;
+    emptyFavorites: string;
+    loadMore: string;
+    loadError: string;
+    favoriteError: string;
+    poweredBy: string;
   };
   reports: {
     title: string;
@@ -160,6 +178,7 @@ const de: ChatUiCopy = {
     placeholder: "Schreibe eine Nachricht...",
     send: "Senden",
     sending: "Wird gesendet...",
+    gifsUnavailable: "GIFs sind gerade nicht verfügbar.",
     verificationRequired: "Du musst deine E-Mail bestätigen, um im Chat zu schreiben.",
     linkAdminOnly: "Links sind nur für Admins erlaubt.",
     readOnly: "Der Chat ist aktuell schreibgeschützt.",
@@ -183,6 +202,23 @@ const de: ChatUiCopy = {
     badgeMentionsOnly: "Erwähn.",
     badgeMentionsAndStaff: "Erw. + Team",
     saved: "Toneinstellung gespeichert",
+  },
+  gifs: {
+    title: "GIF auswählen",
+    button: "GIF",
+    searchPlaceholder: "GIFs durchsuchen...",
+    favorites: "Favoriten",
+    attached: "Angehängtes GIF",
+    removeAttachment: "GIF entfernen",
+    saveFavorite: "Zu Favoriten hinzufügen",
+    removeFavorite: "Aus Favoriten entfernen",
+    emptyTrending: "Keine Trending-GIFs verfügbar.",
+    emptySearch: "Keine GIFs für diese Suche gefunden.",
+    emptyFavorites: "Du hast noch keine gespeicherten GIFs.",
+    loadMore: "Mehr laden",
+    loadError: "GIFs konnten nicht geladen werden.",
+    favoriteError: "Favoriten konnten nicht aktualisiert werden.",
+    poweredBy: "Powered by GIPHY",
   },
   reports: {
     title: "Nachricht melden",
@@ -300,6 +336,7 @@ const en: ChatUiCopy = {
     placeholder: "Write a message...",
     send: "Send",
     sending: "Sending...",
+    gifsUnavailable: "GIFs are currently unavailable.",
     verificationRequired: "You must verify your email to post in chat.",
     linkAdminOnly: "Links are only allowed for admins.",
     readOnly: "Chat is currently read-only.",
@@ -323,6 +360,23 @@ const en: ChatUiCopy = {
     badgeMentionsOnly: "Mentions",
     badgeMentionsAndStaff: "Mentions + staff",
     saved: "Sound preference saved",
+  },
+  gifs: {
+    title: "Choose a GIF",
+    button: "GIF",
+    searchPlaceholder: "Search GIFs...",
+    favorites: "Favorites",
+    attached: "Attached GIF",
+    removeAttachment: "Remove GIF",
+    saveFavorite: "Save to favorites",
+    removeFavorite: "Remove from favorites",
+    emptyTrending: "No trending GIFs are available right now.",
+    emptySearch: "No GIFs matched this search.",
+    emptyFavorites: "You have not saved any GIFs yet.",
+    loadMore: "Load more",
+    loadError: "Could not load GIFs.",
+    favoriteError: "Could not update favorites.",
+    poweredBy: "Powered by GIPHY",
   },
   reports: {
     title: "Report message",

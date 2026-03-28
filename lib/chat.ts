@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type Redis from "ioredis";
 import { Types } from "mongoose";
 import { runRedisCommand } from "@/lib/redis";
+import { isGiphyEnabled } from "@/lib/giphy";
 import {
   canPostChatLinks,
   CHAT_HISTORY_PAGE_SIZE,
@@ -313,9 +314,6 @@ function getMessageBody(message: Pick<IChatMessage, "status" | "bodyDisplay">): 
   if (message.status === "deleted" || message.status === "redacted") {
     return "Nachricht entfernt";
   }
-  if (message.status === "held") {
-    return "Nachricht wird geprüft";
-  }
   return message.bodyDisplay;
 }
 
@@ -326,6 +324,18 @@ export function serializeChatMessage(message: IChatMessage): ChatMessageSummary 
     submissionSeq: message.submissionSeq,
     visibleSeq: message.visibleSeq ?? null,
     body: getMessageBody(message),
+    gif: message.gif
+      ? {
+          provider: message.gif.provider,
+          id: message.gif.id,
+          title: message.gif.title,
+          rating: message.gif.rating ?? null,
+          previewUrl: message.gif.previewUrl,
+          displayUrl: message.gif.displayUrl,
+          width: message.gif.width,
+          height: message.gif.height,
+        }
+      : null,
     status: message.status,
     author: message.authorSnapshot
       ? {
@@ -572,6 +582,7 @@ export function buildChatPermissions(input: {
   return {
     canPost,
     canPostLinks: canPostChatLinks(user.role),
+    canUseGifs: isGiphyEnabled(),
     requiresEmailVerification: requiresVerifiedEmail,
     moderationReady,
     timeoutUntil: timeoutActive && timeoutUntil ? timeoutUntil.toISOString() : null,

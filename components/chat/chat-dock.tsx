@@ -7,6 +7,7 @@ import {
   ChevronRight,
   ExternalLink,
   Flag,
+  ImageIcon,
   MoreHorizontal,
   MessagesSquare,
   Volume2,
@@ -19,7 +20,9 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { ChatAvatar } from "@/components/chat/chat-avatar";
-import { ChatMessageBody } from "@/components/chat/chat-message-body";
+import { ChatGifAttachmentPreview } from "@/components/chat/chat-gif-attachment-preview";
+import { ChatGifPicker } from "@/components/chat/chat-gif-picker";
+import { ChatMessageContent } from "@/components/chat/chat-message-content";
 import { ChatOnlineUsersModal } from "@/components/chat/chat-online-users-modal";
 import { MentionSuggestions } from "@/components/chat/mention-suggestions";
 import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
@@ -29,6 +32,7 @@ import type { ChatDictionary } from "@/lib/chat-i18n";
 import { getChatUiCopy } from "@/lib/chat-i18n";
 import type {
   ChatEventEnvelope,
+  ChatGifSummary,
   ChatMessageSummary,
   ChatOverviewResponse,
 } from "@/types/chat";
@@ -58,6 +62,7 @@ const DEFAULT_READ_STATE: ChatOverviewResponse["readState"] = {
 const DEFAULT_PERMISSIONS: ChatOverviewResponse["permissions"] = {
   canPost: false,
   canPostLinks: false,
+  canUseGifs: false,
   requiresEmailVerification: true,
   moderationReady: false,
   timeoutUntil: null,
@@ -147,6 +152,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const [permissions, setPermissions] = useState(DEFAULT_PERMISSIONS);
   const [selfUsername, setSelfUsername] = useState<string | null>(null);
   const [body, setBody] = useState("");
+  const [attachedGif, setAttachedGif] = useState<ChatGifSummary | null>(null);
   const [sending, setSending] = useState(false);
   const [pendingNewCount, setPendingNewCount] = useState(0);
   const [pendingMentionCount, setPendingMentionCount] = useState(0);
@@ -156,6 +162,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const [reportCategory, setReportCategory] = useState("spam");
   const [reportNote, setReportNote] = useState("");
   const [onlineUsersOpen, setOnlineUsersOpen] = useState(false);
+  const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const [moderationOpen, setModerationOpen] = useState(false);
   const [moderationTarget, setModerationTarget] =
     useState<ChatMessageSummary | null>(null);
@@ -167,6 +174,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const [moderating, setModerating] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
+  const gifButtonRef = useRef<HTMLButtonElement>(null);
   const shouldStickToBottomRef = useRef(true);
   const pendingScrollToBottomRef = useRef(false);
   const shouldRefocusComposerRef = useRef(false);
@@ -509,7 +517,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   async function submitMessage() {
     if (sending) return;
     const trimmed = body.trim();
-    if (!trimmed) return;
+    if (!trimmed && !attachedGif) return;
 
     shouldRefocusComposerRef.current = true;
     setSending(true);
@@ -517,7 +525,10 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: trimmed }),
+        body: JSON.stringify({
+          body: trimmed,
+          gif: attachedGif ?? undefined,
+        }),
       });
       const payload = await res.json();
 
@@ -533,6 +544,11 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         if (error === "moderation_unavailable") {
           message = copy.composer.moderationUnavailable;
           setPermissions((current) => ({ ...current, canPost: false, moderationReady: false }));
+        }
+        if (error === "gifs_unavailable" || error === "invalid_gif") {
+          message = copy.composer.gifsUnavailable;
+          setPermissions((current) => ({ ...current, canUseGifs: false }));
+          setAttachedGif(null);
         }
         if (
           error === "rate_limited" ||
@@ -551,6 +567,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
       }
 
       setBody("");
+      setAttachedGif(null);
     } catch {
       toast({ type: "error", title: copy.states.networkError });
     } finally {
@@ -945,10 +962,14 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                     ) : null}
                   </div>
                 </div>
-                <ChatMessageBody
+                <ChatMessageContent
                   body={message.body}
+                  gif={message.gif}
                   highlightedMentionUsername={mentionedCurrentUser ? selfUsername : null}
-                  className={`mt-2 whitespace-pre-wrap break-words text-sm ${message.isDeleted ? "italic text-text-muted" : "text-text-primary"}`}
+                  className="mt-2 space-y-2"
+                  gifClassName="max-w-[220px]"
+                  gifImageClassName="max-h-[220px]"
+                  bodyClassName={`whitespace-pre-wrap break-words text-sm ${message.isDeleted ? "italic text-text-muted" : "text-text-primary"}`}
                 />
               </div>
             );
@@ -980,6 +1001,14 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           <div className="mb-3 rounded-[12px] border border-yellow-500/15 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">
             {cannotPostMessage}
           </div>
+        ) : null}
+
+        {attachedGif ? (
+          <ChatGifAttachmentPreview
+            gif={attachedGif}
+            copy={copy}
+            onRemove={() => setAttachedGif(null)}
+          />
         ) : null}
 
         <div className="flex gap-3">
@@ -1031,18 +1060,32 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           <Button
             onClick={submitMessage}
             loading={sending}
-            disabled={!permissions.canPost || !body.trim()}
+            disabled={!permissions.canPost || (!body.trim() && !attachedGif)}
             className="self-center"
           >
             {sending ? copy.composer.sending : copy.composer.send}
           </Button>
         </div>
         <div className="mt-2 flex items-center justify-between text-xs text-text-muted">
-          <span>
-            {room?.mode === "slow_mode" && room.slowModeSeconds > 0
-              ? `${copy.composer.slowMode}: ${room.slowModeSeconds}s`
-              : copy.composer.shortcutHint}
-          </span>
+          <div className="flex items-center gap-2">
+            {permissions.canUseGifs ? (
+              <button
+                ref={gifButtonRef}
+                type="button"
+                onClick={() => setGifPickerOpen(true)}
+                disabled={sending || !permissions.canPost}
+                className="inline-flex items-center gap-1 rounded-full border border-white/8 bg-white/4 px-2.5 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-pa-green disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <ImageIcon className="h-3.5 w-3.5" />
+                {copy.gifs.button}
+              </button>
+            ) : null}
+            <span>
+              {room?.mode === "slow_mode" && room.slowModeSeconds > 0
+                ? `${copy.composer.slowMode}: ${room.slowModeSeconds}s`
+                : copy.composer.shortcutHint}
+            </span>
+          </div>
           <span>{body.trim().length} / 500</span>
         </div>
       </div>
@@ -1146,6 +1189,19 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         users={onlineUsers}
         loading={onlineUsersLoading}
         error={onlineUsersError}
+      />
+
+      <ChatGifPicker
+        open={gifPickerOpen}
+        onClose={() => setGifPickerOpen(false)}
+        onAttach={(gif) => {
+          setAttachedGif(gif);
+          window.requestAnimationFrame(() => {
+            composerRef.current?.focus();
+          });
+        }}
+        copy={copy}
+        anchorRef={gifButtonRef}
       />
 
       <Modal
