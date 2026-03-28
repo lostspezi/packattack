@@ -10,7 +10,7 @@ export default async function FeedbackDetailPage({
   const feedbackDict = await getDictionary(lang, "feedback");
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:px-6 py-6 md:py-8">
+    <div className="space-y-6">
       <FeedbackDetailClient lang={lang} feedbackId={id} dict={feedbackDict} mode="user" />
     </div>
   );

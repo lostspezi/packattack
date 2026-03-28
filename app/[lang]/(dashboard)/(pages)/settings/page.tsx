@@ -33,7 +33,7 @@ export default async function SettingsPage({
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
+    <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-text-primary">
           {settingsDict["pageTitle"] ?? "Settings"}

@@ -52,7 +52,7 @@ export default async function AccountPage({
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
+    <div className="space-y-6">
       {error === "OAuthAccountNotLinked" && (
         <div className="rounded-lg border border-error/20 bg-error/10 p-4">
           <p className="text-error text-sm font-medium">

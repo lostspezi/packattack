@@ -88,7 +88,7 @@ export default function PacksPage() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
+    <div className="space-y-6">
       {/* Coin chest animation overlay */}
       {showAnimation && (
         <CoinChestAnimation

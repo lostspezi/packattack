@@ -52,10 +52,10 @@ export default async function LangLayout({
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
       </head>
-      <body className="bg-bg text-text-primary min-h-screen safe-top safe-bottom flex flex-col">
+      <body className="bg-bg text-text-primary h-screen safe-top safe-bottom flex flex-col overflow-hidden">
         <SessionProvider>
           <ToastProvider>
-            <div className="flex-1 flex flex-col">{children}</div>
+            <div className="flex-1 flex flex-col overflow-y-auto">{children}</div>
             <Footer lang={lang} dict={footerDict} />
           </ToastProvider>
         </SessionProvider>

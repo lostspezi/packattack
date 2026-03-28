@@ -10,7 +10,7 @@ export default async function BalancePageRoute({
   const dict = await getDictionary(lang as Locale, "balance");
 
   return (
-    <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6 md:space-y-8">
+    <div className="space-y-6 md:space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-text-primary">
           {dict.pageTitle || "Guthaben"}
