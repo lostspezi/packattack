@@ -57,6 +57,14 @@ export interface IUser extends Document {
     };
   };
   onboardingCompleted: boolean;
+  shippingAddress: {
+    name: string | null;
+    street: string | null;
+    city: string | null;
+    zip: string | null;
+    country: "DE" | "AT" | "CH" | null;
+  } | null;
+  reservationRulesAccepted: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -142,6 +150,20 @@ const UserSchema = new Schema<IUser>(
     stripeIdentityVerificationId: { type: String, default: null },
     identityVerified: { type: Boolean, default: false },
     identityVerifiedAt: { type: Date, default: null },
+    shippingAddress: {
+      type: new Schema(
+        {
+          name: { type: String, default: null },
+          street: { type: String, default: null },
+          city: { type: String, default: null },
+          zip: { type: String, default: null },
+          country: { type: String, enum: ["DE", "AT", "CH"], default: null },
+        },
+        { _id: false }
+      ),
+      default: null,
+    },
+    reservationRulesAccepted: { type: Date, default: null },
   },
   { timestamps: true }
 );
