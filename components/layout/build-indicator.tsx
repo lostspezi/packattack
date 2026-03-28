@@ -1,13 +1,16 @@
+import { connection } from "next/server";
 import { isChatStaff } from "@/lib/chat-constants";
 
 type BuildIndicatorProps = {
   userRole: string;
 };
 
-export function BuildIndicator({ userRole }: BuildIndicatorProps) {
+export async function BuildIndicator({ userRole }: BuildIndicatorProps) {
   if (!isChatStaff(userRole)) {
     return null;
   }
+
+  await connection();
 
   const buildSha = process.env.BUILD_SHA?.trim() ?? "";
   const buildBranch = process.env.BUILD_BRANCH?.trim() ?? "";

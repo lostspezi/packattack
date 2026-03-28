@@ -17,6 +17,8 @@ services:
         - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-dummy}
         - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-dummy}
         - AUTH_TRUST_HOST=${AUTH_TRUST_HOST:-true}
+        - BUILD_SHA=${BUILD_SHA:-}
+        - BUILD_BRANCH=${BUILD_BRANCH:-}
     env_file: .env.beta
     restart: always
     depends_on:
