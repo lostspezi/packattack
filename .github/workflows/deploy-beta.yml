@@ -18,10 +18,14 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
+            set -e
             cd /opt/packattackgg-beta
 
-            # Pull latest code first so build metadata matches what is actually deployed
-            git pull origin beta
+            # Hard-sync the deployment checkout so force-pushes and rebases do not break beta deploys.
+            git fetch origin beta
+            git checkout -B beta origin/beta
+            git reset --hard origin/beta
+            git clean -fd
             BUILD_SHA=$(git rev-parse HEAD)
             BUILD_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
