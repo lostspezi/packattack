@@ -24,6 +24,7 @@ import { ChatOnlineUsersModal } from "@/components/chat/chat-online-users-modal"
 import { MentionSuggestions } from "@/components/chat/mention-suggestions";
 import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
+import { messageMentionsViewer } from "@/lib/chat-mentions";
 import type { ChatDictionary } from "@/lib/chat-i18n";
 import { getChatUiCopy } from "@/lib/chat-i18n";
 import type {
@@ -214,6 +215,17 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         };
     }
   })();
+  function isMentionForCurrentUser(message: ChatMessageSummary, username = selfUsername) {
+    return messageMentionsViewer(
+      {
+        authorUserId: message.author?.id ?? null,
+        body: message.body,
+        mentionTargets: message.mentionTargets,
+      },
+      currentUserId,
+      username
+    );
+  }
   const {
     activeIndex: mentionActiveIndex,
     closeMentions,
@@ -323,8 +335,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         payload.messages.filter(
           (message) =>
             (message.visibleSeq ?? 0) > payload.readState.lastReadVisibleSeq &&
-            message.author?.id !== currentUserId &&
-            message.mentionTargets.some((target) => target.userId === currentUserId)
+            isMentionForCurrentUser(message, payload.selfUsername)
         ).length
       );
     } catch {
@@ -375,14 +386,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
               : current
           );
 
-          const mentionsCurrentUser = Boolean(
-            nextMessage.author?.id !== currentUserId &&
-              (
-                nextMessage.mentionTargets.some((target) => target.userId === currentUserId) ||
-                (selfUsername &&
-                  nextMessage.body.toLowerCase().includes(`@${selfUsername.toLowerCase()}`))
-              )
-          );
+          const mentionsCurrentUser = isMentionForCurrentUser(nextMessage);
           const isStaffMessage =
             nextMessage.author?.role === "admin" ||
             nextMessage.author?.role === "super_admin" ||
@@ -830,113 +834,125 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         ) : messages.length === 0 ? (
           <p className="text-sm text-text-muted">{copy.page.empty}</p>
         ) : (
-          messages.map((message) => (
-            <div key={message.id} className="rounded-[16px] border border-white/7 bg-black/12 p-3">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex min-w-0 flex-1 items-center gap-3">
-                  <ChatAvatar
-                    name={message.author?.username ?? message.author?.name ?? "System"}
-                    src={message.author?.avatarUrl ?? null}
-                    size="sm"
-                  />
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-semibold text-text-primary">
-                        {message.author?.username ?? message.author?.name ?? "System"}
-                      </span>
-                      {message.author?.roleBadge ? (
-                        <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
-                          {message.author.roleBadge}
+          messages.map((message) => {
+            const mentionedCurrentUser = isMentionForCurrentUser(message);
+
+            return (
+              <div
+                key={message.id}
+                className={`rounded-[16px] border p-3 ${
+                  mentionedCurrentUser && !message.isDeleted
+                    ? "border-pa-green/20 bg-pa-green/8 ring-1 ring-pa-green/10"
+                    : "border-white/7 bg-black/12"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <ChatAvatar
+                      name={message.author?.username ?? message.author?.name ?? "System"}
+                      src={message.author?.avatarUrl ?? null}
+                      size="sm"
+                    />
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-semibold text-text-primary">
+                          {message.author?.username ?? message.author?.name ?? "System"}
                         </span>
+                        {message.author?.roleBadge ? (
+                          <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
+                            {message.author.roleBadge}
+                          </span>
+                        ) : null}
+                      </div>
+                      {message.author?.profileBadges.length ? (
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {message.author.profileBadges.map((badge) => (
+                            <span
+                              key={badge.key}
+                              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${toneClass(badge.tone)}`}
+                            >
+                              {badge.label}
+                            </span>
+                          ))}
+                        </div>
                       ) : null}
                     </div>
-                    {message.author?.profileBadges.length ? (
-                      <div className="mt-1 flex flex-wrap gap-1.5">
-                        {message.author.profileBadges.map((badge) => (
-                          <span
-                            key={badge.key}
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${toneClass(badge.tone)}`}
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-text-muted">
+                    <time title={new Date(message.createdAt).toLocaleString("de-DE")}>
+                      {formatTime(message.createdAt)}
+                    </time>
+                    {isStaff ? (
+                      <Dropdown
+                        align="right"
+                        side="auto"
+                        minWidth={180}
+                        trigger={
+                          <button
+                            type="button"
+                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-muted transition-colors hover:text-pa-green"
+                            aria-label={copy.admin.quickActions}
+                            title={copy.admin.quickActions}
                           >
-                            {badge.label}
-                          </span>
-                        ))}
-                      </div>
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </button>
+                        }
+                        items={[
+                          ...(message.isDeleted
+                            ? [
+                                {
+                                  label: copy.admin.restore,
+                                  value: `restore:${message.id}`,
+                                  onClick: () => openModerationAction("restore_message", message),
+                                },
+                              ]
+                            : [
+                                {
+                                  label: copy.admin.delete,
+                                  value: `delete:${message.id}`,
+                                  onClick: () => openModerationAction("delete_message", message),
+                                },
+                              ]),
+                          ...(message.author?.id &&
+                          !isProtectedModerationTarget(message, currentUserId) &&
+                          !message.isDeleted
+                            ? [
+                                {
+                                  label: copy.admin.timeout,
+                                  value: `timeout:${message.id}`,
+                                  onClick: () => openModerationAction("timeout_user", message),
+                                },
+                                {
+                                  label: copy.admin.ban,
+                                  value: `ban:${message.id}`,
+                                  onClick: () => openModerationAction("ban_user", message),
+                                },
+                              ]
+                            : []),
+                        ]}
+                      />
+                    ) : !message.isDeleted && message.author?.id !== currentUserId ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReportTarget(message);
+                          setReportOpen(true);
+                        }}
+                        className="inline-flex items-center text-text-muted transition-colors hover:text-pa-green"
+                      >
+                        <Flag className="h-3.5 w-3.5" />
+                      </button>
                     ) : null}
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-text-muted">
-                  <time title={new Date(message.createdAt).toLocaleString("de-DE")}>
-                    {formatTime(message.createdAt)}
-                  </time>
-                  {isStaff ? (
-                    <Dropdown
-                      align="right"
-                      side="auto"
-                      minWidth={180}
-                      trigger={
-                        <button
-                          type="button"
-                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-muted transition-colors hover:text-pa-green"
-                          aria-label={copy.admin.quickActions}
-                          title={copy.admin.quickActions}
-                        >
-                          <MoreHorizontal className="h-3.5 w-3.5" />
-                        </button>
-                      }
-                      items={[
-                        ...(message.isDeleted
-                          ? [
-                              {
-                                label: copy.admin.restore,
-                                value: `restore:${message.id}`,
-                                onClick: () => openModerationAction("restore_message", message),
-                              },
-                            ]
-                          : [
-                              {
-                                label: copy.admin.delete,
-                                value: `delete:${message.id}`,
-                                onClick: () => openModerationAction("delete_message", message),
-                              },
-                            ]),
-                        ...(message.author?.id &&
-                        !isProtectedModerationTarget(message, currentUserId) &&
-                        !message.isDeleted
-                          ? [
-                              {
-                                label: copy.admin.timeout,
-                                value: `timeout:${message.id}`,
-                                onClick: () => openModerationAction("timeout_user", message),
-                              },
-                              {
-                                label: copy.admin.ban,
-                                value: `ban:${message.id}`,
-                                onClick: () => openModerationAction("ban_user", message),
-                              },
-                            ]
-                          : []),
-                      ]}
-                    />
-                  ) : !message.isDeleted && message.author?.id !== currentUserId ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setReportTarget(message);
-                        setReportOpen(true);
-                      }}
-                      className="inline-flex items-center text-text-muted transition-colors hover:text-pa-green"
-                    >
-                      <Flag className="h-3.5 w-3.5" />
-                    </button>
-                  ) : null}
-                </div>
+                <ChatMessageBody
+                  body={message.body}
+                  highlightedMentionUsername={mentionedCurrentUser ? selfUsername : null}
+                  className={`mt-2 whitespace-pre-wrap break-words text-sm ${message.isDeleted ? "italic text-text-muted" : "text-text-primary"}`}
+                />
               </div>
-              <ChatMessageBody
-                body={message.body}
-                className={`mt-2 whitespace-pre-wrap break-words text-sm ${message.isDeleted ? "italic text-text-muted" : "text-text-primary"}`}
-              />
-            </div>
-          ))
+            );
+          })
         )}
 
         {pendingNewCount > 0 && isPanelOpen ? (

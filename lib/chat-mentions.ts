@@ -1,7 +1,9 @@
 import type { Types } from "mongoose";
+import type { ChatMentionTargetSummary } from "@/types/chat";
 
 const MENTION_SEARCH_PATTERN = /(^|[\s(])@([A-Za-z0-9_-]{0,32})$/;
 const MENTION_EXTRACT_PATTERN = /(^|[\s(])@([A-Za-z0-9_-]{3,32})(?=$|[\s).,!?;:[\]{}])/g;
+const USERNAME_CHARACTER_PATTERN = /[A-Za-z0-9_-]/;
 
 export interface ChatMentionQuery {
   start: number;
@@ -18,6 +20,10 @@ export interface ChatMentionTargetInput {
 
 export function escapeMentionRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function isMentionBoundaryCharacter(value: string | undefined) {
+  return !value || !USERNAME_CHARACTER_PATTERN.test(value);
 }
 
 export function extractMentionUsernames(body: string) {
@@ -57,6 +63,43 @@ export function findMentionQuery(body: string, caretPosition: number): ChatMenti
     end,
     query,
   };
+}
+
+export function bodyMentionsUsername(body: string, username?: string | null) {
+  if (!username) return false;
+
+  const pattern = new RegExp(
+    `@${escapeMentionRegex(username)}(?=$|[^A-Za-z0-9_-])`,
+    "gi"
+  );
+
+  for (const match of body.matchAll(pattern)) {
+    const matchIndex = match.index ?? 0;
+    const previous = matchIndex > 0 ? body[matchIndex - 1] : undefined;
+    if (isMentionBoundaryCharacter(previous)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+export function messageMentionsViewer(
+  input: {
+    authorUserId?: string | null;
+    body: string;
+    mentionTargets?: ChatMentionTargetSummary[] | null;
+  },
+  viewerUserId?: string | null,
+  viewerUsername?: string | null
+) {
+  if (!viewerUserId) return false;
+  if (input.authorUserId === viewerUserId) return false;
+
+  return (
+    (input.mentionTargets ?? []).some((target) => target.userId === viewerUserId) ||
+    bodyMentionsUsername(input.body, viewerUsername)
+  );
 }
 
 export function insertMentionAtRange(

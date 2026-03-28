@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { escapeMentionRegex } from "@/lib/chat-mentions";
 
 const LINK_PATTERN =
   /(?<!@)\b((?:https?:\/\/|www\.)[^\s]+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?)/gi;
@@ -42,12 +43,56 @@ function splitMessageBody(body: string) {
   return segments.length > 0 ? segments : [{ text: body }];
 }
 
+function splitTextWithHighlightedMention(text: string, username?: string | null) {
+  if (!username) {
+    return [{ text }];
+  }
+
+  const segments: Array<{ text: string; highlighted?: boolean }> = [];
+  const pattern = new RegExp(
+    `(^|[^A-Za-z0-9_-])(@${escapeMentionRegex(username)})(?=$|[^A-Za-z0-9_-])`,
+    "gi"
+  );
+  let lastIndex = 0;
+
+  for (const match of text.matchAll(pattern)) {
+    const prefix = match[1] ?? "";
+    const token = match[2] ?? "";
+    const matchIndex = match.index ?? 0;
+
+    if (matchIndex > lastIndex) {
+      segments.push({ text: text.slice(lastIndex, matchIndex) });
+    }
+
+    if (prefix) {
+      segments.push({ text: prefix });
+    }
+
+    if (token) {
+      segments.push({ text: token, highlighted: true });
+    }
+
+    lastIndex = matchIndex + prefix.length + token.length;
+  }
+
+  if (lastIndex < text.length) {
+    segments.push({ text: text.slice(lastIndex) });
+  }
+
+  return segments.length > 0 ? segments : [{ text }];
+}
+
 interface ChatMessageBodyProps {
   body: string;
   className?: string;
+  highlightedMentionUsername?: string | null;
 }
 
-export function ChatMessageBody({ body, className }: ChatMessageBodyProps) {
+export function ChatMessageBody({
+  body,
+  className,
+  highlightedMentionUsername,
+}: ChatMessageBodyProps) {
   const segments = splitMessageBody(body);
 
   return (
@@ -64,7 +109,19 @@ export function ChatMessageBody({ body, className }: ChatMessageBodyProps) {
               {segment.text}
             </a>
           ) : (
-            segment.text
+            splitTextWithHighlightedMention(segment.text, highlightedMentionUsername).map(
+              (part, partIndex) => (
+                <Fragment key={`${part.text}-${index}-${partIndex}`}>
+                  {part.highlighted ? (
+                    <span className="rounded bg-pa-green/15 px-1 font-semibold text-pa-green">
+                      {part.text}
+                    </span>
+                  ) : (
+                    part.text
+                  )}
+                </Fragment>
+              )
+            )
           )}
         </Fragment>
       ))}

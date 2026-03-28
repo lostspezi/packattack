@@ -13,6 +13,7 @@ import { ChatOnlineUsersModal } from "@/components/chat/chat-online-users-modal"
 import { MentionSuggestions } from "@/components/chat/mention-suggestions";
 import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
+import { messageMentionsViewer } from "@/lib/chat-mentions";
 import type { ChatDictionary } from "@/lib/chat-i18n";
 import { getChatUiCopy } from "@/lib/chat-i18n";
 import type { ChatEventEnvelope, ChatMessageSummary, ChatOverviewResponse } from "@/types/chat";
@@ -117,6 +118,17 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
     loading: onlineUsersLoading,
     users: onlineUsers,
   } = useChatOnlineUsers(onlineUsersOpen, room.onlineCount, copy.page.onlineUsersLoadError);
+  function isMentionForCurrentUser(message: ChatMessageSummary) {
+    return messageMentionsViewer(
+      {
+        authorUserId: message.author?.id ?? null,
+        body: message.body,
+        mentionTargets: message.mentionTargets,
+      },
+      currentUserId,
+      initialData.selfUsername
+    );
+  }
 
   useEffect(() => {
     const node = listRef.current;
@@ -176,14 +188,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
             ),
           }));
 
-          const mentionsCurrentUser = Boolean(
-            nextMessage.author?.id !== currentUserId &&
-              (
-                nextMessage.mentionTargets.some((target) => target.userId === currentUserId) ||
-                (initialData.selfUsername &&
-                  nextMessage.body.toLowerCase().includes(`@${initialData.selfUsername.toLowerCase()}`))
-              )
-          );
+          const mentionsCurrentUser = isMentionForCurrentUser(nextMessage);
           const isStaffMessage =
             nextMessage.author?.role === "admin" ||
             nextMessage.author?.role === "super_admin" ||
@@ -413,63 +418,82 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
           {messages.length === 0 ? (
             <p className="text-sm text-text-muted">{copy.page.empty}</p>
           ) : (
-            messages.map((message) => (
-              <div key={message.id} className="rounded-[14px] border border-white/6 bg-white/3 p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <ChatAvatar
-                      name={message.author?.username ?? message.author?.name ?? "System"}
-                      src={message.author?.avatarUrl ?? null}
-                      size="sm"
-                    />
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-text-primary">{message.author?.username ?? message.author?.name ?? "System"}</span>
-                        {message.author?.roleBadge && (
-                          <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
-                            {message.author.roleBadge}
+            messages.map((message) => {
+              const mentionedCurrentUser = isMentionForCurrentUser(message);
+
+              return (
+                <div
+                  key={message.id}
+                  className={`rounded-[14px] border p-3 ${
+                    mentionedCurrentUser && !message.isDeleted
+                      ? "border-pa-green/20 bg-pa-green/8 ring-1 ring-pa-green/10"
+                      : "border-white/6 bg-white/3"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <ChatAvatar
+                        name={message.author?.username ?? message.author?.name ?? "System"}
+                        src={message.author?.avatarUrl ?? null}
+                        size="sm"
+                      />
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-sm font-semibold text-text-primary">
+                            {message.author?.username ?? message.author?.name ?? "System"}
                           </span>
-                        )}
-                        {message.author?.identityVerified && (
-                          <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
-                            {copy.badges.verified}
-                          </span>
-                        )}
-                      </div>
-                      {message.author?.profileBadges.length ? (
-                        <div className="mt-1 flex flex-wrap gap-1.5">
-                          {message.author.profileBadges.map((badge) => (
-                            <span key={badge.key} className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${toneClass(badge.tone)}`}>
-                              {badge.label}
+                          {message.author?.roleBadge && (
+                            <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
+                              {message.author.roleBadge}
                             </span>
-                          ))}
+                          )}
+                          {message.author?.identityVerified && (
+                            <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
+                              {copy.badges.verified}
+                            </span>
+                          )}
                         </div>
-                      ) : null}
+                        {message.author?.profileBadges.length ? (
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            {message.author.profileBadges.map((badge) => (
+                              <span
+                                key={badge.key}
+                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${toneClass(badge.tone)}`}
+                              >
+                                {badge.label}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-text-muted">
+                      <time title={new Date(message.createdAt).toLocaleString("de-DE")}>
+                        {formatTime(message.createdAt)}
+                      </time>
+                      {!message.isDeleted && message.author?.id !== currentUserId && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReportTarget(message);
+                            setReportOpen(true);
+                          }}
+                          className="inline-flex items-center gap-1 text-text-muted transition-colors hover:text-pa-green"
+                        >
+                          <Flag className="h-3.5 w-3.5" />
+                          <span className="sr-only">{copy.reports.title}</span>
+                        </button>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-text-muted">
-                    <time title={new Date(message.createdAt).toLocaleString("de-DE")}>{formatTime(message.createdAt)}</time>
-                    {!message.isDeleted && message.author?.id !== currentUserId && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReportTarget(message);
-                          setReportOpen(true);
-                        }}
-                        className="inline-flex items-center gap-1 text-text-muted transition-colors hover:text-pa-green"
-                      >
-                        <Flag className="h-3.5 w-3.5" />
-                        <span className="sr-only">{copy.reports.title}</span>
-                      </button>
-                    )}
-                  </div>
+                  <ChatMessageBody
+                    body={message.body}
+                    highlightedMentionUsername={mentionedCurrentUser ? initialData.selfUsername : null}
+                    className={`mt-2 whitespace-pre-wrap break-words text-sm ${message.isDeleted ? "italic text-text-muted" : "text-text-primary"}`}
+                  />
                 </div>
-                <ChatMessageBody
-                  body={message.body}
-                  className={`mt-2 whitespace-pre-wrap break-words text-sm ${message.isDeleted ? "italic text-text-muted" : "text-text-primary"}`}
-                />
-              </div>
-            ))
+              );
+            })
           )}
 
           {pendingNewCount > 0 && (
