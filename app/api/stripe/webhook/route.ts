@@ -176,12 +176,38 @@ async function handleShippingCheckoutCompleted(session: Stripe.Checkout.Session)
   const order = await Order.findById(orderId);
   if (!order || order.paymentStatus === "paid") return;
 
+  const cartItemIds = order.items.map((i: { cartItemId: unknown }) => i.cartItemId) as string[];
+
+  // Verify ALL cart items are still reserved before completing
+  const stillReservedCount = await CartItem.countDocuments({
+    _id: { $in: cartItemIds },
+    status: "reserved",
+  });
+  if (stillReservedCount !== order.items.length) {
+    console.error(
+      `[shipping webhook] Order ${order.orderNumber}: only ${stillReservedCount}/${order.items.length} items still reserved. Refunding.`
+    );
+    // Refund the Stripe payment
+    if (session.payment_intent) {
+      try {
+        await (await import("@/lib/stripe")).default.refunds.create({
+          payment_intent: session.payment_intent as string,
+        });
+      } catch (refundErr) {
+        console.error("[shipping webhook] Refund failed:", refundErr);
+      }
+    }
+    order.paymentStatus = "failed";
+    order.status = "cancelled";
+    await order.save();
+    return;
+  }
+
   order.paymentStatus = "paid";
   order.status = "paid";
   order.stripePaymentIntentId = session.payment_intent as string;
   await order.save();
 
-  const cartItemIds = order.items.map((i: { cartItemId: unknown }) => i.cartItemId) as string[];
   await CartItem.updateMany(
     { _id: { $in: cartItemIds }, status: "reserved" },
     { status: "checked_out", orderId: order._id }
@@ -208,10 +234,10 @@ async function handleShippingCheckoutCompleted(session: Stripe.Checkout.Session)
     if (!f.shopId) continue;
     await Notification.create({
       userId: f.shopId,
-      title: "Neuer Versandauftrag",
-      message: `Bestellung ${order.orderNumber}: ${f.items.length} Karte${f.items.length > 1 ? "n" : ""} zum Versand.`,
+      title: "New fulfillment order",
+      message: `Order ${order.orderNumber}: ${f.items.length} card${f.items.length > 1 ? "s" : ""} to ship.`,
       type: "info",
-      cta: { label: "Aufträge ansehen", url: "/shop/fulfillments" },
+      cta: { label: "View orders", url: "/shop/fulfillments" },
       category: "fulfillment",
       entityType: "order",
       entityId: orderId,
@@ -220,10 +246,10 @@ async function handleShippingCheckoutCompleted(session: Stripe.Checkout.Session)
 
   await Notification.create({
     userId,
-    title: "Bestellung bestätigt",
-    message: `Deine Bestellung ${order.orderNumber} wurde bezahlt und wird bearbeitet.`,
+    title: "Order confirmed",
+    message: `Your order ${order.orderNumber} has been paid and is being processed.`,
     type: "success",
-    cta: { label: "Bestellung ansehen", url: `/orders/${orderId}` },
+    cta: { label: "View order", url: `/orders/${orderId}` },
     category: "order",
     entityType: "order",
     entityId: orderId,

@@ -84,8 +84,14 @@ export async function POST(req: NextRequest) {
     const cardDoc = await (await import("@/models/card")).default.findById(cardId).select("name image").lean();
 
     if (decision === "claim") {
-      // Create CartItem with 6h reservation
-      const expiresAt = new Date(Date.now() + RESERVATION_HOURS * 60 * 60 * 1000);
+      // Use existing cart expiry or start a new 6h window
+      const existingItem = await CartItem.findOne({ userId, status: "reserved" })
+        .select("expiresAt")
+        .lean();
+      const expiresAt = existingItem?.expiresAt
+        ? new Date(existingItem.expiresAt)
+        : new Date(Date.now() + RESERVATION_HOURS * 60 * 60 * 1000);
+
       await CartItem.create({
         userId,
         cardId,

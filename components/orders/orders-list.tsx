@@ -33,8 +33,7 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-500/10 text-red-400 border-red-500/20",
 };
 
-export function OrdersList({ lang }: OrdersListProps) {
-  const isDe = lang === "de";
+export function OrdersList({ lang, dict }: OrdersListProps) {
   const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -66,7 +65,7 @@ export function OrdersList({ lang }: OrdersListProps) {
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <Package className="h-16 w-16 text-text-muted" />
         <p className="text-lg text-text-secondary">
-          {isDe ? "Noch keine Bestellungen" : "No orders yet"}
+          {dict["noOrders"] ?? "No orders yet"}
         </p>
       </div>
     );
@@ -92,11 +91,9 @@ export function OrdersList({ lang }: OrdersListProps) {
               </span>
             </div>
             <p className="mt-1 text-xs text-text-muted">
-              {order.items.length} {isDe ? "Karten" : "cards"} —{" "}
+              {order.items.length} {dict["cards"] ?? "cards"} —{" "}
               {order.paymentMethod === "coins" ? "Coins" : "Stripe"} —{" "}
-              {new Date(order.createdAt).toLocaleDateString(
-                isDe ? "de-DE" : "en-US"
-              )}
+              {new Date(order.createdAt).toLocaleDateString(lang)}
             </p>
           </div>
           <ChevronRight className="h-4 w-4 flex-shrink-0 text-text-muted" />
@@ -110,7 +107,7 @@ export function OrdersList({ lang }: OrdersListProps) {
             disabled={page === 1}
             className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30"
           >
-            {isDe ? "Zurück" : "Previous"}
+            {dict["previous"] ?? "Previous"}
           </button>
           <span className="text-xs text-text-muted">
             {page} / {totalPages}
@@ -120,7 +117,7 @@ export function OrdersList({ lang }: OrdersListProps) {
             disabled={page === totalPages}
             className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30"
           >
-            {isDe ? "Weiter" : "Next"}
+            {dict["next"] ?? "Next"}
           </button>
         </div>
       )}

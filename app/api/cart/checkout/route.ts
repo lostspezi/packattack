@@ -13,11 +13,15 @@ import { assignFulfillments, decrementShopStock } from "@/lib/fulfillment-assign
 import { cartCheckoutSchema } from "@/lib/validations";
 import stripe from "@/lib/stripe";
 
-function generateOrderNumber(): string {
+async function generateOrderNumber(): Promise<string> {
   const date = new Date();
   const dateStr = date.toISOString().slice(0, 10).replace(/-/g, "");
-  const rand = Math.floor(1000 + Math.random() * 9000);
-  return `PA-${dateStr}-${rand}`;
+  // Use the count of today's orders + random suffix for uniqueness
+  const todayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const todayCount = await Order.countDocuments({ createdAt: { $gte: todayStart } });
+  const seq = String(todayCount + 1).padStart(4, "0");
+  const rand = Math.floor(10 + Math.random() * 90); // 2-digit random suffix
+  return `PA-${dateStr}-${seq}${rand}`;
 }
 
 export async function POST(req: NextRequest) {
@@ -76,13 +80,16 @@ export async function POST(req: NextRequest) {
       }));
       const fulfillments = await assignFulfillments(cards);
 
-      let orderNumber = generateOrderNumber();
+      let orderNumber = await generateOrderNumber();
       let retries = 0;
       while (retries < 5) {
         const existing = await Order.findOne({ orderNumber }).select("_id").lean();
         if (!existing) break;
-        orderNumber = generateOrderNumber();
+        orderNumber = await generateOrderNumber();
         retries++;
+      }
+      if (retries >= 5) {
+        return NextResponse.json({ error: "Failed to generate unique order number" }, { status: 500 });
       }
 
       if (paymentMethod === "coins") {
@@ -201,8 +208,8 @@ export async function POST(req: NextRequest) {
               price_data: {
                 currency: "eur",
                 product_data: {
-                  name: `Versand – Bestellung ${orderNumber}`,
-                  description: `${cartItems.length} Karte${cartItems.length > 1 ? "n" : ""}`,
+                  name: `Shipping – Order ${orderNumber}`,
+                  description: `${cartItems.length} card${cartItems.length > 1 ? "s" : ""}`,
                 },
                 unit_amount: shippingCost.costCents,
               },
@@ -217,7 +224,7 @@ export async function POST(req: NextRequest) {
           expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
           success_url: `${process.env.NEXT_PUBLIC_APP_URL}/${lang}/orders/${order._id}?payment=success`,
           cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/${lang}/cart?payment=cancelled`,
-          locale: lang === "de" ? "de" : "en",
+          locale: "auto",
         });
 
         order.stripeSessionId = checkoutSession.id;
@@ -249,10 +256,10 @@ async function notifyShops(
     const shopUserId = f.shopId.toString();
     await Notification.create({
       userId: shopUserId,
-      title: "Neuer Versandauftrag",
-      message: `Bestellung ${orderNumber}: ${f.items.length} Karte${f.items.length > 1 ? "n" : ""} zum Versand.`,
+      title: "New fulfillment order",
+      message: `Order ${orderNumber}: ${f.items.length} card${f.items.length > 1 ? "s" : ""} to ship.`,
       type: "info",
-      cta: { label: "Aufträge ansehen", url: "/shop/fulfillments" },
+      cta: { label: "View orders", url: "/shop/fulfillments" },
       category: "fulfillment",
       entityType: "order",
       entityId: orderId,

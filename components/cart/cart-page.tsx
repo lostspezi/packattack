@@ -11,6 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
+import { ReservationConsentModal } from "./reservation-consent-modal";
 
 interface CartItem {
   _id: string;
@@ -38,9 +39,8 @@ interface CartPageProps {
   dict: Record<string, string>;
 }
 
-export function CartPage({ lang }: CartPageProps) {
+export function CartPage({ lang, dict }: CartPageProps) {
   const { toast } = useToast();
-  const isDe = lang === "de";
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [convertingId, setConvertingId] = useState<string | null>(null);
@@ -63,9 +63,11 @@ export function CartPage({ lang }: CartPageProps) {
     tierFound: boolean;
   } | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(false);
 
-  // Countdown timers
-  const [countdowns, setCountdowns] = useState<Record<string, number>>({});
+  // Single cart-wide countdown (all items share the same expiry)
+  const [cartCountdown, setCartCountdown] = useState(0);
 
   const fetchCart = useCallback(async () => {
     try {
@@ -73,11 +75,11 @@ export function CartPage({ lang }: CartPageProps) {
       const data = await res.json();
       if (data.items) {
         setItems(data.items);
-        const cd: Record<string, number> = {};
-        for (const item of data.items) {
-          cd[item._id] = item.remainingSeconds;
-        }
-        setCountdowns(cd);
+        // All items share the same expiresAt — use the minimum remaining
+        const minRemaining = data.items.length > 0
+          ? Math.min(...data.items.map((i: CartItem) => i.remainingSeconds))
+          : 0;
+        setCartCountdown(minRemaining);
       }
     } finally {
       setLoading(false);
@@ -100,26 +102,25 @@ export function CartPage({ lang }: CartPageProps) {
             country: sa.country || "DE",
           });
         }
+        if (profile?.reservationRulesAccepted) {
+          setConsentAccepted(true);
+        }
       })
       .catch(() => {});
   }, [fetchCart]);
 
-  // Countdown ticker
+  // Cart-wide countdown ticker
   useEffect(() => {
+    if (cartCountdown <= 0) return;
     const interval = setInterval(() => {
-      setCountdowns((prev) => {
-        const next = { ...prev };
-        let anyExpired = false;
-        for (const key of Object.keys(next)) {
-          next[key] = Math.max(0, next[key] - 1);
-          if (next[key] === 0) anyExpired = true;
-        }
-        if (anyExpired) fetchCart();
+      setCartCountdown((prev) => {
+        const next = Math.max(0, prev - 1);
+        if (next === 0) fetchCart();
         return next;
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [fetchCart]);
+  }, [cartCountdown, fetchCart]);
 
   // Fetch shipping estimate when country or items change
   useEffect(() => {
@@ -144,10 +145,8 @@ export function CartPage({ lang }: CartPageProps) {
       if (data.success) {
         toast({
           type: "success",
-          title: isDe ? "Umgewandelt" : "Converted",
-          message: isDe
-            ? `${data.convertedCoins} Coins gutgeschrieben`
-            : `${data.convertedCoins} coins credited`,
+          title: dict["converted"] ?? "Converted",
+          message: (dict["coinsCredited"] ?? "{coins} coins credited").replace("{coins}", String(data.convertedCoins)),
         });
         fetchCart();
       } else {
@@ -157,7 +156,7 @@ export function CartPage({ lang }: CartPageProps) {
       toast({
         type: "error",
         title: "Error",
-        message: "Failed to convert",
+        message: dict["convertFailed"] ?? "Failed to convert",
       });
     } finally {
       setConvertingId(null);
@@ -165,13 +164,16 @@ export function CartPage({ lang }: CartPageProps) {
   }
 
   async function handleCheckout() {
+    if (!consentAccepted) {
+      setShowConsent(true);
+      return;
+    }
+
     if (!address.name || !address.street || !address.city || !address.zip) {
       toast({
         type: "error",
-        title: isDe ? "Adresse unvollständig" : "Address incomplete",
-        message: isDe
-          ? "Bitte fülle alle Adressfelder aus."
-          : "Please fill in all address fields.",
+        title: dict["addressIncomplete"] ?? "Address incomplete",
+        message: dict["fillAllFields"] ?? "Please fill in all address fields.",
       });
       return;
     }
@@ -191,8 +193,8 @@ export function CartPage({ lang }: CartPageProps) {
         } else {
           toast({
             type: "success",
-            title: isDe ? "Bestellung aufgegeben!" : "Order placed!",
-            message: `${isDe ? "Bestellnummer" : "Order"}: ${data.orderNumber}`,
+            title: dict["orderPlaced"] ?? "Order placed!",
+            message: `${dict["orderNumber"] ?? "Order"}: ${data.orderNumber}`,
           });
           window.location.href = `/${lang}/orders/${data.orderId}`;
         }
@@ -203,7 +205,7 @@ export function CartPage({ lang }: CartPageProps) {
       toast({
         type: "error",
         title: "Error",
-        message: "Checkout failed",
+        message: dict["checkoutFailed"] ?? "Checkout failed",
       });
     } finally {
       setCheckoutLoading(false);
@@ -230,14 +232,14 @@ export function CartPage({ lang }: CartPageProps) {
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <ShoppingCart className="h-16 w-16 text-text-muted" />
         <p className="text-lg text-text-secondary">
-          {isDe ? "Dein Warenkorb ist leer" : "Your cart is empty"}
+          {dict["emptyCart"] ?? "Your cart is empty"}
         </p>
         <a
           href={`/${lang}/packs`}
           className="inline-flex items-center gap-2 rounded-lg bg-pa-green px-4 py-2 text-sm font-medium text-black hover:bg-pa-green/90"
         >
           <Package className="h-4 w-4" />
-          {isDe ? "Packs öffnen" : "Open Packs"}
+          {dict["openPacks"] ?? "Open Packs"}
         </a>
       </div>
     );
@@ -248,10 +250,20 @@ export function CartPage({ lang }: CartPageProps) {
       {/* Cart items */}
       <div className="space-y-3">
         <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-sm text-amber-200">
-          <Clock className="mr-2 inline h-4 w-4" />
-          {isDe
-            ? "Reservierte Karten werden nach Ablauf der Frist automatisch in Coins umgewandelt."
-            : "Reserved cards will be automatically converted to coins after the timer expires."}
+          <div className="flex items-center justify-between">
+            <span>
+              <Clock className="mr-2 inline h-4 w-4" />
+              {dict["timerWarning"] ?? "Reserved cards will be automatically converted to coins after the timer expires."}
+            </span>
+            <span
+              className={[
+                "ml-4 whitespace-nowrap font-mono text-base font-semibold",
+                cartCountdown < 3600 ? "text-amber-400" : "text-amber-200",
+              ].join(" ")}
+            >
+              {formatTime(cartCountdown)}
+            </span>
+          </div>
         </div>
 
         {items.map((item) => (
@@ -280,18 +292,6 @@ export function CartPage({ lang }: CartPageProps) {
               <p className="text-xs text-text-muted">
                 {item.rarity} — {item.conversionValue} Coins
               </p>
-              <div className="mt-1 flex items-center gap-1 text-xs">
-                <Clock className="h-3 w-3 text-amber-400" />
-                <span
-                  className={
-                    countdowns[item._id] < 3600
-                      ? "text-amber-400"
-                      : "text-text-muted"
-                  }
-                >
-                  {formatTime(countdowns[item._id] ?? 0)}
-                </span>
-              </div>
             </div>
             <button
               onClick={() => handleConvert(item._id)}
@@ -301,7 +301,7 @@ export function CartPage({ lang }: CartPageProps) {
               {convertingId === item._id ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                <>{isDe ? "In Coins" : "To Coins"}</>
+                <>{dict["toCoins"] ?? "To Coins"}</>
               )}
             </button>
           </div>
@@ -312,12 +312,12 @@ export function CartPage({ lang }: CartPageProps) {
       <div className="space-y-4">
         <div className="rounded-lg border border-border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold text-text-primary">
-            {isDe ? "Versandadresse" : "Shipping Address"}
+            {dict["shippingAddress"] ?? "Shipping Address"}
           </h3>
           <div className="space-y-2">
             <input
               type="text"
-              placeholder={isDe ? "Name" : "Name"}
+              placeholder={dict["placeholderName"] ?? "Name"}
               value={address.name}
               onChange={(e) =>
                 setAddress((a) => ({ ...a, name: e.target.value }))
@@ -326,7 +326,7 @@ export function CartPage({ lang }: CartPageProps) {
             />
             <input
               type="text"
-              placeholder={isDe ? "Straße + Hausnr." : "Street"}
+              placeholder={dict["placeholderStreet"] ?? "Street"}
               value={address.street}
               onChange={(e) =>
                 setAddress((a) => ({ ...a, street: e.target.value }))
@@ -336,7 +336,7 @@ export function CartPage({ lang }: CartPageProps) {
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="text"
-                placeholder={isDe ? "PLZ" : "Zip"}
+                placeholder={dict["placeholderZip"] ?? "Zip"}
                 value={address.zip}
                 onChange={(e) =>
                   setAddress((a) => ({ ...a, zip: e.target.value }))
@@ -345,7 +345,7 @@ export function CartPage({ lang }: CartPageProps) {
               />
               <input
                 type="text"
-                placeholder={isDe ? "Stadt" : "City"}
+                placeholder={dict["placeholderCity"] ?? "City"}
                 value={address.city}
                 onChange={(e) =>
                   setAddress((a) => ({ ...a, city: e.target.value }))
@@ -363,16 +363,16 @@ export function CartPage({ lang }: CartPageProps) {
               }
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
             >
-              <option value="DE">Deutschland</option>
-              <option value="AT">{isDe ? "Österreich" : "Austria"}</option>
-              <option value="CH">{isDe ? "Schweiz" : "Switzerland"}</option>
+              <option value="DE">{dict["germany"] ?? "Germany"}</option>
+              <option value="AT">{dict["austria"] ?? "Austria"}</option>
+              <option value="CH">{dict["switzerland"] ?? "Switzerland"}</option>
             </select>
           </div>
         </div>
 
         <div className="rounded-lg border border-border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold text-text-primary">
-            {isDe ? "Zahlungsmethode" : "Payment Method"}
+            {dict["paymentMethod"] ?? "Payment Method"}
           </h3>
           <div className="space-y-2">
             <label
@@ -427,21 +427,19 @@ export function CartPage({ lang }: CartPageProps) {
         <div className="rounded-lg border border-border bg-card p-4">
           <div className="flex items-center justify-between text-sm">
             <span className="text-text-secondary">
-              {isDe ? "Karten" : "Cards"}
+              {dict["cards"] ?? "Cards"}
             </span>
             <span className="text-text-primary">{items.length}</span>
           </div>
           <div className="mt-2 flex items-center justify-between text-sm">
             <span className="text-text-secondary">
-              {isDe ? "Versand" : "Shipping"}
+              {dict["shipping"] ?? "Shipping"}
             </span>
             <span className="text-text-primary">
               {estimateLoading
                 ? "..."
                 : !shippingCost?.tierFound
-                  ? isDe
-                    ? "Nicht verfügbar"
-                    : "N/A"
+                  ? dict["notAvailable"] ?? "N/A"
                   : paymentMethod === "coins"
                     ? `${shippingCost.costCoins} Coins`
                     : `${(shippingCost.costCents / 100).toFixed(2)} €`}
@@ -458,12 +456,24 @@ export function CartPage({ lang }: CartPageProps) {
             ) : (
               <>
                 <ArrowRight className="h-4 w-4" />
-                {isDe ? "Jetzt bestellen" : "Place Order"}
+                {dict["placeOrder"] ?? "Place Order"}
               </>
             )}
           </button>
         </div>
       </div>
+
+      {showConsent && (
+        <ReservationConsentModal
+          dict={dict}
+          onAccept={() => {
+            setConsentAccepted(true);
+            setShowConsent(false);
+            handleCheckout();
+          }}
+          onClose={() => setShowConsent(false)}
+        />
+      )}
     </div>
   );
 }

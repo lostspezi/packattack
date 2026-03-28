@@ -234,7 +234,7 @@ export const shippingAddressSchema = z.object({
 export const cartCheckoutSchema = z.object({
   paymentMethod: z.enum(["coins", "stripe"]),
   address: shippingAddressSchema,
-  lang: z.enum(["de", "en"]).default("de"),
+  lang: z.string().min(2).max(5).default("de"),
 });
 
 export const shippingEstimateSchema = z.object({
@@ -255,5 +255,9 @@ export const shippingTierUpdateSchema = shippingTierSchema.partial();
 export const fulfillmentUpdateSchema = z.object({
   status: z.enum(["processing", "shipped", "delivered"]),
   trackingNumber: z.string().trim().max(100).optional(),
+});
+
+export const adminOrderUpdateSchema = z.object({
+  status: z.enum(["pending_payment", "paid", "processing", "shipped", "delivered", "cancelled"]),
 });
 

@@ -1,0 +1,68 @@
+"use client";
+
+import { useState } from "react";
+import { Clock, AlertTriangle, Coins, X } from "lucide-react";
+
+interface ReservationConsentModalProps {
+  dict: Record<string, string>;
+  onAccept: () => void;
+  onClose: () => void;
+}
+
+export function ReservationConsentModal({ dict, onAccept, onClose }: ReservationConsentModalProps) {
+  const [accepting, setAccepting] = useState(false);
+
+  async function handleAccept() {
+    setAccepting(true);
+    try {
+      await fetch("/api/account/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reservationRulesAccepted: true }),
+      });
+      onAccept();
+    } finally {
+      setAccepting(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="relative mx-4 w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-xl">
+        <button
+          onClick={onClose}
+          className="absolute right-3 top-3 rounded-lg p-1 text-text-muted hover:bg-white/5"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <h3 className="mb-4 text-lg font-bold text-text-primary">
+          {dict["consentTitle"] ?? "Reservation Rules"}
+        </h3>
+
+        <div className="space-y-3 text-sm text-text-secondary">
+          <div className="flex gap-3">
+            <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
+            <p>{dict["consentRule1"] ?? "Your cart has a 6-hour reservation window. The first claimed card starts the timer."}</p>
+          </div>
+          <div className="flex gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
+            <p>{dict["consentRule2"] ?? "If you don't complete checkout within 6 hours, all cards will be automatically converted to coins."}</p>
+          </div>
+          <div className="flex gap-3">
+            <Coins className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
+            <p>{dict["consentRule3"] ?? "You can manually convert individual cards to coins at any time from the cart."}</p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleAccept}
+          disabled={accepting}
+          className="mt-6 w-full rounded-lg bg-pa-green px-4 py-3 text-sm font-semibold text-black hover:bg-pa-green/90 disabled:opacity-50"
+        >
+          {dict["consentAccept"] ?? "I understand"}
+        </button>
+      </div>
+    </div>
+  );
+}

@@ -15,8 +15,15 @@ const connection = parseRedisUrl(REDIS_URL);
 
 export const RESERVATION_QUEUE = "reservation-jobs";
 
+const queueCache = new Map<string, Queue>();
+
 export function getQueue(name: string): Queue {
-  return new Queue(name, { connection });
+  let queue = queueCache.get(name);
+  if (!queue) {
+    queue = new Queue(name, { connection });
+    queueCache.set(name, queue);
+  }
+  return queue;
 }
 
 export function createWorker<T = unknown>(

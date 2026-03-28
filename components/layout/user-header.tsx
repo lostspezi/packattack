@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LayoutGrid,
   Package,
@@ -53,10 +53,25 @@ export function UserHeader({
     setAvatarUrl(userImage || "/images/default-avatar.png");
   }, [userImage]);
 
+  const [cartCount, setCartCount] = useState(0);
+
+  const fetchCartCount = useCallback(() => {
+    fetch("/api/cart")
+      .then((r) => r.json())
+      .then((data) => setCartCount(data.totalItems ?? 0))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchCartCount();
+  }, [fetchCartCount]);
+
+  // Refresh cart count when navigating (e.g. after claiming)
   const pathnameWithoutLang = pathname.replace(/^\/[a-z]{2}/, "");
   useEffect(() => {
     setMobileMenuOpen(false);
-  }, [pathnameWithoutLang]);
+    fetchCartCount();
+  }, [pathnameWithoutLang, fetchCartCount]);
 
   const dashboardHref = `/${lang}/dashboard`;
   const isDashboardActive = pathname === dashboardHref;
@@ -118,6 +133,11 @@ export function UserHeader({
             >
               <ShoppingCart className="h-4 w-4 flex-shrink-0" />
               <span>{dict["cart"] ?? "Warenkorb"}</span>
+              {cartCount > 0 && (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-pa-green px-1.5 text-[10px] font-bold text-black">
+                  {cartCount}
+                </span>
+              )}
             </Link>
 
             <span className="select-none rounded-lg px-3 py-2 text-sm font-medium text-text-muted opacity-35">
@@ -244,7 +264,12 @@ export function UserHeader({
               ].join(" ")}
             >
               <ShoppingCart className="h-5 w-5 flex-shrink-0" />
-              <span>{dict["cart"] ?? "Warenkorb"}</span>
+              <span className="flex-1">{dict["cart"] ?? "Warenkorb"}</span>
+              {cartCount > 0 && (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-pa-green px-1.5 text-[10px] font-bold text-black">
+                  {cartCount}
+                </span>
+              )}
             </Link>
 
             <span className="flex select-none items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-text-muted opacity-35">

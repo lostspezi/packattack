@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Order from "@/models/order";
+import { adminOrderUpdateSchema } from "@/lib/validations";
 import "@/models/card";
 import "@/models/user";
 
@@ -57,20 +58,15 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { status } = body as { status?: string };
+  const parsed = adminOrderUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Validation failed", details: parsed.error.flatten() }, { status: 400 });
+  }
 
   try {
     await connectDB();
 
-    const validStatuses = ["pending_payment", "paid", "processing", "shipped", "delivered", "cancelled"];
-    if (status && !validStatuses.includes(status)) {
-      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-    }
-
-    const update: Record<string, unknown> = {};
-    if (status) update.status = status;
-
-    const order = await Order.findByIdAndUpdate(id, update, { returnDocument: "after" });
+    const order = await Order.findByIdAndUpdate(id, { status: parsed.data.status }, { returnDocument: "after" });
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }

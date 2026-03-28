@@ -23,10 +23,13 @@ async function processExpiredReservations() {
   const userCoinsMap = new Map<string, number>();
 
   for (const item of expiredItems) {
-    await CartItem.updateOne(
+    // Atomically transition to expired — skip if already processed (idempotent)
+    const updated = await CartItem.findOneAndUpdate(
       { _id: item._id, status: "reserved" },
-      { status: "expired" }
+      { status: "expired" },
+      { returnDocument: "after" }
     );
+    if (!updated || updated.status !== "expired") continue;
 
     await PackPull.updateOne(
       { _id: item.pullId, status: "reserved" },
@@ -47,7 +50,7 @@ async function processExpiredReservations() {
       userId: item.userId,
       amount: item.conversionValue,
       type: "reservation_expired",
-      reason: "Reservation expired after 6 hours",
+      reason: "Reservation expired",
       relatedPullId: item.pullId,
       relatedBoxId: item.boxId,
     });
@@ -59,10 +62,10 @@ async function processExpiredReservations() {
   for (const [userId, totalCoins] of userCoinsMap) {
     await Notification.create({
       userId,
-      title: "Reservierung abgelaufen",
-      message: `Deine reservierten Karten wurden automatisch in ${totalCoins} Coins umgewandelt.`,
+      title: "Reservation expired",
+      message: `Your reserved cards have been automatically converted to ${totalCoins} coins.`,
       type: "info",
-      cta: { label: "Zum Guthaben", url: "/balance" },
+      cta: { label: "View balance", url: "/balance" },
       category: "reservation",
       entityType: "cart_expiry",
     });
@@ -109,10 +112,10 @@ async function processExpiryWarnings() {
   for (const [userId, cardCount] of userItems) {
     await Notification.create({
       userId,
-      title: "Reservierung läuft bald ab",
-      message: `${cardCount} Karte${cardCount > 1 ? "n" : ""} im Warenkorb ${cardCount > 1 ? "laufen" : "läuft"} in weniger als 1 Stunde ab. Schließe jetzt den Versand ab.`,
+      title: "Reservation expiring soon",
+      message: `${cardCount} card${cardCount > 1 ? "s" : ""} in your cart will expire in less than 1 hour. Complete checkout now.`,
       type: "warning",
-      cta: { label: "Zum Warenkorb", url: "/cart" },
+      cta: { label: "Go to cart", url: "/cart" },
       category: "reservation",
       entityType: "cart_warning",
     });

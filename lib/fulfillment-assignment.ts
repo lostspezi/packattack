@@ -19,13 +19,15 @@ export async function assignFulfillments(
     stock: { $gte: 1 },
   }).lean();
 
-  const cardToShops = new Map<string, Set<string>>();
+  // Build map: shopId -> { cardId -> available stock }
+  const shopStock = new Map<string, Map<string, number>>();
   for (const item of inventoryItems) {
-    const cardKey = item.card.toString();
-    if (!cardToShops.has(cardKey)) {
-      cardToShops.set(cardKey, new Set());
+    const shopId = item.shop.toString();
+    const cardId = item.card.toString();
+    if (!shopStock.has(shopId)) {
+      shopStock.set(shopId, new Map());
     }
-    cardToShops.get(cardKey)!.add(item.shop.toString());
+    shopStock.get(shopId)!.set(cardId, item.stock);
   }
 
   const uncovered = new Set(cards.map((_, i) => i));
@@ -35,20 +37,20 @@ export async function assignFulfillments(
     let bestShop: string | null = null;
     let bestCoverage: number[] = [];
 
-    const shopCoverage = new Map<string, number[]>();
-    for (const idx of uncovered) {
-      const cardId = cards[idx].cardId;
-      const shops = cardToShops.get(cardId);
-      if (!shops) continue;
-      for (const shopId of shops) {
-        if (!shopCoverage.has(shopId)) {
-          shopCoverage.set(shopId, []);
-        }
-        shopCoverage.get(shopId)!.push(idx);
-      }
-    }
+    for (const [shopId, stockMap] of shopStock) {
+      // Copy stock to simulate assignment for this candidate
+      const tempStock = new Map(stockMap);
+      const covered: number[] = [];
 
-    for (const [shopId, covered] of shopCoverage) {
+      for (const idx of uncovered) {
+        const cardId = cards[idx].cardId;
+        const avail = tempStock.get(cardId) ?? 0;
+        if (avail > 0) {
+          covered.push(idx);
+          tempStock.set(cardId, avail - 1);
+        }
+      }
+
       if (covered.length > bestCoverage.length) {
         bestShop = shopId;
         bestCoverage = covered;
@@ -56,6 +58,13 @@ export async function assignFulfillments(
     }
 
     if (bestShop === null || bestCoverage.length === 0) break;
+
+    // Actually deduct from the tracking map
+    const stockMap = shopStock.get(bestShop)!;
+    for (const idx of bestCoverage) {
+      const cardId = cards[idx].cardId;
+      stockMap.set(cardId, (stockMap.get(cardId) ?? 1) - 1);
+    }
 
     fulfillmentMap.set(bestShop, bestCoverage);
     for (const idx of bestCoverage) {

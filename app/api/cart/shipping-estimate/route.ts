@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   try {
     await connectDB();
 
-    const cardCount = await CartItem.countDocuments({ userId, status: "reserved" });
+    const cardCount = await CartItem.countDocuments({ userId, status: "reserved", expiresAt: { $gt: new Date() } });
     if (cardCount === 0) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
     }

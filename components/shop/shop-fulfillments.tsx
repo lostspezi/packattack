@@ -14,12 +14,7 @@ interface FulfillmentOrder {
   createdAt: string;
 }
 
-const STATUSES = ["", "pending", "processing", "shipped", "delivered"] as const;
-const STATUS_LABELS_DE: Record<string, string> = { "": "Alle", pending: "Offen", processing: "In Bearbeitung", shipped: "Versendet", delivered: "Zugestellt" };
-const STATUS_LABELS_EN: Record<string, string> = { "": "All", pending: "Pending", processing: "Processing", shipped: "Shipped", delivered: "Delivered" };
-
-export function ShopFulfillments({ lang }: { lang: string }) {
-  const isDe = lang === "de";
+export function ShopFulfillments({ lang, dict }: { lang: string; dict: Record<string, string> }) {
   const { toast } = useToast();
   const [orders, setOrders] = useState<FulfillmentOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -28,6 +23,8 @@ export function ShopFulfillments({ lang }: { lang: string }) {
   const [totalPages, setTotalPages] = useState(1);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [trackingInputs, setTrackingInputs] = useState<Record<string, string>>({});
+
+  const statuses = ["", "pending", "processing", "shipped", "delivered"] as const;
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -59,7 +56,7 @@ export function ShopFulfillments({ lang }: { lang: string }) {
       });
       const data = await res.json();
       if (data.success) {
-        toast({ type: "success", title: isDe ? "Status aktualisiert" : "Status updated" });
+        toast({ type: "success", title: dict["statusUpdated"] ?? "Status updated" });
         fetchOrders();
       } else {
         toast({ type: "error", title: data.error || "Error" });
@@ -71,13 +68,16 @@ export function ShopFulfillments({ lang }: { lang: string }) {
     }
   }
 
-  const labels = isDe ? STATUS_LABELS_DE : STATUS_LABELS_EN;
+  function statusLabel(s: string): string {
+    if (!s) return dict["filterAll"] ?? "All";
+    return dict[`status_${s}`] ?? s;
+  }
 
   return (
     <div className="space-y-4">
       {/* Status tabs */}
       <div className="flex gap-2 overflow-x-auto">
-        {STATUSES.map((s) => (
+        {statuses.map((s) => (
           <button
             key={s}
             onClick={() => { setStatusFilter(s); setPage(1); }}
@@ -85,7 +85,7 @@ export function ShopFulfillments({ lang }: { lang: string }) {
               statusFilter === s ? "bg-pa-green/15 text-pa-green" : "bg-white/4 text-text-muted hover:text-text-primary"
             }`}
           >
-            {labels[s] || s}
+            {statusLabel(s)}
           </button>
         ))}
       </div>
@@ -95,7 +95,7 @@ export function ShopFulfillments({ lang }: { lang: string }) {
       ) : orders.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-20 text-center">
           <Package className="h-16 w-16 text-text-muted" />
-          <p className="text-text-secondary">{isDe ? "Keine Auftr\u00e4ge" : "No orders"}</p>
+          <p className="text-text-secondary">{dict["noOrders"] ?? "No orders"}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -108,7 +108,7 @@ export function ShopFulfillments({ lang }: { lang: string }) {
                     <span className="text-sm font-medium text-text-primary">{order.orderNumber}</span>
                     <span className="ml-2 text-xs text-text-muted">{order.user?.name || order.user?.username || "User"}</span>
                   </div>
-                  <span className="text-xs text-text-muted">{new Date(order.createdAt).toLocaleDateString(isDe ? "de-DE" : "en-US")}</span>
+                  <span className="text-xs text-text-muted">{new Date(order.createdAt).toLocaleDateString(lang)}</span>
                 </div>
 
                 <div className="text-xs text-text-secondary">
@@ -117,7 +117,7 @@ export function ShopFulfillments({ lang }: { lang: string }) {
 
                 <div className="flex items-center gap-2 text-xs text-text-muted">
                   <Package className="h-3.5 w-3.5" />
-                  {f?.items.length ?? 0} {isDe ? "Karten" : "cards"}
+                  {f?.items.length ?? 0} {dict["cards"] ?? "cards"}
                   {f?.trackingNumber && (
                     <span className="ml-2">Tracking: {f.trackingNumber}</span>
                   )}
@@ -132,7 +132,7 @@ export function ShopFulfillments({ lang }: { lang: string }) {
                       className="flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-400 hover:bg-blue-500/20 disabled:opacity-50"
                     >
                       {actionLoading === order._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Clock className="h-3 w-3" />}
-                      {isDe ? "Verarbeiten" : "Process"}
+                      {dict["actionProcess"] ?? "Process"}
                     </button>
                   )}
                   {f?.status === "processing" && (
@@ -150,7 +150,7 @@ export function ShopFulfillments({ lang }: { lang: string }) {
                         className="flex items-center gap-1.5 rounded-lg bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-400 hover:bg-purple-500/20 disabled:opacity-50"
                       >
                         {actionLoading === order._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Truck className="h-3 w-3" />}
-                        {isDe ? "Versendet" : "Shipped"}
+                        {dict["actionShipped"] ?? "Shipped"}
                       </button>
                     </>
                   )}
@@ -161,12 +161,12 @@ export function ShopFulfillments({ lang }: { lang: string }) {
                       className="flex items-center gap-1.5 rounded-lg bg-green-500/10 px-3 py-1.5 text-xs font-medium text-green-400 hover:bg-green-500/20 disabled:opacity-50"
                     >
                       {actionLoading === order._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                      {isDe ? "Zugestellt" : "Delivered"}
+                      {dict["actionDelivered"] ?? "Delivered"}
                     </button>
                   )}
                   {f?.status === "delivered" && (
                     <span className="flex items-center gap-1.5 text-xs text-green-400">
-                      <CheckCircle2 className="h-3 w-3" /> {isDe ? "Zugestellt" : "Delivered"}
+                      <CheckCircle2 className="h-3 w-3" /> {dict["actionDelivered"] ?? "Delivered"}
                     </span>
                   )}
                 </div>
@@ -177,11 +177,11 @@ export function ShopFulfillments({ lang }: { lang: string }) {
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-4">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30">
-                {isDe ? "Zur\u00fcck" : "Previous"}
+                {dict["previous"] ?? "Previous"}
               </button>
               <span className="text-xs text-text-muted">{page} / {totalPages}</span>
               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30">
-                {isDe ? "Weiter" : "Next"}
+                {dict["next"] ?? "Next"}
               </button>
             </div>
           )}

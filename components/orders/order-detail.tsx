@@ -53,8 +53,7 @@ const STATUS_COLORS: Record<string, string> = {
   pending: "bg-amber-500/10 text-amber-400 border-amber-500/20",
 };
 
-export function OrderDetail({ lang, orderId }: OrderDetailProps) {
-  const isDe = lang === "de";
+export function OrderDetail({ lang, dict, orderId }: OrderDetailProps) {
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -78,7 +77,7 @@ export function OrderDetail({ lang, orderId }: OrderDetailProps) {
   if (!order) {
     return (
       <div className="py-20 text-center text-text-muted">
-        {isDe ? "Bestellung nicht gefunden" : "Order not found"}
+        {dict["orderNotFound"] ?? "Order not found"}
       </div>
     );
   }
@@ -97,14 +96,11 @@ export function OrderDetail({ lang, orderId }: OrderDetailProps) {
             {order.orderNumber}
           </h2>
           <p className="text-xs text-text-muted">
-            {new Date(order.createdAt).toLocaleDateString(
-              isDe ? "de-DE" : "en-US",
-              {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              }
-            )}
+            {new Date(order.createdAt).toLocaleDateString(lang, {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
           </p>
         </div>
         <span
@@ -117,7 +113,7 @@ export function OrderDetail({ lang, orderId }: OrderDetailProps) {
       {/* Shipping address */}
       <div className="rounded-lg border border-border bg-card p-4">
         <h3 className="mb-2 text-sm font-semibold text-text-primary">
-          {isDe ? "Versandadresse" : "Shipping Address"}
+          {dict["shippingAddress"] ?? "Shipping Address"}
         </h3>
         <p className="text-sm text-text-secondary">
           {order.shippingAddress.name}
@@ -134,7 +130,7 @@ export function OrderDetail({ lang, orderId }: OrderDetailProps) {
       {order.fulfillments.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-text-primary">
-            {isDe ? "Versandstatus" : "Shipping Status"}
+            {dict["shippingStatus"] ?? "Shipping Status"}
           </h3>
           {order.fulfillments.map((f, i) => (
             <div
@@ -150,7 +146,7 @@ export function OrderDetail({ lang, orderId }: OrderDetailProps) {
                     {f.status}
                   </span>
                   <span className="text-xs text-text-muted">
-                    {f.itemCount} {isDe ? "Karten" : "cards"}
+                    {f.itemCount} {dict["cards"] ?? "cards"}
                   </span>
                 </div>
                 {f.trackingNumber && (
@@ -160,10 +156,8 @@ export function OrderDetail({ lang, orderId }: OrderDetailProps) {
                 )}
                 {f.shippedAt && (
                   <p className="text-xs text-text-muted">
-                    {isDe ? "Versendet am" : "Shipped"}{" "}
-                    {new Date(f.shippedAt).toLocaleDateString(
-                      isDe ? "de-DE" : "en-US"
-                    )}
+                    {dict["shippedOn"] ?? "Shipped"}{" "}
+                    {new Date(f.shippedAt).toLocaleDateString(lang)}
                   </p>
                 )}
               </div>
@@ -175,7 +169,7 @@ export function OrderDetail({ lang, orderId }: OrderDetailProps) {
       {/* Cards */}
       <div>
         <h3 className="mb-3 text-sm font-semibold text-text-primary">
-          {isDe ? "Karten" : "Cards"} ({order.items.length})
+          {dict["cards"] ?? "Cards"} ({order.items.length})
         </h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {order.items.map((item, i) => (
@@ -212,7 +206,7 @@ export function OrderDetail({ lang, orderId }: OrderDetailProps) {
       <div className="rounded-lg border border-border bg-card p-4 text-sm">
         <div className="flex justify-between">
           <span className="text-text-secondary">
-            {isDe ? "Zahlungsmethode" : "Payment"}
+            {dict["payment"] ?? "Payment"}
           </span>
           <span className="text-text-primary">
             {order.paymentMethod === "coins" ? "Coins" : "Stripe"}
@@ -220,7 +214,7 @@ export function OrderDetail({ lang, orderId }: OrderDetailProps) {
         </div>
         <div className="mt-1 flex justify-between">
           <span className="text-text-secondary">
-            {isDe ? "Versandkosten" : "Shipping"}
+            {dict["shipping"] ?? "Shipping"}
           </span>
           <span className="text-text-primary">
             {(order.shippingCostCents / 100).toFixed(2)} €

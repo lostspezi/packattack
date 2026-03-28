@@ -25,8 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-500/10 text-red-400 border-red-500/20",
 };
 
-export function AdminOrders({ lang }: { lang: string; dict: Record<string, string> }) {
-  const isDe = lang === "de";
+export function AdminOrders({ lang, dict }: { lang: string; dict: Record<string, string> }) {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("");
@@ -60,7 +59,7 @@ export function AdminOrders({ lang }: { lang: string; dict: Record<string, strin
               statusFilter === s ? "bg-pa-green/15 text-pa-green" : "bg-white/4 text-text-muted hover:text-text-primary"
             }`}
           >
-            {s || (isDe ? "Alle" : "All")}
+            {s || (dict["orders_filterAll"] ?? "All")}
           </button>
         ))}
       </div>
@@ -70,7 +69,7 @@ export function AdminOrders({ lang }: { lang: string; dict: Record<string, strin
       ) : orders.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-20">
           <Package className="h-16 w-16 text-text-muted" />
-          <p className="text-text-secondary">{isDe ? "Keine Bestellungen" : "No orders"}</p>
+          <p className="text-text-secondary">{dict["orders_noOrders"] ?? "No orders"}</p>
         </div>
       ) : (
         <>
@@ -79,11 +78,11 @@ export function AdminOrders({ lang }: { lang: string; dict: Record<string, strin
               <thead>
                 <tr className="border-b border-border bg-white/2">
                   <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">#</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{isDe ? "Benutzer" : "User"}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{dict["orders_user"] ?? "User"}</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{isDe ? "Zahlung" : "Payment"}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{isDe ? "Karten" : "Cards"}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{isDe ? "Datum" : "Date"}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{dict["orders_payment"] ?? "Payment"}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{dict["orders_cards"] ?? "Cards"}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{dict["orders_date"] ?? "Date"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -98,7 +97,7 @@ export function AdminOrders({ lang }: { lang: string; dict: Record<string, strin
                     </td>
                     <td className="px-4 py-3 text-text-secondary">{o.paymentMethod}</td>
                     <td className="px-4 py-3 text-text-secondary">{o.items.length}</td>
-                    <td className="px-4 py-3 text-text-muted text-xs">{new Date(o.createdAt).toLocaleDateString(isDe ? "de-DE" : "en-US")}</td>
+                    <td className="px-4 py-3 text-text-muted text-xs">{new Date(o.createdAt).toLocaleDateString(lang)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -107,9 +106,9 @@ export function AdminOrders({ lang }: { lang: string; dict: Record<string, strin
 
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30">{isDe ? "Zur\u00fcck" : "Prev"}</button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30">{dict["orders_previous"] ?? "Prev"}</button>
               <span className="text-xs text-text-muted">{page} / {totalPages}</span>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30">{isDe ? "Weiter" : "Next"}</button>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30">{dict["orders_next"] ?? "Next"}</button>
             </div>
           )}
         </>
