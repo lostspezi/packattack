@@ -9,7 +9,8 @@
 export const mainNavItems: NavItem[] = [
   { key: "dashboard", href: "/dashboard", icon: "LayoutGrid" },
   { key: "packs", href: "/packs", icon: "Package" },
-  { key: "claimed", href: "/claimed", icon: "Layers" },
+  { key: "cart", href: "/cart", icon: "ShoppingCart" },
+  { key: "orders", href: "/orders", icon: "Package" },
   { key: "feedback", href: "/feedback", icon: "MessageSquareMore" },
   { key: "profile", href: "/profile", icon: "User" },
   { key: "settings", href: "/settings", icon: "Settings" },
@@ -33,10 +34,13 @@ export const adminNavItems: NavItem[] = [
   { key: "adminInventory", href: "/admin/inventory", icon: "Layers" },
   { key: "inventoryOverview", href: "/admin/inventory/overview", icon: "Eye" },
   { key: "coinPackages", href: "/admin/coin-packages", icon: "CreditCard" },
+  { key: "adminOrders", href: "/admin/orders", icon: "ClipboardList" },
+  { key: "adminShipping", href: "/admin/shipping", icon: "Truck" },
 ];
 
 export const shopNavItems: NavItem[] = [
   { key: "shopInventory", href: "/shop/inventory", icon: "Layers" },
+  { key: "shopFulfillments", href: "/shop/fulfillments", icon: "Truck" },
 ];
 
 export const soonNavItems: NavItem[] = [

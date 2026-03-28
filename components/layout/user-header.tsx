@@ -7,7 +7,7 @@ import {
   LayoutGrid,
   Package,
   ShoppingBag,
-  Layers,
+  ShoppingCart,
   ChevronDown,
   Menu,
   X,
@@ -108,16 +108,16 @@ export function UserHeader({
             </Link>
 
             <Link
-              href={`/${lang}/claimed`}
+              href={`/${lang}/cart`}
               className={[
                 "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                pathname.startsWith(`/${lang}/claimed`)
+                pathname.startsWith(`/${lang}/cart`)
                   ? "bg-white/6 text-pa-green"
                   : "text-text-secondary hover:bg-white/4 hover:text-text-primary",
               ].join(" ")}
             >
-              <Layers className="h-4 w-4 flex-shrink-0" />
-              <span>{dict["claimed"] ?? "Sammlung"}</span>
+              <ShoppingCart className="h-4 w-4 flex-shrink-0" />
+              <span>{dict["cart"] ?? "Warenkorb"}</span>
             </Link>
 
             <span className="select-none rounded-lg px-3 py-2 text-sm font-medium text-text-muted opacity-35">
@@ -234,17 +234,17 @@ export function UserHeader({
             </Link>
 
             <Link
-              href={`/${lang}/claimed`}
+              href={`/${lang}/cart`}
               onClick={() => setMobileMenuOpen(false)}
               className={[
                 "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
-                pathname.startsWith(`/${lang}/claimed`)
+                pathname.startsWith(`/${lang}/cart`)
                   ? "bg-pa-green/6 text-pa-green"
                   : "text-text-muted hover:text-text-primary",
               ].join(" ")}
             >
-              <Layers className="h-5 w-5 flex-shrink-0" />
-              <span>{dict["claimed"] ?? "Sammlung"}</span>
+              <ShoppingCart className="h-5 w-5 flex-shrink-0" />
+              <span>{dict["cart"] ?? "Warenkorb"}</span>
             </Link>
 
             <span className="flex select-none items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-text-muted opacity-35">
