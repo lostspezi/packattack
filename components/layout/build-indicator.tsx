@@ -14,19 +14,18 @@ export async function BuildIndicator({ userRole }: BuildIndicatorProps) {
 
   const buildSha = process.env.BUILD_SHA?.trim() ?? "";
   const buildBranch = process.env.BUILD_BRANCH?.trim() ?? "";
-  const isLocalDev = !buildSha && process.env.NODE_ENV !== "production";
-
-  if (!buildSha && !isLocalDev) {
-    return null;
-  }
-
+  const isLocalDev = process.env.NODE_ENV !== "production";
   const shortSha = buildSha ? buildSha.slice(0, 7) : null;
   const label = shortSha
     ? `${buildBranch || "build"} · ${shortSha}`
-    : "local dev";
+    : isLocalDev
+      ? "local dev"
+      : "build unknown";
   const title = shortSha
-    ? [`Branch: ${buildBranch || "unknown"}`, `Commit: ${buildSha}`].join("\n")
-    : "Local development build";
+    ? [`Branch: ${buildBranch || "unknown"}`, `Commit: ${buildSha}`, "Source: runtime env"].join("\n")
+    : isLocalDev
+      ? "Local development build"
+      : "Branch: unknown\nCommit: missing\nSource: runtime env missing";
 
   return (
     <div className="fixed bottom-3 left-4 z-20">
