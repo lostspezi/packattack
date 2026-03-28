@@ -53,7 +53,6 @@ CoinPackageSchema.set("toJSON", { virtuals: true });
 CoinPackageSchema.set("toObject", { virtuals: true });
 
 CoinPackageSchema.index({ isActive: 1, sortOrder: 1 });
-CoinPackageSchema.index({ slug: 1 }, { unique: true });
 
 const CoinPackage =
   mongoose.models.CoinPackage ||

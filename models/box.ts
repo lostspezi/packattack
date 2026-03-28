@@ -114,7 +114,6 @@ BoxSchema.pre("save", async function () {
 
 BoxSchema.index({ status: 1 });
 BoxSchema.index({ game: 1 });
-BoxSchema.index({ slug: 1 });
 
 const Box: Model<IBox> =
   mongoose.models.Box ?? mongoose.model<IBox>("Box", BoxSchema);

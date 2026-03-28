@@ -61,7 +61,6 @@ const CoinPurchaseSchema = new Schema<ICoinPurchase>(
 );
 
 CoinPurchaseSchema.index({ userId: 1, createdAt: -1 });
-CoinPurchaseSchema.index({ stripeSessionId: 1 }, { unique: true });
 CoinPurchaseSchema.index({ status: 1 });
 
 const CoinPurchase =
