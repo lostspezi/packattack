@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Check, Coins, ArrowRight, RotateCcw } from "lucide-react";
+import { ShoppingCart, Coins, ArrowRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
@@ -111,7 +111,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
 
       toast({
         type: "success",
-        title: isDe ? "Pack-Opening abgeschlossen!" : "Pack opening complete!",
+        title: isDe ? "Pack-Opening abgeschlossen! Karten im Warenkorb." : "Pack opening complete! Cards in cart.",
       });
       onDone();
     } catch {
@@ -166,8 +166,8 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
                         : "bg-white/4 text-text-muted border-border hover:bg-white/6"
                     }`}
                   >
-                    <Check className="w-3.5 h-3.5 inline mr-1" />
-                    Claim
+                    <ShoppingCart className="w-3.5 h-3.5 inline mr-1" />
+                    {isDe ? "Warenkorb" : "Cart"}
                   </button>
                   <button
                     type="button"
@@ -190,7 +190,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
         {/* Summary bar */}
         <div className="bg-white/4 border border-border rounded-xl p-4 flex items-center justify-between">
           <div className="flex gap-4 text-sm">
-            <span className="text-green-400">{claimedCount} Claim{claimedCount !== 1 ? "s" : ""}</span>
+            <span className="text-green-400">{claimedCount} {isDe ? "Warenkorb" : "Cart"}</span>
             <span className="text-blue-400">{convertedCount} {isDe ? "Umwandlungen" : "Converts"}</span>
             {coinsBack > 0 && <span className="text-pa-green">+{coinsBack} Coins</span>}
           </div>
@@ -292,8 +292,8 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
                         className="flex-1"
                         onClick={() => setChoice(currentIndex, choice === "claim" ? null : "claim")}
                       >
-                        <Check className="w-4 h-4 mr-1.5" />
-                        Claim
+                        <ShoppingCart className="w-4 h-4 mr-1.5" />
+                        {isDe ? "Warenkorb" : "Cart"}
                       </Button>
                       <Button
                         variant={choice === "convert" ? "primary" : "secondary"}
