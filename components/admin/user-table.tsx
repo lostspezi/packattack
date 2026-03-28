@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from "react";
-import { Trash2 } from "lucide-react";
+import { Award, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
+import { UserBadgeManagerModal } from "@/components/admin/user-badge-manager-modal";
 import { RoleSelector } from "@/components/admin/role-selector";
 import { useToast } from "@/components/ui/toast";
 import { Select } from "@/components/ui/select";
@@ -65,6 +66,7 @@ export function UserTable({
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [badgeTarget, setBadgeTarget] = useState<AdminUser | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -237,7 +239,7 @@ export function UserTable({
               <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                 Registered
               </th>
-              <th className="px-4 py-3 w-12" aria-label="Actions" />
+              <th className="px-4 py-3 w-28" aria-label="Actions" />
             </tr>
           </thead>
           <tbody>
@@ -320,17 +322,27 @@ export function UserTable({
 
                     {/* Delete action */}
                     <td className="px-4 py-3">
-                      {showDelete && (
+                      <div className="flex items-center gap-2">
                         <Button
-                          variant="danger"
+                          variant="secondary"
                           size="sm"
-                          aria-label={isDe ? "Benutzer löschen" : "Delete user"}
-                          loading={deleteLoading && deleteTarget?._id === user._id}
-                          onClick={() => setDeleteTarget(user)}
+                          aria-label={isDe ? "Badges verwalten" : "Manage badges"}
+                          onClick={() => setBadgeTarget(user)}
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <Award className="w-4 h-4" />
                         </Button>
-                      )}
+                        {showDelete && (
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            aria-label={isDe ? "Benutzer löschen" : "Delete user"}
+                            loading={deleteLoading && deleteTarget?._id === user._id}
+                            onClick={() => setDeleteTarget(user)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -384,6 +396,22 @@ export function UserTable({
           </Button>
         </div>
       </Modal>
+
+      <UserBadgeManagerModal
+        open={badgeTarget !== null}
+        onClose={() => setBadgeTarget(null)}
+        user={
+          badgeTarget
+            ? {
+                id: badgeTarget._id,
+                username: badgeTarget.username,
+                name: badgeTarget.name,
+                email: badgeTarget.email,
+              }
+            : null
+        }
+        lang={lang}
+      />
     </div>
   );
 }

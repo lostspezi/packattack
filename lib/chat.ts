@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
 import type Redis from "ioredis";
 import { Types } from "mongoose";
+import {
+  applyBadgeDefinitionOverrides,
+  getBadgeDefinitionsMapByKeys,
+  getLegacyBadgeSummaries,
+  getUserBadgeSummariesForUsers,
+} from "@/lib/badges";
 import { runRedisCommand } from "@/lib/redis";
 import { isGiphyEnabled } from "@/lib/giphy";
 import {
@@ -105,18 +111,6 @@ function toStringId(value: unknown): string {
 
 function escapeRegex(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function toProfileBadges(user: ChatUserLike | null | undefined) {
-  return (user?.badges ?? [])
-    .filter((badge) => badge.active !== false)
-    .filter((badge) => !badge.expiresAt || badge.expiresAt.getTime() > Date.now())
-    .sort((a, b) => (b.sortOrder ?? 0) - (a.sortOrder ?? 0))
-    .map((badge) => ({
-      key: badge.key,
-      label: badge.label,
-      tone: badge.tone ?? "neutral",
-    }));
 }
 
 function getDisplayName(user: Pick<ChatUserLike, "name" | "username"> | null | undefined) {
@@ -282,7 +276,10 @@ async function backfillLegacyRestrictions() {
   await Promise.all(legacyStates.map((state) => backfillLegacyRestrictionState(state)));
 }
 
-export function buildChatAuthorSnapshot(user: ChatUserLike | null | undefined) {
+export function buildChatAuthorSnapshot(
+  user: ChatUserLike | null | undefined,
+  profileBadges = getLegacyBadgeSummaries(user)
+) {
   if (!user) return null;
 
   return {
@@ -291,20 +288,23 @@ export function buildChatAuthorSnapshot(user: ChatUserLike | null | undefined) {
     username: user.username ?? null,
     role: user.role ?? "user",
     roleBadge: getChatRoleBadgeLabel(user.role),
-    profileBadges: toProfileBadges(user),
+    profileBadges,
     avatarUrl: user.image ?? null,
     identityVerified: Boolean(user.identityVerified),
   };
 }
 
-export function serializeChatOnlineUser(user: ChatUserLike): ChatOnlineUserSummary {
+export function serializeChatOnlineUser(
+  user: ChatUserLike,
+  profileBadges = getLegacyBadgeSummaries(user)
+): ChatOnlineUserSummary {
   return {
     id: toStringId(user._id),
     name: getDisplayName(user),
     username: user.username ?? null,
     role: user.role ?? "user",
     roleBadge: getChatRoleBadgeLabel(user.role),
-    profileBadges: toProfileBadges(user),
+    profileBadges,
     avatarUrl: user.image ?? null,
     identityVerified: Boolean(user.identityVerified),
   };
@@ -317,7 +317,38 @@ function getMessageBody(message: Pick<IChatMessage, "status" | "bodyDisplay">): 
   return message.bodyDisplay;
 }
 
-export function serializeChatMessage(message: IChatMessage): ChatMessageSummary {
+export function serializeChatMessage(
+  message: IChatMessage,
+  badgeDefinitionsByKey?: Map<string, { 
+    key: string;
+    slug: string;
+    label: string;
+    iconUrl: string | null;
+    description: string | null;
+    tone: "neutral" | "green" | "gold" | "lilac" | "blue";
+    active: boolean;
+    sortOrder: number;
+    visibility: "public" | "staff_only";
+    category: string | null;
+  }>
+): ChatMessageSummary {
+  const profileBadges = message.authorSnapshot?.profileBadges
+    ? applyBadgeDefinitionOverrides(
+        (message.authorSnapshot.profileBadges ?? []).map((badge) => ({
+          key: badge.key,
+          slug: badge.slug ?? null,
+          label: badge.label,
+          iconUrl: badge.iconUrl ?? null,
+          description: badge.description ?? null,
+          tone: badge.tone,
+          awardedAt: badge.awardedAt ? badge.awardedAt.toISOString() : null,
+          awardReason: badge.awardReason ?? null,
+          category: badge.category ?? null,
+        })),
+        badgeDefinitionsByKey ?? new Map()
+      )
+    : [];
+
   return {
     id: message._id.toString(),
     roomSlug: message.roomSlug,
@@ -340,11 +371,11 @@ export function serializeChatMessage(message: IChatMessage): ChatMessageSummary 
     author: message.authorSnapshot
       ? {
           id: toStringId(message.authorUserId),
-          name: message.authorSnapshot.name,
-          username: message.authorSnapshot.username,
-          role: message.authorSnapshot.role,
-          roleBadge: message.authorSnapshot.roleBadge,
-          profileBadges: message.authorSnapshot.profileBadges,
+        name: message.authorSnapshot.name,
+        username: message.authorSnapshot.username,
+        role: message.authorSnapshot.role,
+        roleBadge: message.authorSnapshot.roleBadge,
+        profileBadges,
           avatarUrl: message.authorSnapshot.avatarUrl,
           identityVerified: message.authorSnapshot.identityVerified,
         }
@@ -357,6 +388,17 @@ export function serializeChatMessage(message: IChatMessage): ChatMessageSummary 
     createdAt: message.createdAt.toISOString(),
     updatedAt: message.updatedAt.toISOString(),
   };
+}
+
+export async function serializeChatMessagesWithCurrentBadgeDefinitions(
+  messages: IChatMessage[]
+): Promise<ChatMessageSummary[]> {
+  const badgeDefinitionsByKey = await getBadgeDefinitionsMapByKeys(
+    messages.flatMap((message) =>
+      (message.authorSnapshot?.profileBadges ?? []).map((badge) => badge.key).filter(Boolean)
+    )
+  );
+  return messages.map((message) => serializeChatMessage(message, badgeDefinitionsByKey));
 }
 
 export function serializeChatReadState(readState: {
@@ -623,9 +665,15 @@ export async function getChatOnlineUsers(
     { _id: { $in: activeUserIds } },
     "name username role image identityVerified badges"
   ).lean();
+  const badgeMap = await getUserBadgeSummariesForUsers(users.map((user) => user._id));
 
   const serializedUsers = users
-    .map((user) => serializeChatOnlineUser(user as ChatUserLike))
+    .map((user) =>
+      serializeChatOnlineUser(
+        user as ChatUserLike,
+        badgeMap.get(toStringId(user._id)) ?? getLegacyBadgeSummaries(user as ChatUserLike)
+      )
+    )
     .sort((left, right) => {
       const leftLabel = (left.username ?? left.name).toLowerCase();
       const rightLabel = (right.username ?? right.name).toLowerCase();
@@ -895,6 +943,10 @@ export async function fetchModeratedUsers(queryText: string): Promise<ChatUserSe
           .lean(),
       ]);
 
+      const serializedRecentMessages = await serializeChatMessagesWithCurrentBadgeDefinitions(
+        recentMessages as IChatMessage[]
+      );
+
       return {
         userId: toStringId(user._id),
         name: getDisplayName(user),
@@ -906,9 +958,7 @@ export async function fetchModeratedUsers(queryText: string): Promise<ChatUserSe
           userState,
           user: user as ChatUserLike,
         }),
-        recentMessages: recentMessages.map((message) =>
-          serializeChatMessage(message as IChatMessage)
-        ),
+        recentMessages: serializedRecentMessages,
         recentActions: recentActions.map((action) =>
           serializeChatAction(action as IChatModerationAction)
         ),
@@ -977,12 +1027,13 @@ export async function buildChatOverviewForUser(
     }),
     getChatOnlineCount(room.slug),
   ]);
+  const serializedMessages = await serializeChatMessagesWithCurrentBadgeDefinitions(
+    messages as IChatMessage[]
+  );
 
   return {
     room: serializeChatRoom(room, onlineCount),
-    messages: messages.map((message) =>
-      serializeChatMessage(message as unknown as IChatMessage)
-    ),
+    messages: serializedMessages,
     readState: serializeChatReadState(readState),
     permissions: buildChatPermissions({
       user,
@@ -1005,11 +1056,13 @@ export async function buildChatAdminOverview(user: ChatUserLike): Promise<ChatAd
     fetchActiveRestrictions({ limit: 12 }),
   ]);
 
+  const serializedHeldMessages = await serializeChatMessagesWithCurrentBadgeDefinitions(
+    heldMessages as IChatMessage[]
+  );
+
   return {
     ...base,
-    heldMessages: heldMessages.map((message) =>
-      serializeChatMessage(message as unknown as IChatMessage)
-    ),
+    heldMessages: serializedHeldMessages,
     reports: reports.map((report) => serializeChatReport(report as never)),
     actions: actions.actions,
     restrictions: restrictions.restrictions,

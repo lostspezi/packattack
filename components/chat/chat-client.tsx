@@ -11,6 +11,7 @@ import { ChatAvatar } from "@/components/chat/chat-avatar";
 import { ChatGifAttachmentPreview } from "@/components/chat/chat-gif-attachment-preview";
 import { ChatGifPicker } from "@/components/chat/chat-gif-picker";
 import { ChatMessageContent } from "@/components/chat/chat-message-content";
+import { ChatUserBadges } from "@/components/chat/chat-user-badges";
 import { ChatOnlineUsersModal } from "@/components/chat/chat-online-users-modal";
 import { MentionSuggestions } from "@/components/chat/mention-suggestions";
 import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
@@ -37,21 +38,6 @@ function formatTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
-}
-
-function toneClass(tone: string) {
-  switch (tone) {
-    case "green":
-      return "bg-pa-green/10 text-pa-green border border-pa-green/15";
-    case "gold":
-      return "bg-yellow-500/10 text-yellow-300 border border-yellow-300/15";
-    case "lilac":
-      return "bg-pa-lila/20 text-purple-200 border border-purple-200/15";
-    case "blue":
-      return "bg-blue-500/10 text-blue-300 border border-blue-300/15";
-    default:
-      return "bg-white/5 text-text-secondary border border-white/8";
-  }
 }
 
 function playNotificationTone(kind: "mention" | "staff") {
@@ -471,19 +457,10 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
                               {copy.badges.verified}
                             </span>
                           )}
+                          {message.author?.profileBadges.length ? (
+                            <ChatUserBadges badges={message.author.profileBadges} lang={lang} />
+                          ) : null}
                         </div>
-                        {message.author?.profileBadges.length ? (
-                          <div className="mt-1 flex flex-wrap gap-1.5">
-                            {message.author.profileBadges.map((badge) => (
-                              <span
-                                key={badge.key}
-                                className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${toneClass(badge.tone)}`}
-                              >
-                                {badge.label}
-                              </span>
-                            ))}
-                          </div>
-                        ) : null}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-text-muted">
@@ -655,6 +632,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
         open={onlineUsersOpen}
         onClose={() => setOnlineUsersOpen(false)}
         copy={copy}
+        lang={lang}
         users={onlineUsers}
         loading={onlineUsersLoading}
         error={onlineUsersError}

@@ -1,6 +1,7 @@
 "use client";
 
 import { ChatAvatar } from "@/components/chat/chat-avatar";
+import { ChatUserBadges } from "@/components/chat/chat-user-badges";
 import { Modal } from "@/components/ui/modal";
 import type { ChatUiCopy } from "@/lib/chat-copy";
 import type { ChatOnlineUserSummary } from "@/types/chat";
@@ -9,30 +10,17 @@ interface ChatOnlineUsersModalProps {
   open: boolean;
   onClose: () => void;
   copy: ChatUiCopy;
+  lang: string;
   users: ChatOnlineUserSummary[];
   loading: boolean;
   error: string | null;
-}
-
-function toneClass(tone: string) {
-  switch (tone) {
-    case "green":
-      return "border border-pa-green/15 bg-pa-green/10 text-pa-green";
-    case "gold":
-      return "border border-yellow-300/15 bg-yellow-500/10 text-yellow-300";
-    case "lilac":
-      return "border border-purple-200/15 bg-pa-lila/20 text-purple-200";
-    case "blue":
-      return "border border-blue-300/15 bg-blue-500/10 text-blue-300";
-    default:
-      return "border border-white/8 bg-white/5 text-text-secondary";
-  }
 }
 
 export function ChatOnlineUsersModal({
   open,
   onClose,
   copy,
+  lang,
   users,
   loading,
   error,
@@ -61,21 +49,14 @@ export function ChatOnlineUsersModal({
                   size="sm"
                 />
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-text-primary">
-                    {user.username ?? user.name}
-                  </p>
-                  {user.profileBadges.length > 0 ? (
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {user.profileBadges.map((badge) => (
-                        <span
-                          key={badge.key}
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${toneClass(badge.tone)}`}
-                        >
-                          {badge.label}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate text-sm font-semibold text-text-primary">
+                      {user.username ?? user.name}
+                    </p>
+                    {user.profileBadges.length > 0 ? (
+                      <ChatUserBadges badges={user.profileBadges} lang={lang} />
+                    ) : null}
+                  </div>
                 </div>
               </div>
               {user.roleBadge ? (

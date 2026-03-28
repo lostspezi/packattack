@@ -227,6 +227,19 @@ export const adminChatUserSearchSchema = z.object({
   q: z.string().trim().min(1).max(120),
 });
 
+export const adminBadgeGrantSchema = z.object({
+  userId: z.string().trim().min(1),
+  badgeKey: z.string().trim().min(1).max(64),
+  awardReason: z.string().trim().max(200).optional(),
+  note: z.string().trim().max(300).optional(),
+});
+
+export const adminBadgeRevokeSchema = z.object({
+  userId: z.string().trim().min(1),
+  badgeKey: z.string().trim().min(1).max(64),
+  revokeReason: z.string().trim().max(200).optional(),
+});
+
 export const adminChatLogsQuerySchema = z.object({
   page: z.number().int().min(1).optional(),
   limit: z.number().int().min(1).max(100).optional(),

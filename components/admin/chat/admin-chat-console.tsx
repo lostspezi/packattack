@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChatMessageContent } from "@/components/chat/chat-message-content";
+import { ChatUserBadges } from "@/components/chat/chat-user-badges";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
@@ -556,6 +557,9 @@ export function AdminChatConsole({
                           <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
                             {message.author.roleBadge}
                           </span>
+                        ) : null}
+                        {message.author?.profileBadges.length ? (
+                          <ChatUserBadges badges={message.author.profileBadges} lang={lang} />
                         ) : null}
                       </div>
                       <ChatMessageContent

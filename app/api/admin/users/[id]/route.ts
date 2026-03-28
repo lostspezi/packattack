@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
+import UserBadge from "@/models/user-badge";
 import { deleteAvatar } from "@/lib/gridfs";
 
 const ADMIN_DELETABLE_ROLES = ["user", "shop", "moderator"] as const;
@@ -70,6 +71,7 @@ export async function DELETE(
     await deleteAvatar(id);
 
     // Delete user document (both Mongoose and native adapter collection)
+    await UserBadge.deleteMany({ userId: id });
     await User.findByIdAndDelete(id);
     // Also try to delete from the native users collection (adapter may store separately)
     await db.collection("users").deleteOne({ _id: userOid });

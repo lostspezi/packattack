@@ -12,6 +12,7 @@ import {
   fetchVisibleMessages,
   publishRoomEvent,
   serializeChatMessage,
+  serializeChatMessagesWithCurrentBadgeDefinitions,
   serializeChatReadState,
   serializeChatRoom,
 } from "@/lib/chat";
@@ -23,6 +24,7 @@ import {
 } from "@/lib/chat-constants";
 import { escapeMentionRegex, extractMentionUsernames } from "@/lib/chat-mentions";
 import { containsChatLink, normalizeChatBody } from "@/lib/chat-links";
+import { getLegacyBadgeSummaries, getUserBadgeSummariesForUsers } from "@/lib/badges";
 import { sanitizeIncomingChatGif } from "@/lib/giphy";
 import { moderateChatMessage } from "@/lib/chat-moderation";
 import { assertChatSubmissionAllowed } from "@/lib/chat-rate-limit";
@@ -91,10 +93,13 @@ export async function GET(req: NextRequest) {
     const messages = await fetchVisibleMessages(room._id, beforeVisibleSeq, limit, {
       includeRemoved: false,
     });
+    const serializedMessages = await serializeChatMessagesWithCurrentBadgeDefinitions(
+      messages as never
+    );
 
     return NextResponse.json({
       ...overview,
-      messages: messages.map((message) => serializeChatMessage(message as never)),
+      messages: serializedMessages,
       readState: serializeChatReadState(readState),
       room: serializeChatRoom(room, overview.room.onlineCount),
     });
@@ -268,6 +273,9 @@ export async function POST(req: NextRequest) {
         name: target.name?.trim() || target.username,
       }));
     const hasMention = mentionTargets.length > 0;
+    const badgeMap = await getUserBadgeSummariesForUsers([user._id]);
+    const profileBadges =
+      badgeMap.get(user._id.toString()) ?? getLegacyBadgeSummaries(user as never);
     const message = await ChatMessage.create({
       roomId: room._id,
       roomSlug: room.slug,
@@ -292,9 +300,17 @@ export async function POST(req: NextRequest) {
               : user.role === "shop"
                 ? "SHOP"
                 : null,
-        profileBadges: (user.badges ?? [])
-          .filter((badge) => badge.active !== false)
-          .map((badge) => ({ key: badge.key, label: badge.label, tone: badge.tone })),
+        profileBadges: profileBadges.map((badge) => ({
+          key: badge.key,
+          slug: badge.slug,
+          label: badge.label,
+          iconUrl: badge.iconUrl,
+          description: badge.description,
+          tone: badge.tone,
+          awardedAt: badge.awardedAt ? new Date(badge.awardedAt) : null,
+          awardReason: badge.awardReason,
+          category: badge.category,
+        })),
         avatarUrl: user.image ?? null,
         identityVerified: Boolean(user.identityVerified),
       },

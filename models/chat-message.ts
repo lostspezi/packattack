@@ -7,8 +7,14 @@ import {
 
 interface IChatProfileBadge {
   key: string;
+  slug: string | null;
   label: string;
+  iconUrl: string | null;
+  description: string | null;
   tone: "neutral" | "green" | "gold" | "lilac" | "blue";
+  awardedAt: Date | null;
+  awardReason: string | null;
+  category: string | null;
 }
 
 interface IChatAuthorSnapshot {
@@ -74,12 +80,18 @@ export interface IChatMessage extends Document {
 const ChatProfileBadgeSchema = new Schema<IChatProfileBadge>(
   {
     key: { type: String, required: true, maxlength: 64 },
+    slug: { type: String, default: null, maxlength: 80 },
     label: { type: String, required: true, maxlength: 64 },
+    iconUrl: { type: String, default: null, maxlength: 300 },
+    description: { type: String, default: null, maxlength: 300 },
     tone: {
       type: String,
       enum: ["neutral", "green", "gold", "lilac", "blue"],
       default: "neutral",
     },
+    awardedAt: { type: Date, default: null },
+    awardReason: { type: String, default: null, maxlength: 200 },
+    category: { type: String, default: null, maxlength: 64 },
   },
   { _id: false }
 );

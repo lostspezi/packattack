@@ -9,12 +9,9 @@ import type {
   ChatTrustTier,
   ChatUserStatus,
 } from "@/lib/chat-constants";
+import type { BadgeSummary } from "@/types/badges";
 
-export interface ChatBadgeSummary {
-  key: string;
-  label: string;
-  tone: "neutral" | "green" | "gold" | "lilac" | "blue";
-}
+export type ChatBadgeSummary = BadgeSummary;
 
 export interface ChatGifSummary {
   provider: "giphy";
