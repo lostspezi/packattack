@@ -1,5 +1,12 @@
 ﻿import { z } from "zod";
 import {
+  CHAT_ADMIN_ACTIONS,
+  CHAT_REPORT_CATEGORIES,
+  CHAT_RESTRICTION_TYPES,
+  CHAT_ROOM_MODES,
+  CHAT_SOUND_MODES,
+} from "@/lib/chat-constants";
+import {
   FEEDBACK_KINDS,
   FEEDBACK_PRIORITIES,
   FEEDBACK_SEVERITIES,
@@ -155,3 +162,64 @@ export const createFeedbackMessageSchema = z.object({
 export const updateFeedbackMessageSchema = z.object({
   body: z.string().trim().min(1).max(5000),
 });
+
+export const createChatMessageSchema = z.object({
+  body: z.string().trim().min(1).max(500),
+});
+
+export const chatHistoryQuerySchema = z.object({
+  limit: z.number().int().min(1).max(100).optional(),
+  beforeVisibleSeq: z.number().int().min(1).optional(),
+});
+
+export const chatReadStateSchema = z.object({
+  lastReadVisibleSeq: z.number().int().min(0),
+});
+
+export const createChatReportSchema = z.object({
+  messageId: z.string().min(1),
+  category: z.enum(CHAT_REPORT_CATEGORIES),
+  note: z.string().trim().max(500).optional(),
+});
+
+export const updateChatPreferencesSchema = z
+  .object({
+    muted: z.boolean().optional(),
+    soundMode: z.enum(CHAT_SOUND_MODES).optional(),
+    browserNotifications: z.boolean().optional(),
+  })
+  .refine((value) => Object.values(value).some((item) => item !== undefined), {
+    message: "At least one preference must be provided",
+  });
+
+export const adminChatActionSchema = z.object({
+  action: z.enum(CHAT_ADMIN_ACTIONS),
+  messageId: z.string().optional(),
+  targetUserId: z.string().optional(),
+  sourceMessageId: z.string().optional(),
+  reason: z.string().trim().max(300).optional(),
+  durationMinutes: z.number().int().min(1).max(60 * 24 * 30).optional(),
+  roomMode: z.enum(CHAT_ROOM_MODES).optional(),
+  slowModeSeconds: z.number().int().min(0).max(300).optional(),
+});
+
+export const adminChatRestrictionsQuerySchema = z.object({
+  page: z.number().int().min(1).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+  status: z.enum(CHAT_RESTRICTION_TYPES).optional(),
+});
+
+export const adminChatUserSearchSchema = z.object({
+  q: z.string().trim().min(1).max(120),
+});
+
+export const adminChatLogsQuerySchema = z.object({
+  page: z.number().int().min(1).optional(),
+  limit: z.number().int().min(1).max(100).optional(),
+  target: z.string().trim().max(120).optional(),
+  actor: z.string().trim().max(120).optional(),
+  actionType: z.enum(CHAT_ADMIN_ACTIONS).optional(),
+  from: z.string().datetime().optional(),
+  to: z.string().datetime().optional(),
+});
+

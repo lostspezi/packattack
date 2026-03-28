@@ -1,8 +1,7 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { getDictionary } from "@/lib/i18n";
-import type { Locale } from "@/lib/i18n";
+﻿import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
+import { auth } from "@/lib/auth";
+import { getDictionary, type Locale } from "@/lib/i18n";
 
 export default async function AdminLayout({
   children,
@@ -40,9 +39,7 @@ export default async function AdminLayout({
         userInitial={userInitial}
         mode="admin"
       />
-      <main className="flex-1 p-4 md:p-6 min-w-0 flex flex-col">
-        {children}
-      </main>
+      <main className="flex min-w-0 flex-1 flex-col p-4 md:p-6">{children}</main>
     </div>
   );
 }

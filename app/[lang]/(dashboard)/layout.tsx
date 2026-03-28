@@ -1,7 +1,8 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { getDictionary, getActiveLanguages } from "@/lib/i18n";
+﻿import { redirect } from "next/navigation";
+import { ChatDock } from "@/components/chat/chat-dock";
 import { UserHeader } from "@/components/layout/user-header";
+import { auth } from "@/lib/auth";
+import { getActiveLanguages, getDictionary } from "@/lib/i18n";
 
 export default async function DashboardLayout({
   children,
@@ -17,8 +18,9 @@ export default async function DashboardLayout({
     redirect(`/${lang}/login`);
   }
 
-  const [commonDict, languages] = await Promise.all([
+  const [commonDict, chatDict, languages] = await Promise.all([
     getDictionary(lang, "common"),
+    getDictionary(lang, "chat"),
     getActiveLanguages(),
   ]);
 
@@ -27,7 +29,7 @@ export default async function DashboardLayout({
   const userImage = session.user.image ?? null;
 
   return (
-    <div className="flex-1 bg-bg flex flex-col">
+    <div className="flex flex-1 flex-col bg-bg">
       <UserHeader
         lang={lang}
         dict={commonDict}
@@ -36,7 +38,13 @@ export default async function DashboardLayout({
         userImage={userImage}
         userRole={userRole}
       />
-      <div className="flex-1 flex flex-col">{children}</div>
+      <div className="flex flex-1 flex-col">{children}</div>
+      <ChatDock
+        lang={lang}
+        dict={chatDict}
+        currentUserId={session.user.id}
+        userRole={userRole}
+      />
     </div>
   );
 }

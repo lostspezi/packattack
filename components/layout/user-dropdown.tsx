@@ -1,8 +1,24 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
-import { User, Settings, Shield, BarChart3, Store, LogOut, Bell, MessageSquareMore } from "lucide-react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type RefObject,
+} from "react";
+import { createPortal } from "react-dom";
+import {
+  User,
+  Settings,
+  Shield,
+  BarChart3,
+  Store,
+  LogOut,
+  Bell,
+  MessageSquareMore,
+} from "lucide-react";
 import { signOut } from "next-auth/react";
 
 interface UserDropdownProps {
@@ -11,83 +27,97 @@ interface UserDropdownProps {
   userRole: string;
   open: boolean;
   onClose: () => void;
+  anchorRef: RefObject<HTMLButtonElement | null>;
 }
 
-export function UserDropdown({ lang, dict: _dict, userRole, open, onClose }: UserDropdownProps) {
+export function UserDropdown({
+  lang,
+  dict: _dict,
+  userRole,
+  open,
+  onClose,
+  anchorRef,
+}: UserDropdownProps) {
   void _dict;
   const ref = useRef<HTMLDivElement>(null);
+  const [style, setStyle] = useState<CSSProperties>({});
   const isAdmin = userRole === "admin" || userRole === "super_admin";
 
   useEffect(() => {
     if (!open) return;
+
+    function updatePosition() {
+      const anchor = anchorRef.current;
+      if (!anchor) return;
+      const rect = anchor.getBoundingClientRect();
+      const width = Math.min(208, window.innerWidth - 32);
+      const left = Math.max(16, rect.right - width);
+
+      setStyle({
+        position: "fixed",
+        top: rect.bottom + 8,
+        left,
+        width,
+        zIndex: 80,
+      });
+    }
+
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as Node;
-      if (ref.current && ref.current.contains(target)) return;
-      const trigger = ref.current?.parentElement?.querySelector("button");
-      if (trigger && trigger.contains(target)) return;
+      if (ref.current?.contains(target)) return;
+      if (anchorRef.current?.contains(target)) return;
       onClose();
     }
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [onClose, open]);
+
+    updatePosition();
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [anchorRef, onClose, open]);
+
+  if (!open || typeof document === "undefined") {
+    return null;
+  }
 
   const itemClass =
-    "flex items-center gap-[10px] px-3 py-2.5 rounded-lg hover:bg-white/3 transition-colors text-sm text-text-primary w-full text-left";
+    "flex items-center gap-[10px] rounded-lg px-3 py-2.5 text-left text-sm text-text-primary transition-colors hover:bg-white/3 w-full";
 
-  return (
+  return createPortal(
     <div
       ref={ref}
-      className={[
-        "absolute top-full right-0 mt-1 w-[calc(100vw-2rem)] max-w-[13rem] bg-surface border border-border rounded-xl shadow-lg p-2 z-50 transition-all duration-200 ease-out origin-top-right",
-        open
-          ? "opacity-100 scale-100 pointer-events-auto"
-          : "opacity-0 scale-95 pointer-events-none",
-      ].join(" ")}
+      style={style}
+      className="rounded-xl border border-border bg-surface p-2 shadow-xl shadow-black/30"
     >
-      <Link
-        href={`/${lang}/dashboard`}
-        onClick={onClose}
-        className={`${itemClass} sm:hidden`}
-      >
-        <Bell className="w-4 h-4 flex-shrink-0 text-text-muted" />
+      <Link href={`/${lang}/dashboard`} onClick={onClose} className={`${itemClass} sm:hidden`}>
+        <Bell className="h-4 w-4 flex-shrink-0 text-text-muted" />
         <span>Benachrichtigungen</span>
       </Link>
 
       <div className="my-1 h-px bg-border sm:hidden" />
 
-      <Link
-        href={`/${lang}/feedback`}
-        onClick={onClose}
-        className={itemClass}
-      >
-        <MessageSquareMore className="w-4 h-4 flex-shrink-0 text-text-muted" />
+      <Link href={`/${lang}/feedback`} onClick={onClose} className={itemClass}>
+        <MessageSquareMore className="h-4 w-4 flex-shrink-0 text-text-muted" />
         <span>Feedback</span>
       </Link>
 
-      <Link
-        href={`/${lang}/profile`}
-        onClick={onClose}
-        className={itemClass}
-      >
-        <User className="w-4 h-4 flex-shrink-0 text-text-muted" />
+      <Link href={`/${lang}/profile`} onClick={onClose} className={itemClass}>
+        <User className="h-4 w-4 flex-shrink-0 text-text-muted" />
         <span>Profil</span>
       </Link>
 
-      <Link
-        href={`/${lang}/settings`}
-        onClick={onClose}
-        className={itemClass}
-      >
-        <Settings className="w-4 h-4 flex-shrink-0 text-text-muted" />
+      <Link href={`/${lang}/settings`} onClick={onClose} className={itemClass}>
+        <Settings className="h-4 w-4 flex-shrink-0 text-text-muted" />
         <span>Einstellungen</span>
       </Link>
 
-      <Link
-        href={`/${lang}/account`}
-        onClick={onClose}
-        className={itemClass}
-      >
-        <Shield className="w-4 h-4 flex-shrink-0 text-text-muted" />
+      <Link href={`/${lang}/account`} onClick={onClose} className={itemClass}>
+        <Shield className="h-4 w-4 flex-shrink-0 text-text-muted" />
         <span>Account</span>
       </Link>
 
@@ -100,17 +130,13 @@ export function UserDropdown({ lang, dict: _dict, userRole, open, onClose }: Use
               onClick={onClose}
               className={itemClass}
             >
-              <Store className="w-4 h-4 flex-shrink-0 text-text-muted" />
+              <Store className="h-4 w-4 flex-shrink-0 text-text-muted" />
               <span>Shopverwaltung</span>
             </Link>
           )}
           {isAdmin && (
-            <Link
-              href={`/${lang}/admin`}
-              onClick={onClose}
-              className={itemClass}
-            >
-              <BarChart3 className="w-4 h-4 flex-shrink-0 text-text-muted" />
+            <Link href={`/${lang}/admin`} onClick={onClose} className={itemClass}>
+              <BarChart3 className="h-4 w-4 flex-shrink-0 text-text-muted" />
               <span>Admin Panel</span>
             </Link>
           )}
@@ -126,9 +152,10 @@ export function UserDropdown({ lang, dict: _dict, userRole, open, onClose }: Use
         }}
         className={`${itemClass} text-red-400 hover:text-red-300`}
       >
-        <LogOut className="w-4 h-4 flex-shrink-0" />
+        <LogOut className="h-4 w-4 flex-shrink-0" />
         <span>Abmelden</span>
       </button>
-    </div>
+    </div>,
+    document.body
   );
 }

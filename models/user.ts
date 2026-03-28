@@ -1,7 +1,16 @@
-import mongoose, { Document, Model, Schema, Types } from "mongoose";
+﻿import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
 export interface IUser extends Document {
   _id: Types.ObjectId;
+  badges: Array<{
+    key: string;
+    label: string;
+    active: boolean;
+    tone: "neutral" | "green" | "gold" | "lilac" | "blue";
+    awardedAt: Date;
+    expiresAt: Date | null;
+    sortOrder: number;
+  }>;
   name: string;
   username: string;
   email: string;
@@ -52,8 +61,29 @@ export interface IUser extends Document {
   updatedAt: Date;
 }
 
+const BadgeSchema = new Schema(
+  {
+    key: { type: String, required: true, maxlength: 64 },
+    label: { type: String, required: true, maxlength: 64 },
+    active: { type: Boolean, default: true },
+    tone: {
+      type: String,
+      enum: ["neutral", "green", "gold", "lilac", "blue"],
+      default: "neutral",
+    },
+    awardedAt: { type: Date, default: Date.now },
+    expiresAt: { type: Date, default: null },
+    sortOrder: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
 const UserSchema = new Schema<IUser>(
   {
+    badges: {
+      type: [BadgeSchema],
+      default: [],
+    },
     name: { type: String, required: true },
     username: { type: String, unique: true, sparse: true, default: null },
     email: { type: String, required: true, unique: true },

@@ -96,6 +96,7 @@ function hasSuspiciousEncodingArtifacts(value: string): boolean {
 }
 
 const legacyGermanTranslationValues: Record<string, string[]> = {
+  "chat:page_collapse": ["Einklappen"],
   "feedback:common_assignedToAll": ["Allen zugewiesen"],
   "feedback:form_requiredError": ["Titel und Details sind erforderlich", "Titel und Details sind erforderlich."],
   "feedback:detail_saveTriage": ["Triage speichern"],

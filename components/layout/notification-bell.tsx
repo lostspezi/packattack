@@ -1,7 +1,8 @@
 "use client";
 
 import { Bell } from "lucide-react";
-import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
+import { useState, useEffect, useCallback, useRef, type CSSProperties } from "react";
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
 
 interface UnreadResponse {
@@ -11,7 +12,10 @@ interface UnreadResponse {
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [dropdownStyle, setDropdownStyle] = useState<CSSProperties>({});
   const containerRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchUnreadCount = useCallback(async () => {
     try {
@@ -24,17 +28,13 @@ export function NotificationBell() {
     }
   }, []);
 
-  // Fetch on mount (ref flag prevents double-fetch in StrictMode)
   const didFetchRef = useRef(false);
   useEffect(() => {
     if (didFetchRef.current) return;
     didFetchRef.current = true;
-    void (async () => {
-      await fetchUnreadCount();
-    })();
+    void fetchUnreadCount();
   }, [fetchUnreadCount]);
 
-  // SSE stream for real-time unread count updates
   useEffect(() => {
     const es = new EventSource("/api/notifications/events");
 
@@ -49,37 +49,51 @@ export function NotificationBell() {
       }
     };
 
-    es.onerror = () => {
-      // EventSource auto-reconnects
-    };
-
     return () => es.close();
   }, []);
 
-  // Refresh on window focus
   useEffect(() => {
     function onFocus() {
-      fetchUnreadCount();
+      void fetchUnreadCount();
     }
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [fetchUnreadCount]);
 
-  // Click outside closes dropdown
   useEffect(() => {
+    if (!open) return;
+
+    function updatePosition() {
+      const trigger = buttonRef.current;
+      if (!trigger) return;
+      const rect = trigger.getBoundingClientRect();
+      const width = Math.min(320, window.innerWidth - 16);
+      const left = Math.max(8, rect.right - width);
+      setDropdownStyle({
+        position: "fixed",
+        top: rect.bottom + 8,
+        left,
+        width,
+        zIndex: 80,
+      });
+    }
+
     function handleClickOutside(e: MouseEvent) {
-      if (
-        containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
+      const target = e.target as Node;
+      if (containerRef.current?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+      setOpen(false);
     }
-    if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+
+    updatePosition();
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
     };
   }, [open]);
 
@@ -87,36 +101,42 @@ export function NotificationBell() {
     setUnreadCount(count);
   }
 
+  const dropdown =
+    open && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            ref={dropdownRef}
+            style={dropdownStyle}
+            className="overflow-hidden rounded-[10px] border border-border bg-surface-elevated shadow-xl shadow-black/30"
+          >
+            <NotificationDropdown
+              lang="en"
+              dict={{}}
+              open={open}
+              onUnreadCountChange={handleUnreadCountChange}
+            />
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
     <div ref={containerRef} className="relative">
       <button
+        ref={buttonRef}
         onClick={() => setOpen((prev) => !prev)}
-        className="relative p-2 rounded-lg text-text-muted hover:text-text-primary transition-colors"
+        className="relative rounded-lg p-2 text-text-muted transition-colors hover:text-text-primary"
         aria-label="Notifications"
       >
-        <Bell className="w-5 h-5" />
+        <Bell className="h-5 w-5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-pa-green text-[10px] font-bold text-bg leading-none px-[3px]">
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-pa-green px-[3px] text-[10px] font-bold leading-none text-bg">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
       </button>
 
-      <div
-        className={[
-          "fixed sm:absolute left-2 right-2 top-[4.5rem] sm:top-auto sm:left-auto sm:right-0 sm:mt-1 sm:w-80 bg-surface-elevated border border-border rounded-[10px] shadow-lg z-50 overflow-hidden transition-all duration-200 ease-out origin-top",
-          open
-            ? "opacity-100 scale-100 pointer-events-auto"
-            : "opacity-0 scale-95 pointer-events-none",
-        ].join(" ")}
-      >
-        <NotificationDropdown
-          lang="en"
-          dict={{}}
-          open={open}
-          onUnreadCountChange={handleUnreadCountChange}
-        />
-      </div>
+      {dropdown}
     </div>
   );
 }

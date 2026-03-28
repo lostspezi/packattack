@@ -1,4 +1,4 @@
-export type NavItem = {
+﻿export type NavItem = {
   key: string;
   href: string;
   icon: string;
@@ -22,7 +22,8 @@ export const adminNavItems: NavItem[] = [
   { key: "users", href: "/admin/users", icon: "Users" },
   { key: "platform", href: "/admin/platform", icon: "Cog" },
   { key: "notifications", href: "/admin/notifications", icon: "Bell" },
-  { key: "feedback", href: "/admin/feedback", icon: "MessagesSquare" },
+  { key: "chat", href: "/admin/chat", icon: "MessagesSquare" },
+  { key: "feedback", href: "/admin/feedback", icon: "MessageSquareMore" },
   { key: "emailTemplates", href: "/admin/email-templates", icon: "Mail" },
   { key: "translations", href: "/admin/translations", icon: "Languages" },
   { key: "languages", href: "/admin/languages", icon: "Globe" },
