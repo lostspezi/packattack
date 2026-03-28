@@ -149,6 +149,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const [sending, setSending] = useState(false);
   const [pendingNewCount, setPendingNewCount] = useState(0);
   const [pendingMentionCount, setPendingMentionCount] = useState(0);
+  const [animateLauncher, setAnimateLauncher] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState<ChatMessageSummary | null>(null);
   const [reportCategory, setReportCategory] = useState("spam");
@@ -169,6 +170,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const pendingScrollToBottomRef = useRef(false);
   const shouldRefocusComposerRef = useRef(false);
   const isComposingRef = useRef(false);
+  const launcherAnimationTimeoutRef = useRef<number | null>(null);
 
   const isPanelOpen = isDesktop ? desktopOpen : mobileOpen;
   const unreadCount = room ? Math.max(0, room.lastVisibleSeq - readState.lastReadVisibleSeq) : 0;
@@ -250,6 +252,14 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   }, [isPanelOpen]);
 
   useEffect(() => {
+    return () => {
+      if (launcherAnimationTimeoutRef.current) {
+        window.clearTimeout(launcherAnimationTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     const node = listRef.current;
     if (!node) return;
 
@@ -328,6 +338,21 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     void loadOverview();
   }, []);
 
+  function triggerLauncherAnimation() {
+    if (typeof window === "undefined") return;
+    if (launcherAnimationTimeoutRef.current) {
+      window.clearTimeout(launcherAnimationTimeoutRef.current);
+    }
+    setAnimateLauncher(false);
+    window.requestAnimationFrame(() => {
+      setAnimateLauncher(true);
+      launcherAnimationTimeoutRef.current = window.setTimeout(() => {
+        setAnimateLauncher(false);
+        launcherAnimationTimeoutRef.current = null;
+      }, 600);
+    });
+  }
+
   useEffect(() => {
     const source = new EventSource("/api/chat/events");
 
@@ -381,6 +406,9 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
             pendingScrollToBottomRef.current = true;
           } else {
             setPendingNewCount((count) => count + 1);
+            if (!isPanelOpen) {
+              triggerLauncherAnimation();
+            }
             if (mentionsCurrentUser && !isPanelOpen) {
               setPendingMentionCount((count) => count + 1);
             }
@@ -1008,6 +1036,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const triggerBadgeCount = pendingMentionCount > 0 ? pendingMentionCount : badgeCount;
   const triggerBadgeClassName =
     pendingMentionCount > 0 ? "bg-red-500 text-white" : "bg-pa-green text-bg";
+  const launcherAnimationClassName = animateLauncher ? "animate-chat-dock-shake" : "";
 
   return (
     <>
@@ -1015,7 +1044,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         {desktopOpen ? (
           <div className="fixed bottom-4 right-4 top-20 z-30 w-[420px]">{panelContent}</div>
         ) : (
-          <div className="fixed bottom-24 right-4 z-30">
+          <div className={`fixed bottom-24 right-4 z-30 ${launcherAnimationClassName}`}>
             <button
               type="button"
               onClick={openPanel}
@@ -1044,7 +1073,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="fixed bottom-24 right-4 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-surface-elevated/95 text-pa-green ring-1 ring-white/6"
+            className={`fixed bottom-24 right-4 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-surface-elevated/95 text-pa-green ring-1 ring-white/6 ${launcherAnimationClassName}`}
             title={copy.page.expand}
           >
             <MessagesSquare className="h-5 w-5" />

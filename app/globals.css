@@ -5,6 +5,33 @@
   50% { box-shadow: 0 0 12px 4px rgba(234, 179, 8, 0.08); }
 }
 
+@keyframes chatDockShake {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  20% {
+    transform: translate3d(-4px, 0, 0) rotate(-1.6deg);
+  }
+  40% {
+    transform: translate3d(4px, 0, 0) rotate(1.6deg);
+  }
+  60% {
+    transform: translate3d(-2px, 0, 0) rotate(-0.8deg);
+  }
+  80% {
+    transform: translate3d(2px, 0, 0) rotate(0.6deg);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+}
+
+.animate-chat-dock-shake {
+  animation: chatDockShake 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: center;
+  will-change: transform;
+}
+
 @theme {
   /* Background */
   --color-bg: #12111A;
