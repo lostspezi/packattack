@@ -15,8 +15,8 @@ interface SidebarProps {
   userRole: string;
   userName: string;
   userInitial: string;
-  /** "full" = original sidebar with all sections; "admin" = admin nav items only; "shop" = shop nav items only */
-  mode?: "full" | "admin" | "shop";
+  /** "admin" = admin nav items only; "shop" = shop nav items only */
+  mode: "admin" | "shop";
 }
 
 function NavIcon({ name, className }: { name: string; className?: string }) {
@@ -271,18 +271,6 @@ export function Sidebar(props: SidebarProps) {
     }
   }, [pathname]);
 
-  // Prevent body scroll when open
-  useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileOpen]);
-
   if (mode === "admin" || mode === "shop") {
     const mobileTitle = mode === "admin" ? "Admin" : "Shop";
     return (
@@ -330,27 +318,4 @@ export function Sidebar(props: SidebarProps) {
     );
   }
 
-  // Full mode
-  return (
-    <>
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-25 flex">
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={() => setMobileOpen(false)}
-            aria-hidden="true"
-          />
-          <aside className="relative w-72 max-w-[85vw] flex flex-col bg-gradient-to-b from-bg to-pa-lila/8 border-r border-border overflow-y-auto">
-            <SidebarContent {...props} onNavClick={() => setMobileOpen(false)} />
-          </aside>
-        </div>
-      )}
-
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex w-64 fixed h-screen flex-col bg-gradient-to-b from-bg to-pa-lila/8 border-r border-border overflow-y-auto">
-        <SidebarContent {...props} />
-      </aside>
-    </>
-  );
 }

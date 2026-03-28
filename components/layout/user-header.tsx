@@ -58,17 +58,6 @@ export function UserHeader({
     setMobileMenuOpen(false);
   }, [pathnameWithoutLang]);
 
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileMenuOpen]);
-
   const dashboardHref = `/${lang}/dashboard`;
   const isDashboardActive = pathname === dashboardHref;
   const levelLabel = dict["level"] ?? "Level";
