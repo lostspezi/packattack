@@ -24,6 +24,8 @@ import type {
   ChatMessageSummary,
   ChatModeratedUserSummary,
   ChatModerationActionSummary,
+  ChatOnlineUserSummary,
+  ChatOnlineUsersResponse,
   ChatOverviewResponse,
   ChatReadStateSummary,
   ChatReportSummary,
@@ -282,6 +284,19 @@ async function backfillLegacyRestrictions() {
 export function buildChatAuthorSnapshot(user: ChatUserLike | null | undefined) {
   if (!user) return null;
 
+  return {
+    id: toStringId(user._id),
+    name: getDisplayName(user),
+    username: user.username ?? null,
+    role: user.role ?? "user",
+    roleBadge: getChatRoleBadgeLabel(user.role),
+    profileBadges: toProfileBadges(user),
+    avatarUrl: user.image ?? null,
+    identityVerified: Boolean(user.identityVerified),
+  };
+}
+
+export function serializeChatOnlineUser(user: ChatUserLike): ChatOnlineUserSummary {
   return {
     id: toStringId(user._id),
     name: getDisplayName(user),
@@ -571,6 +586,45 @@ export async function getChatOnlineCount(slug = CHAT_ROOM_SLUG): Promise<number>
     0,
     async (redis) => pruneChatPresence(redis, slug)
   );
+}
+
+export async function getChatOnlineUsers(
+  slug = CHAT_ROOM_SLUG
+): Promise<ChatOnlineUsersResponse> {
+  const activeUserIds = await runRedisCommand<string[]>(
+    `chat:presence-users:${slug}`,
+    [],
+    async (redis) => {
+      await pruneChatPresence(redis, slug);
+      const userIds = await redis.hvals(presenceUsersKey(slug));
+      return [...new Set(userIds.filter(Boolean))];
+    }
+  );
+
+  if (activeUserIds.length === 0) {
+    return {
+      total: 0,
+      users: [],
+    };
+  }
+
+  const users = await User.find(
+    { _id: { $in: activeUserIds } },
+    "name username role image identityVerified badges"
+  ).lean();
+
+  const serializedUsers = users
+    .map((user) => serializeChatOnlineUser(user as ChatUserLike))
+    .sort((left, right) => {
+      const leftLabel = (left.username ?? left.name).toLowerCase();
+      const rightLabel = (right.username ?? right.name).toLowerCase();
+      return leftLabel.localeCompare(rightLabel, "de");
+    });
+
+  return {
+    total: serializedUsers.length,
+    users: serializedUsers,
+  };
 }
 
 export async function addChatPresence(

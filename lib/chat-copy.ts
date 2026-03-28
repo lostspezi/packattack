@@ -5,6 +5,9 @@ export interface ChatUiCopy {
     roomTitle: string;
     roomSubtitle: string;
     online: string;
+    onlineUsersTitle: string;
+    onlineUsersEmpty: string;
+    onlineUsersLoadError: string;
     collapse: string;
     expand: string;
     rulesTitle: string;
@@ -141,6 +144,9 @@ const de: ChatUiCopy = {
     roomTitle: "Globaler Chat",
     roomSubtitle: "Ein gemeinsamer Raum für alle. Nachrichten werden dauerhaft archiviert.",
     online: "Online",
+    onlineUsersTitle: "Aktive Nutzer im Chat",
+    onlineUsersEmpty: "Aktuell ist niemand im Chat sichtbar.",
+    onlineUsersLoadError: "Onlineliste konnte nicht geladen werden.",
     collapse: "Schließen",
     expand: "Öffnen",
     rulesTitle: "Wichtig",
@@ -278,6 +284,9 @@ const en: ChatUiCopy = {
     roomTitle: "Global Chat",
     roomSubtitle: "One shared room for everyone. Messages are archived permanently.",
     online: "Online",
+    onlineUsersTitle: "Users currently in chat",
+    onlineUsersEmpty: "No users are currently visible in chat.",
+    onlineUsersLoadError: "Could not load the online user list.",
     collapse: "Close",
     expand: "Open",
     rulesTitle: "Important",

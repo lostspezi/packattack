@@ -1,4 +1,5 @@
-﻿const LINK_REGEX = /(?<!@)\b((?:https?:\/\/|www\.)[^\s]+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^^\s]*)?)/gi;
+const LINK_REGEX =
+  /(?<!@)\b((?:https?:\/\/|www\.)[^\s]+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?)/gi;
 
 export function extractChatLinks(input: string): string[] {
   const matches = input.match(LINK_REGEX) ?? [];

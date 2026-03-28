@@ -549,7 +549,7 @@ export function AdminChatConsole({
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-sm font-semibold text-text-primary">
-                          {message.author?.name ?? "System"}
+                          {message.author?.username ?? message.author?.name ?? "System"}
                         </span>
                         {message.author?.roleBadge ? (
                           <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">

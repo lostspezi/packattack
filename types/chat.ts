@@ -41,6 +41,17 @@ export interface ChatAuthorSummary {
   identityVerified: boolean;
 }
 
+export interface ChatOnlineUserSummary {
+  id: string;
+  name: string;
+  username: string | null;
+  role: string;
+  roleBadge: string | null;
+  profileBadges: ChatBadgeSummary[];
+  avatarUrl: string | null;
+  identityVerified: boolean;
+}
+
 export interface ChatMessageSummary {
   id: string;
   roomSlug: string;
@@ -96,6 +107,11 @@ export interface ChatOverviewResponse {
 
 export interface ChatMentionSearchResponse {
   users: ChatMentionCandidateSummary[];
+}
+
+export interface ChatOnlineUsersResponse {
+  total: number;
+  users: ChatOnlineUserSummary[];
 }
 
 export interface ChatReportSummary {

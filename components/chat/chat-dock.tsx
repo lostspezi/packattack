@@ -19,7 +19,10 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { ChatAvatar } from "@/components/chat/chat-avatar";
+import { ChatMessageBody } from "@/components/chat/chat-message-body";
+import { ChatOnlineUsersModal } from "@/components/chat/chat-online-users-modal";
 import { MentionSuggestions } from "@/components/chat/mention-suggestions";
+import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
 import type { ChatDictionary } from "@/lib/chat-i18n";
 import { getChatUiCopy } from "@/lib/chat-i18n";
@@ -150,6 +153,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const [reportTarget, setReportTarget] = useState<ChatMessageSummary | null>(null);
   const [reportCategory, setReportCategory] = useState("spam");
   const [reportNote, setReportNote] = useState("");
+  const [onlineUsersOpen, setOnlineUsersOpen] = useState(false);
   const [moderationOpen, setModerationOpen] = useState(false);
   const [moderationTarget, setModerationTarget] =
     useState<ChatMessageSummary | null>(null);
@@ -221,6 +225,15 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     textareaRef: composerRef,
     onBodyChange: setBody,
   });
+  const {
+    error: onlineUsersError,
+    loading: onlineUsersLoading,
+    users: onlineUsers,
+  } = useChatOnlineUsers(
+    onlineUsersOpen,
+    room?.onlineCount ?? 0,
+    copy.page.onlineUsersLoadError
+  );
 
   useEffect(() => {
     const media = window.matchMedia("(min-width: 1280px)");
@@ -765,12 +778,17 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
               },
             }))}
           />
-          <div className="inline-flex min-w-0 items-center gap-2 rounded-full border border-white/8 bg-white/4 px-3 py-1 text-xs font-medium text-text-secondary">
+          <button
+            type="button"
+            onClick={() => setOnlineUsersOpen(true)}
+            className="inline-flex min-w-0 items-center gap-2 rounded-full border border-white/8 bg-white/4 px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-pa-green"
+            title={copy.page.onlineUsersTitle}
+          >
             <span className="inline-block h-2 w-2 rounded-full bg-pa-green" />
             <span>
               {room?.onlineCount ?? 0} {copy.page.online}
             </span>
-          </div>
+          </button>
         </div>
       </div>
 
@@ -789,14 +807,14 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 flex-1 items-center gap-3">
                   <ChatAvatar
-                    name={message.author?.name ?? "System"}
+                    name={message.author?.username ?? message.author?.name ?? "System"}
                     src={message.author?.avatarUrl ?? null}
                     size="sm"
                   />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="text-sm font-semibold text-text-primary">
-                        {message.author?.name ?? "System"}
+                        {message.author?.username ?? message.author?.name ?? "System"}
                       </span>
                       {message.author?.roleBadge ? (
                         <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
@@ -885,9 +903,10 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                   ) : null}
                 </div>
               </div>
-              <p className={`mt-2 whitespace-pre-wrap text-sm ${message.isDeleted ? "italic text-text-muted" : "text-text-primary"}`}>
-                {message.body}
-              </p>
+              <ChatMessageBody
+                body={message.body}
+                className={`mt-2 whitespace-pre-wrap break-words text-sm ${message.isDeleted ? "italic text-text-muted" : "text-text-primary"}`}
+              />
             </div>
           ))
         )}
@@ -969,7 +988,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
             onClick={submitMessage}
             loading={sending}
             disabled={!permissions.canPost || !body.trim()}
-            className="self-end"
+            className="self-center"
           >
             {sending ? copy.composer.sending : copy.composer.send}
           </Button>
@@ -996,7 +1015,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         {desktopOpen ? (
           <div className="fixed bottom-4 right-4 top-20 z-30 w-[420px]">{panelContent}</div>
         ) : (
-          <div className="fixed bottom-6 right-4 z-30">
+          <div className="fixed bottom-24 right-4 z-30">
             <button
               type="button"
               onClick={openPanel}
@@ -1025,7 +1044,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="fixed bottom-4 right-4 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-surface-elevated/95 text-pa-green ring-1 ring-white/6"
+            className="fixed bottom-24 right-4 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-surface-elevated/95 text-pa-green ring-1 ring-white/6"
             title={copy.page.expand}
           >
             <MessagesSquare className="h-5 w-5" />
@@ -1074,6 +1093,15 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           </div>
         </div>
       </Modal>
+
+      <ChatOnlineUsersModal
+        open={onlineUsersOpen}
+        onClose={() => setOnlineUsersOpen(false)}
+        copy={copy}
+        users={onlineUsers}
+        loading={onlineUsersLoading}
+        error={onlineUsersError}
+      />
 
       <Modal
         open={moderationOpen}
