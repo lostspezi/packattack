@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
-import { getRedis } from "@/lib/redis";
+import { runRedisCommand } from "@/lib/redis";
 import User from "@/models/user";
 import Notification from "@/models/notification";
 
@@ -61,10 +61,7 @@ export async function POST(req: NextRequest) {
         );
       }
       const user = await User.findOne({
-        $or: [
-          { username: recipientValue },
-          { email: recipientValue },
-        ],
+        $or: [{ username: recipientValue }, { email: recipientValue }],
       })
         .select("_id")
         .lean();
@@ -79,52 +76,51 @@ export async function POST(req: NextRequest) {
           { status: 400 }
         );
       }
-      const users = await User.find({ role: recipientValue })
-        .select("_id")
-        .lean();
+      const users = await User.find({ role: recipientValue }).select("_id").lean();
       userIds = users.map((u) => u._id.toString());
     } else if (recipientType === "all") {
       const users = await User.find({}).select("_id").lean();
       userIds = users.map((u) => u._id.toString());
     } else {
-      return NextResponse.json(
-        { error: "Invalid recipient type" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Invalid recipient type" }, { status: 400 });
     }
 
     if (userIds.length === 0) {
       return NextResponse.json({ count: 0 });
     }
 
-    const ctaData =
-      cta?.label && cta?.url
-        ? { label: cta.label, url: cta.url }
-        : null;
+    const ctaData = cta?.label && cta?.url ? { label: cta.label, url: cta.url } : null;
 
-    const docs = userIds.map((userId) => ({
-      userId,
-      title,
-      message,
-      type,
-      cta: ctaData,
-      read: false,
-    }));
+    await Notification.insertMany(
+      userIds.map((userId) => ({
+        userId,
+        title,
+        message,
+        type,
+        cta: ctaData,
+        read: false,
+      }))
+    );
 
-    await Notification.insertMany(docs);
+    const unreadCounts = await Promise.all(
+      userIds.map(async (userId) => ({
+        userId,
+        count: await Notification.countDocuments({ userId, read: false }),
+      }))
+    );
 
-    // Update cache and push real-time SSE updates for all affected users
-    const redis = getRedis();
-    const pipeline = redis.pipeline();
-    for (const userId of userIds) {
-      const count = await Notification.countDocuments({ userId, read: false });
-      pipeline.set(`notifications:unread:${userId}`, count, "EX", 60);
-      pipeline.publish(
-        `notifications:${userId}`,
-        JSON.stringify({ unreadCount: count })
-      );
-    }
-    await pipeline.exec();
+    await runRedisCommand<void>(
+      "notifications:send-refresh",
+      undefined,
+      async (redis) => {
+        const pipeline = redis.pipeline();
+        for (const { userId, count } of unreadCounts) {
+          pipeline.set(`notifications:unread:${userId}`, count, "EX", 60);
+          pipeline.publish(`notifications:${userId}`, JSON.stringify({ unreadCount: count }));
+        }
+        await pipeline.exec();
+      }
+    );
 
     return NextResponse.json({ count: userIds.length });
   } catch (err) {

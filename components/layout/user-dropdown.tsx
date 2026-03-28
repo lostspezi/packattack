@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef } from "react";
-import { User, Settings, Shield, BarChart3, Store, LogOut, Bell } from "lucide-react";
+import { User, Settings, Shield, BarChart3, Store, LogOut, Bell, MessageSquareMore } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 interface UserDropdownProps {
@@ -22,14 +22,11 @@ export function UserDropdown({ lang, dict: _dict, userRole, open, onClose }: Use
     if (!open) return;
     function handleClickOutside(e: MouseEvent) {
       const target = e.target as Node;
-      // Don't close if clicking inside the dropdown
       if (ref.current && ref.current.contains(target)) return;
-      // Don't close if clicking the trigger button (parent handles toggle)
       const trigger = ref.current?.parentElement?.querySelector("button");
       if (trigger && trigger.contains(target)) return;
       onClose();
     }
-    // Use click instead of mousedown to avoid race with button toggle
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, [onClose, open]);
@@ -47,7 +44,6 @@ export function UserDropdown({ lang, dict: _dict, userRole, open, onClose }: Use
           : "opacity-0 scale-95 pointer-events-none",
       ].join(" ")}
     >
-      {/* Notifications — mobile only */}
       <Link
         href={`/${lang}/dashboard`}
         onClick={onClose}
@@ -58,6 +54,15 @@ export function UserDropdown({ lang, dict: _dict, userRole, open, onClose }: Use
       </Link>
 
       <div className="my-1 h-px bg-border sm:hidden" />
+
+      <Link
+        href={`/${lang}/feedback`}
+        onClick={onClose}
+        className={itemClass}
+      >
+        <MessageSquareMore className="w-4 h-4 flex-shrink-0 text-text-muted" />
+        <span>Feedback</span>
+      </Link>
 
       <Link
         href={`/${lang}/profile`}

@@ -6,6 +6,9 @@ export interface INotification extends Document {
   message: string;
   type: "info" | "success" | "warning" | "error";
   cta: { label: string; url: string } | null;
+  category: string | null;
+  entityType: string | null;
+  entityId: string | null;
   read: boolean;
   createdAt: Date;
 }
@@ -30,6 +33,9 @@ const NotificationSchema = new Schema<INotification>(
       ),
       default: null,
     },
+    category: { type: String, default: null },
+    entityType: { type: String, default: null },
+    entityId: { type: String, default: null },
     read: { type: Boolean, default: false },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
@@ -37,6 +43,7 @@ const NotificationSchema = new Schema<INotification>(
 
 NotificationSchema.index({ userId: 1, read: 1 });
 NotificationSchema.index({ createdAt: 1 });
+NotificationSchema.index({ userId: 1, category: 1, entityType: 1, entityId: 1 });
 
 const Notification: Model<INotification> =
   mongoose.models.Notification ??

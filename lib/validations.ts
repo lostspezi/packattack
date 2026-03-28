@@ -1,4 +1,11 @@
-import { z } from "zod";
+﻿import { z } from "zod";
+import {
+  FEEDBACK_KINDS,
+  FEEDBACK_PRIORITIES,
+  FEEDBACK_SEVERITIES,
+  FEEDBACK_STATUSES,
+  FEEDBACK_WAITING_ON,
+} from "@/lib/feedback-constants";
 
 export const registerSchema = z.object({
   name: z.string().min(2).max(50),
@@ -75,7 +82,6 @@ export const shopApplySchema = z.object({
   companyName: z.string().min(2).max(100),
 });
 
-// Coin Purchase System
 export const coinPackageSchema = z.object({
   name: z.object({
     de: z.string().min(1).max(100),
@@ -103,3 +109,49 @@ export const checkoutSchema = z.object({
   withdrawalConsent: z.literal(true, { error: "Withdrawal consent is required" }),
 });
 
+const feedbackTagsSchema = z.array(z.string().trim().min(1).max(32)).max(8);
+
+const feedbackContextSchema = z.object({
+  route: z.string().max(500).nullable().optional(),
+  locale: z.string().min(2).max(8).optional(),
+  userAgent: z.string().max(1000).nullable().optional(),
+  viewportWidth: z.number().int().positive().max(10000).nullable().optional(),
+  viewportHeight: z.number().int().positive().max(10000).nullable().optional(),
+  releaseId: z.string().max(128).nullable().optional(),
+  objectType: z.string().max(64).nullable().optional(),
+  objectId: z.string().max(128).nullable().optional(),
+});
+
+export const createFeedbackSchema = z.object({
+  kind: z.enum(FEEDBACK_KINDS),
+  title: z.string().trim().min(4).max(150),
+  description: z.string().trim().min(10).max(5000),
+  priority: z.enum(FEEDBACK_PRIORITIES).optional(),
+  severity: z.enum(FEEDBACK_SEVERITIES).optional(),
+  areaTags: feedbackTagsSchema.optional(),
+  issueTags: feedbackTagsSchema.optional(),
+  context: feedbackContextSchema.optional(),
+  source: z.enum(["dashboard", "account", "settings", "admin", "manual"]).optional(),
+});
+
+export const updateFeedbackSchema = z.object({
+  title: z.string().trim().min(4).max(150).optional(),
+  description: z.string().trim().min(10).max(5000).optional(),
+  kind: z.enum(FEEDBACK_KINDS).optional(),
+  priority: z.enum(FEEDBACK_PRIORITIES).optional(),
+  severity: z.enum(FEEDBACK_SEVERITIES).optional(),
+  status: z.enum(FEEDBACK_STATUSES).optional(),
+  waitingOn: z.enum(FEEDBACK_WAITING_ON).optional(),
+  areaTags: feedbackTagsSchema.optional(),
+  issueTags: feedbackTagsSchema.optional(),
+  assignedTo: z.string().nullable().optional(),
+});
+
+export const createFeedbackMessageSchema = z.object({
+  body: z.string().trim().min(1).max(5000),
+  isInternal: z.boolean().optional(),
+});
+
+export const updateFeedbackMessageSchema = z.object({
+  body: z.string().trim().min(1).max(5000),
+});

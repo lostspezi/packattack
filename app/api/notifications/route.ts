@@ -1,13 +1,33 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
-import { getRedis } from "@/lib/redis";
+import { runRedisCommand } from "@/lib/redis";
 import Notification from "@/models/notification";
 
-const UNREAD_CACHE_TTL = 60; // seconds
+const UNREAD_CACHE_TTL = 60;
 
 function unreadKey(userId: string) {
   return `notifications:unread:${userId}`;
+}
+
+async function setUnreadCache(userId: string, unreadCount: number): Promise<void> {
+  await runRedisCommand<void>(
+    `notifications:set-unread:${userId}`,
+    undefined,
+    async (redis) => {
+      await redis.set(unreadKey(userId), unreadCount, "EX", UNREAD_CACHE_TTL);
+    }
+  );
+}
+
+async function publishUnreadCount(userId: string, unreadCount: number): Promise<void> {
+  await runRedisCommand<void>(
+    `notifications:publish-unread:${userId}`,
+    undefined,
+    async (redis) => {
+      await redis.publish(`notifications:${userId}`, JSON.stringify({ unreadCount }));
+    }
+  );
 }
 
 export async function GET(req: NextRequest) {
@@ -22,7 +42,6 @@ export async function GET(req: NextRequest) {
   const skip = (page - 1) * limit;
 
   const userId = session.user.id;
-  const redis = getRedis();
 
   try {
     await connectDB();
@@ -36,14 +55,18 @@ export async function GET(req: NextRequest) {
       Notification.countDocuments({ userId }),
     ]);
 
-    // Try cache for unread count
+    const cachedUnread = await runRedisCommand<string | null>(
+      `notifications:get-unread:${userId}`,
+      null,
+      async (redis) => redis.get(unreadKey(userId))
+    );
+
     let unreadCount: number;
-    const cached = await redis.get(unreadKey(userId));
-    if (cached !== null) {
-      unreadCount = parseInt(cached, 10);
+    if (cachedUnread !== null) {
+      unreadCount = parseInt(cachedUnread, 10);
     } else {
       unreadCount = await Notification.countDocuments({ userId, read: false });
-      await redis.set(unreadKey(userId), unreadCount, "EX", UNREAD_CACHE_TTL);
+      await setUnreadCache(userId, unreadCount);
     }
 
     return NextResponse.json({
@@ -74,7 +97,6 @@ export async function POST(req: NextRequest) {
   }
 
   const userId = session.user.id;
-  const redis = getRedis();
 
   let body: { action?: string; id?: string };
   try {
@@ -92,26 +114,17 @@ export async function POST(req: NextRequest) {
       if (!id) {
         return NextResponse.json({ error: "Missing id" }, { status: 400 });
       }
-      await Notification.findOneAndUpdate(
-        { _id: id, userId },
-        { read: true }
-      );
+      await Notification.findOneAndUpdate({ _id: id, userId }, { read: true });
       const count = await Notification.countDocuments({ userId, read: false });
-      await redis.set(unreadKey(userId), count, "EX", UNREAD_CACHE_TTL);
-      await redis.publish(
-        `notifications:${userId}`,
-        JSON.stringify({ unreadCount: count })
-      );
+      await setUnreadCache(userId, count);
+      await publishUnreadCount(userId, count);
       return NextResponse.json({ ok: true });
     }
 
     if (action === "markAllRead") {
       await Notification.updateMany({ userId, read: false }, { read: true });
-      await redis.set(unreadKey(userId), 0, "EX", UNREAD_CACHE_TTL);
-      await redis.publish(
-        `notifications:${userId}`,
-        JSON.stringify({ unreadCount: 0 })
-      );
+      await setUnreadCache(userId, 0);
+      await publishUnreadCount(userId, 0);
       return NextResponse.json({ ok: true });
     }
 

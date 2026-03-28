@@ -1,4 +1,4 @@
-import connectDB from "./db";
+﻿import connectDB from "./db";
 import User from "@/models/user";
 import PlatformSettings from "@/models/platform-settings";
 import Translation from "@/models/translation";
@@ -12,15 +12,14 @@ import { invalidateTranslationCache, invalidateLanguageCache } from "@/lib/i18n"
 async function runInitialSeed() {
   const userCount = await User.countDocuments();
   if (userCount > 0) {
-    console.log(`[seed] Skipping initial seed — ${userCount} user(s) already exist.`);
+    console.log(`[seed] Skipping initial seed - ${userCount} user(s) already exist.`);
     return;
   }
 
-  console.log("[seed] First start detected — creating admin user and platform settings...");
+  console.log("[seed] First start detected - creating admin user and platform settings...");
 
   const hashedPassword = await bcrypt.hash("admin123", 12);
 
-  // Use findOneAndUpdate with upsert to avoid duplicate key errors from parallel runs
   const adminUser = await User.findOneAndUpdate(
     { email: "admin@packattack.gg" },
     {
@@ -44,10 +43,11 @@ async function runInitialSeed() {
     },
     { upsert: true, returnDocument: "after" }
   );
+
   if (adminUser.createdAt && Date.now() - adminUser.createdAt.getTime() < 5000) {
-    console.log("[seed]   ✓ Super Admin user created (admin@packattack.gg)");
+    console.log("[seed]   OK Super Admin user created (admin@packattack.gg)");
   } else {
-    console.log("[seed]   ✓ Super Admin user already exists");
+    console.log("[seed]   OK Super Admin user already exists");
   }
 
   const settingsResult = await PlatformSettings.updateOne(
@@ -60,10 +60,11 @@ async function runInitialSeed() {
     },
     { upsert: true }
   );
+
   if (settingsResult.upsertedCount > 0) {
-    console.log("[seed]   ✓ Platform settings created (ToS v1.0, Privacy v1.0)");
+    console.log("[seed]   OK Platform settings created (ToS v1.0, Privacy v1.0)");
   } else {
-    console.log("[seed]   ✓ Platform settings already exist");
+    console.log("[seed]   OK Platform settings already exist");
   }
 }
 
@@ -83,44 +84,92 @@ async function syncLanguages() {
 
   if (result.upsertedCount > 0) {
     await invalidateLanguageCache();
-    console.log("[seed]   ✓ Default language created (de — Deutsch)");
+    console.log("[seed]   OK Default language created (de - Deutsch)");
   } else {
-    console.log("[seed]   ✓ Default language already exists");
+    console.log("[seed]   OK Default language already exists");
   }
 
-  // Migration: remove English values from existing translations if English is not an active language
-  const englishLang = await Language.findOne({ code: "en", isActive: true });
-  if (!englishLang) {
-    const migrated = await Translation.updateMany(
-      { "values.en": { $exists: true } },
-      { $unset: { "values.en": "" } }
-    );
-    if (migrated.modifiedCount > 0) {
-      console.log(`[seed]   ✓ Migrated ${migrated.modifiedCount} translation(s): removed English values`);
-    }
-  }
 }
+
+function hasSuspiciousEncodingArtifacts(value: string): boolean {
+  return /(^\?[A-Za-z\u00C4\u00D6\u00DC\u00E4\u00F6\u00FC\u00DF])|([A-Za-z\u00C4\u00D6\u00DC\u00E4\u00F6\u00FC\u00DF]\?[A-Za-z\u00C4\u00D6\u00DC\u00E4\u00F6\u00FC\u00DF])|(\?\s*[A-Za-z\u00C4\u00D6\u00DC\u00E4\u00F6\u00FC\u00DF])|Ã.|â.|�/.test(value);
+}
+
+const legacyGermanTranslationValues: Record<string, string[]> = {
+  "feedback:common_assignedToAll": ["Allen zugewiesen"],
+  "feedback:form_requiredError": ["Titel und Details sind erforderlich", "Titel und Details sind erforderlich."],
+  "feedback:detail_saveTriage": ["Triage speichern"],
+  "feedback:detail_triageTitle": ["Triage"],
+  "feedback:detail_triageSubtitle": ["Verwalte Status, Zuweisung und Tags."],
+  "feedback:detail_triageSaved": ["Triage aktualisiert", "Triage wurde aktualisiert."],
+  "feedback:analytics_subtitle": ["Sieh, wo sich Pain Points sammeln und wo die Queue langsamer wird.", "Sieh, wo sich Probleme sammeln und wo die Queue langsamer wird."],
+};
 
 async function syncTranslations() {
   const total = translationSeedData.length;
   const existingCount = await Translation.countDocuments();
   let inserted = 0;
+  let repaired = 0;
+  const touchedNamespaces = new Set<string>();
+
+  const existingTranslations = await Translation.find({})
+    .select("namespace key values")
+    .lean();
+
+  const existingMap = new Map(
+    existingTranslations.map((item) => [`${item.namespace}:${item.key}`, item])
+  );
 
   for (const item of translationSeedData) {
-    const result = await Translation.updateOne(
-      { namespace: item.namespace, key: item.key },
-      { $setOnInsert: item },
-      { upsert: true }
-    );
-    if (result.upsertedCount > 0) inserted++;
+    const mapKey = `${item.namespace}:${item.key}`;
+    const existing = existingMap.get(mapKey) as
+      | { namespace: string; key: string; values?: Record<string, string> }
+      | undefined;
+
+    if (!existing) {
+      const result = await Translation.updateOne(
+        { namespace: item.namespace, key: item.key },
+        { $setOnInsert: item },
+        { upsert: true }
+      );
+
+      if (result.upsertedCount > 0) {
+        inserted++;
+        touchedNamespaces.add(item.namespace);
+      }
+      continue;
+    }
+
+    const currentGerman = existing.values?.de;
+    const canonicalGerman = item.values.de;
+
+    const legacyGermanValues = legacyGermanTranslationValues[mapKey] ?? [];
+    const shouldRepairGerman =
+      typeof currentGerman === "string" &&
+      typeof canonicalGerman === "string" &&
+      currentGerman !== canonicalGerman &&
+      (hasSuspiciousEncodingArtifacts(currentGerman) || legacyGermanValues.includes(currentGerman));
+
+    if (shouldRepairGerman) {
+      await Translation.updateOne(
+        { namespace: item.namespace, key: item.key },
+        { $set: { "values.de": canonicalGerman } }
+      );
+      repaired++;
+      touchedNamespaces.add(item.namespace);
+    }
   }
 
-  if (inserted > 0) {
-    const namespaces = [...new Set(translationSeedData.map((item) => item.namespace))];
-    await Promise.all(namespaces.map((ns) => invalidateTranslationCache(ns)));
-    console.log(`[seed]   ✓ Translations: ${inserted} new key(s) inserted (${existingCount} already existed, ${total} total in seed) — cache invalidated`);
+  if (touchedNamespaces.size > 0) {
+    await Promise.all([...touchedNamespaces].map((namespace) => invalidateTranslationCache(namespace)));
+  }
+
+  if (inserted > 0 || repaired > 0) {
+    console.log(
+      `[seed]   OK Translations: ${inserted} new key(s), ${repaired} repaired key(s) (${existingCount} already existed, ${total} total in seed)${touchedNamespaces.size > 0 ? " - cache invalidated" : ""}`
+    );
   } else {
-    console.log(`[seed]   ✓ Translations: all ${total} key(s) up to date`);
+    console.log(`[seed]   OK Translations: all ${total} key(s) up to date`);
   }
 }
 
@@ -139,9 +188,9 @@ async function syncEmailTemplates() {
   }
 
   if (inserted > 0) {
-    console.log(`[seed]   ✓ Email templates: ${inserted} new template(s) inserted (${existingCount} already existed, ${total} total in seed)`);
+    console.log(`[seed]   OK Email templates: ${inserted} new template(s) inserted (${existingCount} already existed, ${total} total in seed)`);
   } else {
-    console.log(`[seed]   ✓ Email templates: all ${total} template(s) up to date`);
+    console.log(`[seed]   OK Email templates: all ${total} template(s) up to date`);
   }
 }
 
@@ -151,10 +200,11 @@ async function migrateBoxSlugs() {
   if (boxes.length === 0) return;
 
   for (const box of boxes) {
-    box.slug = undefined as unknown as string; // Force pre-save hook to generate
+    box.slug = undefined as unknown as string;
     await box.save();
   }
-  console.log(`[seed]   ✓ Generated slugs for ${boxes.length} existing box(es)`);
+
+  console.log(`[seed]   OK Generated slugs for ${boxes.length} existing box(es)`);
 }
 
 export async function runSeed() {
