@@ -208,7 +208,14 @@ async function migrateBoxSlugs() {
   console.log(`[seed]   OK Generated slugs for ${boxes.length} existing box(es)`);
 }
 
-export async function runSeed() {
+let seedPromise: Promise<void> | null = null;
+
+export function runSeed() {
+  if (!seedPromise) seedPromise = doRunSeed();
+  return seedPromise;
+}
+
+async function doRunSeed() {
   const start = performance.now();
   console.log("[seed] Starting seed process...");
 
