@@ -104,6 +104,32 @@ export function generateFeedbackTicketNo(): string {
   return `FB-${timestamp}-${suffix}`;
 }
 
+function extractReferencedUserId(value: unknown): string {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+
+  const doc = value as {
+    _id?: { toString(): string };
+    id?: string;
+    toString?: () => string;
+  };
+
+  if (doc._id) {
+    return doc._id.toString();
+  }
+
+  if (typeof doc.id === "string" && doc.id.length > 0) {
+    return doc.id;
+  }
+
+  if (typeof doc.toString === "function" && doc.toString !== Object.prototype.toString) {
+    const stringValue = doc.toString();
+    return stringValue === "[object Object]" ? "" : stringValue;
+  }
+
+  return "";
+}
+
 export function canEditFeedbackItem(
   feedback: Pick<IFeedbackItem, "submitterUserId" | "status">,
   viewerUserId?: string | null,
@@ -111,7 +137,7 @@ export function canEditFeedbackItem(
 ): boolean {
   if (!viewerUserId) return false;
   if (isFeedbackStaff(viewerRole)) return true;
-  return feedback.submitterUserId.toString() === viewerUserId && feedback.status !== "closed";
+  return extractReferencedUserId(feedback.submitterUserId) === viewerUserId && feedback.status !== "closed";
 }
 
 export function canReplyToFeedback(
@@ -121,7 +147,7 @@ export function canReplyToFeedback(
 ): boolean {
   if (!viewerUserId) return false;
   if (isFeedbackStaff(viewerRole)) return feedback.status !== "closed";
-  return feedback.submitterUserId.toString() === viewerUserId && feedback.status !== "closed";
+  return extractReferencedUserId(feedback.submitterUserId) === viewerUserId && feedback.status !== "closed";
 }
 
 export function canEditFeedbackMessage(
@@ -131,7 +157,7 @@ export function canEditFeedbackMessage(
 ): boolean {
   if (!viewerUserId) return false;
   if (isFeedbackStaff(viewerRole)) return true;
-  return message.authorUserId?.toString() === viewerUserId;
+  return extractReferencedUserId(message.authorUserId) === viewerUserId;
 }
 
 function toActorSummary(value: unknown): FeedbackActorSummary | null {
