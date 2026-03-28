@@ -25,7 +25,7 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: "bg-red-500/10 text-red-400 border-red-500/20",
 };
 
-export function AdminOrders({ lang, dict }: { lang: string; dict: Record<string, string> }) {
+export function AdminOrders({ lang }: { lang: string; dict: Record<string, string> }) {
   const isDe = lang === "de";
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [loading, setLoading] = useState(true);

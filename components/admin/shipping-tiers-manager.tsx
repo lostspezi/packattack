@@ -14,7 +14,7 @@ interface ShippingTier {
   isActive: boolean;
 }
 
-export function ShippingTiersManager({ lang, dict }: { lang: string; dict: Record<string, string> }) {
+export function ShippingTiersManager({ lang }: { lang: string; dict: Record<string, string> }) {
   const isDe = lang === "de";
   const { toast } = useToast();
   const [tiers, setTiers] = useState<ShippingTier[]>([]);

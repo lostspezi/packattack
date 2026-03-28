@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { Package, Loader2, ChevronRight } from "lucide-react";
 
@@ -40,16 +40,18 @@ export function OrdersList({ lang }: OrdersListProps) {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  useEffect(() => {
-    setLoading(true);
-    fetch(`/api/orders?page=${page}&limit=20`)
-      .then((r) => r.json())
-      .then((data) => {
-        setOrders(data.orders || []);
-        setTotalPages(data.totalPages || 1);
-      })
-      .finally(() => setLoading(false));
+  const fetchOrders = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/orders?page=${page}&limit=20`);
+      const data = await res.json();
+      setOrders(data.orders || []);
+      setTotalPages(data.totalPages || 1);
+    } finally {
+      setLoading(false);
+    }
   }, [page]);
+
+  useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   if (loading) {
     return (
