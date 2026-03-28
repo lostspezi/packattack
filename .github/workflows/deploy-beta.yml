@@ -20,6 +20,11 @@ jobs:
           script: |
             cd /opt/packattackgg-beta
 
+            # Pull latest code first so build metadata matches what is actually deployed
+            git pull origin beta
+            BUILD_SHA=$(git rev-parse HEAD)
+            BUILD_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
             # Generate .env.beta from secrets + hardcoded values
             cat > .env.beta << 'ENVEOF'
             MONGODB_URI=mongodb://mongo:27017/packattackgg
@@ -41,11 +46,10 @@ jobs:
             AUTH_TRUST_HOST=true
             ENVEOF
 
+            printf 'BUILD_SHA=%s\nBUILD_BRANCH=%s\n' "$BUILD_SHA" "$BUILD_BRANCH" >> .env.beta
+
             # Remove leading whitespace from heredoc
             sed -i 's/^            //' .env.beta
-
-            # Pull latest code
-            git pull origin beta
 
             # Rebuild and restart containers (--env-file loads vars for build args)
             docker compose --env-file .env.beta -f docker-compose.beta.yml up --build -d
