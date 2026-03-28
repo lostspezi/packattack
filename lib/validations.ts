@@ -223,3 +223,37 @@ export const adminChatLogsQuerySchema = z.object({
   to: z.string().datetime().optional(),
 });
 
+export const shippingAddressSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  street: z.string().trim().min(3).max(200),
+  city: z.string().trim().min(2).max(100),
+  zip: z.string().trim().regex(/^\d{4,5}$/, "Invalid postal code"),
+  country: z.enum(["DE", "AT", "CH"]),
+});
+
+export const cartCheckoutSchema = z.object({
+  paymentMethod: z.enum(["coins", "stripe"]),
+  address: shippingAddressSchema,
+  lang: z.enum(["de", "en"]).default("de"),
+});
+
+export const shippingEstimateSchema = z.object({
+  country: z.enum(["DE", "AT", "CH"]),
+});
+
+export const shippingTierSchema = z.object({
+  country: z.enum(["DE", "AT", "CH"]),
+  minCards: z.number().int().min(1),
+  maxCards: z.number().int().min(1),
+  costCents: z.number().int().min(0),
+  costCoins: z.number().int().min(0),
+  isActive: z.boolean().default(true),
+});
+
+export const shippingTierUpdateSchema = shippingTierSchema.partial();
+
+export const fulfillmentUpdateSchema = z.object({
+  status: z.enum(["processing", "shipped", "delivered"]),
+  trackingNumber: z.string().trim().max(100).optional(),
+});
+
