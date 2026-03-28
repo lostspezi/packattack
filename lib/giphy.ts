@@ -6,7 +6,6 @@ import type { ChatGifPickerResponse, ChatGifSummary } from "@/types/chat";
 const GIPHY_API_BASE_URL = "https://api.giphy.com/v1/gifs";
 const GIPHY_PAGE_SIZE = 24;
 const GIPHY_RATING = "g";
-const GIPHY_BUNDLE = "messaging_non_clips";
 
 type GiphyMode = "trending" | "search";
 
@@ -64,12 +63,21 @@ function chooseImageVariant(images: Record<string, GiphyImageVariant | undefined
   if (!images) return null;
 
   const preview =
-    images.fixed_width_small ??
+    images.downsized_large ??
+    images.downsized_medium ??
+    images.original ??
+    images.downsized ??
+    images.fixed_width ??
     images.fixed_width_downsampled ??
     images.preview_gif ??
+    images.fixed_width_small;
+  const display =
+    images.original ??
+    images.downsized_large ??
+    images.downsized_medium ??
+    images.downsized ??
     images.fixed_width ??
-    images.downsized;
-  const display = images.fixed_width ?? images.downsized_medium ?? images.downsized ?? images.original;
+    images.fixed_height;
 
   if (!preview || !display) {
     return null;
@@ -136,7 +144,6 @@ async function fetchGiphy(path: string, params: URLSearchParams): Promise<GiphyA
   params.set("api_key", apiKey);
   params.set("rating", GIPHY_RATING);
   params.set("limit", String(GIPHY_PAGE_SIZE));
-  params.set("bundle", GIPHY_BUNDLE);
 
   try {
     const res = await fetch(`${GIPHY_API_BASE_URL}${path}?${params.toString()}`, {

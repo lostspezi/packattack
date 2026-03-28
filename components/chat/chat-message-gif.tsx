@@ -17,7 +17,7 @@ export function ChatMessageGif({
 }: ChatMessageGifProps) {
   const image = (
     <img
-      src={gif.previewUrl}
+      src={gif.displayUrl || gif.previewUrl}
       alt={gif.title}
       loading="lazy"
       className={[
