@@ -3,10 +3,12 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import { getRedis } from "@/lib/redis";
 import PackPull from "@/models/pack-pull";
-import UserInventory from "@/models/user-inventory";
+import CartItem from "@/models/cart-item";
 import User from "@/models/user";
 import Box from "@/models/box";
 import CoinTransaction from "@/models/coin-transaction";
+
+const RESERVATION_HOURS = 6;
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -51,7 +53,7 @@ export async function POST(req: NextRequest) {
       ?? "unknown";
     const ua = req.headers.get("user-agent") ?? "unknown";
 
-    // Create the PackPull record with final status
+    // Create the PackPull record
     // Unique index on (packGroupId, cardIndex) prevents duplicates atomically
     let pull;
     try {
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
         rarity: rarity ?? "",
         coinValue: coinValue ?? 0,
         conversionValue: conversionValue ?? 0,
-        status: decision === "claim" ? "claimed" : "converted",
+        status: decision === "claim" ? "reserved" : "converted",
         decidedAt: new Date(),
         packGroupId,
         packIndex: packIndex ?? 0,
@@ -82,12 +84,17 @@ export async function POST(req: NextRequest) {
     const cardDoc = await (await import("@/models/card")).default.findById(cardId).select("name image").lean();
 
     if (decision === "claim") {
-      await UserInventory.create({
+      // Create CartItem with 6h reservation
+      const expiresAt = new Date(Date.now() + RESERVATION_HOURS * 60 * 60 * 1000);
+      await CartItem.create({
         userId,
         cardId,
         boxId,
         pullId: pull._id,
         rarity: rarity ?? "",
+        conversionValue: conversionValue ?? 0,
+        status: "reserved",
+        expiresAt,
       });
 
       const user = await User.findById(userId).select("coins").lean();
@@ -95,7 +102,12 @@ export async function POST(req: NextRequest) {
       // Publish SSE live event
       void publishLiveEvent(boxId, userDoc, cardDoc, rarity ?? "", coinValue ?? 0, decision);
 
-      return NextResponse.json({ success: true, decision: "claimed", newBalance: user?.coins ?? 0 });
+      return NextResponse.json({
+        success: true,
+        decision: "reserved",
+        expiresAt: expiresAt.toISOString(),
+        newBalance: user?.coins ?? 0,
+      });
     } else {
       const user = await User.findByIdAndUpdate(
         userId,
