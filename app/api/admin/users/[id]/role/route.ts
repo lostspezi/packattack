@@ -51,7 +51,7 @@ export async function PATCH(
     const updated = await User.findByIdAndUpdate(
       id,
       { role: newRole },
-      { new: true }
+      { returnDocument: "after" }
     )
       .select("_id name username email role emailVerified image createdAt")
       .lean();

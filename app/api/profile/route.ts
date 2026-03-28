@@ -75,7 +75,7 @@ export async function PATCH(req: NextRequest) {
     const updated = await User.findByIdAndUpdate(
       session.user.id,
       { name, username, bio, socialLinks, publicProfile },
-      { new: true }
+      { returnDocument: "after" }
     ).lean();
 
     if (!updated) {

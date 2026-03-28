@@ -58,7 +58,7 @@ export async function PATCH(req: NextRequest) {
         "preferences.notifications.email": notifications.email,
         "preferences.notifications.browser": notifications.browser,
       },
-      { new: true }
+      { returnDocument: "after" }
     ).lean();
 
     if (!updated) {

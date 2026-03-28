@@ -78,7 +78,7 @@ export async function PATCH(
     const template = await EmailTemplate.findOneAndUpdate(
       { slug },
       { $set: update },
-      { new: true }
+      { returnDocument: "after" }
     ).lean();
 
     if (!template) {

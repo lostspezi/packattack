@@ -101,7 +101,7 @@ export async function PATCH(req: NextRequest) {
     const doc = await Translation.findOneAndUpdate(
       { namespace, key },
       { $set: update },
-      { new: true, upsert: true }
+      { returnDocument: "after", upsert: true }
     ).lean();
 
     await invalidateTranslationCache(namespace);

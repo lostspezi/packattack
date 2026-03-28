@@ -87,7 +87,7 @@ export async function PATCH(req: NextRequest) {
     const settings = await PlatformSettings.findOneAndUpdate(
       {},
       { $set: update },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: "after" }
     ).lean();
 
     // Invalidate the in-memory cache so the JWT callback picks up the new versions immediately
