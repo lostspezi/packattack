@@ -383,6 +383,16 @@ export function serializeChatMessage(
     mentionTargets: (message.mentionTargets ?? []).map((target) => toMentionTargetSummary(target)),
     hasLink: message.hasLink,
     hasMention: message.hasMention,
+    reactions: (message.reactions ?? [])
+      .map((reaction) => ({
+        emoji: reaction.emoji,
+        userIds: (reaction.userIds ?? []).map((userId) => toStringId(userId)).filter(Boolean),
+      }))
+      .map((reaction) => ({
+        ...reaction,
+        count: reaction.userIds.length,
+      }))
+      .filter((reaction) => reaction.count > 0),
     isDeleted: message.status === "deleted" || message.status === "redacted",
     deletedReason: message.deleteReason ?? null,
     createdAt: message.createdAt.toISOString(),

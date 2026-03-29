@@ -31,6 +31,7 @@ export function getChatUiCopy(lang: string, dict: ChatDictionary = {}): ChatUiCo
     sounds: mergeSection(base.sounds, "sounds", dict),
     gifs: mergeSection(base.gifs, "gifs", dict),
     reports: mergeSection(base.reports, "reports", dict),
+    reactions: mergeSection(base.reactions, "reactions", dict),
     states: mergeSection(base.states, "states", dict),
     admin: mergeSection(base.admin, "admin", dict),
     roomModes: mergeSection(base.roomModes, "roomModes", dict),

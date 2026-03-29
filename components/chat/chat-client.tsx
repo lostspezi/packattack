@@ -12,6 +12,7 @@ import { ChatAvatar } from "@/components/chat/chat-avatar";
 import { ChatGifAttachmentPreview } from "@/components/chat/chat-gif-attachment-preview";
 import { ChatGifPicker } from "@/components/chat/chat-gif-picker";
 import { ChatMessageContent } from "@/components/chat/chat-message-content";
+import { ChatMessageReactions } from "@/components/chat/chat-message-reactions";
 import { ChatUserCard } from "@/components/chat/chat-user-card";
 import { ChatUserBadges } from "@/components/chat/chat-user-badges";
 import { ChatOnlineUsersModal } from "@/components/chat/chat-online-users-modal";
@@ -19,6 +20,7 @@ import { MentionSuggestions } from "@/components/chat/mention-suggestions";
 import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
 import { messageMentionsViewer } from "@/lib/chat-mentions";
+import { mergeChatMessageSummaries } from "@/lib/chat-message-summary";
 import type { ChatDictionary } from "@/lib/chat-i18n";
 import { getChatUiCopy } from "@/lib/chat-i18n";
 import type {
@@ -85,6 +87,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
   const [reportTarget, setReportTarget] = useState<ChatMessageSummary | null>(null);
   const [onlineUsersOpen, setOnlineUsersOpen] = useState(false);
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
+  const [pendingReactionMessageIds, setPendingReactionMessageIds] = useState<string[]>([]);
   const [activeUserCard, setActiveUserCard] = useState<{
     user: ChatAuthorSummary | ChatOnlineUserSummary;
     rect: DOMRect;
@@ -193,10 +196,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
         const payload = JSON.parse(event.data) as ChatEventEnvelope;
         if (payload.type === "message_created") {
           const nextMessage = (payload.payload as { message: ChatMessageSummary }).message;
-          setMessages((current) => {
-            const next = [...current.filter((item) => item.id !== nextMessage.id), nextMessage];
-            return next.sort((a, b) => (a.visibleSeq ?? 0) - (b.visibleSeq ?? 0));
-          });
+          setMessages((current) => mergeChatMessageSummaries(current, nextMessage));
           setRoom((current) => ({
             ...current,
             lastVisibleSeq: Math.max(
@@ -237,6 +237,11 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
           }
         }
 
+        if (payload.type === "message_updated") {
+          const nextMessage = (payload.payload as { message: ChatMessageSummary }).message;
+          setMessages((current) => mergeChatMessageSummaries(current, nextMessage));
+        }
+
         if (payload.type === "message_removed") {
           const removed = payload.payload as { messageId: string };
           setMessages((current) => current.filter((item) => item.id !== removed.messageId));
@@ -264,7 +269,6 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
     };
 
     return () => source.close();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- isMentionForCurrentUser is stable (depends only on selfUsername)
   }, [copy.reports.error, copy.states.deleted, copy.states.soundUnavailable, currentUserId, initialData.selfUsername, readState.soundMode, toast]);
 
   useEffect(() => {
@@ -394,6 +398,36 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
       setReportCategory("spam");
     } catch {
       toast({ type: "error", title: copy.reports.error });
+    }
+  }
+
+  async function toggleReaction(
+    messageId: string,
+    emoji: ChatMessageSummary["reactions"][number]["emoji"]
+  ) {
+    if (pendingReactionMessageIds.includes(messageId)) return;
+
+    setPendingReactionMessageIds((current) => [...current, messageId]);
+    try {
+      const res = await fetch(`/api/chat/${messageId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji }),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        toast({ type: "error", title: copy.reactions.updateError });
+        return;
+      }
+
+      const nextMessage = payload.message as ChatMessageSummary;
+      setMessages((current) => mergeChatMessageSummaries(current, nextMessage));
+    } catch {
+      toast({ type: "error", title: copy.reactions.updateError });
+    } finally {
+      setPendingReactionMessageIds((current) =>
+        current.filter((currentMessageId) => currentMessageId !== messageId)
+      );
     }
   }
 
@@ -527,6 +561,22 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
                     gifImageClassName="max-h-[320px]"
                     bodyClassName={`whitespace-pre-wrap break-words text-sm ${message.isDeleted ? "italic text-text-muted" : "text-text-primary"}`}
                   />
+                  {!message.isDeleted ? (
+                    <ChatMessageReactions
+                      lang={lang}
+                      reactions={message.reactions}
+                      currentUserId={currentUserId}
+                      disabled={pendingReactionMessageIds.includes(message.id)}
+                      onToggle={
+                        permissions.canPost
+                          ? (emoji) => {
+                              void toggleReaction(message.id, emoji);
+                            }
+                          : undefined
+                      }
+                      labels={copy.reactions}
+                    />
+                  ) : null}
                 </div>
               );
             })

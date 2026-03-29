@@ -14,6 +14,7 @@ import { ChatBadgeDetailModal } from "@/components/chat/chat-badge-detail-modal"
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChatMessageContent } from "@/components/chat/chat-message-content";
+import { ChatMessageReactions } from "@/components/chat/chat-message-reactions";
 import { ChatUserCard } from "@/components/chat/chat-user-card";
 import { ChatUserBadges } from "@/components/chat/chat-user-badges";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import type { ChatDictionary } from "@/lib/chat-i18n";
 import { getChatUiCopy } from "@/lib/chat-i18n";
+import { mergeChatMessageSummaries } from "@/lib/chat-message-summary";
 import type {
   ChatActionLogResponse,
   ChatActiveRestrictionSummary,
@@ -96,6 +98,7 @@ export function AdminChatConsole({
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [userActionReason, setUserActionReason] = useState("");
   const [userActionMinutes, setUserActionMinutes] = useState("15");
+  const [pendingReactionMessageIds, setPendingReactionMessageIds] = useState<string[]>([]);
   const [logs, setLogs] = useState(initialData.actions);
   const [logsTotal, setLogsTotal] = useState(initialData.actions.length);
   const [logsLoading, setLogsLoading] = useState(false);
@@ -309,10 +312,14 @@ export function AdminChatConsole({
           const nextMessage = (payload.payload as { message: ChatMessageSummary }).message;
           setData((current) => ({
             ...current,
-            messages: [
-              ...current.messages.filter((item) => item.id !== nextMessage.id),
-              nextMessage,
-            ].sort((a, b) => (a.visibleSeq ?? 0) - (b.visibleSeq ?? 0)),
+            messages: mergeChatMessageSummaries(current.messages, nextMessage),
+          }));
+        }
+        if (payload.type === "message_updated") {
+          const nextMessage = (payload.payload as { message: ChatMessageSummary }).message;
+          setData((current) => ({
+            ...current,
+            messages: mergeChatMessageSummaries(current.messages, nextMessage),
           }));
         }
         if (payload.type === "message_removed") {
@@ -321,7 +328,13 @@ export function AdminChatConsole({
             ...current,
             messages: current.messages.map((item) =>
               item.id === removed.messageId
-                ? { ...item, status: "deleted", body: copy.states.deleted, isDeleted: true }
+                ? {
+                    ...item,
+                    status: "deleted",
+                    body: copy.states.deleted,
+                    isDeleted: true,
+                    reactions: [],
+                  }
                 : item
             ),
           }));
@@ -408,6 +421,39 @@ export function AdminChatConsole({
       ]);
     } catch {
       toast({ type: "error", title: copy.states.networkError });
+    }
+  }
+
+  async function toggleReaction(
+    messageId: string,
+    emoji: ChatMessageSummary["reactions"][number]["emoji"]
+  ) {
+    if (pendingReactionMessageIds.includes(messageId)) return;
+
+    setPendingReactionMessageIds((current) => [...current, messageId]);
+    try {
+      const res = await fetch(`/api/chat/${messageId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji }),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        toast({ type: "error", title: copy.reactions.updateError });
+        return;
+      }
+
+      const nextMessage = payload.message as ChatMessageSummary;
+      setData((current) => ({
+        ...current,
+        messages: mergeChatMessageSummaries(current.messages, nextMessage),
+      }));
+    } catch {
+      toast({ type: "error", title: copy.reactions.updateError });
+    } finally {
+      setPendingReactionMessageIds((current) =>
+        current.filter((currentMessageId) => currentMessageId !== messageId)
+      );
     }
   }
 
@@ -601,6 +647,18 @@ export function AdminChatConsole({
                           message.isDeleted ? "italic text-text-muted" : "text-text-primary"
                         }`}
                       />
+                      {!message.isDeleted ? (
+                        <ChatMessageReactions
+                          lang={lang}
+                          reactions={message.reactions}
+                          currentUserId={currentUserId}
+                          disabled={pendingReactionMessageIds.includes(message.id)}
+                          onToggle={(emoji) => {
+                            void toggleReaction(message.id, emoji);
+                          }}
+                          labels={copy.reactions}
+                        />
+                      ) : null}
                     </div>
                     <time className="text-xs text-text-muted">
                       {formatTime(message.createdAt)}
@@ -1018,6 +1076,12 @@ export function AdminChatConsole({
                               gifImageClassName="max-h-[200px]"
                               bodyClassName="whitespace-pre-wrap break-words text-sm text-text-primary"
                             />
+                            <ChatMessageReactions
+                              lang={lang}
+                              reactions={message.reactions}
+                              currentUserId={currentUserId}
+                              labels={copy.reactions}
+                            />
                           </div>
                         ))
                       )}
@@ -1195,6 +1259,12 @@ export function AdminChatConsole({
                       gifClassName="max-w-[220px]"
                       gifImageClassName="max-h-[200px]"
                       bodyClassName="whitespace-pre-wrap break-words text-sm text-text-primary"
+                    />
+                    <ChatMessageReactions
+                      lang={lang}
+                      reactions={message.reactions}
+                      currentUserId={currentUserId}
+                      labels={copy.reactions}
                     />
                     <div className="mt-3 flex gap-2">
                       <Button

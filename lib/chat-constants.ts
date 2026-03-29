@@ -74,6 +74,7 @@ export const CHAT_ARCHIVE_EVENT_TYPES = [
   "message_held",
   "message_blocked",
   "message_deleted",
+  "message_reacted",
   "moderation_action",
   "report_created",
   "report_resolved",
@@ -91,6 +92,7 @@ export type ChatUserStatus = (typeof CHAT_USER_STATUSES)[number];
 export type ChatRestrictionType = (typeof CHAT_RESTRICTION_TYPES)[number];
 export type ChatAdminAction = (typeof CHAT_ADMIN_ACTIONS)[number];
 export type ChatReportCategory = (typeof CHAT_REPORT_CATEGORIES)[number];
+export type ChatReactionEmoji = string;
 export type ChatArchiveEventType = (typeof CHAT_ARCHIVE_EVENT_TYPES)[number];
 
 export function isChatStaff(role?: string | null): boolean {

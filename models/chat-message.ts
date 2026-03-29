@@ -3,7 +3,12 @@ import {
   CHAT_MESSAGE_STATUSES,
   CHAT_ROOM_SLUG,
   type ChatMessageStatus,
+  type ChatReactionEmoji,
 } from "@/lib/chat-constants";
+import {
+  CHAT_MAX_REACTION_EMOJI_LENGTH,
+  isSupportedChatReactionEmoji,
+} from "@/lib/chat-reactions";
 
 interface IChatProfileBadge {
   key: string;
@@ -50,6 +55,11 @@ interface IChatGif {
   height: number;
 }
 
+interface IChatReaction {
+  emoji: ChatReactionEmoji;
+  userIds: Types.ObjectId[];
+}
+
 export interface IChatMessage extends Document {
   _id: Types.ObjectId;
   roomId: Types.ObjectId;
@@ -69,6 +79,7 @@ export interface IChatMessage extends Document {
   hasMention: boolean;
   hasLink: boolean;
   hasPII: boolean;
+  reactions: IChatReaction[];
   moderation: IChatModerationSummary;
   deletedAt: Date | null;
   deletedByUserId: Types.ObjectId | null;
@@ -150,6 +161,31 @@ const ChatGifSchema = new Schema<IChatGif>(
   { _id: false }
 );
 
+const ChatReactionSchema = new Schema<IChatReaction>(
+  {
+    emoji: {
+      type: String,
+      required: true,
+      maxlength: CHAT_MAX_REACTION_EMOJI_LENGTH,
+      validate: {
+        validator: (value: string) => isSupportedChatReactionEmoji(value),
+        message: "Invalid reaction emoji",
+      },
+    },
+    userIds: {
+      type: [
+        {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+      ],
+      default: [],
+    },
+  },
+  { _id: false }
+);
+
 const ChatMessageSchema = new Schema<IChatMessage>(
   {
     roomId: {
@@ -188,6 +224,7 @@ const ChatMessageSchema = new Schema<IChatMessage>(
     hasMention: { type: Boolean, default: false },
     hasLink: { type: Boolean, default: false },
     hasPII: { type: Boolean, default: false },
+    reactions: { type: [ChatReactionSchema], default: [] },
     moderation: {
       type: ChatModerationSummarySchema,
       default: () => ({ provider: null, action: null, reasonCodes: [] }),
