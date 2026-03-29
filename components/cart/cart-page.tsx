@@ -66,7 +66,9 @@ export function CartPage({ lang, dict }: CartPageProps) {
   } | null>(null);
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
-  const [consentAccepted, setConsentAccepted] = useState(false);
+  const [consentAccepted, setConsentAccepted] = useState(() => {
+    try { return sessionStorage.getItem("cart_consent") === "1"; } catch { return false; }
+  });
   const [countryOpen, setCountryOpen] = useState(false);
 
   // Single cart-wide countdown (all items share the same expiry)
@@ -485,10 +487,12 @@ export function CartPage({ lang, dict }: CartPageProps) {
           onAccept={() => {
             setConsentAccepted(true);
             setShowConsent(false);
+            try { sessionStorage.setItem("cart_consent", "1"); } catch {}
           }}
           onClose={() => {
             setConsentAccepted(true);
             setShowConsent(false);
+            try { sessionStorage.setItem("cart_consent", "1"); } catch {}
           }}
         />
       )}
