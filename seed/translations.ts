@@ -715,6 +715,88 @@ export const translationSeedData = [
   { namespace: "chat", key: "roomModes_slow_mode", values: { de: "Slow Mode" } },
   { namespace: "chat", key: "roomModes_announcement_only", values: { de: "Nur Ankündigungen" } },
   { namespace: "chat", key: "badges_verified", values: { de: "VERIFIZIERT" } },
+
+  // battles
+  { namespace: "battles", key: "title", values: { de: "Battles" } },
+  { namespace: "battles", key: "create_battle", values: { de: "Battle erstellen" } },
+  { namespace: "battles", key: "leaderboard", values: { de: "Rangliste" } },
+  { namespace: "battles", key: "quick_match", values: { de: "Quick Match" } },
+  { namespace: "battles", key: "join_battle", values: { de: "Battle beitreten" } },
+  { namespace: "battles", key: "leave_battle", values: { de: "Battle verlassen" } },
+  { namespace: "battles", key: "spectate", values: { de: "Zuschauen" } },
+  { namespace: "battles", key: "players", values: { de: "Spieler" } },
+  { namespace: "battles", key: "cost_per_player", values: { de: "Kosten pro Spieler" } },
+  { namespace: "battles", key: "packs_per_player", values: { de: "Packs pro Spieler" } },
+  { namespace: "battles", key: "max_players", values: { de: "Max. Spieler" } },
+  { namespace: "battles", key: "visibility", values: { de: "Sichtbarkeit" } },
+  { namespace: "battles", key: "visibility_public", values: { de: "Öffentlich" } },
+  { namespace: "battles", key: "visibility_private", values: { de: "Privat" } },
+  { namespace: "battles", key: "min_elo", values: { de: "Mindest-ELO" } },
+  { namespace: "battles", key: "select_box", values: { de: "Box auswählen" } },
+
+  // battles.lobby
+  { namespace: "battles.lobby", key: "waiting_for_players", values: { de: "Warte auf Spieler..." } },
+  { namespace: "battles.lobby", key: "battle_starts_in", values: { de: "Battle startet in {seconds}..." } },
+  { namespace: "battles.lobby", key: "battle_full", values: { de: "Battle ist voll!" } },
+  { namespace: "battles.lobby", key: "you_joined", values: { de: "Du bist beigetreten!" } },
+
+  // battles.clash
+  { namespace: "battles.clash", key: "round_of", values: { de: "Runde {n} von {total}" } },
+  { namespace: "battles.clash", key: "winner", values: { de: "Gewinner: {name}" } },
+  { namespace: "battles.clash", key: "draw", values: { de: "Unentschieden!" } },
+  { namespace: "battles.clash", key: "on_fire", values: { de: "ON FIRE!" } },
+  { namespace: "battles.clash", key: "streak", values: { de: "{count}er Serie!" } },
+
+  // battles.podium
+  { namespace: "battles.podium", key: "results", values: { de: "Ergebnisse" } },
+  { namespace: "battles.podium", key: "place_1", values: { de: "1. Platz" } },
+  { namespace: "battles.podium", key: "place_2", values: { de: "2. Platz" } },
+  { namespace: "battles.podium", key: "place_3", values: { de: "3. Platz" } },
+  { namespace: "battles.podium", key: "place_n", values: { de: "{n}. Platz" } },
+  { namespace: "battles.podium", key: "elo_change", values: { de: "ELO: {change}" } },
+  { namespace: "battles.podium", key: "score", values: { de: "{score} Punkte" } },
+
+  // battles.decide
+  { namespace: "battles.decide", key: "your_cards", values: { de: "Deine Karten" } },
+  { namespace: "battles.decide", key: "claim", values: { de: "In den Warenkorb" } },
+  { namespace: "battles.decide", key: "convert", values: { de: "In Coins umwandeln" } },
+  { namespace: "battles.decide", key: "converted_value", values: { de: "{amount} Coins" } },
+  { namespace: "battles.decide", key: "claimed", values: { de: "Im Warenkorb" } },
+  { namespace: "battles.decide", key: "converted", values: { de: "Umgewandelt" } },
+
+  // battles.chat
+  { namespace: "battles.chat", key: "title", values: { de: "Chat" } },
+  { namespace: "battles.chat", key: "category_hype", values: { de: "Hype" } },
+  { namespace: "battles.chat", key: "category_reaction", values: { de: "Reaktion" } },
+  { namespace: "battles.chat", key: "category_respect", values: { de: "Respekt" } },
+  { namespace: "battles.chat", key: "category_battle", values: { de: "Battle" } },
+  { namespace: "battles.chat", key: "category_spectator", values: { de: "Zuschauer" } },
+
+  // battles.reconnect
+  { namespace: "battles.reconnect", key: "active_battle", values: { de: "Du bist in einem aktiven Battle!" } },
+  { namespace: "battles.reconnect", key: "return_to_battle", values: { de: "Zurück zum Battle" } },
+
+  // battles.leaderboard
+  { namespace: "battles.leaderboard", key: "title", values: { de: "Rangliste" } },
+  { namespace: "battles.leaderboard", key: "category_elo", values: { de: "ELO-Rating" } },
+  { namespace: "battles.leaderboard", key: "category_wins", values: { de: "Siege" } },
+  { namespace: "battles.leaderboard", key: "category_streak", values: { de: "Beste Serie" } },
+  { namespace: "battles.leaderboard", key: "your_rank", values: { de: "Dein Rang: #{rank}" } },
+
+  // battles.ranks
+  { namespace: "battles.ranks", key: "bronze", values: { de: "Bronze" } },
+  { namespace: "battles.ranks", key: "silver", values: { de: "Silber" } },
+  { namespace: "battles.ranks", key: "gold", values: { de: "Gold" } },
+  { namespace: "battles.ranks", key: "diamond", values: { de: "Diamant" } },
+  { namespace: "battles.ranks", key: "champion", values: { de: "Champion" } },
+
+  // battles.status
+  { namespace: "battles.status", key: "waiting", values: { de: "Wartet auf Spieler" } },
+  { namespace: "battles.status", key: "countdown", values: { de: "Startet gleich" } },
+  { namespace: "battles.status", key: "opening", values: { de: "Packs werden geöffnet" } },
+  { namespace: "battles.status", key: "clash", values: { de: "Läuft" } },
+  { namespace: "battles.status", key: "finished", values: { de: "Beendet" } },
+  { namespace: "battles.status", key: "cancelled", values: { de: "Abgebrochen" } },
 ];
 
 
