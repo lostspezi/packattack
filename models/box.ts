@@ -101,7 +101,6 @@ BoxSchema.pre("save", async function () {
   let attempt = 0;
   const BoxModel = this.constructor as Model<IBox>;
 
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const existing = await BoxModel.findOne({ slug, _id: { $ne: this._id } }).select("_id").lean();
     if (!existing) break;
