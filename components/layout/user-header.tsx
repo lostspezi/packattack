@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LayoutGrid,
   Package,
+  Swords,
   ShoppingBag,
   ShoppingCart,
   ChevronDown,
@@ -154,6 +155,19 @@ export function UserHeader({
             </Link>
 
             <Link
+              href={`/${lang}/battles`}
+              className={[
+                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                pathname.includes("/battles")
+                  ? "bg-white/6 text-pa-green"
+                  : "text-text-secondary hover:bg-white/4 hover:text-text-primary",
+              ].join(" ")}
+            >
+              <Swords className="h-4 w-4 flex-shrink-0" />
+              <span>{dict["battles"] ?? "Battles"}</span>
+            </Link>
+
+            <Link
               href={`/${lang}/cart`}
               className={[
                 "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
@@ -287,6 +301,20 @@ export function UserHeader({
             >
               <Package className="h-5 w-5 flex-shrink-0" />
               <span>{dict["packs"] ?? "Packs"}</span>
+            </Link>
+
+            <Link
+              href={`/${lang}/battles`}
+              onClick={() => setMobileMenuOpen(false)}
+              className={[
+                "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
+                pathname.includes("/battles")
+                  ? "bg-pa-green/6 text-pa-green"
+                  : "text-text-muted hover:text-text-primary",
+              ].join(" ")}
+            >
+              <Swords className="h-5 w-5 flex-shrink-0" />
+              <span>{dict["battles"] ?? "Battles"}</span>
             </Link>
 
             <Link

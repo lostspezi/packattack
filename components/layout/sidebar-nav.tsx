@@ -10,6 +10,7 @@
 export const mainNavItems: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: "LayoutGrid" },
   { key: "packs", label: "Packs", href: "/packs", icon: "Package" },
+  { key: "battles", label: "Battles", href: "/battles", icon: "Swords" },
   { key: "cart", label: "Warenkorb", href: "/cart", icon: "ShoppingCart" },
   { key: "orders", label: "Bestellungen", href: "/orders", icon: "Package" },
   { key: "feedback", label: "Feedback", href: "/feedback", icon: "MessageSquareMore" },
@@ -37,6 +38,7 @@ export const adminNavItems: NavItem[] = [
   { key: "coinPackages", label: "Coin-Pakete", href: "/admin/coin-packages", icon: "CreditCard" },
   { key: "adminOrders", label: "Bestellungen", href: "/admin/orders", icon: "ClipboardList" },
   { key: "adminShipping", label: "Versand", href: "/admin/shipping", icon: "Truck" },
+  { key: "adminSeasons", label: "Battle Seasons", href: "/admin/seasons", icon: "Trophy" },
 ];
 
 export const shopNavItems: NavItem[] = [
