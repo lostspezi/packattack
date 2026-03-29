@@ -15,6 +15,15 @@ export interface IUser extends Document {
   username: string;
   email: string;
   coins: number;
+  elo: number;
+  battleStats: {
+    wins: number;
+    losses: number;
+    streak: number;
+    bestStreak: number;
+    totalBattles: number;
+    battlesCreated: number;
+  };
   stripeCustomerId: string | null;
   stripeIdentityVerificationId: string | null;
   identityVerified: boolean;
@@ -148,6 +157,15 @@ const UserSchema = new Schema<IUser>(
     },
     onboardingCompleted: { type: Boolean, default: false },
     coins: { type: Number, default: 0 },
+    elo: { type: Number, default: 1000 },
+    battleStats: {
+      wins: { type: Number, default: 0 },
+      losses: { type: Number, default: 0 },
+      streak: { type: Number, default: 0 },
+      bestStreak: { type: Number, default: 0 },
+      totalBattles: { type: Number, default: 0 },
+      battlesCreated: { type: Number, default: 0 },
+    },
     stripeCustomerId: { type: String, default: null },
     stripeIdentityVerificationId: { type: String, default: null },
     identityVerified: { type: Boolean, default: false },
