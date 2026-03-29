@@ -6,7 +6,7 @@ import BattlePull from "@/models/battle-pull";
 import User from "@/models/user";
 import CoinTransaction from "@/models/coin-transaction";
 import { getRedis } from "@/lib/redis";
-import { runBattle } from "@/lib/battle-orchestrator";
+import { startReadyCheck } from "@/lib/battle-orchestrator";
 
 export async function POST(
   _req: NextRequest,
@@ -41,7 +41,7 @@ export async function POST(
     // Check no active battle
     const activeBattle = await Battle.findOne({
       "players.user": userId,
-      status: { $in: ["waiting", "countdown", "opening", "clash"] },
+      status: { $in: ["waiting", "ready_check", "countdown", "opening", "clash"] },
     }).lean();
     if (activeBattle) {
       return NextResponse.json(
@@ -153,16 +153,32 @@ export async function POST(
       relatedBattleId: battle._id,
     });
 
-    // Publish player_joined SSE event
+    // Publish player_joined SSE event with full player data
+    const joinedUser = await User.findById(userId)
+      .select("name username image elo")
+      .lean();
+
     void publishEvent(battle._id.toString(), {
       type: "player_joined",
-      userId,
+      player: {
+        user: {
+          _id: userId,
+          name: joinedUser?.name ?? "Unknown",
+          username: joinedUser?.username ?? null,
+          image: joinedUser?.image ?? null,
+          elo: joinedUser?.elo ?? 1000,
+        },
+        score: 0,
+        placement: null,
+        eloChange: null,
+        eloAtStart: userElo,
+      },
       playerCount: updatedBattle.players.length,
     });
 
-    // If battle is now full, start it
+    // If battle is now full, start ready check
     if (updatedBattle.players.length >= updatedBattle.maxPlayers) {
-      runBattle(updatedBattle._id.toString()).catch(console.error);
+      startReadyCheck(updatedBattle._id.toString()).catch(console.error);
     }
 
     return NextResponse.json({
