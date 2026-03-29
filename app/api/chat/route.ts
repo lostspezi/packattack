@@ -20,6 +20,7 @@ import {
   canPostChatLinks,
   CHAT_HISTORY_PAGE_SIZE,
   CHAT_ROOM_SLUG,
+  getChatRoleBadgeLabel,
   isChatStaff,
 } from "@/lib/chat-constants";
 import { escapeMentionRegex, extractMentionUsernames } from "@/lib/chat-mentions";
@@ -137,19 +138,24 @@ export async function POST(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const normalizedUser = { ...user, role: user.role ?? "user" };
 
     const room = await ensureGlobalChatRoom();
     const policy = await ensureGlobalChatPolicy();
-    const userState = await ensureChatUserState(user as never);
+    const userState = await ensureChatUserState(normalizedUser as never);
     const readState = await ensureChatReadState(room._id, userId);
     const permissions = buildChatPermissions({
-      user: user as never,
+      user: normalizedUser as never,
       room,
       userState,
       moderationReady: policy.provider !== "none",
     });
 
-    if (room.requireEmailVerifiedToPost && !user.emailVerified && !isChatStaff(user.role)) {
+    if (
+      room.requireEmailVerifiedToPost &&
+      !normalizedUser.emailVerified &&
+      !isChatStaff(normalizedUser.role)
+    ) {
       return NextResponse.json({ error: "not_verified" }, { status: 400 });
     }
     if (permissions.chatStatus === "banned") {
@@ -161,7 +167,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (!permissions.moderationReady && !isChatStaff(user.role)) {
+    if (!permissions.moderationReady && !isChatStaff(normalizedUser.role)) {
       return NextResponse.json({ error: "moderation_unavailable" }, { status: 503 });
     }
     if (parsed.data.gif && !permissions.canUseGifs) {
@@ -170,7 +176,7 @@ export async function POST(req: NextRequest) {
     if (room.mode === "read_only") {
       return NextResponse.json({ error: "read_only" }, { status: 400 });
     }
-    if (room.mode === "announcement_only" && !isChatStaff(user.role)) {
+    if (room.mode === "announcement_only" && !isChatStaff(normalizedUser.role)) {
       return NextResponse.json({ error: "announcement_only" }, { status: 400 });
     }
 
@@ -180,7 +186,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "invalid_gif" }, { status: 400 });
     }
     const hasLink = containsChatLink(normalizedBody);
-    if (hasLink && !canPostChatLinks(user.role)) {
+    if (hasLink && !canPostChatLinks(normalizedUser.role)) {
       return NextResponse.json({ error: "links_not_allowed" }, { status: 400 });
     }
 
@@ -209,8 +215,8 @@ export async function POST(req: NextRequest) {
       normalizedBody.length > 0
         ? await moderateChatMessage({
             body: normalizedBody,
-            lang: user.preferences?.language ?? "de",
-            isAdminLinkMessage: hasLink && canPostChatLinks(user.role),
+            lang: normalizedUser.preferences?.language ?? "de",
+            isAdminLinkMessage: hasLink && canPostChatLinks(normalizedUser.role),
             trustTier: permissions.trustTier,
           })
         : {
@@ -273,33 +279,27 @@ export async function POST(req: NextRequest) {
         name: target.name?.trim() || target.username,
       }));
     const hasMention = mentionTargets.length > 0;
-    const badgeMap = await getUserBadgeSummariesForUsers([user._id]);
+    const badgeMap = await getUserBadgeSummariesForUsers([normalizedUser._id]);
     const profileBadges =
-      badgeMap.get(user._id.toString()) ?? getLegacyBadgeSummaries(user as never);
+      badgeMap.get(normalizedUser._id.toString()) ??
+      getLegacyBadgeSummaries(normalizedUser as never);
     const message = await ChatMessage.create({
       roomId: room._id,
       roomSlug: room.slug,
       submissionSeq: updatedRoom.submissionSeq,
       visibleSeq: shouldBeVisible ? updatedRoom.visibleSeq : null,
-      authorUserId: user._id,
+      authorUserId: normalizedUser._id,
       source:
-        user.role === "admin" || user.role === "super_admin"
+        normalizedUser.role === "admin" || normalizedUser.role === "super_admin"
           ? "admin"
-          : user.role === "moderator"
+          : normalizedUser.role === "moderator"
             ? "moderator"
             : "user",
       authorSnapshot: {
-        name: user.name,
-        username: user.username ?? null,
-        role: user.role,
-        roleBadge:
-          user.role === "admin" || user.role === "super_admin"
-            ? "ADMIN"
-            : user.role === "moderator"
-              ? "MOD"
-              : user.role === "shop"
-                ? "SHOP"
-                : null,
+        name: normalizedUser.name,
+        username: normalizedUser.username ?? null,
+        role: normalizedUser.role,
+        roleBadge: getChatRoleBadgeLabel(normalizedUser.role),
         profileBadges: profileBadges.map((badge) => ({
           key: badge.key,
           slug: badge.slug,
@@ -311,8 +311,8 @@ export async function POST(req: NextRequest) {
           awardReason: badge.awardReason,
           category: badge.category,
         })),
-        avatarUrl: user.image ?? null,
-        identityVerified: Boolean(user.identityVerified),
+        avatarUrl: normalizedUser.image ?? null,
+        identityVerified: Boolean(normalizedUser.identityVerified),
       },
       bodyOriginal: normalizedBody,
       bodyNormalized: normalizedBody.toLowerCase(),

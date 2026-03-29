@@ -12,6 +12,25 @@ import connectDB from "@/lib/db";
 import User from "@/models/user";
 import PlatformSettings from "@/models/platform-settings";
 
+async function backfillMissingUserRole(userId?: string | null, email?: string | null) {
+  const filter =
+    userId && Types.ObjectId.isValid(userId) && new Types.ObjectId(userId).toString() === userId
+      ? { _id: new Types.ObjectId(userId) }
+      : email
+        ? { email }
+        : null;
+
+  if (!filter) return;
+
+  await User.updateOne(
+    {
+      ...filter,
+      $or: [{ role: { $exists: false } }, { role: null }],
+    },
+    { $set: { role: "user" } }
+  );
+}
+
 // Helper: find user by ID (handles both ObjectId and UUID strings)
 async function findUserById(id: string) {
   if (Types.ObjectId.isValid(id) && new Types.ObjectId(id).toString() === id) {
@@ -95,6 +114,17 @@ const authConfig: NextAuthConfig = {
   pages: {
     signIn: "/en/login",
     error: "/en/error",
+  },
+
+  events: {
+    async createUser({ user }) {
+      try {
+        await connectDB();
+        await backfillMissingUserRole(user.id, user.email ?? null);
+      } catch (error) {
+        console.error("[auth createUser]", error);
+      }
+    },
   },
 
   providers: [
@@ -196,6 +226,9 @@ const authConfig: NextAuthConfig = {
           await connectDB();
           const dbUser = await findUserById(token.sub ?? user.id ?? "");
           if (dbUser) {
+            if (!dbUser.role) {
+              await backfillMissingUserRole(dbUser._id.toString(), dbUser.email ?? null);
+            }
             token.id = dbUser._id.toString();
             token.role = dbUser.role ?? "user";
             token.emailVerified = dbUser.emailVerified ?? null;
@@ -247,6 +280,9 @@ const authConfig: NextAuthConfig = {
           await connectDB();
           const dbUser = await findUserById(token.sub ?? "");
           if (dbUser) {
+            if (!dbUser.role) {
+              await backfillMissingUserRole(dbUser._id.toString(), dbUser.email ?? null);
+            }
             token.emailVerified = dbUser.emailVerified ?? null;
             token.userTosVersion = dbUser.consents?.tos?.version ?? "";
             token.userPrivacyVersion = dbUser.consents?.privacy?.version ?? "";
