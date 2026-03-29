@@ -21,6 +21,7 @@ interface BattlePlayer {
   placement: number | null;
   eloChange: number | null;
   eloAtStart: number;
+  ready: boolean;
 }
 
 interface RoundCard {
@@ -40,7 +41,7 @@ interface Round {
 interface Battle {
   _id: string;
   slug: string;
-  status: "waiting" | "countdown" | "opening" | "clash" | "finished" | "cancelled";
+  status: "waiting" | "ready_check" | "countdown" | "opening" | "clash" | "finished" | "cancelled";
   maxPlayers: number;
   packsPerPlayer: number;
   players: BattlePlayer[];
@@ -49,6 +50,7 @@ interface Battle {
   totalRounds: number;
   box: { name: Record<string, string>; image?: string };
   visibility: string;
+  readyCheckStartedAt: string | null;
 }
 
 interface ChatMessage {
@@ -86,6 +88,9 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
   const [eloChanges, setEloChanges] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
+  const [revealedCards, setRevealedCards] = useState<Record<string, RoundCard>>({});
+  const [roundAnnounce, setRoundAnnounce] = useState<{ roundIndex: number; revealOrder: string[] } | null>(null);
+  const [roundResult, setRoundResult] = useState<{ winnerId: string | null; isClose: boolean } | null>(null);
 
   const battleRef = useRef<Battle | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -99,16 +104,21 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
       const res = await fetch(`/api/battles/${slug}`);
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Failed to load battle");
+        setError(data.error ?? "Battle konnte nicht geladen werden");
         return null;
       }
       const data = await res.json();
       setBattle(data.battle);
       setIsPlayer(data.isPlayer ?? false);
-      if (data.myCards) setMyCards(data.myCards);
+      if (data.myCards) {
+        setMyCards(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          data.myCards.map((c: any) => ({ ...c, pullId: c.pullId ?? c._id }))
+        );
+      }
       return data.battle as Battle;
     } catch {
-      setError("Failed to load battle");
+      setError("Battle konnte nicht geladen werden");
       return null;
     }
   }, [slug]);
@@ -127,15 +137,22 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
         if (data.battle) setBattle(data.battle);
         if (typeof data.isPlayer === "boolean") setIsPlayer(data.isPlayer);
         if (data.spectatorCount !== undefined) setSpectatorCount(data.spectatorCount);
+        if (data.myCards) {
+          setMyCards(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            data.myCards.map((c: any) => ({ ...c, pullId: c.pullId ?? c._id }))
+          );
+        }
       } catch { /* ignore */ }
     });
 
     es.addEventListener("player_joined", (e) => {
       try {
         const data = JSON.parse(e.data);
+        if (!data.player?.user?._id) return;
         setBattle((prev) => {
           if (!prev) return prev;
-          const alreadyIn = prev.players.some((p) => p.user._id === data.player?.user?._id);
+          const alreadyIn = prev.players.some((p) => p.user._id === data.player.user._id);
           if (alreadyIn) return prev;
           return { ...prev, players: [...prev.players, data.player] };
         });
@@ -155,6 +172,50 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
       } catch { /* ignore */ }
     });
 
+    es.addEventListener("ready_check_start", (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        setBattle((prev) => prev ? {
+          ...prev,
+          status: "ready_check",
+          readyCheckStartedAt: new Date().toISOString(),
+        } : prev);
+      } catch { /* ignore */ }
+    });
+
+    es.addEventListener("player_ready", (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        setBattle((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            players: prev.players.map((p) =>
+              p.user._id === data.userId ? { ...p, ready: true } : p
+            ),
+          };
+        });
+      } catch { /* ignore */ }
+    });
+
+    es.addEventListener("players_kicked", (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        const kickedIds: string[] = data.kickedUserIds ?? [];
+        setBattle((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            status: "waiting",
+            readyCheckStartedAt: null,
+            players: prev.players
+              .filter((p) => !kickedIds.includes(p.user._id))
+              .map((p) => ({ ...p, ready: false })),
+          };
+        });
+      } catch { /* ignore */ }
+    });
+
     es.addEventListener("battle_start", (e) => {
       try {
         const data = JSON.parse(e.data);
@@ -163,27 +224,31 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
     });
 
     es.addEventListener("opening_complete", () => {
-      setBattle((prev) => prev ? { ...prev, status: "opening" } : prev);
+      setBattle((prev) => prev ? { ...prev, status: "clash" } : prev);
     });
 
-    es.addEventListener("round_reveal", (e) => {
+    es.addEventListener("round_announce", (e) => {
       try {
         const data = JSON.parse(e.data);
+        setRoundAnnounce({ roundIndex: data.roundIndex, revealOrder: data.revealOrder });
+        setRevealedCards({});
+        setRoundResult(null);
+      } catch { /* ignore */ }
+    });
+
+    es.addEventListener("card_reveal", (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        const card: RoundCard = {
+          player: data.playerId,
+          card: data.card ?? { _id: data.cardId, name: data.name, image: data.image ?? null },
+          rarity: data.rarity,
+          coinValue: data.coinValue ?? 0,
+        };
+        setRevealedCards((prev) => ({ ...prev, [data.playerId]: card }));
         setBattle((prev) => {
           if (!prev) return prev;
-          const existingIdx = prev.rounds.findIndex((r) => r.roundIndex === data.roundIndex);
-          const newRound: Round = {
-            roundIndex: data.roundIndex,
-            cards: data.cards ?? [],
-            winnerId: null,
-            revealedAt: new Date().toISOString(),
-          };
-          if (existingIdx >= 0) {
-            const updated = [...prev.rounds];
-            updated[existingIdx] = { ...updated[existingIdx], ...newRound };
-            return { ...prev, rounds: updated, currentRound: data.roundIndex, status: "clash" };
-          }
-          return { ...prev, rounds: [...prev.rounds, newRound], currentRound: data.roundIndex, status: "clash" };
+          return { ...prev, status: "clash", currentRound: data.roundIndex };
         });
       } catch { /* ignore */ }
     });
@@ -191,10 +256,11 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
     es.addEventListener("round_result", (e) => {
       try {
         const data = JSON.parse(e.data);
+        setRoundResult({ winnerId: data.winnerId ?? null, isClose: data.isClose ?? false });
         setBattle((prev) => {
           if (!prev) return prev;
           const updatedRounds = prev.rounds.map((r) =>
-            r.roundIndex === data.roundIndex ? { ...r, winnerId: data.winnerId } : r
+            r.roundIndex === data.roundIndex ? { ...r, winnerId: data.winnerId ?? null } : r
           );
           const scoresMap = data.scores as Record<string, number> | undefined;
           const updatedPlayers = prev.players.map((p) => {
@@ -210,8 +276,30 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
       try {
         const data = JSON.parse(e.data);
         setBattle((prev) => prev ? { ...prev, status: "finished" } : prev);
-        if (data.placements) setPlacements(data.placements);
-        if (data.eloChanges) setEloChanges(data.eloChanges);
+        if (data.placements) {
+          const currentBattle = battleRef.current;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const merged = data.placements.map((p: any) => {
+            const player = currentBattle?.players.find(
+              (bp) => bp.user._id === p.userId
+            );
+            return {
+              user: player?.user ?? { _id: p.userId, name: "Unknown" },
+              score: p.score ?? 0,
+              placement: p.placement,
+              eloChange: p.eloChange ?? 0,
+              eloAtStart: player?.eloAtStart ?? 1000,
+            };
+          });
+          setPlacements(merged);
+
+          const changes: Record<string, number> = {};
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          for (const p of data.placements as any[]) {
+            changes[p.userId] = p.eloChange ?? 0;
+          }
+          setEloChanges(changes);
+        }
       } catch { /* ignore */ }
     });
 
@@ -270,17 +358,17 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 py-32 text-center">
         <AlertCircle className="h-10 w-10 text-error" />
-        <p className="text-text-secondary">{error || dict.battleNotFound || "Battle not found."}</p>
+        <p className="text-text-secondary">{error || dict["battleNotFound"] || "Battle nicht gefunden."}</p>
       </div>
     );
   }
 
   const scores = battle.players.reduce<Record<string, number>>((acc, p) => {
-    acc[p.user._id] = p.score;
+    if (p?.user?._id) acc[p.user._id] = p.score;
     return acc;
   }, {});
 
-  const isWaiting = battle.status === "waiting" || battle.status === "countdown";
+  const isWaiting = battle.status === "waiting" || battle.status === "ready_check" || battle.status === "countdown";
   const isClashing = battle.status === "opening" || battle.status === "clash";
   const isFinished = battle.status === "finished";
 
@@ -306,6 +394,9 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
             rounds={battle.rounds}
             players={battle.players}
             dict={dict}
+            revealedCards={revealedCards}
+            roundAnnounce={roundAnnounce}
+            roundResult={roundResult}
           />
         )}
 
@@ -330,7 +421,7 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
       {/* Sidebar */}
       <div className="hidden w-72 shrink-0 flex-col gap-4 lg:flex">
         {isClashing && (
-          <BattleScoreboard players={battle.players} scores={scores} dict={dict} />
+          <BattleScoreboard players={battle.players} scores={scores} dict={dict} lang={lang} />
         )}
         <BattlePresetChat
           battleId={battle._id}
@@ -338,6 +429,7 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
           isPlayer={isPlayer}
           isSpectator={!isPlayer}
           dict={dict}
+          lang={lang}
         />
       </div>
     </div>
