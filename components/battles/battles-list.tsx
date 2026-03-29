@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Swords, Loader2, Users, Coins, Plus, AlertCircle } from "lucide-react";
+import { Swords, Loader2, Users, Coins, Plus, AlertCircle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -41,6 +41,14 @@ interface BattlesListProps {
   dict: Record<string, string>;
 }
 
+const LIVE_STATUSES = ["ready_check", "countdown", "opening", "clash"];
+
+function getStatusStyle(status: string) {
+  if (status === "waiting") return "border-pa-green/30 bg-pa-green/10 text-pa-green";
+  if (LIVE_STATUSES.includes(status)) return "border-red-500/30 bg-red-500/10 text-red-400";
+  return "border-border bg-white/5 text-text-secondary";
+}
+
 export function BattlesList({ lang, dict }: BattlesListProps) {
   const [battles, setBattles] = useState<Battle[]>([]);
   const [activeBattle, setActiveBattle] = useState<ActiveBattle | null>(null);
@@ -53,7 +61,7 @@ export function BattlesList({ lang, dict }: BattlesListProps) {
       if (finished === 2) setLoading(false);
     };
 
-    fetch("/api/battles?status=waiting&visibility=public")
+    fetch("/api/battles?visibility=public")
       .then((res) => res.json())
       .then((data) => setBattles(data.battles ?? []))
       .catch(() => setBattles([]))
@@ -74,8 +82,88 @@ export function BattlesList({ lang, dict }: BattlesListProps) {
     );
   }
 
+  const waitingBattles = battles.filter((b) => b.status === "waiting");
+  const liveBattles = battles.filter((b) => LIVE_STATUSES.includes(b.status));
+  const hasAny = waitingBattles.length > 0 || liveBattles.length > 0;
+
+  function renderBattleCard(battle: Battle) {
+    const boxName =
+      battle.box.name[lang] ??
+      battle.box.name["en"] ??
+      battle.box.name["de"] ??
+      Object.values(battle.box.name)[0] ??
+      "—";
+    const playerCount = battle.players.length;
+    const maxPlayers = battle.maxPlayers;
+    const isFull = playerCount >= maxPlayers;
+    const isLive = LIVE_STATUSES.includes(battle.status);
+
+    return (
+      <Link
+        key={battle._id}
+        href={`/${lang}/battles/${battle.slug}`}
+        className="block"
+      >
+        <Card
+          variant="soft"
+          className="flex h-full flex-col gap-3 p-4 transition-colors hover:bg-white/5"
+        >
+          {/* Box name */}
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-text-primary">
+              {boxName}
+            </p>
+            <p className="mt-0.5 truncate text-xs text-text-secondary">
+              {dict["by"] ?? "von"} {battle.createdBy?.username ?? battle.createdBy?.name ?? "—"}
+            </p>
+          </div>
+
+          {/* Stats row */}
+          <div className="mt-auto flex items-center gap-4">
+            <span className="flex items-center gap-1.5 text-sm text-text-secondary">
+              <Users className="h-4 w-4 flex-shrink-0" />
+              <span className={isFull ? "text-amber-400" : ""}>
+                {playerCount}/{maxPlayers} {dict["players"] ?? "Spieler"}
+              </span>
+            </span>
+            <span className="flex items-center gap-1.5 text-sm text-text-secondary">
+              <Coins className="h-4 w-4 flex-shrink-0 text-pa-green" />
+              <span className="text-pa-green font-medium">
+                {battle.packsPerPlayer} {dict["packsLabel"] ?? "Packs"}
+              </span>
+            </span>
+          </div>
+
+          {/* Status badge + action */}
+          <div className="flex items-center justify-between">
+            <span
+              className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-semibold ${getStatusStyle(battle.status)}`}
+            >
+              {isLive && <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />}
+              {dict[`status_${battle.status}`] ?? (isLive ? "Live" : battle.status)}
+            </span>
+            <Button
+              variant={isLive ? "secondary" : "accent"}
+              size="sm"
+              className="pointer-events-none"
+            >
+              {isLive ? (
+                <>
+                  <Eye className="h-3.5 w-3.5" />
+                  {dict["spectate"] ?? "Zuschauen"}
+                </>
+              ) : (
+                dict["join"] ?? "Beitreten"
+              )}
+            </Button>
+          </div>
+        </Card>
+      </Link>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Active battle banner */}
       {activeBattle && (
         <Card variant="topline" className="p-4">
@@ -83,12 +171,12 @@ export function BattlesList({ lang, dict }: BattlesListProps) {
             <div className="flex items-center gap-3">
               <AlertCircle className="h-5 w-5 flex-shrink-0 text-pa-green" />
               <p className="text-sm font-medium text-text-primary">
-                {dict.activeBattleBanner || "You have an active battle in progress."}
+                {dict["activeBattleBanner"] ?? "Du hast ein aktives Battle."}
               </p>
             </div>
             <Link href={`/${lang}/battles/${activeBattle.slug}`}>
               <Button variant="accent" size="sm">
-                {dict.rejoin || "Rejoin"}
+                {dict["rejoin"] ?? "Zurückkehren"}
               </Button>
             </Link>
           </div>
@@ -98,101 +186,58 @@ export function BattlesList({ lang, dict }: BattlesListProps) {
       {/* Header row: Create button */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-text-secondary">
-          {battles.length > 0
-            ? `${battles.length} ${dict.openBattles || "open battles"}`
+          {hasAny
+            ? `${waitingBattles.length} ${dict["openBattles"] ?? "offene Battles"} · ${liveBattles.length} ${dict["liveBattles"] ?? "laufende Battles"}`
             : ""}
         </p>
         <Link href={`/${lang}/battles/create`}>
           <Button variant="primary" size="sm">
             <Plus className="h-4 w-4" />
-            {dict.createBattle || "Create Battle"}
+            {dict["createBattle"] ?? "Battle erstellen"}
           </Button>
         </Link>
       </div>
 
-      {/* Battle cards */}
-      {battles.length === 0 ? (
+      {/* Live battles */}
+      {liveBattles.length > 0 && (
+        <div className="space-y-3">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+            <span className="inline-block h-2 w-2 rounded-full bg-red-400 animate-pulse" />
+            {dict["liveBattlesTitle"] ?? "Laufende Battles"}
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {liveBattles.map(renderBattleCard)}
+          </div>
+        </div>
+      )}
+
+      {/* Open battles */}
+      {waitingBattles.length > 0 && (
+        <div className="space-y-3">
+          {liveBattles.length > 0 && (
+            <h3 className="text-sm font-semibold text-text-primary">
+              {dict["openBattlesTitle"] ?? "Offene Battles"}
+            </h3>
+          )}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {waitingBattles.map(renderBattleCard)}
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!hasAny && (
         <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
           <Swords className="h-16 w-16 text-text-secondary opacity-40" />
           <p className="text-lg text-text-secondary">
-            {dict.noBattles || "No open battles right now."}
+            {dict["noBattles"] ?? "Keine Battles verfügbar."}
           </p>
           <Link href={`/${lang}/battles/create`}>
             <Button variant="accent" size="md">
               <Plus className="h-4 w-4" />
-              {dict.createBattle || "Create Battle"}
+              {dict["createBattle"] ?? "Battle erstellen"}
             </Button>
           </Link>
-        </div>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {battles.map((battle) => {
-            const boxName =
-              battle.box.name[lang] ??
-              battle.box.name["en"] ??
-              battle.box.name["de"] ??
-              Object.values(battle.box.name)[0] ??
-              "—";
-            const playerCount = battle.players.length;
-            const maxPlayers = battle.maxPlayers;
-            const isFull = playerCount >= maxPlayers;
-            const cost = battle.packsPerPlayer;
-
-            return (
-              <Link
-                key={battle._id}
-                href={`/${lang}/battles/${battle.slug}`}
-                className="block"
-              >
-                <Card
-                  variant="soft"
-                  className="flex h-full flex-col gap-3 p-4 transition-colors hover:bg-white/5"
-                >
-                  {/* Box name */}
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-text-primary">
-                      {boxName}
-                    </p>
-                    <p className="mt-0.5 truncate text-xs text-text-secondary">
-                      {dict.by || "by"} {battle.createdBy?.username ?? battle.createdBy?.name ?? "—"}
-                    </p>
-                  </div>
-
-                  {/* Stats row */}
-                  <div className="mt-auto flex items-center gap-4">
-                    <span className="flex items-center gap-1.5 text-sm text-text-secondary">
-                      <Users className="h-4 w-4 flex-shrink-0" />
-                      <span className={isFull ? "text-amber-400" : ""}>
-                        {playerCount}/{maxPlayers} {dict.players || "players"}
-                      </span>
-                    </span>
-                    <span className="flex items-center gap-1.5 text-sm text-text-secondary">
-                      <Coins className="h-4 w-4 flex-shrink-0 text-pa-green" />
-                      <span className="text-pa-green font-medium">
-                        {cost} {dict.packsLabel || "packs"}
-                      </span>
-                    </span>
-                  </div>
-
-                  {/* Status badge */}
-                  <div className="flex items-center justify-between">
-                    <span
-                      className={`inline-flex rounded border px-1.5 py-0.5 text-[10px] font-semibold ${
-                        battle.status === "waiting"
-                          ? "border-pa-green/30 bg-pa-green/10 text-pa-green"
-                          : "border-border bg-white/5 text-text-secondary"
-                      }`}
-                    >
-                      {battle.status}
-                    </span>
-                    <Button variant="accent" size="sm" className="pointer-events-none">
-                      {dict.join || "Join"}
-                    </Button>
-                  </div>
-                </Card>
-              </Link>
-            );
-          })}
         </div>
       )}
     </div>

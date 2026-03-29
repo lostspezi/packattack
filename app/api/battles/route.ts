@@ -171,7 +171,7 @@ export async function GET(req: NextRequest) {
     if (status) {
       filter.status = status;
     } else {
-      filter.status = { $in: ["waiting", "countdown", "clash"] };
+      filter.status = { $in: ["waiting", "ready_check", "countdown", "opening", "clash"] };
     }
 
     const skip = (page - 1) * limit;
@@ -179,6 +179,7 @@ export async function GET(req: NextRequest) {
       Battle.find(filter)
         .populate("box", "name slug image priceInCoins cardsPerPack")
         .populate("players.user", "name username image elo")
+        .populate("createdBy", "name username")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
