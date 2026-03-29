@@ -23,6 +23,8 @@ import {
   WINNER_CLOSE_REVEAL_MS,
   SCORE_UPDATE_MS,
   ROUND_TRANSITION_MS,
+  ELO_FLOOR,
+  ELO_DEFAULT,
 } from "./battle-constants";
 import Battle from "@/models/battle";
 import BattlePull from "@/models/battle-pull";
@@ -466,13 +468,22 @@ export async function runBattle(battleId: string): Promise<void> {
       const user = userMap.get(p.userId);
       return {
         userId: p.userId,
-        elo: user?.elo ?? 1000,
+        elo: user?.elo ?? ELO_DEFAULT,
         totalBattles: user?.battleStats?.totalBattles ?? 0,
         placement: p.placement,
       };
     });
 
     const eloChanges = calculateEloChanges(eloPlayers);
+
+    // Clamp to floor: prevent any user from dropping below ELO_FLOOR
+    const clampedEloChanges = new Map<string, number>();
+    for (const p of placements) {
+      const change = eloChanges.get(p.userId) ?? 0;
+      const user = userMap.get(p.userId);
+      const currentElo = user?.elo ?? ELO_DEFAULT;
+      clampedEloChanges.set(p.userId, Math.max(change, ELO_FLOOR - currentElo));
+    }
 
     // Update battle with placements and ELO changes
     const bulkPlayerUpdates: Record<string, unknown> = {};
@@ -483,7 +494,7 @@ export async function runBattle(battleId: string): Promise<void> {
       if (idx !== -1) {
         bulkPlayerUpdates[`players.${idx}.placement`] = p.placement;
         bulkPlayerUpdates[`players.${idx}.eloChange`] =
-          eloChanges.get(p.userId) ?? 0;
+          clampedEloChanges.get(p.userId) ?? 0;
       }
     }
 
@@ -494,7 +505,7 @@ export async function runBattle(battleId: string): Promise<void> {
 
     // Update each user's elo and battleStats
     for (const p of placements) {
-      const change = eloChanges.get(p.userId) ?? 0;
+      const change = clampedEloChanges.get(p.userId) ?? 0;
       const user = userMap.get(p.userId);
       const currentStreak = user?.battleStats?.streak ?? 0;
       const currentBestStreak = user?.battleStats?.bestStreak ?? 0;

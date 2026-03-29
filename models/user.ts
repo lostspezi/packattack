@@ -157,7 +157,7 @@ const UserSchema = new Schema<IUser>(
     },
     onboardingCompleted: { type: Boolean, default: false },
     coins: { type: Number, default: 0 },
-    elo: { type: Number, default: 1000 },
+    elo: { type: Number, default: 800 },
     battleStats: {
       wins: { type: Number, default: 0 },
       losses: { type: Number, default: 0 },
