@@ -98,7 +98,7 @@ export async function GET(
         ...(myCards !== null ? { myCards } : {}),
       });
 
-      controller.enqueue(encoder.encode(`data: ${syncPayload}\n\n`));
+      controller.enqueue(encoder.encode(`event: sync\ndata: ${syncPayload}\n\n`));
 
       // Subscribe to battle channel
       subscriberRedis = getRedis().duplicate();
@@ -110,7 +110,8 @@ export async function GET(
           if (parsed.type === "distribution" && parsed.targetUserId !== userId) {
             return;
           }
-          controller.enqueue(encoder.encode(`data: ${message}\n\n`));
+          const eventType = parsed.type ?? "message";
+          controller.enqueue(encoder.encode(`event: ${eventType}\ndata: ${message}\n\n`));
         } catch {
           // Stream closed
         }

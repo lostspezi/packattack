@@ -7,6 +7,7 @@ interface AchievementContext {
   userId: string;
   battleId: string;
   placement: number;
+  eloAtStart: number;
   eloAfter: number;
   opponentMaxElo: number;
   longestRoundStreak: number;
@@ -29,7 +30,7 @@ export async function checkAndAwardAchievements(ctx: AchievementContext): Promis
   const checks: Array<{ key: string; condition: () => boolean }> = [
     { key: "first_clash", condition: () => stats.totalBattles >= 1 },
     { key: "win_streak_3", condition: () => stats.streak >= 3 },
-    { key: "underdog", condition: () => ctx.placement === 1 && ctx.opponentMaxElo - (ctx.eloAfter - 0) >= 200 },
+    { key: "underdog", condition: () => ctx.placement === 1 && ctx.opponentMaxElo - ctx.eloAtStart >= 200 },
     { key: "sharpshooter", condition: () => ctx.longestRoundStreak >= 10 },
     { key: "champion_rank", condition: () => getEloRank(ctx.eloAfter).key === "champion" },
     { key: "veteran", condition: () => stats.totalBattles >= 100 },

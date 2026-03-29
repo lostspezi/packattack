@@ -14,7 +14,6 @@ import BattlePull from "@/models/battle-pull";
 import Box from "@/models/box";
 import Card from "@/models/card";
 import User from "@/models/user";
-import CoinTransaction from "@/models/coin-transaction";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -153,15 +152,8 @@ export async function runBattle(battleId: string): Promise<void> {
       }
     }
 
-    // Create CoinTransactions for battle entry
-    const coinTxDocs = battle.players.map((player) => ({
-      userId: player.user,
-      amount: -(box.priceInCoins * battle.packsPerPlayer),
-      type: "battle_entry" as const,
-      reason: null,
-      relatedBattleId: new mongoose.Types.ObjectId(battleId),
-    }));
-    await CoinTransaction.insertMany(coinTxDocs);
+    // Note: CoinTransactions for battle_entry are created at join/create time,
+    // not here — coins are deducted atomically when players join.
 
     // Save BattlePull records
     const pullDocs = allPulls.map((p) => ({
@@ -468,6 +460,9 @@ export async function runBattle(battleId: string): Promise<void> {
     // --- ACHIEVEMENTS ---
     const { checkAndAwardAchievements } = await import("./battle-achievements");
     for (const p of placements) {
+      const playerEntry = battle.players.find(
+        (bp) => bp.user.toString() === p.userId,
+      );
       const userAfter = await User.findById(p.userId).select("elo").lean();
       const opponentMaxElo = Math.max(
         ...battle.players
@@ -497,6 +492,7 @@ export async function runBattle(battleId: string): Promise<void> {
         userId: p.userId,
         battleId: battleId,
         placement: p.placement,
+        eloAtStart: playerEntry?.eloAtStart ?? 1000,
         eloAfter: (userAfter as any)?.elo ?? 1000,
         opponentMaxElo,
         longestRoundStreak: longestStreak,
@@ -505,6 +501,31 @@ export async function runBattle(battleId: string): Promise<void> {
     }
   } catch (error) {
     console.error(`[battle-orchestrator] Error in battle ${battleId}:`, error);
+
+    // Refund all players' coins
+    try {
+      const cancelledBattle = await Battle.findById(battleId).lean();
+      if (cancelledBattle) {
+        const CoinTransaction = (await import("@/models/coin-transaction")).default;
+        for (const player of cancelledBattle.players) {
+          const refundAmount = player.coinsReserved;
+          if (refundAmount > 0) {
+            await User.updateOne(
+              { _id: player.user },
+              { $inc: { coins: refundAmount } },
+            );
+            await CoinTransaction.create({
+              userId: player.user,
+              amount: refundAmount,
+              type: "battle_refund",
+              relatedBattleId: new mongoose.Types.ObjectId(battleId),
+            });
+          }
+        }
+      }
+    } catch (refundErr) {
+      console.error(`[battle-orchestrator] Refund failed for ${battleId}:`, refundErr);
+    }
 
     await Battle.updateOne(
       { _id: battleId },

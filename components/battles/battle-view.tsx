@@ -194,9 +194,10 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
           const updatedRounds = prev.rounds.map((r) =>
             r.roundIndex === data.roundIndex ? { ...r, winnerId: data.winnerId } : r
           );
+          const scoresMap = data.scores as Record<string, number> | undefined;
           const updatedPlayers = prev.players.map((p) => {
-            const scoreEntry = data.scores?.find((s: { userId: string; score: number }) => s.userId === p.user._id);
-            return scoreEntry ? { ...p, score: scoreEntry.score } : p;
+            const newScore = scoresMap?.[p.user._id];
+            return newScore !== undefined ? { ...p, score: newScore } : p;
           });
           return { ...prev, rounds: updatedRounds, players: updatedPlayers };
         });

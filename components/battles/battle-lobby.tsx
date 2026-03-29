@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Users, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -67,18 +67,17 @@ export function BattleLobby({ battle, dict, lang, isPlayer, onJoin, onLeave }: B
     "—";
 
   // Start visual countdown when status switches to countdown
-  useState(() => {
-    if (isCountdown && countdown === null) {
-      setCountdown(5);
-      const iv = setInterval(() => {
-        setCountdown((c) => {
-          if (c === null || c <= 1) { clearInterval(iv); return 0; }
-          return c - 1;
-        });
-      }, 1000);
-      return () => clearInterval(iv);
-    }
-  });
+  useEffect(() => {
+    if (!isCountdown || countdown !== null) return;
+    setCountdown(5);
+    const iv = setInterval(() => {
+      setCountdown((c) => {
+        if (c === null || c <= 1) { clearInterval(iv); return 0; }
+        return c - 1;
+      });
+    }, 1000);
+    return () => clearInterval(iv);
+  }, [isCountdown]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleJoin() {
     setJoining(true);

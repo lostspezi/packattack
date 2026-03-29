@@ -41,7 +41,7 @@ export function BattleDecide({ battleId, cards, dict, lang: _lang }: BattleDecid
       const res = await fetch(`/api/battles/${battleId}/decide`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pullId, action }),
+        body: JSON.stringify({ battlePullId: pullId, decision: action }),
       });
       if (!res.ok) {
         setDecisions((prev) => {
