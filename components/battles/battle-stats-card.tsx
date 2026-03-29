@@ -18,7 +18,7 @@ interface BattleStatsCardProps {
 }
 
 function getEloRank(elo: number) {
-  let current = ELO_RANKS[0];
+  let current: (typeof ELO_RANKS)[number] = ELO_RANKS[0];
   for (const rank of ELO_RANKS) {
     if (elo >= rank.minElo) current = rank;
   }
