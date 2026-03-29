@@ -190,7 +190,7 @@ export async function runBattle(battleId: string): Promise<void> {
           rarity: p.rarity,
           coinValue: p.coinValue,
         })),
-        winnerId: null,
+        winnerId: null as mongoose.Types.ObjectId | null,
         revealedAt: null,
       });
     }
@@ -260,6 +260,9 @@ export async function runBattle(battleId: string): Promise<void> {
         rarity: c.rarity,
       }));
       const winnerId = determineRoundWinner(roundCards);
+
+      // Update local rounds array so streak calculation in achievements can use it
+      round.winnerId = new mongoose.Types.ObjectId(winnerId);
 
       // Update local score
       scores.set(winnerId, (scores.get(winnerId) ?? 0) + 1);
@@ -459,6 +462,45 @@ export async function runBattle(battleId: string): Promise<void> {
             coinValue: c.coinValue,
           };
         }),
+      });
+    }
+
+    // --- ACHIEVEMENTS ---
+    const { checkAndAwardAchievements } = await import("./battle-achievements");
+    for (const p of placements) {
+      const userAfter = await User.findById(p.userId).select("elo").lean();
+      const opponentMaxElo = Math.max(
+        ...battle.players
+          .filter((fp) => fp.user.toString() !== p.userId)
+          .map((fp) => fp.eloAtStart),
+      );
+
+      // Calculate longest round streak for this player
+      let longestStreak = 0;
+      let currentStreak = 0;
+      for (const round of rounds) {
+        if (round.winnerId?.toString() === p.userId) {
+          currentStreak++;
+          longestStreak = Math.max(longestStreak, currentStreak);
+        } else {
+          currentStreak = 0;
+        }
+      }
+
+      // Check if player pulled an ultra rare
+      const playerPulls = allPulls.filter((pull) => pull.userId === p.userId);
+      const hadUltraRare = playerPulls.some(
+        (pull) => (RARITY_ORDER[pull.rarity] ?? 0) >= 5,
+      );
+
+      await checkAndAwardAchievements({
+        userId: p.userId,
+        battleId: battleId,
+        placement: p.placement,
+        eloAfter: (userAfter as any)?.elo ?? 1000,
+        opponentMaxElo,
+        longestRoundStreak: longestStreak,
+        hadUltraRare,
       });
     }
   } catch (error) {
