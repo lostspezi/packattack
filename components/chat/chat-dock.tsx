@@ -20,9 +20,11 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import { ChatAvatar } from "@/components/chat/chat-avatar";
+import { ChatBadgeDetailModal } from "@/components/chat/chat-badge-detail-modal";
 import { ChatGifAttachmentPreview } from "@/components/chat/chat-gif-attachment-preview";
 import { ChatGifPicker } from "@/components/chat/chat-gif-picker";
 import { ChatMessageContent } from "@/components/chat/chat-message-content";
+import { ChatUserCard } from "@/components/chat/chat-user-card";
 import { ChatUserBadges } from "@/components/chat/chat-user-badges";
 import { ChatOnlineUsersModal } from "@/components/chat/chat-online-users-modal";
 import { MentionSuggestions } from "@/components/chat/mention-suggestions";
@@ -33,8 +35,11 @@ import type { ChatDictionary } from "@/lib/chat-i18n";
 import { getChatUiCopy } from "@/lib/chat-i18n";
 import type {
   ChatEventEnvelope,
+  ChatAuthorSummary,
+  ChatBadgeSummary,
   ChatGifSummary,
   ChatMessageSummary,
+  ChatOnlineUserSummary,
   ChatOverviewResponse,
 } from "@/types/chat";
 
@@ -158,6 +163,11 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const [timeoutPreset, setTimeoutPreset] = useState<string>("15");
   const [customTimeoutMinutes, setCustomTimeoutMinutes] = useState("");
   const [moderating, setModerating] = useState(false);
+  const [activeUserCard, setActiveUserCard] = useState<{
+    user: ChatAuthorSummary | ChatOnlineUserSummary;
+    rect: DOMRect;
+  } | null>(null);
+  const [activeBadge, setActiveBadge] = useState<ChatBadgeSummary | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const gifButtonRef = useRef<HTMLButtonElement>(null);
@@ -219,6 +229,17 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
       currentUserId,
       username
     );
+  }
+
+  function openUserCard(
+    user: ChatAuthorSummary | ChatOnlineUserSummary | null | undefined,
+    target: HTMLElement
+  ) {
+    if (!user) return;
+    setActiveUserCard({
+      user,
+      rect: target.getBoundingClientRect(),
+    });
   }
   const {
     activeIndex: mentionActiveIndex,
@@ -851,26 +872,40 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <ChatAvatar
-                      name={message.author?.username ?? message.author?.name ?? "System"}
-                      src={message.author?.avatarUrl ?? null}
-                      size="sm"
-                    />
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-text-primary">
-                          {message.author?.username ?? message.author?.name ?? "System"}
-                        </span>
-                        {message.author?.roleBadge ? (
-                          <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
-                            {message.author.roleBadge}
-                          </span>
-                        ) : null}
-                        {message.author?.profileBadges.length ? (
+                    {message.author ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={(event) => openUserCard(message.author, event.currentTarget)}
+                          className="flex min-w-0 items-center gap-3 rounded-[12px] text-left outline-none transition-colors hover:text-pa-green focus-visible:text-pa-green"
+                        >
+                          <ChatAvatar
+                            name={message.author.username ?? message.author.name ?? "System"}
+                            src={message.author.avatarUrl ?? null}
+                            size="sm"
+                          />
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-sm font-semibold text-text-primary">
+                                {message.author.username ?? message.author.name ?? "System"}
+                              </span>
+                              {message.author.roleBadge ? (
+                                <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
+                                  {message.author.roleBadge}
+                                </span>
+                              ) : null}
+                            </div>
+                          </div>
+                        </button>
+                        {message.author.profileBadges.length ? (
                           <ChatUserBadges badges={message.author.profileBadges} lang={lang} />
                         ) : null}
+                      </>
+                    ) : (
+                      <div className="min-w-0">
+                        <span className="text-sm font-semibold text-text-primary">System</span>
                       </div>
-                    </div>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 text-xs text-text-muted">
                     <time title={new Date(message.createdAt).toLocaleString("de-DE")}>
@@ -1167,6 +1202,34 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         users={onlineUsers}
         loading={onlineUsersLoading}
         error={onlineUsersError}
+      />
+
+      <ChatUserCard
+        open={activeUserCard !== null}
+        user={activeUserCard?.user ?? null}
+        anchorRect={activeUserCard?.rect ?? null}
+        lang={lang}
+        labels={{
+          listTitle: copy.badges.listTitle,
+          noBadges: copy.badges.noBadges,
+          verified: copy.badges.verified,
+        }}
+        onClose={() => setActiveUserCard(null)}
+        onBadgeClick={(badge) => {
+          setActiveUserCard(null);
+          setActiveBadge(badge);
+        }}
+      />
+
+      <ChatBadgeDetailModal
+        open={activeBadge !== null}
+        badge={activeBadge}
+        lang={lang}
+        labels={{
+          awardedAt: copy.badges.awardedAt,
+          reason: copy.badges.reason,
+        }}
+        onClose={() => setActiveBadge(null)}
       />
 
       <ChatGifPicker

@@ -152,6 +152,10 @@ export interface ChatUiCopy {
   };
   badges: {
     verified: string;
+    listTitle: string;
+    noBadges: string;
+    awardedAt: string;
+    reason: string;
   };
 }
 
@@ -310,6 +314,10 @@ const de: ChatUiCopy = {
   },
   badges: {
     verified: "VERIFIZIERT",
+    listTitle: "Abzeichen",
+    noBadges: "Keine Abzeichen vorhanden.",
+    awardedAt: "Verliehen",
+    reason: "Grund",
   },
 };
 
@@ -468,6 +476,10 @@ const en: ChatUiCopy = {
   },
   badges: {
     verified: "VERIFIED",
+    listTitle: "Badges",
+    noBadges: "No badges available.",
+    awardedAt: "Awarded",
+    reason: "Reason",
   },
 };
 

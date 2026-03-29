@@ -10,9 +10,11 @@ import {
   ShieldAlert,
   ShieldOff,
 } from "lucide-react";
+import { ChatBadgeDetailModal } from "@/components/chat/chat-badge-detail-modal";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChatMessageContent } from "@/components/chat/chat-message-content";
+import { ChatUserCard } from "@/components/chat/chat-user-card";
 import { ChatUserBadges } from "@/components/chat/chat-user-badges";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -23,6 +25,8 @@ import type {
   ChatActionLogResponse,
   ChatActiveRestrictionSummary,
   ChatAdminOverviewResponse,
+  ChatAuthorSummary,
+  ChatBadgeSummary,
   ChatEventEnvelope,
   ChatMessageSummary,
   ChatModeratedUserSummary,
@@ -100,6 +104,11 @@ export function AdminChatConsole({
   const [logActionType, setLogActionType] = useState("all");
   const [logFrom, setLogFrom] = useState("");
   const [logTo, setLogTo] = useState("");
+  const [activeUserCard, setActiveUserCard] = useState<{
+    user: ChatAuthorSummary;
+    rect: DOMRect;
+  } | null>(null);
+  const [activeBadge, setActiveBadge] = useState<ChatBadgeSummary | null>(null);
 
   const selectedUser =
     userResults.find((user) => user.userId === selectedUserId) ?? userResults[0] ?? null;
@@ -187,6 +196,14 @@ export function AdminChatConsole({
       }),
     [data.messages]
   );
+
+  function openUserCard(user: ChatAuthorSummary | null | undefined, target: HTMLElement) {
+    if (!user) return;
+    setActiveUserCard({
+      user,
+      rect: target.getBoundingClientRect(),
+    });
+  }
 
   const loadAdminData = useCallback(async () => {
     const res = await fetch("/api/admin/chat", { cache: "no-store" });
@@ -550,17 +567,29 @@ export function AdminChatConsole({
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-sm font-semibold text-text-primary">
-                          {message.author?.username ?? message.author?.name ?? "System"}
-                        </span>
-                        {message.author?.roleBadge ? (
-                          <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
-                            {message.author.roleBadge}
-                          </span>
-                        ) : null}
-                        {message.author?.profileBadges.length ? (
-                          <ChatUserBadges badges={message.author.profileBadges} lang={lang} />
-                        ) : null}
+                        {message.author ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={(event) => openUserCard(message.author, event.currentTarget)}
+                              className="rounded-[12px] text-left outline-none transition-colors hover:text-pa-green focus-visible:text-pa-green"
+                            >
+                              <span className="text-sm font-semibold text-text-primary">
+                                {message.author.username ?? message.author.name ?? "System"}
+                              </span>
+                            </button>
+                            {message.author.roleBadge ? (
+                              <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
+                                {message.author.roleBadge}
+                              </span>
+                            ) : null}
+                            {message.author.profileBadges.length ? (
+                              <ChatUserBadges badges={message.author.profileBadges} lang={lang} />
+                            ) : null}
+                          </>
+                        ) : (
+                          <span className="text-sm font-semibold text-text-primary">System</span>
+                        )}
                       </div>
                       <ChatMessageContent
                         body={message.body}
@@ -1229,6 +1258,34 @@ export function AdminChatConsole({
           </Card>
         </div>
       ) : null}
+
+      <ChatUserCard
+        open={activeUserCard !== null}
+        user={activeUserCard?.user ?? null}
+        anchorRect={activeUserCard?.rect ?? null}
+        lang={lang}
+        labels={{
+          listTitle: copy.badges.listTitle,
+          noBadges: copy.badges.noBadges,
+          verified: copy.badges.verified,
+        }}
+        onClose={() => setActiveUserCard(null)}
+        onBadgeClick={(badge) => {
+          setActiveUserCard(null);
+          setActiveBadge(badge);
+        }}
+      />
+
+      <ChatBadgeDetailModal
+        open={activeBadge !== null}
+        badge={activeBadge}
+        lang={lang}
+        labels={{
+          awardedAt: copy.badges.awardedAt,
+          reason: copy.badges.reason,
+        }}
+        onClose={() => setActiveBadge(null)}
+      />
     </div>
   );
 }
