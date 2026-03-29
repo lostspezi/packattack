@@ -52,7 +52,7 @@ export function BattlePodium({ placements, eloChanges, dict }: BattlePodiumProps
     <div className="space-y-8">
       {/* Title */}
       <h2 className="text-2xl font-extrabold text-text-primary text-center">
-        {dict.battleResults || "Battle Results"} 🏆
+        {dict["battleResults"] ?? "Battle-Ergebnisse"} 🏆
       </h2>
 
       {/* Podium */}
@@ -81,7 +81,7 @@ export function BattlePodium({ placements, eloChanges, dict }: BattlePodiumProps
                   <p className="text-xs font-semibold text-text-primary max-w-[80px] truncate">
                     {player.user.username ?? player.user.name}
                   </p>
-                  <p className="text-xs text-text-secondary">{player.score} {dict.pts || "pts"}</p>
+                  <p className="text-xs text-text-secondary">{player.score} {dict["pts"] ?? "Pkt."}</p>
                   <p className={["text-xs font-bold", eloColor].join(" ")}>
                     {eloChange > 0 ? `+${eloChange}` : eloChange} ELO
                   </p>
@@ -126,7 +126,7 @@ export function BattlePodium({ placements, eloChanges, dict }: BattlePodiumProps
                   <p className="flex-1 truncate text-sm font-semibold text-text-primary">
                     {p.user.username ?? p.user.name}
                   </p>
-                  <span className="text-sm text-text-secondary">{p.score} {dict.pts || "pts"}</span>
+                  <span className="text-sm text-text-secondary">{p.score} {dict["pts"] ?? "Pkt."}</span>
                   <span className={["text-sm font-bold", eloColor].join(" ")}>
                     {eloChange > 0 ? `+${eloChange}` : eloChange}
                   </span>

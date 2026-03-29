@@ -13,8 +13,10 @@ interface BattleStats {
 }
 
 interface BattleStatsCardProps {
+  lang: string;
   elo: number;
   battleStats: BattleStats;
+  dict: Record<string, string>;
 }
 
 function getEloRank(elo: number) {
@@ -25,25 +27,28 @@ function getEloRank(elo: number) {
   return current;
 }
 
-export function BattleStatsCard({ elo, battleStats }: BattleStatsCardProps) {
+export function BattleStatsCard({ lang, elo, battleStats, dict }: BattleStatsCardProps) {
   const rank = getEloRank(elo);
   const { wins, losses, streak, bestStreak, totalBattles } = battleStats;
   const winRate =
     totalBattles > 0 ? Math.round((wins / totalBattles) * 100) : 0;
+  const rankLabel = rank.label[lang as "de" | "en"] ?? rank.label.de;
 
   return (
     <Card variant="soft" className="p-4 md:p-6 space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2">
         <Swords className="h-5 w-5 text-pa-green" />
-        <h3 className="font-semibold text-text-primary">Battle Stats</h3>
+        <h3 className="font-semibold text-text-primary">
+          {dict["battleStats"] ?? "Battle-Statistiken"}
+        </h3>
       </div>
 
       {/* ELO + rank badge */}
       <div className="flex items-center gap-3">
         <span className="text-3xl font-bold text-text-primary">{elo}</span>
         <span className="rounded border border-white/10 bg-white/5 px-2 py-1 text-sm font-semibold text-text-secondary">
-          {rank.emoji} {rank.label.en}
+          {rank.emoji} {rankLabel}
         </span>
         <span className="text-xs text-text-secondary">ELO</span>
       </div>
@@ -54,7 +59,7 @@ export function BattleStatsCard({ elo, battleStats }: BattleStatsCardProps) {
         <div className="rounded-[10px] bg-white/3 border border-white/6 p-3 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-text-secondary">
             <Trophy className="h-3.5 w-3.5" />
-            W / L
+            {dict["winLoss"] ?? "S / N"}
           </div>
           <p className="text-lg font-bold text-text-primary">
             {wins}
@@ -67,7 +72,7 @@ export function BattleStatsCard({ elo, battleStats }: BattleStatsCardProps) {
         <div className="rounded-[10px] bg-white/3 border border-white/6 p-3 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-text-secondary">
             <TrendingUp className="h-3.5 w-3.5" />
-            Win Rate
+            {dict["winRate"] ?? "Siegquote"}
           </div>
           <p className="text-lg font-bold text-text-primary">{winRate}%</p>
         </div>
@@ -76,12 +81,12 @@ export function BattleStatsCard({ elo, battleStats }: BattleStatsCardProps) {
         <div className="rounded-[10px] bg-white/3 border border-white/6 p-3 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-text-secondary">
             <Zap className="h-3.5 w-3.5" />
-            Streak
+            {dict["streak"] ?? "Serie"}
           </div>
           <p className="text-lg font-bold text-text-primary">
             {streak}
             <span className="ml-1 text-xs text-text-secondary font-normal">
-              (best: {bestStreak})
+              ({dict["best"] ?? "Beste"}: {bestStreak})
             </span>
           </p>
         </div>
@@ -90,7 +95,7 @@ export function BattleStatsCard({ elo, battleStats }: BattleStatsCardProps) {
         <div className="rounded-[10px] bg-white/3 border border-white/6 p-3 space-y-1">
           <div className="flex items-center gap-1.5 text-xs text-text-secondary">
             <Swords className="h-3.5 w-3.5" />
-            Battles
+            {dict["battles"] ?? "Battles"}
           </div>
           <p className="text-lg font-bold text-text-primary">{totalBattles}</p>
         </div>

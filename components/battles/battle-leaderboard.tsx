@@ -37,6 +37,11 @@ interface LeaderboardResponse {
   myRank: number | null;
 }
 
+interface BattleLeaderboardProps {
+  lang: string;
+  dict: Record<string, string>;
+}
+
 function getEloRank(elo: number) {
   let current: (typeof ELO_RANKS)[number] = ELO_RANKS[0];
   for (const rank of ELO_RANKS) {
@@ -55,15 +60,15 @@ function StatValue({ entry, category }: { entry: LeaderboardEntry; category: Cat
   return <span className="font-bold text-text-primary">{entry.user.battleStats.bestStreak}</span>;
 }
 
-const TABS: { key: Category; label: string }[] = [
-  { key: "elo", label: "ELO" },
-  { key: "wins", label: "Wins" },
-  { key: "streak", label: "Streak" },
-];
-
 const LIMIT = 20;
 
-export function BattleLeaderboard() {
+export function BattleLeaderboard({ lang, dict }: BattleLeaderboardProps) {
+  const tabs: { key: Category; label: string }[] = [
+    { key: "elo", label: "ELO" },
+    { key: "wins", label: dict["wins"] ?? "Siege" },
+    { key: "streak", label: dict["streak"] ?? "Serie" },
+  ];
+
   const [category, setCategory] = useState<Category>("elo");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<LeaderboardResponse | null>(null);
@@ -97,7 +102,7 @@ export function BattleLeaderboard() {
     <div className="space-y-4">
       {/* Category tabs */}
       <div className="flex gap-2">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.key}
             onClick={() => handleTab(tab.key)}
@@ -116,7 +121,7 @@ export function BattleLeaderboard() {
       {/* My rank callout */}
       {data?.myRank != null && (
         <p className="text-sm text-text-secondary">
-          Your rank:{" "}
+          {dict["yourRank"] ?? "Dein Rang"}:{" "}
           <span className="font-semibold text-pa-green">#{data.myRank}</span>
         </p>
       )}
@@ -130,13 +135,16 @@ export function BattleLeaderboard() {
         ) : !data || data.leaderboard.length === 0 ? (
           <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
             <Trophy className="h-12 w-12 text-text-secondary opacity-30" />
-            <p className="text-text-secondary">No rankings yet.</p>
+            <p className="text-text-secondary">
+              {dict["noRankings"] ?? "Noch keine Platzierungen."}
+            </p>
           </div>
         ) : (
           <ul className="divide-y divide-white/5">
             {data.leaderboard.map((entry) => {
               const eloRank = getEloRank(entry.user.elo);
               const isMe = data.myRank != null && entry.rank === data.myRank;
+              const rankLabel = eloRank.label[lang as "de" | "en"] ?? eloRank.label.de;
               return (
                 <li
                   key={entry.rank}
@@ -193,9 +201,9 @@ export function BattleLeaderboard() {
                   {/* ELO rank badge */}
                   <span
                     className="shrink-0 rounded border border-white/8 bg-white/5 px-1.5 py-0.5 text-[10px] font-semibold text-text-secondary"
-                    title={`${eloRank.label.en} (${eloRank.minElo}+ ELO)`}
+                    title={`${rankLabel} (${eloRank.minElo}+ ELO)`}
                   >
-                    {eloRank.emoji} {eloRank.label.en}
+                    {eloRank.emoji} {rankLabel}
                   </span>
 
                   {/* Stat value */}
@@ -221,7 +229,7 @@ export function BattleLeaderboard() {
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <span className="text-sm text-text-secondary">
-            Page {page} / {totalPages}
+            {dict["page"] ?? "Seite"} {page} / {totalPages}
           </span>
           <Button
             variant="secondary"

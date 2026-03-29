@@ -66,7 +66,7 @@ export function BattleDecide({ battleId, cards, dict }: BattleDecideProps) {
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-bold text-text-primary">
-        {dict.yourCards || "Your Cards"} ({cards.length})
+        {dict["yourCards"] ?? "Deine Karten"} ({cards.length})
       </h3>
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {cards.map((c) => {
@@ -114,8 +114,8 @@ export function BattleDecide({ battleId, cards, dict }: BattleDecideProps) {
                     ].join(" ")}
                   >
                     {decision === "claim"
-                      ? `✓ ${dict.claimed || "Claimed"}`
-                      : `↑ ${dict.converted || "Converted"} (+${conversion}🪙)`}
+                      ? `✓ ${dict["claimed"] ?? "Eingefordert"}`
+                      : `↑ ${dict["converted"] ?? "Umgewandelt"} (+${conversion}🪙)`}
                   </div>
                 ) : (
                   <div className="flex gap-1.5">
@@ -131,7 +131,7 @@ export function BattleDecide({ battleId, cards, dict }: BattleDecideProps) {
                       ) : (
                         <ShoppingCart className="h-3 w-3" />
                       )}
-                      {dict.claim || "Claim"}
+                      {dict["claim"] ?? "Einfordern"}
                     </Button>
                     <Button
                       variant="secondary"
@@ -141,7 +141,7 @@ export function BattleDecide({ battleId, cards, dict }: BattleDecideProps) {
                       onClick={() => handleDecide(c.pullId, "convert")}
                     >
                       <Coins className="h-3 w-3 text-pa-green" />
-                      {dict.convert || "Convert"}
+                      {dict["convert"] ?? "Umwandeln"}
                     </Button>
                   </div>
                 )}

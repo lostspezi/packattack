@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 
 interface ActiveBattleBannerProps {
   lang: string;
+  dict: Record<string, string>;
 }
 
 interface ActiveBattle {
   slug: string;
 }
 
-export function ActiveBattleBanner({ lang }: ActiveBattleBannerProps) {
+export function ActiveBattleBanner({ lang, dict }: ActiveBattleBannerProps) {
   const [battle, setBattle] = useState<ActiveBattle | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
@@ -31,7 +32,7 @@ export function ActiveBattleBanner({ lang }: ActiveBattleBannerProps) {
       <div className="flex items-center gap-2.5">
         <Swords className="h-4 w-4 shrink-0" />
         <p className="text-sm font-semibold">
-          Du bist in einem aktiven Battle!
+          {dict["activeBattleAlert"] ?? "Du bist in einem aktiven Battle!"}
         </p>
       </div>
       <div className="flex items-center gap-2">
@@ -41,12 +42,12 @@ export function ActiveBattleBanner({ lang }: ActiveBattleBannerProps) {
             size="sm"
             className="bg-amber-900 text-amber-50 hover:bg-amber-800"
           >
-            Zurück zum Battle
+            {dict["backToBattle"] ?? "Zurück zum Battle"}
           </Button>
         </Link>
         <button
           onClick={() => setDismissed(true)}
-          aria-label="Dismiss"
+          aria-label={dict["dismiss"] ?? "Schließen"}
           className="rounded p-1 hover:bg-amber-500 transition-colors"
         >
           <X className="h-4 w-4" />

@@ -20,23 +20,20 @@ interface BattlePresetChatProps {
   isPlayer: boolean;
   isSpectator: boolean;
   dict: Record<string, string>;
+  lang: string;
 }
 
-const CATEGORY_LABELS: Record<string, string> = {
-  hype: "🔥 Hype",
-  reaction: "😱 Reaction",
-  respect: "🤝 Respect",
-  battle: "⚔️ Battle",
-  spectator: "🍿 Spectator",
-};
-
-export function BattlePresetChat({ battleId, messages, isPlayer, isSpectator, dict }: BattlePresetChatProps) {
+export function BattlePresetChat({ battleId, messages, isPlayer, isSpectator, dict, lang }: BattlePresetChatProps) {
   const [cooldown, setCooldown] = useState(false);
   const cooldownRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const lang = typeof window !== "undefined"
-    ? (document.documentElement.lang || "en")
-    : "en";
+  const categoryLabels: Record<string, string> = {
+    hype: dict["chatCatHype"] ?? "🔥 Hype",
+    reaction: dict["chatCatReaction"] ?? "😱 Reaktion",
+    respect: dict["chatCatRespect"] ?? "🤝 Respekt",
+    battle: dict["chatCatBattle"] ?? "⚔️ Battle",
+    spectator: dict["chatCatSpectator"] ?? "🍿 Zuschauer",
+  };
 
   const availableMessages = PRESET_CHAT_MESSAGES.filter(
     (m) => !m.spectatorOnly || isSpectator
@@ -64,7 +61,7 @@ export function BattlePresetChat({ battleId, messages, isPlayer, isSpectator, di
       <div className="flex items-center gap-2">
         <MessageSquare className="h-4 w-4 text-text-secondary" />
         <p className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-          {dict.chat || "Chat"}
+          {dict["chat"] ?? "Chat"}
         </p>
       </div>
 
@@ -72,7 +69,7 @@ export function BattlePresetChat({ battleId, messages, isPlayer, isSpectator, di
       <div className="flex-1 overflow-y-auto space-y-1 min-h-[80px] max-h-40">
         {messages.length === 0 ? (
           <p className="text-center text-xs text-text-secondary py-4">
-            {dict.noMessages || "No messages yet."}
+            {dict["noMessages"] ?? "Noch keine Nachrichten."}
           </p>
         ) : (
           messages.map((msg) => {
@@ -99,7 +96,7 @@ export function BattlePresetChat({ battleId, messages, isPlayer, isSpectator, di
           {categories.map((cat) => (
             <div key={cat}>
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
-                {CATEGORY_LABELS[cat] ?? cat}
+                {categoryLabels[cat] ?? cat}
               </p>
               <div className="flex flex-wrap gap-1">
                 {availableMessages

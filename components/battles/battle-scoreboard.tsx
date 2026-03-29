@@ -22,6 +22,7 @@ interface BattleScoreboardProps {
   players: BattlePlayer[];
   scores: Record<string, number>;
   dict: Record<string, string>;
+  lang: string;
 }
 
 function getEloRank(elo: number): typeof ELO_RANKS[number] {
@@ -32,13 +33,13 @@ function getEloRank(elo: number): typeof ELO_RANKS[number] {
   return rank;
 }
 
-export function BattleScoreboard({ players, scores, dict }: BattleScoreboardProps) {
+export function BattleScoreboard({ players, scores, dict, lang }: BattleScoreboardProps) {
   const sorted = [...players].sort((a, b) => (scores[b.user._id] ?? 0) - (scores[a.user._id] ?? 0));
 
   return (
     <Card variant="soft" className="p-4">
       <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-secondary">
-        {dict.scoreboard || "Scoreboard"}
+        {dict["scoreboard"] ?? "Punktestand"}
       </p>
       <div className="space-y-2">
         {sorted.map((p, idx) => {
@@ -81,7 +82,7 @@ export function BattleScoreboard({ players, scores, dict }: BattleScoreboardProp
                   {p.user.username ?? p.user.name}
                 </p>
                 <p className="text-[10px] text-text-secondary">
-                  {rank.emoji} {rank.label["en"]}
+                  {rank.emoji} {rank.label[lang as "de" | "en"] ?? rank.label.de}
                 </p>
               </div>
 
