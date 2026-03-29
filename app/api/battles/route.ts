@@ -194,7 +194,10 @@ export async function GET(req: NextRequest) {
       Battle.countDocuments(filter),
     ]);
 
-    return NextResponse.json({ battles, total, page, limit });
+    const userDoc = await User.findById(userId).select("elo").lean();
+    const userElo = (userDoc as { elo?: number } | null)?.elo ?? ELO_DEFAULT;
+
+    return NextResponse.json({ battles, total, page, limit, userElo });
   } catch (err) {
     console.error("[battles GET]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

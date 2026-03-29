@@ -29,6 +29,7 @@ interface Battle {
     name: string;
     username?: string;
   };
+  eloRange?: { min: number; max: number } | null;
 }
 
 interface ActiveBattle {
@@ -51,6 +52,7 @@ function getStatusStyle(status: string) {
 
 export function BattlesList({ lang, dict }: BattlesListProps) {
   const [battles, setBattles] = useState<Battle[]>([]);
+  const [userElo, setUserElo] = useState<number>(800);
   const [activeBattle, setActiveBattle] = useState<ActiveBattle | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -63,7 +65,10 @@ export function BattlesList({ lang, dict }: BattlesListProps) {
 
     fetch("/api/battles?visibility=public")
       .then((res) => res.json())
-      .then((data) => setBattles(data.battles ?? []))
+      .then((data) => {
+        setBattles(data.battles ?? []);
+        if (typeof data.userElo === "number") setUserElo(data.userElo);
+      })
       .catch(() => setBattles([]))
       .finally(done);
 
@@ -97,6 +102,14 @@ export function BattlesList({ lang, dict }: BattlesListProps) {
     const maxPlayers = battle.maxPlayers;
     const isFull = playerCount >= maxPlayers;
     const isLive = LIVE_STATUSES.includes(battle.status);
+
+    const eloRange = battle.eloRange ?? null;
+    const eloBelowMin = eloRange !== null && userElo < eloRange.min;
+    const eloAboveMax = eloRange !== null && userElo > eloRange.max;
+    const eloOutOfRange = eloBelowMin || eloAboveMax;
+    let eloHint = "";
+    if (eloBelowMin) eloHint = dict["eloTooLow"] ?? "Elo zu niedrig";
+    if (eloAboveMax) eloHint = dict["eloTooHigh"] ?? "Elo zu hoch";
 
     return (
       <Link
@@ -132,6 +145,11 @@ export function BattlesList({ lang, dict }: BattlesListProps) {
                 {battle.packsPerPlayer} {dict["packsLabel"] ?? "Packs"}
               </span>
             </span>
+            {eloRange && (
+              <span className={`ml-auto text-xs ${eloOutOfRange ? "text-amber-400" : "text-text-secondary"}`}>
+                {dict["eloRange"] ?? "Elo"}: {eloRange.min}–{eloRange.max}
+              </span>
+            )}
           </div>
 
           {/* Status badge + action */}
@@ -142,20 +160,25 @@ export function BattlesList({ lang, dict }: BattlesListProps) {
               {isLive && <span className="inline-block h-1.5 w-1.5 rounded-full bg-red-400 animate-pulse" />}
               {dict[`status_${battle.status}`] ?? (isLive ? "Live" : battle.status)}
             </span>
-            <Button
-              variant={isLive ? "secondary" : "accent"}
-              size="sm"
-              className="pointer-events-none"
-            >
-              {isLive ? (
-                <>
-                  <Eye className="h-3.5 w-3.5" />
-                  {dict["spectate"] ?? "Zuschauen"}
-                </>
-              ) : (
-                dict["join"] ?? "Beitreten"
-              )}
-            </Button>
+            {eloOutOfRange && !isLive ? (
+              <span className="text-[10px] font-semibold text-amber-400">{eloHint}</span>
+            ) : (
+              <Button
+                variant={isLive ? "secondary" : "accent"}
+                size="sm"
+                className="pointer-events-none"
+                disabled={!isLive && eloOutOfRange}
+              >
+                {isLive ? (
+                  <>
+                    <Eye className="h-3.5 w-3.5" />
+                    {dict["spectate"] ?? "Zuschauen"}
+                  </>
+                ) : (
+                  dict["join"] ?? "Beitreten"
+                )}
+              </Button>
+            )}
           </div>
         </Card>
       </Link>
