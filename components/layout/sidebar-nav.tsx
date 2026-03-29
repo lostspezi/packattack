@@ -1,5 +1,6 @@
 ﻿export type NavItem = {
   key: string;
+  label: string;
   href: string;
   icon: string;
   adminOnly?: boolean;
@@ -7,42 +8,42 @@
 };
 
 export const mainNavItems: NavItem[] = [
-  { key: "dashboard", href: "/dashboard", icon: "LayoutGrid" },
-  { key: "packs", href: "/packs", icon: "Package" },
-  { key: "cart", href: "/cart", icon: "ShoppingCart" },
-  { key: "orders", href: "/orders", icon: "Package" },
-  { key: "feedback", href: "/feedback", icon: "MessageSquareMore" },
-  { key: "profile", href: "/profile", icon: "User" },
-  { key: "settings", href: "/settings", icon: "Settings" },
-  { key: "account", href: "/account", icon: "Shield" },
-  { key: "balance", href: "/balance", icon: "Wallet" },
+  { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: "LayoutGrid" },
+  { key: "packs", label: "Packs", href: "/packs", icon: "Package" },
+  { key: "cart", label: "Warenkorb", href: "/cart", icon: "ShoppingCart" },
+  { key: "orders", label: "Bestellungen", href: "/orders", icon: "Package" },
+  { key: "feedback", label: "Feedback", href: "/feedback", icon: "MessageSquareMore" },
+  { key: "profile", label: "Profil", href: "/profile", icon: "User" },
+  { key: "settings", label: "Einstellungen", href: "/settings", icon: "Settings" },
+  { key: "account", label: "Konto", href: "/account", icon: "Shield" },
+  { key: "balance", label: "Guthaben", href: "/balance", icon: "Wallet" },
 ];
 
 export const adminNavItems: NavItem[] = [
-  { key: "dashboard", href: "/admin", icon: "BarChart3" },
-  { key: "users", href: "/admin/users", icon: "Users" },
-  { key: "platform", href: "/admin/platform", icon: "Cog" },
-  { key: "notifications", href: "/admin/notifications", icon: "Bell" },
-  { key: "chat", href: "/admin/chat", icon: "MessagesSquare" },
-  { key: "feedback", href: "/admin/feedback", icon: "MessageSquareMore" },
-  { key: "emailTemplates", href: "/admin/email-templates", icon: "Mail" },
-  { key: "translations", href: "/admin/translations", icon: "Languages" },
-  { key: "languages", href: "/admin/languages", icon: "Globe" },
-  { key: "boxes", href: "/admin/boxes", icon: "Package" },
-  { key: "coins", href: "/admin/coins", icon: "Coins" },
-  { key: "shops", href: "/admin/shops", icon: "Store" },
-  { key: "adminInventory", href: "/admin/inventory", icon: "Layers" },
-  { key: "inventoryOverview", href: "/admin/inventory/overview", icon: "Eye" },
-  { key: "coinPackages", href: "/admin/coin-packages", icon: "CreditCard" },
-  { key: "adminOrders", href: "/admin/orders", icon: "ClipboardList" },
-  { key: "adminShipping", href: "/admin/shipping", icon: "Truck" },
+  { key: "dashboard", label: "Dashboard", href: "/admin", icon: "BarChart3" },
+  { key: "users", label: "Benutzer", href: "/admin/users", icon: "Users" },
+  { key: "platform", label: "Plattform", href: "/admin/platform", icon: "Cog" },
+  { key: "notifications", label: "Benachrichtigungen", href: "/admin/notifications", icon: "Bell" },
+  { key: "chat", label: "Chat", href: "/admin/chat", icon: "MessagesSquare" },
+  { key: "feedback", label: "Feedback", href: "/admin/feedback", icon: "MessageSquareMore" },
+  { key: "emailTemplates", label: "E-Mail-Vorlagen", href: "/admin/email-templates", icon: "Mail" },
+  { key: "translations", label: "Übersetzungen", href: "/admin/translations", icon: "Languages" },
+  { key: "languages", label: "Sprachen", href: "/admin/languages", icon: "Globe" },
+  { key: "boxes", label: "Boxen", href: "/admin/boxes", icon: "Package" },
+  { key: "coins", label: "Coins", href: "/admin/coins", icon: "Coins" },
+  { key: "shops", label: "Shops", href: "/admin/shops", icon: "Store" },
+  { key: "adminInventory", label: "Inventar", href: "/admin/inventory", icon: "Layers" },
+  { key: "inventoryOverview", label: "Inventar-Übersicht", href: "/admin/inventory/overview", icon: "Eye" },
+  { key: "coinPackages", label: "Coin-Pakete", href: "/admin/coin-packages", icon: "CreditCard" },
+  { key: "adminOrders", label: "Bestellungen", href: "/admin/orders", icon: "ClipboardList" },
+  { key: "adminShipping", label: "Versand", href: "/admin/shipping", icon: "Truck" },
 ];
 
 export const shopNavItems: NavItem[] = [
-  { key: "shopInventory", href: "/shop/inventory", icon: "Layers" },
-  { key: "shopFulfillments", href: "/shop/fulfillments", icon: "Truck" },
+  { key: "shopInventory", label: "Inventar", href: "/shop/inventory", icon: "Layers" },
+  { key: "shopFulfillments", label: "Versandaufträge", href: "/shop/fulfillments", icon: "Truck" },
 ];
 
 export const soonNavItems: NavItem[] = [
-  { key: "marketplace", href: "#", icon: "ShoppingBag", soon: true },
+  { key: "marketplace", label: "Marktplatz", href: "#", icon: "ShoppingBag", soon: true },
 ];

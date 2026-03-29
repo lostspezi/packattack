@@ -50,7 +50,7 @@ function NavLink({
       ].join(" ")}
     >
       <NavIcon name={item.icon} className="w-4 h-4 flex-shrink-0" />
-      <span>{dict[item.key] ?? item.key}</span>
+      <span>{dict[item.key] ?? item.label}</span>
     </Link>
   );
 }
@@ -229,7 +229,7 @@ function SidebarContent({
               <li key={item.key}>
                 <span className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-text-muted/50 cursor-default select-none">
                   <NavIcon name={item.icon} className="w-4 h-4 flex-shrink-0" />
-                  <span className="flex-1">{dict[item.key] ?? item.key}</span>
+                  <span className="flex-1">{dict[item.key] ?? item.label}</span>
                   <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
                     {comingSoonLabel}
                   </span>

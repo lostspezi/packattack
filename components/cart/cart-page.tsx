@@ -148,8 +148,8 @@ export function CartPage({ lang, dict }: CartPageProps) {
       if (data.success) {
         toast({
           type: "success",
-          title: dict["converted"] ?? "Converted",
-          message: (dict["coinsCredited"] ?? "{coins} coins credited").replace("{coins}", String(data.convertedCoins)),
+          title: dict["converted"] ?? "Umgewandelt",
+          message: (dict["coinsCredited"] ?? "{coins} Coins gutgeschrieben").replace("{coins}", String(data.convertedCoins)),
         });
         fetchCart();
       } else {
@@ -159,7 +159,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
       toast({
         type: "error",
         title: "Error",
-        message: dict["convertFailed"] ?? "Failed to convert",
+        message: dict["convertFailed"] ?? "Umwandlung fehlgeschlagen",
       });
     } finally {
       setConvertingId(null);
@@ -175,8 +175,8 @@ export function CartPage({ lang, dict }: CartPageProps) {
     if (!address.name || !address.street || !address.city || !address.zip) {
       toast({
         type: "error",
-        title: dict["addressIncomplete"] ?? "Address incomplete",
-        message: dict["fillAllFields"] ?? "Please fill in all address fields.",
+        title: dict["addressIncomplete"] ?? "Adresse unvollständig",
+        message: dict["fillAllFields"] ?? "Bitte fülle alle Adressfelder aus.",
       });
       return;
     }
@@ -196,8 +196,8 @@ export function CartPage({ lang, dict }: CartPageProps) {
         } else {
           toast({
             type: "success",
-            title: dict["orderPlaced"] ?? "Order placed!",
-            message: `${dict["orderNumber"] ?? "Order"}: ${data.orderNumber}`,
+            title: dict["orderPlaced"] ?? "Bestellung aufgegeben!",
+            message: `${dict["orderNumber"] ?? "Bestellung"}: ${data.orderNumber}`,
           });
           window.location.href = `/${lang}/orders/${data.orderId}`;
         }
@@ -208,7 +208,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
       toast({
         type: "error",
         title: "Error",
-        message: dict["checkoutFailed"] ?? "Checkout failed",
+        message: dict["checkoutFailed"] ?? "Bestellung fehlgeschlagen",
       });
     } finally {
       setCheckoutLoading(false);
@@ -235,14 +235,14 @@ export function CartPage({ lang, dict }: CartPageProps) {
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <ShoppingCart className="h-16 w-16 text-text-muted" />
         <p className="text-lg text-text-secondary">
-          {dict["emptyCart"] ?? "Your cart is empty"}
+          {dict["emptyCart"] ?? "Dein Warenkorb ist leer"}
         </p>
         <a
           href={`/${lang}/packs`}
           className="inline-flex items-center gap-2 rounded-lg bg-pa-green px-4 py-2 text-sm font-medium text-black hover:bg-pa-green/90"
         >
           <Package className="h-4 w-4" />
-          {dict["openPacks"] ?? "Open Packs"}
+          {dict["openPacks"] ?? "Packs öffnen"}
         </a>
       </div>
     );
@@ -256,7 +256,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
           <div className="flex items-center justify-between">
             <span>
               <Clock className="mr-2 inline h-4 w-4" />
-              {dict["timerWarning"] ?? "Reserved cards will be automatically converted to coins after the timer expires."}
+              {dict["timerWarning"] ?? "Reservierte Karten werden nach Ablauf des Timers automatisch in Coins umgewandelt."}
             </span>
             <span
               className={[
@@ -304,7 +304,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
               {convertingId === item._id ? (
                 <Loader2 className="h-3 w-3 animate-spin" />
               ) : (
-                <>{dict["toCoins"] ?? "To Coins"}</>
+                <>{dict["toCoins"] ?? "Zu Coins"}</>
               )}
             </button>
           </div>
@@ -315,7 +315,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
       <div className="space-y-4">
         <div className="rounded-lg border border-border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold text-text-primary">
-            {dict["shippingAddress"] ?? "Shipping Address"}
+            {dict["shippingAddress"] ?? "Versandadresse"}
           </h3>
           <div className="space-y-2">
             <input
@@ -333,13 +333,13 @@ export function CartPage({ lang, dict }: CartPageProps) {
               onPlaceSelect={(place) => {
                 setAddress((a) => ({ ...a, ...place }));
               }}
-              placeholder={dict["placeholderStreet"] ?? "Street"}
+              placeholder={dict["placeholderStreet"] ?? "Straße"}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
             />
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="text"
-                placeholder={dict["placeholderZip"] ?? "Zip"}
+                placeholder={dict["placeholderZip"] ?? "PLZ"}
                 value={address.zip}
                 onChange={(e) =>
                   setAddress((a) => ({ ...a, zip: e.target.value }))
@@ -348,7 +348,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
               />
               <input
                 type="text"
-                placeholder={dict["placeholderCity"] ?? "City"}
+                placeholder={dict["placeholderCity"] ?? "Stadt"}
                 value={address.city}
                 onChange={(e) =>
                   setAddress((a) => ({ ...a, city: e.target.value }))
@@ -363,13 +363,13 @@ export function CartPage({ lang, dict }: CartPageProps) {
                 className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
               >
                 <span>
-                  {{ DE: dict["germany"] ?? "Germany", AT: dict["austria"] ?? "Austria", CH: dict["switzerland"] ?? "Switzerland" }[address.country]}
+                  {{ DE: dict["germany"] ?? "Deutschland", AT: dict["austria"] ?? "Österreich", CH: dict["switzerland"] ?? "Schweiz" }[address.country]}
                 </span>
                 <ChevronDown className={`h-4 w-4 text-text-muted transition-transform ${countryOpen ? "rotate-180" : ""}`} />
               </button>
               {countryOpen && (
                 <ul className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
-                  {([["DE", dict["germany"] ?? "Germany"], ["AT", dict["austria"] ?? "Austria"], ["CH", dict["switzerland"] ?? "Switzerland"]] as const).map(([code, label]) => (
+                  {([["DE", dict["germany"] ?? "Deutschland"], ["AT", dict["austria"] ?? "Österreich"], ["CH", dict["switzerland"] ?? "Schweiz"]] as const).map(([code, label]) => (
                     <li
                       key={code}
                       onMouseDown={() => {
@@ -389,7 +389,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
 
         <div className="rounded-lg border border-border bg-card p-4">
           <h3 className="mb-3 text-sm font-semibold text-text-primary">
-            {dict["paymentMethod"] ?? "Payment Method"}
+            {dict["paymentMethod"] ?? "Zahlungsmethode"}
           </h3>
           <div className="space-y-2">
             <label
@@ -444,19 +444,19 @@ export function CartPage({ lang, dict }: CartPageProps) {
         <div className="rounded-lg border border-border bg-card p-4">
           <div className="flex items-center justify-between text-sm">
             <span className="text-text-secondary">
-              {dict["cards"] ?? "Cards"}
+              {dict["cards"] ?? "Karten"}
             </span>
             <span className="text-text-primary">{items.length}</span>
           </div>
           <div className="mt-2 flex items-center justify-between text-sm">
             <span className="text-text-secondary">
-              {dict["shipping"] ?? "Shipping"}
+              {dict["shipping"] ?? "Versand"}
             </span>
             <span className="text-text-primary">
               {estimateLoading
                 ? "..."
                 : !shippingCost?.tierFound
-                  ? dict["notAvailable"] ?? "N/A"
+                  ? dict["notAvailable"] ?? "k.A."
                   : paymentMethod === "coins"
                     ? `${shippingCost.costCoins} Coins`
                     : `${(shippingCost.costCents / 100).toFixed(2)} €`}
@@ -473,7 +473,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
             ) : (
               <>
                 <ArrowRight className="h-4 w-4" />
-                {dict["placeOrder"] ?? "Place Order"}
+                {dict["placeOrder"] ?? "Bestellen"}
               </>
             )}
           </button>

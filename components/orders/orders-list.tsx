@@ -65,7 +65,7 @@ export function OrdersList({ lang, dict }: OrdersListProps) {
       <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
         <Package className="h-16 w-16 text-text-muted" />
         <p className="text-lg text-text-secondary">
-          {dict["noOrders"] ?? "No orders yet"}
+          {dict["noOrders"] ?? "Noch keine Bestellungen"}
         </p>
       </div>
     );
@@ -91,7 +91,7 @@ export function OrdersList({ lang, dict }: OrdersListProps) {
               </span>
             </div>
             <p className="mt-1 text-xs text-text-muted">
-              {order.items.length} {dict["cards"] ?? "cards"} —{" "}
+              {order.items.length} {dict["cards"] ?? "Karten"} —{" "}
               {order.paymentMethod === "coins" ? "Coins" : "Stripe"} —{" "}
               {new Date(order.createdAt).toLocaleDateString(lang)}
             </p>
@@ -107,7 +107,7 @@ export function OrdersList({ lang, dict }: OrdersListProps) {
             disabled={page === 1}
             className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30"
           >
-            {dict["previous"] ?? "Previous"}
+            {dict["previous"] ?? "Zurück"}
           </button>
           <span className="text-xs text-text-muted">
             {page} / {totalPages}
@@ -117,7 +117,7 @@ export function OrdersList({ lang, dict }: OrdersListProps) {
             disabled={page === totalPages}
             className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30"
           >
-            {dict["next"] ?? "Next"}
+            {dict["next"] ?? "Weiter"}
           </button>
         </div>
       )}

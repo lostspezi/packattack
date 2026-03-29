@@ -56,7 +56,7 @@ export function ShopFulfillments({ lang, dict }: { lang: string; dict: Record<st
       });
       const data = await res.json();
       if (data.success) {
-        toast({ type: "success", title: dict["statusUpdated"] ?? "Status updated" });
+        toast({ type: "success", title: dict["statusUpdated"] ?? "Status aktualisiert" });
         fetchOrders();
       } else {
         toast({ type: "error", title: data.error || "Error" });
@@ -69,7 +69,7 @@ export function ShopFulfillments({ lang, dict }: { lang: string; dict: Record<st
   }
 
   function statusLabel(s: string): string {
-    if (!s) return dict["filterAll"] ?? "All";
+    if (!s) return dict["filterAll"] ?? "Alle";
     return dict[`status_${s}`] ?? s;
   }
 
@@ -95,7 +95,7 @@ export function ShopFulfillments({ lang, dict }: { lang: string; dict: Record<st
       ) : orders.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-20 text-center">
           <Package className="h-16 w-16 text-text-muted" />
-          <p className="text-text-secondary">{dict["noOrders"] ?? "No orders"}</p>
+          <p className="text-text-secondary">{dict["noOrders"] ?? "Keine Bestellungen"}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -117,7 +117,7 @@ export function ShopFulfillments({ lang, dict }: { lang: string; dict: Record<st
 
                 <div className="flex items-center gap-2 text-xs text-text-muted">
                   <Package className="h-3.5 w-3.5" />
-                  {f?.items.length ?? 0} {dict["cards"] ?? "cards"}
+                  {f?.items.length ?? 0} {dict["cards"] ?? "Karten"}
                   {f?.trackingNumber && (
                     <span className="ml-2">Tracking: {f.trackingNumber}</span>
                   )}
@@ -132,7 +132,7 @@ export function ShopFulfillments({ lang, dict }: { lang: string; dict: Record<st
                       className="flex items-center gap-1.5 rounded-lg bg-blue-500/10 px-3 py-1.5 text-xs font-medium text-blue-400 hover:bg-blue-500/20 disabled:opacity-50"
                     >
                       {actionLoading === order._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Clock className="h-3 w-3" />}
-                      {dict["actionProcess"] ?? "Process"}
+                      {dict["actionProcess"] ?? "Bearbeiten"}
                     </button>
                   )}
                   {f?.status === "processing" && (
@@ -150,7 +150,7 @@ export function ShopFulfillments({ lang, dict }: { lang: string; dict: Record<st
                         className="flex items-center gap-1.5 rounded-lg bg-purple-500/10 px-3 py-1.5 text-xs font-medium text-purple-400 hover:bg-purple-500/20 disabled:opacity-50"
                       >
                         {actionLoading === order._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Truck className="h-3 w-3" />}
-                        {dict["actionShipped"] ?? "Shipped"}
+                        {dict["actionShipped"] ?? "Versendet"}
                       </button>
                     </>
                   )}
@@ -161,12 +161,12 @@ export function ShopFulfillments({ lang, dict }: { lang: string; dict: Record<st
                       className="flex items-center gap-1.5 rounded-lg bg-green-500/10 px-3 py-1.5 text-xs font-medium text-green-400 hover:bg-green-500/20 disabled:opacity-50"
                     >
                       {actionLoading === order._id ? <Loader2 className="h-3 w-3 animate-spin" /> : <CheckCircle2 className="h-3 w-3" />}
-                      {dict["actionDelivered"] ?? "Delivered"}
+                      {dict["actionDelivered"] ?? "Zugestellt"}
                     </button>
                   )}
                   {f?.status === "delivered" && (
                     <span className="flex items-center gap-1.5 text-xs text-green-400">
-                      <CheckCircle2 className="h-3 w-3" /> {dict["actionDelivered"] ?? "Delivered"}
+                      <CheckCircle2 className="h-3 w-3" /> {dict["actionDelivered"] ?? "Zugestellt"}
                     </span>
                   )}
                 </div>
@@ -177,11 +177,11 @@ export function ShopFulfillments({ lang, dict }: { lang: string; dict: Record<st
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 pt-4">
               <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30">
-                {dict["previous"] ?? "Previous"}
+                {dict["previous"] ?? "Zurück"}
               </button>
               <span className="text-xs text-text-muted">{page} / {totalPages}</span>
               <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30">
-                {dict["next"] ?? "Next"}
+                {dict["next"] ?? "Weiter"}
               </button>
             </div>
           )}

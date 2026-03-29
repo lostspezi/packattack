@@ -59,7 +59,7 @@ export function AdminOrders({ lang, dict }: { lang: string; dict: Record<string,
               statusFilter === s ? "bg-pa-green/15 text-pa-green" : "bg-white/4 text-text-muted hover:text-text-primary"
             }`}
           >
-            {s || (dict["orders_filterAll"] ?? "All")}
+            {s || (dict["orders_filterAll"] ?? "Alle")}
           </button>
         ))}
       </div>
@@ -69,7 +69,7 @@ export function AdminOrders({ lang, dict }: { lang: string; dict: Record<string,
       ) : orders.length === 0 ? (
         <div className="flex flex-col items-center gap-4 py-20">
           <Package className="h-16 w-16 text-text-muted" />
-          <p className="text-text-secondary">{dict["orders_noOrders"] ?? "No orders"}</p>
+          <p className="text-text-secondary">{dict["orders_noOrders"] ?? "Keine Bestellungen"}</p>
         </div>
       ) : (
         <>
@@ -78,11 +78,11 @@ export function AdminOrders({ lang, dict }: { lang: string; dict: Record<string,
               <thead>
                 <tr className="border-b border-border bg-white/2">
                   <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">#</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{dict["orders_user"] ?? "User"}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{dict["orders_user"] ?? "Benutzer"}</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">Status</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{dict["orders_payment"] ?? "Payment"}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{dict["orders_cards"] ?? "Cards"}</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{dict["orders_date"] ?? "Date"}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{dict["orders_payment"] ?? "Zahlung"}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{dict["orders_cards"] ?? "Karten"}</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">{dict["orders_date"] ?? "Datum"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -106,9 +106,9 @@ export function AdminOrders({ lang, dict }: { lang: string; dict: Record<string,
 
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2">
-              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30">{dict["orders_previous"] ?? "Prev"}</button>
+              <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30">{dict["orders_previous"] ?? "Zurück"}</button>
               <span className="text-xs text-text-muted">{page} / {totalPages}</span>
-              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30">{dict["orders_next"] ?? "Next"}</button>
+              <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary disabled:opacity-30">{dict["orders_next"] ?? "Weiter"}</button>
             </div>
           )}
         </>

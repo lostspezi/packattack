@@ -37,21 +37,21 @@ export function ReservationConsentModal({ dict, onAccept, onClose }: Reservation
         </button>
 
         <h3 className="mb-4 text-lg font-bold text-text-primary">
-          {dict["consentTitle"] ?? "Reservation Rules"}
+          {dict["consentTitle"] ?? "Reservierungsregeln"}
         </h3>
 
         <div className="space-y-3 text-sm text-text-secondary">
           <div className="flex gap-3">
             <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
-            <p>{dict["consentRule1"] ?? "Your cart has a 6-hour reservation window. The first claimed card starts the timer."}</p>
+            <p>{dict["consentRule1"] ?? "Dein Warenkorb hat ein 6-Stunden-Reservierungsfenster. Die erste beanspruchte Karte startet den Timer."}</p>
           </div>
           <div className="flex gap-3">
             <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
-            <p>{dict["consentRule2"] ?? "If you don't complete checkout within 6 hours, all cards will be automatically converted to coins."}</p>
+            <p>{dict["consentRule2"] ?? "Wenn du den Checkout nicht innerhalb von 6 Stunden abschließt, werden alle Karten automatisch in Coins umgewandelt."}</p>
           </div>
           <div className="flex gap-3">
             <Coins className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
-            <p>{dict["consentRule3"] ?? "You can manually convert individual cards to coins at any time from the cart."}</p>
+            <p>{dict["consentRule3"] ?? "Du kannst einzelne Karten jederzeit manuell im Warenkorb in Coins umwandeln."}</p>
           </div>
         </div>
 
@@ -60,7 +60,7 @@ export function ReservationConsentModal({ dict, onAccept, onClose }: Reservation
           disabled={accepting}
           className="mt-6 w-full rounded-lg bg-pa-green px-4 py-3 text-sm font-semibold text-black hover:bg-pa-green/90 disabled:opacity-50"
         >
-          {dict["consentAccept"] ?? "I understand"}
+          {dict["consentAccept"] ?? "Verstanden"}
         </button>
       </div>
     </div>

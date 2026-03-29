@@ -77,7 +77,7 @@ export function OrderDetail({ lang, dict, orderId }: OrderDetailProps) {
   if (!order) {
     return (
       <div className="py-20 text-center text-text-muted">
-        {dict["orderNotFound"] ?? "Order not found"}
+        {dict["orderNotFound"] ?? "Bestellung nicht gefunden"}
       </div>
     );
   }
@@ -113,7 +113,7 @@ export function OrderDetail({ lang, dict, orderId }: OrderDetailProps) {
       {/* Shipping address */}
       <div className="rounded-lg border border-border bg-card p-4">
         <h3 className="mb-2 text-sm font-semibold text-text-primary">
-          {dict["shippingAddress"] ?? "Shipping Address"}
+          {dict["shippingAddress"] ?? "Versandadresse"}
         </h3>
         <p className="text-sm text-text-secondary">
           {order.shippingAddress.name}
@@ -130,7 +130,7 @@ export function OrderDetail({ lang, dict, orderId }: OrderDetailProps) {
       {order.fulfillments.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-text-primary">
-            {dict["shippingStatus"] ?? "Shipping Status"}
+            {dict["shippingStatus"] ?? "Versandstatus"}
           </h3>
           {order.fulfillments.map((f, i) => (
             <div
@@ -146,7 +146,7 @@ export function OrderDetail({ lang, dict, orderId }: OrderDetailProps) {
                     {f.status}
                   </span>
                   <span className="text-xs text-text-muted">
-                    {f.itemCount} {dict["cards"] ?? "cards"}
+                    {f.itemCount} {dict["cards"] ?? "Karten"}
                   </span>
                 </div>
                 {f.trackingNumber && (
@@ -156,7 +156,7 @@ export function OrderDetail({ lang, dict, orderId }: OrderDetailProps) {
                 )}
                 {f.shippedAt && (
                   <p className="text-xs text-text-muted">
-                    {dict["shippedOn"] ?? "Shipped"}{" "}
+                    {dict["shippedOn"] ?? "Versendet"}{" "}
                     {new Date(f.shippedAt).toLocaleDateString(lang)}
                   </p>
                 )}
@@ -169,7 +169,7 @@ export function OrderDetail({ lang, dict, orderId }: OrderDetailProps) {
       {/* Cards */}
       <div>
         <h3 className="mb-3 text-sm font-semibold text-text-primary">
-          {dict["cards"] ?? "Cards"} ({order.items.length})
+          {dict["cards"] ?? "Karten"} ({order.items.length})
         </h3>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
           {order.items.map((item, i) => (
@@ -206,7 +206,7 @@ export function OrderDetail({ lang, dict, orderId }: OrderDetailProps) {
       <div className="rounded-lg border border-border bg-card p-4 text-sm">
         <div className="flex justify-between">
           <span className="text-text-secondary">
-            {dict["payment"] ?? "Payment"}
+            {dict["payment"] ?? "Zahlung"}
           </span>
           <span className="text-text-primary">
             {order.paymentMethod === "coins" ? "Coins" : "Stripe"}
@@ -214,7 +214,7 @@ export function OrderDetail({ lang, dict, orderId }: OrderDetailProps) {
         </div>
         <div className="mt-1 flex justify-between">
           <span className="text-text-secondary">
-            {dict["shipping"] ?? "Shipping"}
+            {dict["shipping"] ?? "Versand"}
           </span>
           <span className="text-text-primary">
             {(order.shippingCostCents / 100).toFixed(2)} €

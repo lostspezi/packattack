@@ -143,7 +143,7 @@ export function UserHeader({
             <span className="select-none rounded-lg px-3 py-2 text-sm font-medium text-text-muted opacity-35">
               <span className="flex items-center gap-2">
                 <ShoppingBag className="h-4 w-4 flex-shrink-0" />
-                <span>{dict["marketplace"] ?? "Marketplace"}</span>
+                <span>{dict["marketplace"] ?? "Marktplatz"}</span>
                 <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
                   Soon
                 </span>
@@ -274,7 +274,7 @@ export function UserHeader({
 
             <span className="flex select-none items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-text-muted opacity-35">
               <ShoppingBag className="h-5 w-5 flex-shrink-0" />
-              <span className="flex-1">{dict["marketplace"] ?? "Marketplace"}</span>
+              <span className="flex-1">{dict["marketplace"] ?? "Marktplatz"}</span>
               <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
                 Soon
               </span>
@@ -283,7 +283,7 @@ export function UserHeader({
 
           <div className="border-t border-border px-3 py-3">
             <div className="flex items-center justify-between px-3">
-              <span className="text-sm text-text-muted">{dict["language"] ?? "Language"}</span>
+              <span className="text-sm text-text-muted">{dict["language"] ?? "Sprache"}</span>
               <LanguageSwitcher lang={lang} languages={languages} />
             </div>
           </div>
