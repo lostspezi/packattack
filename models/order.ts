@@ -103,7 +103,6 @@ const OrderSchema = new Schema<IOrder>(
 );
 
 OrderSchema.index({ userId: 1, createdAt: -1 });
-OrderSchema.index({ orderNumber: 1 }, { unique: true });
 OrderSchema.index({ "fulfillments.shopId": 1, "fulfillments.status": 1 });
 OrderSchema.index({ status: 1 });
 
