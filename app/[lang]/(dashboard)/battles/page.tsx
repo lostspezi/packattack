@@ -1,6 +1,7 @@
 import { getDictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import { BattlesList } from "@/components/battles/battles-list";
+import { MatchmakingQueue } from "@/components/battles/matchmaking-queue";
 
 export default async function BattlesPageRoute({
   params,
@@ -11,7 +12,7 @@ export default async function BattlesPageRoute({
   const dict = await getDictionary(lang as Locale, "battles");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
         <h2 className="text-2xl font-bold text-text-primary">
           {dict["pageTitle"] ?? "Battles"}
@@ -20,6 +21,7 @@ export default async function BattlesPageRoute({
           {dict["pageSubtitle"] ?? "Tritt einem Battle bei oder erstelle ein neues."}
         </p>
       </div>
+      <MatchmakingQueue lang={lang} dict={dict} />
       <BattlesList lang={lang} dict={dict} />
     </div>
   );
