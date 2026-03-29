@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect } from "react";
 import Script from "next/script";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -21,7 +21,6 @@ interface AddressAutocompleteProps {
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
 const VALID_COUNTRIES = new Set(["DE", "AT", "CH"]);
 
-// Dark theme styles injected into the PlaceAutocompleteElement shadow DOM
 const SHADOW_STYLES = `
   :host {
     width: 100% !important;
@@ -51,7 +50,6 @@ const SHADOW_STYLES = `
   input::placeholder {
     color: var(--color-text-muted) !important;
   }
-  /* Hide the built-in icons */
   .K4efff, .XmOBjc, .IEwOab, .T4LgNb {
     display: none !important;
   }
@@ -67,50 +65,12 @@ export function AddressAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
   const elementRef = useRef<any>(null);
   const initializedRef = useRef(false);
+  const onChangeRef = useRef(onChange);
+  const onPlaceSelectRef = useRef(onPlaceSelect);
+  onChangeRef.current = onChange;
+  onPlaceSelectRef.current = onPlaceSelect;
 
-  const handleSelect = useCallback(
-    async (e: any) => {
-      const prediction = e.placePrediction ?? e.detail?.placePrediction;
-      if (!prediction) return;
-
-      const place = prediction.toPlace();
-      if (!place) return;
-
-      await place.fetchFields({ fields: ["addressComponents"] });
-
-      const components: any[] = place.addressComponents ?? [];
-      let route = "";
-      let streetNumber = "";
-      let city = "";
-      let zip = "";
-      let countryCode = "";
-
-      for (const comp of components) {
-        const type = comp.types[0];
-        const long = comp.longText ?? comp.long_name ?? "";
-        const short = comp.shortText ?? comp.short_name ?? "";
-        if (type === "route") route = long;
-        else if (type === "street_number") streetNumber = long;
-        else if (type === "locality") city = long;
-        else if (type === "postal_town" && !city) city = long;
-        else if (type === "sublocality_level_1" && !city) city = long;
-        else if (type === "postal_code") zip = long;
-        else if (type === "country") countryCode = short;
-      }
-
-      // German format: "Straße Hausnummer"
-      const street = streetNumber ? `${route} ${streetNumber}` : route;
-      const country = VALID_COUNTRIES.has(countryCode)
-        ? (countryCode as "DE" | "AT" | "CH")
-        : "DE";
-
-      onChange(street);
-      onPlaceSelect({ street, city, zip, country });
-    },
-    [onChange, onPlaceSelect]
-  );
-
-  const initElement = useCallback(() => {
+  const initRef = useRef(() => {
     if (initializedRef.current || !containerRef.current) return;
 
     const g = window as any;
@@ -122,7 +82,6 @@ export function AddressAutocomplete({
       includedRegionCodes: ["de", "at", "ch"],
     });
 
-    // Inject dark theme styles into shadow DOM
     try {
       const shadow = el.shadowRoot;
       if (shadow) {
@@ -134,7 +93,43 @@ export function AddressAutocomplete({
       // Shadow DOM may be closed — styling will use global CSS fallback
     }
 
-    el.addEventListener("gmp-placeselect", handleSelect);
+    el.addEventListener("gmp-placeselect", (e: any) => {
+      const prediction = e.placePrediction ?? e.detail?.placePrediction;
+      if (!prediction) return;
+
+      const place = prediction.toPlace();
+      if (!place) return;
+
+      place.fetchFields({ fields: ["addressComponents"] }).then(() => {
+        const components: any[] = place.addressComponents ?? [];
+        let route = "";
+        let streetNumber = "";
+        let city = "";
+        let zip = "";
+        let countryCode = "";
+
+        for (const comp of components) {
+          const type = comp.types[0];
+          const long = comp.longText ?? comp.long_name ?? "";
+          const short = comp.shortText ?? comp.short_name ?? "";
+          if (type === "route") route = long;
+          else if (type === "street_number") streetNumber = long;
+          else if (type === "locality") city = long;
+          else if (type === "postal_town" && !city) city = long;
+          else if (type === "sublocality_level_1" && !city) city = long;
+          else if (type === "postal_code") zip = long;
+          else if (type === "country") countryCode = short;
+        }
+
+        const street = streetNumber ? `${route} ${streetNumber}` : route;
+        const country = VALID_COUNTRIES.has(countryCode)
+          ? (countryCode as "DE" | "AT" | "CH")
+          : "DE";
+
+        onChangeRef.current(street);
+        onPlaceSelectRef.current({ street, city, zip, country });
+      });
+    });
 
     if (placeholder) {
       el.setAttribute("placeholder", placeholder);
@@ -142,22 +137,19 @@ export function AddressAutocomplete({
 
     containerRef.current.appendChild(el);
     elementRef.current = el;
-  }, [handleSelect, placeholder]);
+  });
 
   useEffect(() => {
-    initElement();
-
+    initRef.current();
     return () => {
       if (elementRef.current) {
-        elementRef.current.removeEventListener("gmp-placeselect", handleSelect);
         elementRef.current.remove();
         elementRef.current = null;
         initializedRef.current = false;
       }
     };
-  }, [initElement, handleSelect]);
+  }, []);
 
-  // No API key — render plain input
   if (!API_KEY) {
     return (
       <input
@@ -175,7 +167,7 @@ export function AddressAutocomplete({
       <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&loading=async`}
         strategy="lazyOnload"
-        onReady={() => initElement()}
+        onReady={() => initRef.current()}
       />
       <div
         ref={containerRef}
