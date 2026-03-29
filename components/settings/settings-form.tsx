@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast";
 interface SettingsData {
   language: string;
   theme: "dark" | "light";
+  streamerMode?: boolean;
   notifications: {
     email: boolean;
     browser: boolean;
@@ -39,6 +40,9 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
   const [browserNotifications, setBrowserNotifications] = useState(
     initialSettings.notifications.browser
   );
+  const [streamerMode, setStreamerMode] = useState(
+    initialSettings.streamerMode ?? false
+  );
 
   useEffect(() => {
     fetch("/api/languages")
@@ -64,6 +68,7 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
         body: JSON.stringify({
           language,
           theme,
+          streamerMode,
           notifications: {
             email: emailNotifications,
             browser: browserNotifications,
@@ -173,6 +178,24 @@ export function SettingsForm({ dict, initialSettings }: SettingsFormProps) {
             checked={browserNotifications}
             onCheckedChange={setBrowserNotifications}
           />
+        </div>
+      </div>
+
+      {/* Streamer Mode */}
+      <div>
+        <h3 className="text-sm font-semibold text-text-primary uppercase tracking-wider mb-3">
+          {dict["section_streamer_mode"] ?? "Streamer-Modus"}
+        </h3>
+        <div className="flex flex-col gap-2">
+          <Checkbox
+            id="streamer-mode"
+            label={dict["label_streamer_mode"] ?? "Versandadresse im Checkout verstecken"}
+            checked={streamerMode}
+            onCheckedChange={setStreamerMode}
+          />
+          <p className="text-xs text-text-muted ml-6">
+            {dict["streamer_mode_description"] ?? "Schützt deine Adresse beim Streamen vor versehentlichem Leak."}
+          </p>
         </div>
       </div>
 

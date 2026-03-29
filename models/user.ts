@@ -34,6 +34,7 @@ export interface IUser extends Document {
   preferences: {
     language: "de" | "en";
     theme: "dark" | "light";
+    streamerMode: boolean;
     notifications: {
       email: boolean;
       browser: boolean;
@@ -122,6 +123,7 @@ const UserSchema = new Schema<IUser>(
         enum: ["dark", "light"],
         default: "dark",
       },
+      streamerMode: { type: Boolean, default: false },
       notifications: {
         email: { type: Boolean, default: true },
         browser: { type: Boolean, default: true },

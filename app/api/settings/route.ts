@@ -20,6 +20,7 @@ export async function GET() {
     return NextResponse.json({
       language: user.preferences?.language ?? "en",
       theme: user.preferences?.theme ?? "dark",
+      streamerMode: user.preferences?.streamerMode ?? false,
       notifications: {
         email: user.preferences?.notifications?.email ?? true,
         browser: user.preferences?.notifications?.browser ?? true,
@@ -47,7 +48,7 @@ export async function PATCH(req: NextRequest) {
       );
     }
 
-    const { language, theme, notifications } = parsed.data;
+    const { language, theme, streamerMode, notifications } = parsed.data;
 
     await connectDB();
     const updated = await User.findByIdAndUpdate(
@@ -55,6 +56,7 @@ export async function PATCH(req: NextRequest) {
       {
         "preferences.language": language,
         "preferences.theme": theme,
+        "preferences.streamerMode": streamerMode ?? false,
         "preferences.notifications.email": notifications.email,
         "preferences.notifications.browser": notifications.browser,
       },
@@ -68,6 +70,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({
       language: updated.preferences?.language ?? "en",
       theme: updated.preferences?.theme ?? "dark",
+      streamerMode: updated.preferences?.streamerMode ?? false,
       notifications: {
         email: updated.preferences?.notifications?.email ?? true,
         browser: updated.preferences?.notifications?.browser ?? true,

@@ -60,6 +60,7 @@ export const profileSchema = z.object({
 export const settingsSchema = z.object({
   language: z.enum(["de", "en"]),
   theme: z.enum(["dark", "light"]),
+  streamerMode: z.boolean().optional(),
   notifications: z.object({
     email: z.boolean(),
     browser: z.boolean(),

@@ -13,6 +13,7 @@ import {
   X,
   Minus,
   Plus,
+  Shield,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { ReservationConsentModal } from "./reservation-consent-modal";
@@ -79,6 +80,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
     try { return sessionStorage.getItem("cart_consent") === "1"; } catch { return false; }
   });
   const [countryOpen, setCountryOpen] = useState(false);
+  const [streamerMode, setStreamerMode] = useState(false);
 
   // Single cart-wide countdown (all items share the same expiry)
   const [cartCountdown, setCartCountdown] = useState(0);
@@ -115,6 +117,9 @@ export function CartPage({ lang, dict }: CartPageProps) {
             zip: sa.zip || "",
             country: sa.country || "DE",
           });
+        }
+        if (profile?.preferences?.streamerMode) {
+          setStreamerMode(true);
         }
       })
       .catch(() => {});
@@ -354,77 +359,124 @@ export function CartPage({ lang, dict }: CartPageProps) {
       {/* Checkout sidebar */}
       <div className="space-y-4">
         <div className="rounded-lg border border-border bg-card p-4">
-          <h3 className="mb-3 text-sm font-semibold text-text-primary">
-            {dict["shippingAddress"] ?? "Versandadresse"}
-          </h3>
-          <div className="space-y-2">
-            <input
-              type="text"
-              placeholder={dict["placeholderName"] ?? "Name"}
-              value={address.name}
-              onChange={(e) =>
-                setAddress((a) => ({ ...a, name: e.target.value }))
-              }
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
-            />
-            <AddressAutocomplete
-              value={address.street}
-              onChange={(street) => setAddress((a) => ({ ...a, street }))}
-              onPlaceSelect={(place) => {
-                setAddress((a) => ({ ...a, ...place }));
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-text-primary">
+              {dict["shippingAddress"] ?? "Versandadresse"}
+            </h3>
+            <button
+              type="button"
+              onClick={() => {
+                const next = !streamerMode;
+                setStreamerMode(next);
+                void (async () => {
+                  const cur = await fetch("/api/settings").then((r) => r.json());
+                  await fetch("/api/settings", {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ ...cur, streamerMode: next }),
+                  });
+                })();
               }}
-              placeholder={dict["placeholderStreet"] ?? "Straße"}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
-            />
-            <div className="grid grid-cols-2 gap-2">
-              <input
-                type="text"
-                placeholder={dict["placeholderZip"] ?? "PLZ"}
-                value={address.zip}
-                onChange={(e) =>
-                  setAddress((a) => ({ ...a, zip: e.target.value }))
-                }
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
-              />
-              <input
-                type="text"
-                placeholder={dict["placeholderCity"] ?? "Stadt"}
-                value={address.city}
-                onChange={(e) =>
-                  setAddress((a) => ({ ...a, city: e.target.value }))
-                }
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
-              />
-            </div>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setCountryOpen((o) => !o)}
-                className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
-              >
-                <span>
-                  {{ DE: dict["germany"] ?? "Deutschland", AT: dict["austria"] ?? "Österreich", CH: dict["switzerland"] ?? "Schweiz" }[address.country]}
-                </span>
-                <ChevronDown className={`h-4 w-4 text-text-muted transition-transform ${countryOpen ? "rotate-180" : ""}`} />
-              </button>
-              {countryOpen && (
-                <ul className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
-                  {([["DE", dict["germany"] ?? "Deutschland"], ["AT", dict["austria"] ?? "Österreich"], ["CH", dict["switzerland"] ?? "Schweiz"]] as const).map(([code, label]) => (
-                    <li
-                      key={code}
-                      onMouseDown={() => {
-                        setAddress((a) => ({ ...a, country: code }));
-                        setCountryOpen(false);
-                      }}
-                      className={`cursor-pointer px-3 py-2 text-sm ${address.country === code ? "bg-surface-elevated text-text-primary" : "text-text-secondary hover:bg-surface-elevated"}`}
-                    >
-                      {label}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
+                streamerMode
+                  ? "bg-pa-lila/15 text-pa-lila border border-pa-lila/30"
+                  : "bg-white/4 text-text-muted border border-border hover:bg-white/6"
+              }`}
+            >
+              <Shield className="h-3.5 w-3.5" />
+              Streamer
+            </button>
           </div>
+          {streamerMode ? (
+            <div className="space-y-2">
+              <div className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-muted italic">
+                {lang === "de" ? "Streamer-Modus aktiv" : "Streamer mode active"}
+              </div>
+              <div className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-muted italic">
+                {lang === "de" ? "Streamer-Modus aktiv" : "Streamer mode active"}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-muted italic">
+                  {lang === "de" ? "Versteckt" : "Hidden"}
+                </div>
+                <div className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-muted italic">
+                  {lang === "de" ? "Versteckt" : "Hidden"}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-muted italic">
+                {lang === "de" ? "Versteckt" : "Hidden"}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder={dict["placeholderName"] ?? "Name"}
+                value={address.name}
+                onChange={(e) =>
+                  setAddress((a) => ({ ...a, name: e.target.value }))
+                }
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+              />
+              <AddressAutocomplete
+                value={address.street}
+                onChange={(street) => setAddress((a) => ({ ...a, street }))}
+                onPlaceSelect={(place) => {
+                  setAddress((a) => ({ ...a, ...place }));
+                }}
+                placeholder={dict["placeholderStreet"] ?? "Straße"}
+                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  type="text"
+                  placeholder={dict["placeholderZip"] ?? "PLZ"}
+                  value={address.zip}
+                  onChange={(e) =>
+                    setAddress((a) => ({ ...a, zip: e.target.value }))
+                  }
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+                />
+                <input
+                  type="text"
+                  placeholder={dict["placeholderCity"] ?? "Stadt"}
+                  value={address.city}
+                  onChange={(e) =>
+                    setAddress((a) => ({ ...a, city: e.target.value }))
+                  }
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
+                />
+              </div>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setCountryOpen((o) => !o)}
+                  className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
+                >
+                  <span>
+                    {{ DE: dict["germany"] ?? "Deutschland", AT: dict["austria"] ?? "Österreich", CH: dict["switzerland"] ?? "Schweiz" }[address.country]}
+                  </span>
+                  <ChevronDown className={`h-4 w-4 text-text-muted transition-transform ${countryOpen ? "rotate-180" : ""}`} />
+                </button>
+                {countryOpen && (
+                  <ul className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
+                    {([["DE", dict["germany"] ?? "Deutschland"], ["AT", dict["austria"] ?? "Österreich"], ["CH", dict["switzerland"] ?? "Schweiz"]] as const).map(([code, label]) => (
+                      <li
+                        key={code}
+                        onMouseDown={() => {
+                          setAddress((a) => ({ ...a, country: code }));
+                          setCountryOpen(false);
+                        }}
+                        className={`cursor-pointer px-3 py-2 text-sm ${address.country === code ? "bg-surface-elevated text-text-primary" : "text-text-secondary hover:bg-surface-elevated"}`}
+                      >
+                        {label}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="rounded-lg border border-border bg-card p-4">
