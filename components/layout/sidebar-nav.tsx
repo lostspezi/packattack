@@ -10,7 +10,7 @@
 export const mainNavItems: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: "LayoutGrid" },
   { key: "packs", label: "Packs", href: "/packs", icon: "Package" },
-  { key: "battles", label: "Battles", href: "/battles", icon: "Swords" },
+  { key: "battles", label: "Battles", href: "#", icon: "Swords", soon: true },
   { key: "cart", label: "Warenkorb", href: "/cart", icon: "ShoppingCart" },
   { key: "orders", label: "Bestellungen", href: "/orders", icon: "Package" },
   { key: "feedback", label: "Feedback", href: "/feedback", icon: "MessageSquareMore" },
