@@ -173,7 +173,7 @@ export function AddressAutocomplete({
   return (
     <>
       <Script
-        src={`https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places`}
+        src={`https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&loading=async`}
         strategy="lazyOnload"
         onReady={() => initElement()}
       />
