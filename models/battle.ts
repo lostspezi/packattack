@@ -22,6 +22,7 @@ export interface IBattlePlayer {
   score: number;
   placement: number | null;
   eloChange: number | null;
+  ready: boolean;
 }
 
 export interface IBattle extends Document {
@@ -30,13 +31,14 @@ export interface IBattle extends Document {
   box: Types.ObjectId;
   packsPerPlayer: number;
   maxPlayers: number;
-  status: "waiting" | "countdown" | "opening" | "clash" | "finished" | "cancelled";
+  status: "waiting" | "ready_check" | "countdown" | "opening" | "clash" | "finished" | "cancelled";
   visibility: "public" | "private";
   minElo: number | null;
   players: IBattlePlayer[];
   rounds: IBattleRound[];
   currentRound: number;
   totalRounds: number;
+  readyCheckStartedAt: Date | null;
   startedAt: Date | null;
   finishedAt: Date | null;
   seasonId: Types.ObjectId | null;
@@ -73,6 +75,7 @@ const BattlePlayerSchema = new Schema<IBattlePlayer>(
     score: { type: Number, default: 0 },
     placement: { type: Number, default: null },
     eloChange: { type: Number, default: null },
+    ready: { type: Boolean, default: false },
   },
   { _id: false }
 );
@@ -86,7 +89,7 @@ const BattleSchema = new Schema<IBattle>(
     maxPlayers: { type: Number, required: true, min: 2 },
     status: {
       type: String,
-      enum: ["waiting", "countdown", "opening", "clash", "finished", "cancelled"],
+      enum: ["waiting", "ready_check", "countdown", "opening", "clash", "finished", "cancelled"],
       default: "waiting",
       required: true,
     },
@@ -100,6 +103,7 @@ const BattleSchema = new Schema<IBattle>(
     rounds: { type: [BattleRoundSchema], default: [] },
     currentRound: { type: Number, default: 0 },
     totalRounds: { type: Number, required: true },
+    readyCheckStartedAt: { type: Date, default: null },
     startedAt: { type: Date, default: null },
     finishedAt: { type: Date, default: null },
     seasonId: { type: Schema.Types.ObjectId, ref: "Season", default: null },
