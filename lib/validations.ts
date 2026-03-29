@@ -7,6 +7,10 @@ import {
   CHAT_SOUND_MODES,
 } from "@/lib/chat-constants";
 import {
+  CHAT_MAX_REACTION_EMOJI_LENGTH,
+  isSupportedChatReactionEmoji,
+} from "@/lib/chat-reactions";
+import {
   FEEDBACK_KINDS,
   FEEDBACK_PRIORITIES,
   FEEDBACK_SEVERITIES,
@@ -189,6 +193,17 @@ export const chatHistoryQuerySchema = z.object({
 
 export const chatReadStateSchema = z.object({
   lastReadVisibleSeq: z.number().int().min(0),
+});
+
+export const toggleChatReactionSchema = z.object({
+  emoji: z
+    .string()
+    .trim()
+    .min(1)
+    .max(CHAT_MAX_REACTION_EMOJI_LENGTH)
+    .refine((value) => isSupportedChatReactionEmoji(value), {
+      message: "Emoji required",
+    }),
 });
 
 export const createChatReportSchema = z.object({

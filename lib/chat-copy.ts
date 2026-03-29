@@ -78,6 +78,12 @@ export interface ChatUiCopy {
     success: string;
     error: string;
   };
+  reactions: {
+    add: string;
+    pickerTitle: string;
+    reactWith: string;
+    updateError: string;
+  };
   states: {
     networkError: string;
     loadError: string;
@@ -238,6 +244,12 @@ const de: ChatUiCopy = {
     other: "Sonstiges",
     success: "Nachricht gemeldet",
     error: "Meldung konnte nicht gespeichert werden",
+  },
+  reactions: {
+    add: "Reagieren",
+    pickerTitle: "Reaktion wählen",
+    reactWith: "Reagiere mit",
+    updateError: "Reaktion konnte nicht gespeichert werden.",
   },
   states: {
     networkError: "Netzwerkfehler",
@@ -400,6 +412,12 @@ const en: ChatUiCopy = {
     other: "Other",
     success: "Message reported",
     error: "Could not save report",
+  },
+  reactions: {
+    add: "React",
+    pickerTitle: "Choose reaction",
+    reactWith: "React with",
+    updateError: "Could not save reaction.",
   },
   states: {
     networkError: "Network error",

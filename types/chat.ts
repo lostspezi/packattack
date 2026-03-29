@@ -2,6 +2,7 @@ import type {
   ChatAdminAction,
   ChatArchiveEventType,
   ChatMessageStatus,
+  ChatReactionEmoji,
   ChatReportCategory,
   ChatRestrictionType,
   ChatRoomMode,
@@ -60,6 +61,12 @@ export interface ChatOnlineUserSummary {
   identityVerified: boolean;
 }
 
+export interface ChatReactionSummary {
+  emoji: ChatReactionEmoji;
+  count: number;
+  userIds: string[];
+}
+
 export interface ChatMessageSummary {
   id: string;
   roomSlug: string;
@@ -72,6 +79,7 @@ export interface ChatMessageSummary {
   mentionTargets: ChatMentionTargetSummary[];
   hasLink: boolean;
   hasMention: boolean;
+  reactions: ChatReactionSummary[];
   isDeleted: boolean;
   deletedReason: string | null;
   createdAt: string;
@@ -235,6 +243,7 @@ export interface ChatArchiveEventSummary {
 export interface ChatEventEnvelope<T = Record<string, unknown>> {
   type:
     | "message_created"
+    | "message_updated"
     | "message_removed"
     | "message_held"
     | "moderation_updated"

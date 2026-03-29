@@ -24,6 +24,7 @@ import { ChatBadgeDetailModal } from "@/components/chat/chat-badge-detail-modal"
 import { ChatGifAttachmentPreview } from "@/components/chat/chat-gif-attachment-preview";
 import { ChatGifPicker } from "@/components/chat/chat-gif-picker";
 import { ChatMessageContent } from "@/components/chat/chat-message-content";
+import { ChatMessageReactions } from "@/components/chat/chat-message-reactions";
 import { ChatUserCard } from "@/components/chat/chat-user-card";
 import { ChatUserBadges } from "@/components/chat/chat-user-badges";
 import { ChatOnlineUsersModal } from "@/components/chat/chat-online-users-modal";
@@ -31,6 +32,7 @@ import { MentionSuggestions } from "@/components/chat/mention-suggestions";
 import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
 import { messageMentionsViewer } from "@/lib/chat-mentions";
+import { mergeChatMessageSummaries } from "@/lib/chat-message-summary";
 import type { ChatDictionary } from "@/lib/chat-i18n";
 import { getChatUiCopy } from "@/lib/chat-i18n";
 import type {
@@ -154,6 +156,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const [reportNote, setReportNote] = useState("");
   const [onlineUsersOpen, setOnlineUsersOpen] = useState(false);
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
+  const [pendingReactionMessageIds, setPendingReactionMessageIds] = useState<string[]>([]);
   const [moderationOpen, setModerationOpen] = useState(false);
   const [moderationTarget, setModerationTarget] =
     useState<ChatMessageSummary | null>(null);
@@ -362,7 +365,6 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
 
   useEffect(() => {
     void loadOverview();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, []);
 
   function triggerLauncherAnimation() {
@@ -389,10 +391,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         if (payload.type === "message_created") {
           const nextMessage = (payload.payload as { message: ChatMessageSummary }).message;
           const isSelfMessage = nextMessage.author?.id === currentUserId;
-          setMessages((current) => {
-            const next = [...current.filter((item) => item.id !== nextMessage.id), nextMessage];
-            return next.sort((a, b) => (a.visibleSeq ?? 0) - (b.visibleSeq ?? 0));
-          });
+          setMessages((current) => mergeChatMessageSummaries(current, nextMessage));
           setRoom((current) =>
             current
               ? {
@@ -433,6 +432,11 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
               setPendingMentionCount((count) => count + 1);
             }
           }
+        }
+
+        if (payload.type === "message_updated") {
+          const nextMessage = (payload.payload as { message: ChatMessageSummary }).message;
+          setMessages((current) => mergeChatMessageSummaries(current, nextMessage));
         }
 
         if (payload.type === "message_removed") {
@@ -482,7 +486,6 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     };
 
     return () => source.close();
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- isMentionForCurrentUser is stable (depends only on selfUsername)
   }, [
     copy.reports.error,
     copy.states.deleted,
@@ -626,6 +629,36 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
       setReportNote("");
     } catch {
       toast({ type: "error", title: copy.reports.error });
+    }
+  }
+
+  async function toggleReaction(
+    messageId: string,
+    emoji: ChatMessageSummary["reactions"][number]["emoji"]
+  ) {
+    if (pendingReactionMessageIds.includes(messageId)) return;
+
+    setPendingReactionMessageIds((current) => [...current, messageId]);
+    try {
+      const res = await fetch(`/api/chat/${messageId}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emoji }),
+      });
+      const payload = await res.json();
+      if (!res.ok) {
+        toast({ type: "error", title: copy.reactions.updateError });
+        return;
+      }
+
+      const nextMessage = payload.message as ChatMessageSummary;
+      setMessages((current) => mergeChatMessageSummaries(current, nextMessage));
+    } catch {
+      toast({ type: "error", title: copy.reactions.updateError });
+    } finally {
+      setPendingReactionMessageIds((current) =>
+        current.filter((currentMessageId) => currentMessageId !== messageId)
+      );
     }
   }
 
@@ -985,6 +1018,22 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                   gifImageClassName="max-h-[220px]"
                   bodyClassName={`whitespace-pre-wrap break-words text-sm ${message.isDeleted ? "italic text-text-muted" : "text-text-primary"}`}
                 />
+                {!message.isDeleted ? (
+                  <ChatMessageReactions
+                    lang={lang}
+                    reactions={message.reactions}
+                    currentUserId={currentUserId}
+                    disabled={pendingReactionMessageIds.includes(message.id)}
+                    onToggle={
+                      permissions.canPost
+                        ? (emoji) => {
+                            void toggleReaction(message.id, emoji);
+                          }
+                        : undefined
+                    }
+                    labels={copy.reactions}
+                  />
+                ) : null}
               </div>
             );
           })
