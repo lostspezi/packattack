@@ -15,13 +15,28 @@ export const ELO_RANKS = [
 ] as const;
 
 // --- Battle ---
-export const BATTLE_COUNTDOWN_SECONDS = 5;
-export const ROUND_PAUSE_BASE_MS = 3000;
-export const ROUND_PAUSE_RARE_MS = 4000;
-export const ROUND_PAUSE_ULTRA_RARE_MS = 5000;
+export const BATTLE_COUNTDOWN_SECONDS = 3;  // "3-2-1-FIGHT!" after all ready
 export const BATTLE_MAX_PLAYERS = 20;
 export const BATTLE_MIN_PLAYERS = 2;
 export const BATTLE_MAX_PACKS = 10;
+
+// --- Ready Check ---
+export const READY_CHECK_TIMEOUT_SECONDS = 30;
+
+// --- Round Choreography (all values in ms) ---
+export const ROUND_ANNOUNCE_MS = 3000;
+export const ROUND_BUILDUP_MS = 3000;
+export const CARD_REVEAL_FLIP_MS = 1000;
+export const CARD_REVEAL_DISPLAY_MS = 4000;
+export const CARD_REVEAL_RARE_BONUS_MS = 2000;    // Extra display for Rare+ (RARITY_ORDER >= 3)
+export const CARD_REVEAL_ULTRA_BONUS_MS = 4000;    // Extra display for Ultra Rare+ (RARITY_ORDER >= 5)
+export const BETWEEN_REVEALS_MS = 3000;
+export const COMPARISON_PAUSE_MS = 4000;
+export const WINNER_REVEAL_MS = 3000;
+export const WINNER_CLOSE_REVEAL_MS = 8000;
+export const SCORE_UPDATE_MS = 3000;
+export const ROUND_TRANSITION_MS = 2000;
+export const CLOSE_MATCH_THRESHOLD = 0.2;  // 20% coinValue difference = "close"
 
 // --- Preset Chat ---
 export const PRESET_CHAT_COOLDOWN_MS = 2000;
