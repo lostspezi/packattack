@@ -26,32 +26,25 @@ const SHADOW_STYLES = `
     width: 100% !important;
     display: block !important;
   }
-  .LfICpf, .M7pMTc, .cGyruf, .MVBIhf {
+  * {
     background: transparent !important;
     border: none !important;
     box-shadow: none !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    min-height: unset !important;
   }
   input {
-    background: transparent !important;
     color: var(--color-text-primary) !important;
     font-family: inherit !important;
     font-size: 0.875rem !important;
     line-height: 1.25rem !important;
     padding: 0 !important;
     margin: 0 !important;
-    border: none !important;
     outline: none !important;
     width: 100% !important;
-    box-shadow: none !important;
+    height: auto !important;
+    min-height: 1.25rem !important;
   }
   input::placeholder {
     color: var(--color-text-muted) !important;
-  }
-  .K4efff, .XmOBjc, .IEwOab, .T4LgNb {
-    display: none !important;
   }
 `;
 

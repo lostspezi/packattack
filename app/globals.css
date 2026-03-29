@@ -279,4 +279,5 @@ button[disabled] {
 gmp-place-autocomplete {
   width: 100% !important;
   display: block !important;
+  min-height: 1.25rem !important;
 }
