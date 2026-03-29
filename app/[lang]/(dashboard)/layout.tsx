@@ -1,6 +1,7 @@
 ﻿import { redirect } from "next/navigation";
 import { ChatDock } from "@/components/chat/chat-dock";
 import { UserHeader } from "@/components/layout/user-header";
+import { ActiveBattleBanner } from "@/components/battles/active-battle-banner";
 import { auth } from "@/lib/auth";
 import { getActiveLanguages, getDictionary } from "@/lib/i18n";
 
@@ -38,6 +39,7 @@ export default async function DashboardLayout({
         userImage={userImage}
         userRole={userRole}
       />
+      <ActiveBattleBanner lang={lang} />
       <div className="flex flex-1 flex-col">{children}</div>
       <ChatDock
         lang={lang}
