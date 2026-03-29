@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 import { Loader2, AlertCircle } from "lucide-react";
 import { BattleLobby } from "./battle-lobby";
 import { BattleClash } from "./battle-clash";
@@ -79,6 +80,8 @@ interface BattleViewProps {
 }
 
 export function BattleView({ lang, slug, dict }: BattleViewProps) {
+  const { data: session } = useSession();
+  const currentUserId = (session?.user as { id?: string } | undefined)?.id;
   const [battle, setBattle] = useState<Battle | null>(null);
   const [isPlayer, setIsPlayer] = useState(false);
   const [myCards, setMyCards] = useState<DistributedCard[]>([]);
@@ -202,6 +205,9 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
       try {
         const data = JSON.parse(e.data);
         const kickedIds: string[] = data.kickedUserIds ?? [];
+        if (currentUserId && kickedIds.includes(currentUserId)) {
+          setIsPlayer(false);
+        }
         setBattle((prev) => {
           if (!prev) return prev;
           return {
@@ -329,7 +335,7 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
     };
 
     return es;
-  }, []);
+  }, [currentUserId]);
 
   useEffect(() => {
     let cancelled = false;

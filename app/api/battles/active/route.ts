@@ -18,7 +18,7 @@ export async function GET() {
     // Find active battle
     const battle = await Battle.findOne({
       "players.user": userId,
-      status: { $in: ["waiting", "countdown", "opening", "clash"] },
+      status: { $in: ["waiting", "ready_check", "countdown", "opening", "clash"] },
     })
       .populate("box", "name slug image priceInCoins cardsPerPack")
       .populate("players.user", "name username image elo")
