@@ -34,6 +34,7 @@ export function AdminFeedbackInbox({ lang, dict = {} }: AdminFeedbackInboxProps)
   const { toast } = useToast();
   const [items, setItems] = useState<FeedbackItemSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"open" | "archive">("open");
   const [status, setStatus] = useState("");
   const [kind, setKind] = useState("");
   const [assigned, setAssigned] = useState("");
@@ -42,6 +43,7 @@ export function AdminFeedbackInbox({ lang, dict = {} }: AdminFeedbackInboxProps)
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState({ open: 0, archive: 0 });
   const [stats, setStats] = useState({
     openCount: 0,
     newCount: 0,
@@ -52,7 +54,12 @@ export function AdminFeedbackInbox({ lang, dict = {} }: AdminFeedbackInboxProps)
 
   useEffect(() => {
     setPage(1);
-  }, [assigned, kind, scope, search, status]);
+  }, [assigned, kind, scope, search, status, tab]);
+
+  useEffect(() => {
+    setStatus("");
+    setScope("");
+  }, [tab]);
 
   useEffect(() => {
     let active = true;
@@ -63,6 +70,7 @@ export function AdminFeedbackInbox({ lang, dict = {} }: AdminFeedbackInboxProps)
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("limit", "12");
+        params.set("tab", tab);
         if (status) params.set("status", status);
         if (kind) params.set("kind", kind);
         if (assigned) params.set("assigned", assigned);
@@ -84,6 +92,7 @@ export function AdminFeedbackInbox({ lang, dict = {} }: AdminFeedbackInboxProps)
 
         const data = payload as AdminFeedbackListResponse;
         setItems(data.items);
+        setCounts(data.counts);
         setStats(data.stats);
         setTotal(data.total);
         setTotalPages(data.totalPages);
@@ -98,10 +107,52 @@ export function AdminFeedbackInbox({ lang, dict = {} }: AdminFeedbackInboxProps)
     return () => {
       active = false;
     };
-  }, [assigned, copy.common.networkError, dict, kind, lang, page, scope, search, status, toast]);
+  }, [assigned, copy.common.networkError, dict, kind, lang, page, scope, search, status, tab, toast]);
+
+  const statusOptions = [
+    { value: "", label: copy.common.allStatuses },
+    ...FEEDBACK_STATUSES.filter((value) => value !== "closed").map((value) => ({
+      value,
+      label: getFeedbackStatusLabel(lang, value, dict),
+    })),
+  ];
+
+  const emptyLabel =
+    status || kind || assigned || scope || search.trim()
+      ? copy.inbox.empty
+      : tab === "archive"
+        ? copy.inbox.archiveEmpty
+        : copy.inbox.empty;
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap gap-2">
+        {[
+          { value: "open" as const, label: copy.common.open, count: counts.open },
+          { value: "archive" as const, label: copy.common.archive, count: counts.archive },
+        ].map((option) => {
+          const active = tab === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setTab(option.value)}
+              className={[
+                "inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors",
+                active
+                  ? "border-pa-green/20 bg-pa-green/12 text-pa-green"
+                  : "border-white/8 bg-white/4 text-text-secondary hover:text-text-primary",
+              ].join(" ")}
+            >
+              <span>{option.label}</span>
+              <span className="rounded-full border border-current/10 px-2 py-0.5 text-xs">
+                {option.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="grid flex-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
           <Card variant="topline" className="p-4">
@@ -133,21 +184,27 @@ export function AdminFeedbackInbox({ lang, dict = {} }: AdminFeedbackInboxProps)
         </Link>
       </div>
 
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,180px))]">
+      <div
+        className={[
+          "grid gap-3",
+          tab === "open"
+            ? "lg:grid-cols-[minmax(0,1.2fr)_repeat(4,minmax(0,180px))]"
+            : "lg:grid-cols-[minmax(0,1.2fr)_repeat(2,minmax(0,180px))]",
+        ].join(" ")}
+      >
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={copy.inbox.searchPlaceholder}
         />
-        <Select
-          options={[
-            { value: "", label: copy.common.allStatuses },
-            ...FEEDBACK_STATUSES.map((value) => ({ value, label: getFeedbackStatusLabel(lang, value, dict) })),
-          ]}
-          value={status}
-          onChange={setStatus}
-          className="w-full"
-        />
+        {tab === "open" ? (
+          <Select
+            options={statusOptions}
+            value={status}
+            onChange={setStatus}
+            className="w-full"
+          />
+        ) : null}
         <Select
           options={[
             { value: "", label: copy.common.allTypes },
@@ -167,15 +224,17 @@ export function AdminFeedbackInbox({ lang, dict = {} }: AdminFeedbackInboxProps)
           onChange={setAssigned}
           className="w-full"
         />
-        <Select
-          options={[
-            { value: "", label: copy.inbox.allScopes },
-            { value: "attention", label: copy.inbox.needsAttention },
-          ]}
-          value={scope}
-          onChange={setScope}
-          className="w-full"
-        />
+        {tab === "open" ? (
+          <Select
+            options={[
+              { value: "", label: copy.inbox.allScopes },
+              { value: "attention", label: copy.inbox.needsAttention },
+            ]}
+            value={scope}
+            onChange={setScope}
+            className="w-full"
+          />
+        ) : null}
       </div>
 
       <p className="text-xs text-text-muted">{getFeedbackTicketCountLabel(lang, total, dict)}</p>
@@ -200,7 +259,7 @@ export function AdminFeedbackInbox({ lang, dict = {} }: AdminFeedbackInboxProps)
               </tr>
             ) : items.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-text-muted">{copy.inbox.empty}</td>
+                <td colSpan={7} className="px-4 py-8 text-center text-sm text-text-muted">{emptyLabel}</td>
               </tr>
             ) : (
               items.map((item) => (

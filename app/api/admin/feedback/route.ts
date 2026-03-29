@@ -22,6 +22,7 @@ export async function GET(req: NextRequest) {
   const assigned = searchParams.get("assigned") ?? "";
   const scope = searchParams.get("scope") ?? "";
   const search = searchParams.get("search")?.trim() ?? "";
+  const tab = searchParams.get("tab") === "archive" ? "archive" : "open";
   const skip = (page - 1) * limit;
   const overdueBefore = new Date(Date.now() - 36 * 60 * 60 * 1000);
 
@@ -30,12 +31,18 @@ export async function GET(req: NextRequest) {
 
     const query: Record<string, unknown> = {};
 
-    if (status) query.status = status;
+    if (tab === "archive") {
+      query.status = "closed";
+    } else if (status && status !== "closed") {
+      query.status = status;
+    } else {
+      query.status = { $in: FEEDBACK_OPEN_STATUSES };
+    }
     if (kind) query.kind = kind;
     if (assigned === "me") query.assignedTo = viewerUserId;
     if (assigned === "unassigned") query.assignedTo = null;
 
-    if (scope === "attention") {
+    if (tab === "open" && scope === "attention") {
       query.$or = [
         { status: "new" },
         { status: "waiting", waitingOn: "staff" },
@@ -59,9 +66,13 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    const [items, total, openCount, newCount, waitingOnStaffCount, assignedToMeCount, overdueCount, unassignedCount, waitingOnUserCount] = await Promise.all([
+    const [items, total, openCount, archiveCount, newCount, waitingOnStaffCount, assignedToMeCount, overdueCount, unassignedCount, waitingOnUserCount] = await Promise.all([
       FeedbackItem.find(query)
-        .sort({ lastActivityAt: -1 })
+        .sort(
+          tab === "archive"
+            ? { closedAt: -1, lastActivityAt: -1 }
+            : { lastActivityAt: -1 }
+        )
         .skip(skip)
         .limit(limit)
         .populate("submitterUserId", "name username email role preferences.language")
@@ -69,6 +80,7 @@ export async function GET(req: NextRequest) {
         .lean(),
       FeedbackItem.countDocuments(query),
       FeedbackItem.countDocuments({ status: { $in: FEEDBACK_OPEN_STATUSES } }),
+      FeedbackItem.countDocuments({ status: "closed" }),
       FeedbackItem.countDocuments({ status: "new" }),
       FeedbackItem.countDocuments({ status: "waiting", waitingOn: "staff" }),
       FeedbackItem.countDocuments({ assignedTo: viewerUserId, status: { $in: FEEDBACK_OPEN_STATUSES } }),
@@ -90,6 +102,10 @@ export async function GET(req: NextRequest) {
       total,
       page,
       totalPages: Math.max(1, Math.ceil(total / limit)),
+      counts: {
+        open: openCount,
+        archive: archiveCount,
+      },
       stats: {
         openCount,
         newCount,
