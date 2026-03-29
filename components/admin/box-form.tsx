@@ -57,11 +57,13 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Sync priceInCoins when parent updates it (e.g. auto-calculate)
+  /* eslint-disable react-hooks/set-state-in-effect -- syncing derived state from prop */
   useEffect(() => {
     if (initialData?.priceInCoins !== undefined) {
       setPriceInCoins(String(initialData.priceInCoins));
     }
   }, [initialData?.priceInCoins]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     fetch("/api/justtcg/games")

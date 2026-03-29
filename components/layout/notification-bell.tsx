@@ -32,6 +32,7 @@ export function NotificationBell() {
   useEffect(() => {
     if (didFetchRef.current) return;
     didFetchRef.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- initial data fetch on mount
     void fetchUnreadCount();
   }, [fetchUnreadCount]);
 

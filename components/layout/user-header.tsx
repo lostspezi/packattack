@@ -50,9 +50,11 @@ export function UserHeader({
     return () => window.removeEventListener("avatar-changed", onAvatarChange);
   }, []);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- syncing avatar state from prop */
   useEffect(() => {
     setAvatarUrl(userImage || "/images/default-avatar.png");
   }, [userImage]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const [cartCount, setCartCount] = useState(0);
   const [cartTimer, setCartTimer] = useState(0);
@@ -71,12 +73,14 @@ export function UserHeader({
     fetchCartCount();
   }, [fetchCartCount]);
 
-  // Refresh cart count when navigating (e.g. after claiming)
+  // Close mobile menu and refresh cart on navigation
   const pathnameWithoutLang = pathname.replace(/^\/[a-z]{2}/, "");
+  /* eslint-disable react-hooks/set-state-in-effect -- closing menu and refreshing cart on route change */
   useEffect(() => {
     setMobileMenuOpen(false);
     fetchCartCount();
   }, [pathnameWithoutLang, fetchCartCount]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Tick cart timer every second
   useEffect(() => {

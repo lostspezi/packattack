@@ -362,6 +362,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
 
   useEffect(() => {
     void loadOverview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once on mount
   }, []);
 
   function triggerLauncherAnimation() {
@@ -481,6 +482,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     };
 
     return () => source.close();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- isMentionForCurrentUser is stable (depends only on selfUsername)
   }, [
     copy.reports.error,
     copy.states.deleted,

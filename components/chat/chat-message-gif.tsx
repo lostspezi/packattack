@@ -16,6 +16,7 @@ export function ChatMessageGif({
   linkToSource = true,
 }: ChatMessageGifProps) {
   const image = (
+    // eslint-disable-next-line @next/next/no-img-element -- external GIF URLs, next/image not suitable
     <img
       src={gif.displayUrl || gif.previewUrl}
       alt={gif.title}

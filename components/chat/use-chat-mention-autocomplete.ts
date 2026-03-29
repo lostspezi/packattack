@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   findMentionQuery,
   insertMentionAtRange,
-  type ChatMentionQuery,
 } from "@/lib/chat-mentions";
 import type { ChatMentionCandidateSummary, ChatMentionSearchResponse } from "@/types/chat";
 
@@ -23,10 +22,12 @@ export function useChatMentionAutocomplete({
   onBodyChange,
 }: UseChatMentionAutocompleteInput) {
   const [caretPosition, setCaretPosition] = useState(0);
-  const [range, setRange] = useState<ChatMentionQuery | null>(null);
   const [users, setUsers] = useState<ChatMentionCandidateSummary[]>([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const requestRef = useRef(0);
+
+  // Derive range during render instead of storing in state
+  const range = disabled ? null : findMentionQuery(body, caretPosition);
 
   const isOpen = users.length > 0 && Boolean(range);
 
@@ -40,32 +41,18 @@ export function useChatMentionAutocomplete({
   }, [textareaRef]);
 
   const closeMentions = useCallback(() => {
-    setRange(null);
     setUsers([]);
     setActiveIndex(0);
   }, []);
 
-  useEffect(() => {
-    if (disabled) {
-      closeMentions();
-      return;
-    }
-
-    const nextRange = findMentionQuery(body, caretPosition);
-    if (!nextRange) {
-      closeMentions();
-      return;
-    }
-
-    setRange(nextRange);
-  }, [body, caretPosition, closeMentions, disabled]);
-
+  /* eslint-disable react-hooks/set-state-in-effect -- resetting derived state when range disappears */
   useEffect(() => {
     if (!range || disabled) {
       setUsers([]);
       setActiveIndex(0);
       return;
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
 
     const controller = new AbortController();
     const requestId = requestRef.current + 1;

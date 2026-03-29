@@ -46,16 +46,6 @@ export default function PacksPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Handle return from Stripe Checkout
-  useEffect(() => {
-    const purchase = searchParams.get("purchase");
-    const sessionId = searchParams.get("session_id");
-
-    if (purchase === "success" && sessionId) {
-      pollPurchaseStatus(sessionId);
-    }
-  }, [searchParams]);
-
   const pollPurchaseStatus = useCallback(
     async (sessionId: string) => {
       const maxAttempts = 10;
@@ -86,6 +76,18 @@ export default function PacksPage() {
     },
     [toast, isDe, lang, router]
   );
+
+  // Handle return from Stripe Checkout
+  /* eslint-disable react-hooks/set-state-in-effect -- pollPurchaseStatus is async, setState happens in callbacks */
+  useEffect(() => {
+    const purchase = searchParams.get("purchase");
+    const sessionId = searchParams.get("session_id");
+
+    if (purchase === "success" && sessionId) {
+      pollPurchaseStatus(sessionId);
+    }
+  }, [searchParams, pollPurchaseStatus]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <div className="space-y-6">

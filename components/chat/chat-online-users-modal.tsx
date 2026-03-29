@@ -34,12 +34,14 @@ export function ChatOnlineUsersModal({
   } | null>(null);
   const [activeBadge, setActiveBadge] = useState<ChatBadgeSummary | null>(null);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- resetting child state when modal closes */
   useEffect(() => {
     if (!open) {
       setActiveUserCard(null);
       setActiveBadge(null);
     }
   }, [open]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   return (
     <>

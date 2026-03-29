@@ -116,6 +116,7 @@ export function FeedbackDetailClient({ lang, feedbackId, dict = {}, mode = "user
     return () => {
       active = false;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- dict and lang are stable page-level props
   }, [copy.common.networkError, copy.detail.loadError, feedbackId, toast]);
 
   async function refreshFromResponse(res: Response) {

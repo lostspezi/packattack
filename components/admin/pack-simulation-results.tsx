@@ -135,20 +135,6 @@ export function PackSimulationResults({
     tooltip: { theme: "dark" },
   };
 
-  function SortHeader({ k, children }: { k: SortKey; children: React.ReactNode }) {
-    const active = sortKey === k;
-    return (
-      <button
-        type="button"
-        onClick={() => toggleSort(k)}
-        className={`inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wider ${active ? "text-pa-green" : "text-text-secondary"}`}
-      >
-        {children}
-        <ArrowUpDown className="w-3 h-3" />
-      </button>
-    );
-  }
-
   return (
     <Modal open={open} onClose={onClose} title={isDe ? "Simulations-Ergebnis" : "Simulation Results"} size="xl">
       <div className="space-y-5">
@@ -208,13 +194,13 @@ export function PackSimulationResults({
               <thead>
                 <tr className="border-b border-border">
                   <th className="px-2 py-2 text-left text-xs font-medium text-text-secondary uppercase tracking-wider w-8">{isDe ? "Bild" : "Img"}</th>
-                  <th className="px-2 py-2 text-left"><SortHeader k="name">{isDe ? "Name" : "Name"}</SortHeader></th>
+                  <th className="px-2 py-2 text-left"><button type="button" onClick={() => toggleSort("name")} className={`inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wider ${sortKey === "name" ? "text-pa-green" : "text-text-secondary"}`}>{isDe ? "Name" : "Name"}<ArrowUpDown className="w-3 h-3" /></button></th>
                   <th className="px-2 py-2 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">{isDe ? "Rarität" : "Rarity"}</th>
-                  <th className="px-2 py-2 text-right"><SortHeader k="pullCount">{isDe ? "Gezogen" : "Pulls"}</SortHeader></th>
-                  <th className="px-2 py-2 text-right"><SortHeader k="pullPercentage">Draw%</SortHeader></th>
+                  <th className="px-2 py-2 text-right"><button type="button" onClick={() => toggleSort("pullCount")} className={`inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wider ${sortKey === "pullCount" ? "text-pa-green" : "text-text-secondary"}`}>{isDe ? "Gezogen" : "Pulls"}<ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="px-2 py-2 text-right"><button type="button" onClick={() => toggleSort("pullPercentage")} className={`inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wider ${sortKey === "pullPercentage" ? "text-pa-green" : "text-text-secondary"}`}>Draw%<ArrowUpDown className="w-3 h-3" /></button></th>
                   <th className="px-2 py-2 text-right text-xs font-medium text-text-secondary uppercase tracking-wider">{isDe ? "Erwartet" : "Expected"}</th>
-                  <th className="px-2 py-2 text-right"><SortHeader k="deviation">{isDe ? "Abw." : "Dev."}</SortHeader></th>
-                  <th className="px-2 py-2 text-right"><SortHeader k="valueContributed">{isDe ? "Wert" : "Value"}</SortHeader></th>
+                  <th className="px-2 py-2 text-right"><button type="button" onClick={() => toggleSort("deviation")} className={`inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wider ${sortKey === "deviation" ? "text-pa-green" : "text-text-secondary"}`}>{isDe ? "Abw." : "Dev."}<ArrowUpDown className="w-3 h-3" /></button></th>
+                  <th className="px-2 py-2 text-right"><button type="button" onClick={() => toggleSort("valueContributed")} className={`inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wider ${sortKey === "valueContributed" ? "text-pa-green" : "text-text-secondary"}`}>{isDe ? "Wert" : "Value"}<ArrowUpDown className="w-3 h-3" /></button></th>
                 </tr>
               </thead>
               <tbody>

@@ -264,6 +264,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
     };
 
     return () => source.close();
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- isMentionForCurrentUser is stable (depends only on selfUsername)
   }, [copy.reports.error, copy.states.deleted, copy.states.soundUnavailable, currentUserId, initialData.selfUsername, readState.soundMode, toast]);
 
   useEffect(() => {

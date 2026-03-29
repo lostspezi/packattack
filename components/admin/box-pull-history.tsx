@@ -51,19 +51,20 @@ export function BoxPullHistory({ boxId, lang }: BoxPullHistoryProps) {
   const [statusFilter, setStatusFilter] = useState("");
 
   useEffect(() => {
-    setLoading(true);
+    let cancelled = false;
     const params = new URLSearchParams({ page: String(page), limit: "30" });
     if (statusFilter) params.set("status", statusFilter);
     fetch(`/api/admin/boxes/${boxId}/pulls?${params.toString()}`)
       .then(async (res) => {
-        if (!res.ok) return;
+        if (!res.ok || cancelled) return;
         const data = await res.json() as { pulls?: Pull[]; total?: number; totalPages?: number };
         setPulls(data.pulls ?? []);
         setTotal(data.total ?? 0);
         setTotalPages(data.totalPages ?? 1);
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [boxId, page, statusFilter]);
 
   const statusOptions: SelectOption[] = [
@@ -83,7 +84,7 @@ export function BoxPullHistory({ boxId, lang }: BoxPullHistoryProps) {
           <Select
             options={statusOptions}
             value={statusFilter}
-            onChange={(v) => { setStatusFilter(v); setPage(1); }}
+            onChange={(v) => { setLoading(true); setStatusFilter(v); setPage(1); }}
             size="sm"
           />
         </div>
@@ -150,10 +151,10 @@ export function BoxPullHistory({ boxId, lang }: BoxPullHistoryProps) {
                 {isDe ? "Seite" : "Page"} {page}/{totalPages}
               </span>
               <div className="flex gap-2">
-                <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => { setLoading(true); setPage((p) => p - 1); }}>
                   {isDe ? "Zurück" : "Previous"}
                 </Button>
-                <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                <Button variant="secondary" size="sm" disabled={page >= totalPages} onClick={() => { setLoading(true); setPage((p) => p + 1); }}>
                   {isDe ? "Weiter" : "Next"}
                 </Button>
               </div>

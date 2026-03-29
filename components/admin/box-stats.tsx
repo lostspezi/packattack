@@ -55,14 +55,15 @@ export function BoxStats({ boxId, lang }: BoxStatsProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
+    let cancelled = false;
     fetch(`/api/admin/boxes/${boxId}/stats?period=${period}`)
       .then(async (res) => {
-        if (!res.ok) return;
+        if (!res.ok || cancelled) return;
         setData(await res.json() as StatsData);
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, [boxId, period]);
 
   const chartOptions: ApexCharts.ApexOptions = {
@@ -92,7 +93,7 @@ export function BoxStats({ boxId, lang }: BoxStatsProps) {
             <button
               key={p.value}
               type="button"
-              onClick={() => setPeriod(p.value)}
+              onClick={() => { setLoading(true); setPeriod(p.value); }}
               className={`px-2.5 py-1 text-xs font-medium rounded-full border transition-colors ${
                 period === p.value
                   ? "bg-pa-green/10 text-pa-green border-pa-green/20"

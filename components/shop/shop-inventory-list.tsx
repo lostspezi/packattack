@@ -95,6 +95,7 @@ export function ShopInventoryList({
     } finally {
       setLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- onItemsLoaded is a callback prop, including it would cause infinite fetch loops
   }, [isDe]);
 
   // Fetch on mount and whenever refreshKey changes
@@ -249,6 +250,7 @@ export function ShopInventoryList({
                   {/* Thumbnail */}
                   <td className="py-2 pr-2">
                     {thumb ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- inventory thumbnails from external URLs
                       <img
                         src={thumb}
                         alt={item.card.name}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 
 interface CoinChestAnimationProps {
   coinsGranted: number;
@@ -14,17 +14,17 @@ export function CoinChestAnimation({
   const [phase, setPhase] = useState(0); // 0=enter, 1=open, 2=rain, 3=result
   const [count, setCount] = useState(0);
 
-  // Generate random coin trajectories
-  const coins = useMemo(() => {
-    return Array.from({ length: 18 }, (_, i) => ({
+  // Generate random coin trajectories (stable across re-renders via lazy initializer)
+  const [coins] = useState(() =>
+    Array.from({ length: 18 }, (_, i) => ({
       id: i,
       x: (Math.random() - 0.5) * 300,
       y: -(Math.random() * 200 + 100),
       rotation: Math.random() * 720 - 360,
       delay: Math.random() * 0.4,
       size: 16 + Math.random() * 16,
-    }));
-  }, []);
+    }))
+  );
 
   // Phase progression
   useEffect(() => {
