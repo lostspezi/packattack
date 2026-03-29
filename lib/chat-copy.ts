@@ -82,6 +82,11 @@ export interface ChatUiCopy {
     add: string;
     pickerTitle: string;
     reactWith: string;
+    view: string;
+    viewerTitle: string;
+    viewerEmpty: string;
+    tooltipReactedBy: string;
+    tooltipAndOthers: string;
     updateError: string;
   };
   states: {
@@ -249,6 +254,11 @@ const de: ChatUiCopy = {
     add: "Reagieren",
     pickerTitle: "Reaktion wählen",
     reactWith: "Reagiere mit",
+    view: "Reaktionen ansehen",
+    viewerTitle: "Reaktionen",
+    viewerEmpty: "Noch keine Reaktionen.",
+    tooltipReactedBy: "reagiert von",
+    tooltipAndOthers: "und {count} weitere",
     updateError: "Reaktion konnte nicht gespeichert werden.",
   },
   states: {
@@ -417,6 +427,11 @@ const en: ChatUiCopy = {
     add: "React",
     pickerTitle: "Choose reaction",
     reactWith: "React with",
+    view: "View reactions",
+    viewerTitle: "Reactions",
+    viewerEmpty: "No reactions yet.",
+    tooltipReactedBy: "reacted by",
+    tooltipAndOthers: "and {count} others",
     updateError: "Could not save reaction.",
   },
   states: {

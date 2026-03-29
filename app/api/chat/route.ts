@@ -11,7 +11,7 @@ import {
   ensureGlobalChatRoom,
   fetchVisibleMessages,
   publishRoomEvent,
-  serializeChatMessage,
+  serializeChatMessageWithCurrentRelations,
   serializeChatMessagesWithCurrentBadgeDefinitions,
   serializeChatReadState,
   serializeChatRoom,
@@ -354,6 +354,8 @@ export async function POST(req: NextRequest) {
       ...(shouldBeVisible ? { $inc: { successfulMessageCount: 1 } } : {}),
     });
 
+    const serializedMessage = await serializeChatMessageWithCurrentRelations(message);
+
     if (shouldBeVisible && message.visibleSeq) {
       await readState.updateOne({
         $set: {
@@ -377,7 +379,7 @@ export async function POST(req: NextRequest) {
       await publishRoomEvent(room.slug, {
         type: "message_created",
         payload: {
-          message: serializeChatMessage(message),
+          message: serializedMessage,
         },
       });
     } else if (message.status === "held") {
@@ -395,7 +397,7 @@ export async function POST(req: NextRequest) {
       await publishRoomEvent(room.slug, {
         type: "message_held",
         payload: {
-          message: serializeChatMessage(message),
+          message: serializedMessage,
         },
       });
     } else {
@@ -419,7 +421,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(
       {
-        message: serializeChatMessage(message),
+        message: serializedMessage,
         moderationStatus: message.status,
       },
       { status: message.status === "held" ? 202 : 201 }

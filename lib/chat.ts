@@ -29,6 +29,7 @@ import type {
   ChatAdminOverviewResponse,
   ChatEventEnvelope,
   ChatMessageSummary,
+  ChatReactionUserSummary,
   ChatModeratedUserSummary,
   ChatModerationActionSummary,
   ChatOnlineUserSummary,
@@ -310,6 +311,28 @@ export function serializeChatOnlineUser(
   };
 }
 
+function collectReactionUserIds(messages: IChatMessage[]): string[] {
+  return [...new Set(
+    messages.flatMap((message) =>
+      (message.reactions ?? []).flatMap((reaction) =>
+        (reaction.userIds ?? []).map((userId) => toStringId(userId)).filter(Boolean)
+      )
+    )
+  )];
+}
+
+function serializeChatReactionUser(
+  userId: string,
+  user: ChatUserLike | null | undefined
+): ChatReactionUserSummary {
+  return {
+    id: userId,
+    name: getDisplayName(user),
+    username: user?.username ?? null,
+    avatarUrl: user?.image ?? null,
+  };
+}
+
 function getMessageBody(message: Pick<IChatMessage, "status" | "bodyDisplay">): string {
   if (message.status === "deleted" || message.status === "redacted") {
     return "Nachricht entfernt";
@@ -330,7 +353,8 @@ export function serializeChatMessage(
     sortOrder: number;
     visibility: "public" | "staff_only";
     category: string | null;
-  }>
+  }>,
+  reactionUsersById: Map<string, ChatUserLike> = new Map()
 ): ChatMessageSummary {
   const profileBadges = message.authorSnapshot?.profileBadges
     ? applyBadgeDefinitionOverrides(
@@ -391,6 +415,9 @@ export function serializeChatMessage(
       .map((reaction) => ({
         ...reaction,
         count: reaction.userIds.length,
+        reactors: reaction.userIds.map((userId) =>
+          serializeChatReactionUser(userId, reactionUsersById.get(userId))
+        ),
       }))
       .filter((reaction) => reaction.count > 0),
     isDeleted: message.status === "deleted" || message.status === "redacted",
@@ -403,12 +430,31 @@ export function serializeChatMessage(
 export async function serializeChatMessagesWithCurrentBadgeDefinitions(
   messages: IChatMessage[]
 ): Promise<ChatMessageSummary[]> {
-  const badgeDefinitionsByKey = await getBadgeDefinitionsMapByKeys(
-    messages.flatMap((message) =>
-      (message.authorSnapshot?.profileBadges ?? []).map((badge) => badge.key).filter(Boolean)
-    )
+  const [badgeDefinitionsByKey, reactionUsersById] = await Promise.all([
+    getBadgeDefinitionsMapByKeys(
+      messages.flatMap((message) =>
+        (message.authorSnapshot?.profileBadges ?? []).map((badge) => badge.key).filter(Boolean)
+      )
+    ),
+    fetchUsersMap(collectReactionUserIds(messages)),
+  ]);
+
+  return messages.map((message) =>
+    serializeChatMessage(message, badgeDefinitionsByKey, reactionUsersById)
   );
-  return messages.map((message) => serializeChatMessage(message, badgeDefinitionsByKey));
+}
+
+export async function serializeChatMessageWithCurrentRelations(
+  message: IChatMessage
+): Promise<ChatMessageSummary> {
+  const [badgeDefinitionsByKey, reactionUsersById] = await Promise.all([
+    getBadgeDefinitionsMapByKeys(
+      (message.authorSnapshot?.profileBadges ?? []).map((badge) => badge.key).filter(Boolean)
+    ),
+    fetchUsersMap(collectReactionUserIds([message])),
+  ]);
+
+  return serializeChatMessage(message, badgeDefinitionsByKey, reactionUsersById);
 }
 
 export function serializeChatReadState(readState: {

@@ -8,7 +8,7 @@ import {
   ensureGlobalChatPolicy,
   ensureGlobalChatRoom,
   publishRoomEvent,
-  serializeChatMessage,
+  serializeChatMessageWithCurrentRelations,
 } from "@/lib/chat";
 import { isChatStaff } from "@/lib/chat-constants";
 import connectDB from "@/lib/db";
@@ -165,11 +165,7 @@ export async function POST(
                                             },
                                           },
                                           {
-                                            $cond: [
-                                              { $gt: [{ $size: "$$existingUserIds" }, 0] },
-                                              { $setUnion: ["$$existingUserIds", [reactorId]] },
-                                              [reactorId],
-                                            ],
+                                            $concatArrays: ["$$existingUserIds", [reactorId]],
                                           },
                                         ],
                                       },
@@ -219,7 +215,7 @@ export async function POST(
       return NextResponse.json({ error: "not_found" }, { status: 404 });
     }
 
-    const serializedMessage = serializeChatMessage(updatedMessage);
+    const serializedMessage = await serializeChatMessageWithCurrentRelations(updatedMessage);
     const updatedReaction = serializedMessage.reactions.find((reaction) => reaction.emoji === emoji);
     const action = updatedReaction?.userIds.includes(userId) ? "added" : "removed";
 

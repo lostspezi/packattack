@@ -10,7 +10,7 @@ import {
   publishRoomEvent,
   publishRoomState,
   publishUserEvent,
-  serializeChatMessage,
+  serializeChatMessageWithCurrentRelations,
 } from "@/lib/chat";
 import { isChatStaff } from "@/lib/chat-constants";
 import ChatMessage from "@/models/chat-message";
@@ -228,9 +228,10 @@ export async function POST(req: NextRequest) {
           payload: { actionId: action._id.toString(), reason: actionData.reason ?? null },
         });
 
+        const serializedMessage = await serializeChatMessageWithCurrentRelations(message);
         await publishRoomEvent(room.slug, {
           type: "message_created",
-          payload: { message: serializeChatMessage(message) },
+          payload: { message: serializedMessage },
         });
         moderationUpdateKind = "message_reviewed";
         break;
@@ -342,9 +343,10 @@ export async function POST(req: NextRequest) {
             },
           });
         } else {
+          const serializedMessage = await serializeChatMessageWithCurrentRelations(message);
           await publishRoomEvent(room.slug, {
             type: "message_created",
-            payload: { message: serializeChatMessage(message) },
+            payload: { message: serializedMessage },
           });
         }
         moderationUpdateKind = normalizedAction;
