@@ -52,7 +52,16 @@ export async function POST(
     const realBoxId = box._id;
     const totalCost = box.priceInCoins * packCount;
 
-    // 2. Check user coins (atomic: only deduct if sufficient)
+    // 2. Check for existing pending session — block before deducting coins
+    const existingPending = await PackPull.findOne({ userId, status: "pending" }).lean();
+    if (existingPending) {
+      return NextResponse.json(
+        { error: "pending_session", message: "Du hast noch offene Karten aus einem vorherigen Opening." },
+        { status: 409 }
+      );
+    }
+
+    // 3. Check user coins (atomic: only deduct if sufficient)
     const user = await User.findOneAndUpdate(
       { _id: userId, coins: { $gte: totalCost } },
       { $inc: { coins: -totalCost } },
@@ -63,7 +72,7 @@ export async function POST(
       return NextResponse.json({ error: "Insufficient coins" }, { status: 400 });
     }
 
-    // 3. Build card pool from box
+    // 4. Build card pool from box
     const cardEntries = box.cards as Array<{
       card: { toString(): string };
       weight: number;
@@ -97,13 +106,12 @@ export async function POST(
       return NextResponse.json({ error: "No available cards in this box" }, { status: 400 });
     }
 
-    // 4. Draw cards
+    // 5. Draw cards
     const result = drawPacks(
       packCards,
       box.cardsPerPack,
       packCount,
       box.priceInCoins,
-      box.coinConversionRate ?? 50
     );
 
     if (result.drawnCards.length === 0) {
@@ -112,18 +120,32 @@ export async function POST(
       return NextResponse.json({ error: "Could not draw cards" }, { status: 400 });
     }
 
-    // 5. Get IP and User Agent
+    // 7. Get IP and User Agent
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
       ?? req.headers.get("x-real-ip")
       ?? "unknown";
     const ua = req.headers.get("user-agent") ?? "unknown";
 
-    // 6. Create PackPulls and update stock
+    // 6. Create PackPull records with status "pending" — crash-safe
     const packGroupId = randomUUID();
-    // Store drawn cards temporarily — actual PackPull records created on each decision
-    // We pass packGroupId + card info to frontend, decisions come back via /api/pulls/decide
+    const pullDocs = result.drawnCards.map((d, i) => ({
+      userId,
+      boxId: realBoxId,
+      cardId: d.cardId,
+      rarity: d.rarity,
+      coinValue: d.coinValue,
+      conversionValue: d.conversionValue,
+      status: "pending" as const,
+      decidedAt: null,
+      packGroupId,
+      packIndex: d.packIndex,
+      cardIndex: i,
+      ipAddress: ip,
+      userAgent: ua,
+    }));
+    await PackPull.insertMany(pullDocs);
 
-    // 7. Atomically reduce stock per drawn card (race-condition safe)
+    // 8. Atomically reduce stock per drawn card (race-condition safe)
     const stockUpdates: Record<string, number> = {};
     for (const d of result.drawnCards) {
       stockUpdates[d.cardId] = (stockUpdates[d.cardId] ?? 0) + 1;
@@ -148,7 +170,7 @@ export async function POST(
     // Reload box for stock alerts (need current state)
     const updatedBox = await Box.findById(realBoxId);
 
-    // 8. Record coin transaction
+    // 9. Record coin transaction
     await CoinTransaction.create({
       userId,
       amount: -totalCost,
@@ -156,10 +178,10 @@ export async function POST(
       relatedBoxId: realBoxId,
     });
 
-    // 9. Check for low-stock / out-of-stock notifications (only for drawn cards)
+    // 10. Check for low-stock / out-of-stock notifications (only for drawn cards)
     if (updatedBox) void sendStockAlerts(updatedBox, cardMap, stockUpdates);
 
-    // 10. Substitute depleted cards from global inventory
+    // 11. Substitute depleted cards from global inventory
     const depletedCards: Record<string, number> = {};
     if (updatedBox) {
       for (const [cardId, drawnCount] of Object.entries(stockUpdates)) {
@@ -173,7 +195,7 @@ export async function POST(
       void runSubstitutions({ boxId: realBoxId.toString(), depletedCards });
     }
 
-    // 11. Response
+    // 12. Response
     return NextResponse.json({
       packGroupId,
       packCount,

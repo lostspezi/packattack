@@ -7,8 +7,8 @@ export interface IPackPull extends Document {
   rarity: string;
   coinValue: number;
   conversionValue: number;
-  status: "claimed" | "converted" | "reserved";
-  decidedAt: Date;
+  status: "pending" | "claimed" | "converted" | "reserved";
+  decidedAt: Date | null;
   packGroupId: string;
   packIndex: number;
   cardIndex: number;
@@ -27,10 +27,10 @@ const PackPullSchema = new Schema<IPackPull>(
     conversionValue: { type: Number, required: true },
     status: {
       type: String,
-      enum: ["claimed", "converted", "reserved"],
+      enum: ["pending", "claimed", "converted", "reserved"],
       required: true,
     },
-    decidedAt: { type: Date, required: true },
+    decidedAt: { type: Date, default: null },
     packGroupId: { type: String, required: true },
     packIndex: { type: Number, required: true },
     cardIndex: { type: Number, required: true },

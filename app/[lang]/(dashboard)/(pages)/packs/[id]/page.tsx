@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Package, ChevronDown } from "lucide-react";
+import { ArrowLeft, Loader2, Package, ChevronDown, AlertTriangle } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
@@ -40,7 +41,6 @@ interface BoxDetail {
   packsOpened: number;
   rarityInfo: Array<{ rarity: string; percentage: number }>;
   conditionInfo: Array<{ condition: string; percentage: number }>;
-  coinConversionRate: number;
   cardPool: CardInfo[];
   topHits: CardInfo[];
   recentPulls: Array<{
@@ -68,6 +68,7 @@ interface OpenResult {
   packCount: number;
   totalCost: number;
   newBalance: number;
+  isRecovery?: boolean;
   cards: Array<{
     cardId: string;
     name: string;
@@ -77,6 +78,7 @@ interface OpenResult {
     image: string | null;
     packIndex: number;
     cardIndex: number;
+    status?: string;
   }>;
 }
 
@@ -96,15 +98,91 @@ export default function PackDetailPage() {
   const [userCoins, setUserCoins] = useState<number | null>(null);
   const [showBoxInfo, setShowBoxInfo] = useState(false);
 
+  const [pendingOtherBox, setPendingOtherBox] = useState<{
+    boxName: string;
+    boxSlug: string;
+    pendingCount: number;
+  } | null>(null);
+
   useEffect(() => {
     Promise.all([
       fetch(`/api/packs/${id}`).then((r) => r.ok ? r.json() : null),
       fetch("/api/profile").then((r) => r.ok ? r.json() : null),
-    ]).then(([boxData, profileData]) => {
-      setBox(boxData as BoxDetail | null);
-      setUserCoins((profileData as { coins?: number })?.coins ?? 0);
+      fetch("/api/pulls/pending").then((r) => r.ok ? r.json() : null),
+    ]).then(([boxData, profileData, pendingData]) => {
+      const typedBox = boxData as BoxDetail | null;
+      const typedProfile = profileData as { coins?: number } | null;
+      const typedPending = pendingData as {
+        pending: boolean;
+        packGroupId?: string;
+        boxId?: string;
+        boxSlug?: string;
+        boxName?: { de: string; en: string };
+        packCount?: number;
+        totalCards?: number;
+        pendingCount?: number;
+        decidedCount?: number;
+        cards?: OpenResult["cards"];
+      } | null;
+
+      setBox(typedBox);
+      setUserCoins(typedProfile?.coins ?? 0);
+
+      // Recovery: pending session found
+      if (typedPending?.pending && typedPending.cards) {
+        // Match by slug OR by ObjectId against the URL param
+        const isSameBox =
+          typedPending.boxSlug === id ||
+          typedPending.boxId === id ||
+          typedPending.boxId === typedBox?._id;
+
+        if (isSameBox) {
+          // Same box — resume opening (works even if box detail API failed)
+          if (!typedBox && typedPending.boxName) {
+            // Box detail API failed but we have pending data — create minimal box
+            setBox({
+              _id: typedPending.boxId!,
+              slug: typedPending.boxSlug ?? id,
+              name: typedPending.boxName as { de: string; en: string },
+              description: null,
+              game: "",
+              image: null,
+              priceInCoins: 0,
+              cardsPerPack: 0,
+              totalCards: 0,
+              availableCards: 0,
+              packsOpened: 0,
+              rarityInfo: [],
+              conditionInfo: [],
+              cardPool: [],
+              topHits: [],
+              recentPulls: [],
+              myPullCounts: {},
+              liveEvents: [],
+            } as BoxDetail);
+          }
+          setOpenResult({
+            packGroupId: typedPending.packGroupId!,
+            packCount: typedPending.packCount ?? 1,
+            totalCost: 0,
+            newBalance: typedProfile?.coins ?? 0,
+            isRecovery: true,
+            cards: typedPending.cards,
+          });
+        } else {
+          // Different box — show banner
+          const name = isDe
+            ? (typedPending.boxName?.de || typedPending.boxName?.en || "Box")
+            : (typedPending.boxName?.en || typedPending.boxName?.de || "Box");
+          setPendingOtherBox({
+            boxName: name,
+            boxSlug: typedPending.boxSlug ?? typedPending.boxId!,
+            pendingCount: typedPending.pendingCount ?? 0,
+          });
+        }
+      }
     }).catch(() => {}).finally(() => setLoading(false));
-  }, [id]);
+  }, [id, isDe]);
 
   async function handleOpen() {
     if (!box) return;
@@ -115,9 +193,9 @@ export default function PackDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ packCount }),
       });
-      const data = await res.json() as OpenResult & { error?: string };
+      const data = await res.json() as OpenResult & { error?: string; message?: string };
       if (!res.ok) {
-        toast({ type: "error", title: data.error ?? "Failed to open pack" });
+        toast({ type: "error", title: data.message ?? data.error ?? "Failed to open pack" });
         return;
       }
       setOpenResult(data);
@@ -188,6 +266,31 @@ export default function PackDetailPage() {
         <ArrowLeft className="w-4 h-4" />
         {isDe ? "Zurück zu Packs" : "Back to Packs"}
       </button>
+
+      {/* Pending session on another box — warning banner */}
+      {pendingOtherBox && (
+        <div className="flex items-center gap-3 rounded-xl border border-orange-500/30 bg-orange-500/8 px-4 py-3">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-orange-400" />
+          <div className="flex-1 text-sm">
+            <p className="font-medium text-text-primary">
+              {isDe
+                ? `Du hast noch ${pendingOtherBox.pendingCount} offene Karten aus „${pendingOtherBox.boxName}".`
+                : `You have ${pendingOtherBox.pendingCount} undecided cards from "${pendingOtherBox.boxName}".`}
+            </p>
+            <p className="text-text-muted">
+              {isDe
+                ? "Bitte entscheide zuerst über diese Karten, bevor du neue Packs öffnst."
+                : "Please decide on those cards before opening new packs."}
+            </p>
+          </div>
+          <Link
+            href={`/${lang}/packs/${pendingOtherBox.boxSlug}`}
+            className="shrink-0 rounded-lg bg-orange-500/15 px-3 py-1.5 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-500/25"
+          >
+            {isDe ? "Jetzt entscheiden" : "Decide now"}
+          </Link>
+        </div>
+      )}
 
       {/* ═══ HERO: PACK OPENING ═══ */}
       <div className="bg-surface border border-border rounded-[16px] p-5 md:p-7 relative overflow-hidden">
@@ -288,7 +391,7 @@ export default function PackDetailPage() {
                 variant="primary"
                 size="md"
                 loading={opening}
-                disabled={!canAfford || box.availableCards === 0}
+                disabled={!canAfford || box.availableCards === 0 || !!pendingOtherBox}
                 onClick={() => void handleOpen()}
                 className="shadow-[0_0_24px_theme(colors.pa-green/0.2)]"
               >
@@ -298,7 +401,7 @@ export default function PackDetailPage() {
                 {(userCoins ?? 0).toLocaleString()} Coins
               </span>
               <span className="hidden lg:inline text-xs text-text-muted">
-                {box.cardsPerPack} {isDe ? "Karten/Pack" : "cards/pack"} · {box.availableCards} {isDe ? "verfügbar" : "available"} · {box.coinConversionRate}% {isDe ? "Umwandlung" : "conversion"}
+                {box.cardsPerPack} {isDe ? "Karten/Pack" : "cards/pack"} · {box.availableCards} {isDe ? "verfügbar" : "available"}
               </span>
             </div>
           </div>

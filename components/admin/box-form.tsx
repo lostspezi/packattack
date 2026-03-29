@@ -16,7 +16,6 @@ export interface BoxFormData {
   priceInCoins: number;
   cardsPerPack: number;
   totalPacks: number | null;
-  coinConversionRate: number;
   rarityWeights: RarityWeight[];
 }
 
@@ -47,9 +46,6 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
     initialData?.totalPacks !== null && initialData?.totalPacks !== undefined
       ? String(initialData.totalPacks)
       : ""
-  );
-  const [conversionRate, setConversionRate] = useState<string>(
-    initialData?.coinConversionRate !== undefined ? String(initialData.coinConversionRate) : "50"
   );
   const [rarityWeights, setRarityWeights] = useState<RarityWeight[]>(
     initialData?.rarityWeights ?? []
@@ -106,7 +102,6 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
       priceInCoins: parseInt(priceInCoins, 10),
       cardsPerPack: parseInt(cardsPerPack, 10),
       totalPacks: totalPacksParsed !== null && !isNaN(totalPacksParsed) ? totalPacksParsed : null,
-      coinConversionRate: Math.max(1, Math.min(100, parseInt(conversionRate, 10) || 50)),
       rarityWeights,
     });
   }
@@ -198,13 +193,6 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
               {isDe ? "Gesamte Packs" : "Total Packs"}
             </label>
             <Input type="number" min={1} value={totalPacksStr} onChange={(e) => setTotalPacksStr(e.target.value)} placeholder={isDe ? "Unbegrenzt" : "Unlimited"} className="py-1.5 text-sm" />
-          </div>
-
-          <div className="space-y-1">
-            <label className="block text-xs font-medium text-text-muted">
-              {isDe ? "Umwandlung (%)" : "Conversion (%)"}
-            </label>
-            <Input type="number" min={1} max={100} value={conversionRate} onChange={(e) => setConversionRate(e.target.value)} placeholder="50" className="py-1.5 text-sm" />
           </div>
 
         </div>

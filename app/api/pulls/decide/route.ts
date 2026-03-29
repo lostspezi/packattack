@@ -53,30 +53,20 @@ export async function POST(req: NextRequest) {
       ?? "unknown";
     const ua = req.headers.get("user-agent") ?? "unknown";
 
-    // Create the PackPull record
-    // Unique index on (packGroupId, cardIndex) prevents duplicates atomically
-    let pull;
-    try {
-      pull = await PackPull.create({
-        userId,
-        boxId,
-        cardId,
-        rarity: rarity ?? "",
-        coinValue: coinValue ?? 0,
-        conversionValue: conversionValue ?? 0,
-        status: decision === "claim" ? "reserved" : "converted",
-        decidedAt: new Date(),
-        packGroupId,
-        packIndex: packIndex ?? 0,
-        cardIndex,
-        ipAddress: ip,
-        userAgent: ua,
-      });
-    } catch (err: unknown) {
-      if ((err as { code?: number }).code === 11000) {
-        return NextResponse.json({ error: "Already decided for this card" }, { status: 400 });
-      }
-      throw err;
+    // Update the pending PackPull record to the user's decision
+    const pull = await PackPull.findOneAndUpdate(
+      { packGroupId, cardIndex, userId, status: "pending" },
+      {
+        $set: {
+          status: decision === "claim" ? "reserved" : "converted",
+          decidedAt: new Date(),
+        },
+      },
+      { returnDocument: "after" }
+    );
+
+    if (!pull) {
+      return NextResponse.json({ error: "Already decided or not found" }, { status: 400 });
     }
 
     // Get user info for SSE event
@@ -97,8 +87,8 @@ export async function POST(req: NextRequest) {
         cardId,
         boxId,
         pullId: pull._id,
-        rarity: rarity ?? "",
-        conversionValue: conversionValue ?? 0,
+        rarity: pull.rarity,
+        conversionValue: pull.conversionValue,
         status: "reserved",
         expiresAt,
       });
@@ -117,27 +107,27 @@ export async function POST(req: NextRequest) {
     } else {
       const user = await User.findByIdAndUpdate(
         userId,
-        { $inc: { coins: conversionValue ?? 0 } },
+        { $inc: { coins: pull.conversionValue } },
         { returnDocument: "after" }
       );
 
       const { Types } = await import("mongoose");
-      const cardObjectId = new Types.ObjectId(cardId);
+      const cardObjectId = new Types.ObjectId(pull.cardId.toString());
       await Box.updateOne(
-        { _id: boxId, "cards.card": cardObjectId },
+        { _id: pull.boxId, "cards.card": cardObjectId },
         { $inc: { "cards.$.stock": 1 } }
       );
 
       await CoinTransaction.create({
         userId,
-        amount: conversionValue ?? 0,
+        amount: pull.conversionValue,
         type: "card_conversion",
         relatedPullId: pull._id,
-        relatedBoxId: boxId,
+        relatedBoxId: pull.boxId,
       });
 
       // Publish SSE live event
-      void publishLiveEvent(boxId, userDoc, cardDoc, rarity ?? "", coinValue ?? 0, decision);
+      void publishLiveEvent(boxId, userDoc, cardDoc, pull.rarity, pull.coinValue, decision);
 
       return NextResponse.json({ success: true, decision: "converted", newBalance: user?.coins ?? 0 });
     }

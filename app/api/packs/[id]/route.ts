@@ -140,7 +140,6 @@ export async function GET(
       availableCards: cardEntries.filter((c) => (c.stock ?? 0) > 0).length,
       packsOpened: box.packsOpened ?? 0,
       rarityInfo,
-      coinConversionRate: box.coinConversionRate ?? 50,
       cardPool,
       topHits,
       conditionInfo: (() => {

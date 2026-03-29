@@ -53,14 +53,12 @@ function binarySearch(cumulative: number[], target: number): number {
  * @param cardsPerPack - How many cards per pack
  * @param packCount - How many packs to open (1-10)
  * @param priceInCoins - Cost per pack
- * @param conversionRate - Percentage of coinValue returned on conversion (1-100)
  */
 export function drawPacks(
   cards: PackCard[],
   cardsPerPack: number,
   packCount: number,
   priceInCoins: number,
-  conversionRate: number
 ): PackOpenResult {
   // Work with mutable copies of stock
   const stockLeft = new Map<string, number>();
@@ -98,8 +96,8 @@ export function drawPacks(
       // Reduce stock
       stockLeft.set(drawn.cardId, (stockLeft.get(drawn.cardId) ?? 1) - 1);
 
-      // Conversion value: floor(coinValue × rate/100), minimum 1
-      const conversionValue = Math.max(1, Math.floor(drawn.coinValue * conversionRate / 100));
+      // Conversion value: 1:1 with coinValue
+      const conversionValue = drawn.coinValue;
 
       drawnCards.push({
         cardId: drawn.cardId,
