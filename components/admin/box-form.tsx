@@ -29,6 +29,7 @@ interface BoxFormProps {
 
 export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormProps) {
   void dict;
+  void loading;
   const isDe = lang === "de";
 
   const [nameDe, setNameDe] = useState(initialData?.name?.de ?? "");

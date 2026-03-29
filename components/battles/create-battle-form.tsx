@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Coins, Users, Package, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { Loader2, Coins, Package, Eye, EyeOff, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";

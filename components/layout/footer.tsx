@@ -6,6 +6,7 @@ const LINKS = [
 ];
 
 export function Footer({ lang, dict }: { lang: string; dict: Record<string, string> }) {
+  void lang;
   const year = new Date().getFullYear();
 
   return (

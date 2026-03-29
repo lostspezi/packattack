@@ -81,7 +81,7 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
   const [isPlayer, setIsPlayer] = useState(false);
   const [myCards, setMyCards] = useState<DistributedCard[]>([]);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
-  const [spectatorCount, setSpectatorCount] = useState(0);
+  const [, setSpectatorCount] = useState(0);
   const [placements, setPlacements] = useState<BattlePlayer[]>([]);
   const [eloChanges, setEloChanges] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
@@ -90,7 +90,9 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
   const battleRef = useRef<Battle | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  battleRef.current = battle;
+  useEffect(() => {
+    battleRef.current = battle;
+  }, [battle]);
 
   const fetchBattle = useCallback(async () => {
     try {
@@ -243,14 +245,13 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
 
   useEffect(() => {
     let cancelled = false;
-    fetchBattle().then((b) => {
-      if (!cancelled && b) {
-        connectSSE(b._id);
-        setLoading(false);
-      } else if (!cancelled) {
-        setLoading(false);
-      }
-    });
+    async function init() {
+      const b = await fetchBattle();
+      if (cancelled) return;
+      if (b) connectSSE(b._id);
+      setLoading(false);
+    }
+    init();
     return () => {
       cancelled = true;
       eventSourceRef.current?.close();
@@ -320,7 +321,6 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
                 battleId={battle._id}
                 cards={myCards}
                 dict={dict}
-                lang={lang}
               />
             )}
           </>

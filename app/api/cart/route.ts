@@ -5,6 +5,7 @@ import CartItem from "@/models/cart-item";
 import "@/models/card";
 import "@/models/box";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(req: NextRequest) {
   const session = await auth();
   const userId = (session?.user as { id?: string } | undefined)?.id;

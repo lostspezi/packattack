@@ -4,6 +4,7 @@ import connectDB from "@/lib/db";
 import ShippingTier from "@/models/shipping-tier";
 import { shippingTierSchema } from "@/lib/validations";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_req: NextRequest) {
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role;

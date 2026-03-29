@@ -79,7 +79,6 @@ export function AddressAutocomplete({
     setActiveIndex(-1);
 
     try {
-      const g = window as any;
       const place = suggestion.placePrediction.toPlace();
       await place.fetchFields({ fields: ["addressComponents"] });
 

@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Season, { type ISeasonReward } from "@/models/season";
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_req: NextRequest) {
   const session = await auth();
   const role = (session?.user as { role?: string } | undefined)?.role;

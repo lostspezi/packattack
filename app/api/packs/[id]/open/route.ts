@@ -151,16 +151,15 @@ export async function POST(
       stockUpdates[d.cardId] = (stockUpdates[d.cardId] ?? 0) + 1;
     }
 
-    let failedDecrements = 0;
+    // Track stock decrements (some may fail if stock depleted concurrently)
     for (const [cardId, count] of Object.entries(stockUpdates)) {
       const cardObjectId = new (await import("mongoose")).Types.ObjectId(cardId);
       // Decrement one at a time with atomic $gte guard
       for (let i = 0; i < count; i++) {
-        const res = await Box.updateOne(
+        await Box.updateOne(
           { _id: realBoxId, "cards.card": cardObjectId, "cards.stock": { $gte: 1 } },
           { $inc: { "cards.$.stock": -1 } }
         );
-        if (res.modifiedCount === 0) failedDecrements++;
       }
     }
 

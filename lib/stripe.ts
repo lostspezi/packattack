@@ -14,9 +14,11 @@ function getStripe(): Stripe {
   return _stripe;
 }
 
-export default new Proxy({} as Stripe, {
+const stripeProxy = new Proxy({} as Stripe, {
   get(_target, prop) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return (getStripe() as any)[prop];
   },
 });
+
+export default stripeProxy;

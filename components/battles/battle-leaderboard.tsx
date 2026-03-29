@@ -70,17 +70,25 @@ export function BattleLeaderboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/battles/leaderboard?category=${category}&page=${page}&limit=${LIMIT}`)
+    let cancelled = false;
+    const controller = new AbortController();
+    fetch(`/api/battles/leaderboard?category=${category}&page=${page}&limit=${LIMIT}`, { signal: controller.signal })
       .then((res) => res.json())
-      .then((json) => setData(json))
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
+      .then((json) => { if (!cancelled) setData(json); })
+      .catch(() => { if (!cancelled) setData(null); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; controller.abort(); };
   }, [category, page]);
 
   function handleTab(cat: Category) {
+    setLoading(true);
     setCategory(cat);
     setPage(1);
+  }
+
+  function handlePageChange(newPage: number) {
+    setLoading(true);
+    setPage(newPage);
   }
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / LIMIT)) : 1;
@@ -208,7 +216,7 @@ export function BattleLeaderboard() {
             variant="secondary"
             size="sm"
             disabled={page <= 1}
-            onClick={() => setPage((p) => p - 1)}
+            onClick={() => handlePageChange(page - 1)}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -219,7 +227,7 @@ export function BattleLeaderboard() {
             variant="secondary"
             size="sm"
             disabled={page >= totalPages}
-            onClick={() => setPage((p) => p + 1)}
+            onClick={() => handlePageChange(page + 1)}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>

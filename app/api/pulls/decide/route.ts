@@ -25,14 +25,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { packGroupId, cardId, cardIndex, packIndex, rarity, coinValue, conversionValue, decision, boxId } = body as {
+  const { packGroupId, cardId, cardIndex, rarity, coinValue, decision, boxId } = body as {
     packGroupId?: string;
     cardId?: string;
     cardIndex?: number;
-    packIndex?: number;
     rarity?: string;
     coinValue?: number;
-    conversionValue?: number;
     decision?: "claim" | "convert";
     boxId?: string;
   };
@@ -47,11 +45,6 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectDB();
-
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
-      ?? req.headers.get("x-real-ip")
-      ?? "unknown";
-    const ua = req.headers.get("user-agent") ?? "unknown";
 
     // Update the pending PackPull record to the user's decision
     const pull = await PackPull.findOneAndUpdate(

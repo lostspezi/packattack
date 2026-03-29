@@ -17,7 +17,6 @@ interface CardInfo {
 }
 
 export function TopHits({ cards, lang, pullCounts }: { cards: CardInfo[]; lang: string; pullCounts?: Record<string, number> }) {
-  const isDe = lang === "de";
   const [selected, setSelected] = useState<CardInfo | null>(null);
 
   if (cards.length === 0) return null;

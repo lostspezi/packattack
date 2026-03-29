@@ -67,7 +67,6 @@ export function drawPacks(
   }
 
   const drawnCards: DrawnCard[] = [];
-  const totalDraws = cardsPerPack * packCount;
 
   for (let p = 0; p < packCount; p++) {
     for (let d = 0; d < cardsPerPack; d++) {

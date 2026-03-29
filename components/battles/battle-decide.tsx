@@ -19,7 +19,6 @@ interface BattleDecideProps {
   battleId: string;
   cards: DistributedCard[];
   dict: Record<string, string>;
-  lang: string;
 }
 
 const RARITY_BADGE: Record<string, string> = {
@@ -32,7 +31,7 @@ const RARITY_BADGE: Record<string, string> = {
   "Ultra Rare": "bg-gradient-to-r from-pink-500/30 via-yellow-400/30 to-blue-500/30 text-white",
 };
 
-export function BattleDecide({ battleId, cards, dict, lang: _lang }: BattleDecideProps) {
+export function BattleDecide({ battleId, cards, dict }: BattleDecideProps) {
   const [decisions, setDecisions] = useState<Record<string, { status: "claim" | "convert"; loading: boolean }>>({});
 
   async function handleDecide(pullId: string, action: "claim" | "convert") {

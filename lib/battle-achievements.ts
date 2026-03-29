@@ -23,7 +23,7 @@ export async function checkAndAwardAchievements(ctx: AchievementContext): Promis
   const user = await User.findById(ctx.userId).select("battleStats badges").lean();
   if (!user) return awarded;
 
-  const stats = (user as any).battleStats ?? { wins: 0, losses: 0, streak: 0, bestStreak: 0, totalBattles: 0, battlesCreated: 0 };
+  const stats = (user as unknown as Record<string, unknown>).battleStats as { wins: number; losses: number; streak: number; bestStreak: number; totalBattles: number; battlesCreated: number } ?? { wins: 0, losses: 0, streak: 0, bestStreak: 0, totalBattles: 0, battlesCreated: 0 };
   const existing = await BattleAchievement.find({ user: ctx.userId }).select("key").lean();
   const existingKeys = new Set(existing.map((a) => a.key));
 

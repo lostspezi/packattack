@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const { category, seasonId, page, limit } = parsed.data;
+  const { category, page, limit } = parsed.data;
 
   let sortField: string;
   switch (category) {

@@ -493,7 +493,7 @@ export async function runBattle(battleId: string): Promise<void> {
         battleId: battleId,
         placement: p.placement,
         eloAtStart: playerEntry?.eloAtStart ?? 1000,
-        eloAfter: (userAfter as any)?.elo ?? 1000,
+        eloAfter: (userAfter as Record<string, unknown> | null)?.elo as number ?? 1000,
         opponentMaxElo,
         longestRoundStreak: longestStreak,
         hadUltraRare,

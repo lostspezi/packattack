@@ -7,7 +7,6 @@ import CartItem from "@/models/cart-item";
 import User from "@/models/user";
 import Box from "@/models/box";
 import CoinTransaction from "@/models/coin-transaction";
-import { getRedis } from "@/lib/redis";
 import { battleDecideSchema } from "@/lib/validations/battle";
 import mongoose from "mongoose";
 

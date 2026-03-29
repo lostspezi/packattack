@@ -333,7 +333,6 @@ export function ShopCardSearch({
   }, [query, selectedSets, selectedGame]);
 
   async function handleAdd(card: JustTCGCardResult) {
-    const nmVariant = card.variants?.find((v) => v.condition === "Near Mint") ?? null;
     const key = `${card.id}_Near Mint`;
     if (existingInventoryIds.has(key)) return;
 
