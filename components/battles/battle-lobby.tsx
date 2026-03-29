@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { Users } from "lucide-react";
+import { Users, Swords, CheckCircle2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ELO_RANKS } from "@/lib/battle-constants";
@@ -49,6 +49,216 @@ function getEloRank(elo: number): typeof ELO_RANKS[number] {
   }
   return rank;
 }
+
+/* ------------------------------------------------------------------ */
+/*  Fullscreen Ready-Check Overlay                                     */
+/* ------------------------------------------------------------------ */
+
+function useReadySound(timer: number | null) {
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  const playBeep = useCallback(() => {
+    try {
+      if (!audioCtxRef.current) {
+        audioCtxRef.current = new AudioContext();
+      }
+      const ctx = audioCtxRef.current;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 880;
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.3);
+    } catch {
+      // Audio not supported
+    }
+  }, []);
+
+  useEffect(() => {
+    if (timer === null) return;
+    // Play sound at 30, 20, 10, 5, 4, 3, 2, 1
+    if (timer === 30 || timer === 20 || timer === 10 || (timer <= 5 && timer > 0)) {
+      playBeep();
+    }
+  }, [timer, playBeep]);
+}
+
+interface ReadyCheckOverlayProps {
+  battle: {
+    players: BattlePlayer[];
+  };
+  dict: Record<string, string>;
+  readyTimer: number | null;
+  isPlayer: boolean;
+  currentUserId: string | undefined;
+  readying: boolean;
+  onReady: () => void;
+}
+
+function ReadyCheckOverlay({
+  battle,
+  dict,
+  readyTimer,
+  isPlayer,
+  currentUserId,
+  readying,
+  onReady,
+}: ReadyCheckOverlayProps) {
+  useReadySound(readyTimer);
+
+  const timer = readyTimer ?? 30;
+  const readyCount = battle.players.filter((p) => p.ready).length;
+  const totalCount = battle.players.length;
+  const allReady = readyCount === totalCount;
+  const meReady = battle.players.find((p) => p.user._id === currentUserId)?.ready ?? false;
+  const isUrgent = timer <= 10;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/95 backdrop-blur-md">
+      {/* Animated background ring */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+        <div
+          className={[
+            "h-[400px] w-[400px] rounded-full border-2 opacity-20 animate-ping",
+            isUrgent ? "border-red-500" : "border-pa-green",
+          ].join(" ")}
+          style={{ animationDuration: isUrgent ? "1s" : "2s" }}
+        />
+      </div>
+
+      <div className="relative flex flex-col items-center gap-8 px-6 max-w-lg w-full">
+        {/* Icon */}
+        <div className={[
+          "flex h-20 w-20 items-center justify-center rounded-full border-2",
+          isUrgent
+            ? "border-red-500/50 bg-red-500/10"
+            : "border-pa-green/50 bg-pa-green/10",
+        ].join(" ")}>
+          <Swords className={[
+            "h-10 w-10",
+            isUrgent ? "text-red-400" : "text-pa-green",
+          ].join(" ")} />
+        </div>
+
+        {/* Title */}
+        <div className="text-center">
+          <h2 className="text-3xl font-black text-text-primary tracking-tight">
+            {dict["readyCheckTitle"] ?? "Bist du bereit?"}
+          </h2>
+          <p className="mt-2 text-sm text-text-secondary">
+            {dict["readyCheckSubtitle"] ?? "Alle Spieler müssen bestätigen"}
+          </p>
+        </div>
+
+        {/* Timer */}
+        <div className="relative flex items-center justify-center">
+          {/* Circular progress */}
+          <svg className="h-32 w-32 -rotate-90" viewBox="0 0 100 100">
+            <circle
+              cx="50" cy="50" r="44"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              className="text-white/5"
+            />
+            <circle
+              cx="50" cy="50" r="44"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray={`${2 * Math.PI * 44}`}
+              strokeDashoffset={`${2 * Math.PI * 44 * (1 - timer / 30)}`}
+              className={[
+                "transition-all duration-1000 ease-linear",
+                isUrgent ? "text-red-500" : "text-pa-green",
+              ].join(" ")}
+            />
+          </svg>
+          <span className={[
+            "absolute text-5xl font-black tabular-nums",
+            isUrgent ? "text-red-400 animate-pulse" : "text-pa-green",
+          ].join(" ")}>
+            {timer}
+          </span>
+        </div>
+
+        {/* Player ready status */}
+        <div className="w-full space-y-3">
+          <div className="flex items-center justify-center gap-2 text-sm text-text-secondary">
+            <CheckCircle2 className="h-4 w-4 text-pa-green" />
+            <span>{readyCount} / {totalCount} {dict["playersReady"] ?? "bereit"}</span>
+          </div>
+          <div className="flex flex-col gap-2">
+            {battle.players.map((p) => (
+              <div
+                key={p.user._id}
+                className={[
+                  "flex items-center gap-3 rounded-xl px-4 py-3 transition-all duration-300",
+                  p.ready
+                    ? "bg-pa-green/10 border border-pa-green/30"
+                    : "bg-white/3 border border-white/6",
+                ].join(" ")}
+              >
+                {p.user.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={p.user.image}
+                    alt={p.user.name}
+                    className="h-8 w-8 rounded-full object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-pa-lila/30">
+                    <Users className="h-4 w-4 text-text-secondary" />
+                  </div>
+                )}
+                <span className="flex-1 text-sm font-semibold text-text-primary truncate">
+                  {p.user.username ?? p.user.name}
+                </span>
+                {p.ready ? (
+                  <CheckCircle2 className="h-5 w-5 text-pa-green shrink-0" />
+                ) : (
+                  <Clock className={[
+                    "h-5 w-5 shrink-0 animate-pulse",
+                    isUrgent ? "text-red-400" : "text-text-secondary",
+                  ].join(" ")} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Ready button */}
+        {isPlayer && !meReady && (
+          <Button
+            variant="accent"
+            size="lg"
+            loading={readying}
+            onClick={onReady}
+            className="w-full max-w-xs text-lg py-4 font-bold"
+          >
+            {dict["ready"] ?? "Ready!"}
+          </Button>
+        )}
+
+        {/* Already ready message */}
+        {isPlayer && meReady && !allReady && (
+          <p className="text-sm text-pa-green font-medium animate-pulse">
+            {dict["waitingForOthers"] ?? "Warte auf andere Spieler..."}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Battle Lobby                                                       */
+/* ------------------------------------------------------------------ */
 
 export function BattleLobby({ battle, dict, lang, isPlayer, onJoin, onLeave }: BattleLobbyProps) {
   const [joining, setJoining] = useState(false);
@@ -156,50 +366,26 @@ export function BattleLobby({ battle, dict, lang, isPlayer, onJoin, onLeave }: B
 
   return (
     <div className="relative space-y-6">
-      {/* Ready-check overlay */}
+      {/* Fullscreen ready-check overlay */}
       {isReadyCheck && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 rounded-[14px] bg-bg/90 backdrop-blur-sm">
-          <p className="text-sm font-medium text-text-secondary">
-            {dict["readyCheckTitle"] ?? "Bist du bereit?"}
-          </p>
-          <span className="text-6xl font-extrabold tabular-nums text-pa-green animate-pulse">
-            {readyTimer ?? 30}
-          </span>
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            {battle.players.map((p) => (
-              <div
-                key={p.user._id}
-                className={[
-                  "flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium transition-all",
-                  p.ready
-                    ? "bg-pa-green/20 text-pa-green border border-pa-green/40"
-                    : "bg-surface text-text-secondary border border-border",
-                ].join(" ")}
-              >
-                {p.ready ? "✓" : "…"} {p.user.username ?? p.user.name}
-              </div>
-            ))}
-          </div>
-          {isPlayer && !battle.players.find((p) => p.user._id === currentUserId)?.ready && (
-            <Button
-              variant="accent"
-              size="lg"
-              loading={readying}
-              onClick={handleReady}
-            >
-              {dict["ready"] ?? "Ready!"}
-            </Button>
-          )}
-        </div>
+        <ReadyCheckOverlay
+          battle={battle}
+          dict={dict}
+          readyTimer={readyTimer}
+          isPlayer={isPlayer}
+          currentUserId={currentUserId}
+          readying={readying}
+          onReady={handleReady}
+        />
       )}
 
-      {/* Countdown overlay (3-2-1 after all ready) */}
+      {/* Fullscreen countdown overlay (3-2-1 after all ready) */}
       {isCountdown && countdown !== null && countdown > 0 && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-[14px] bg-bg/90 backdrop-blur-sm">
-          <p className="mb-2 text-sm font-medium text-text-secondary">
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-bg/95 backdrop-blur-md">
+          <p className="mb-4 text-lg font-medium text-text-secondary tracking-widest uppercase">
             {dict["battleStarting"] ?? "Battle startet in..."}
           </p>
-          <span className="text-8xl font-extrabold text-pa-green tabular-nums animate-pulse">
+          <span className="text-[10rem] font-black text-pa-green tabular-nums animate-pulse leading-none">
             {countdown}
           </span>
         </div>
