@@ -61,10 +61,18 @@ export interface ChatOnlineUserSummary {
   identityVerified: boolean;
 }
 
+export interface ChatReactionUserSummary {
+  id: string;
+  name: string;
+  username: string | null;
+  avatarUrl: string | null;
+}
+
 export interface ChatReactionSummary {
   emoji: ChatReactionEmoji;
   count: number;
   userIds: string[];
+  reactors: ChatReactionUserSummary[];
 }
 
 export interface ChatMessageSummary {
