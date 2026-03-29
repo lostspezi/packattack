@@ -174,7 +174,7 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
 
     es.addEventListener("ready_check_start", (e) => {
       try {
-        const data = JSON.parse(e.data);
+        JSON.parse(e.data);
         setBattle((prev) => prev ? {
           ...prev,
           status: "ready_check",

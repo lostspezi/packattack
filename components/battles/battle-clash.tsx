@@ -152,7 +152,7 @@ export function BattleClash({
 
       {/* Player cards grid — ordered by reveal order */}
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {displayOrder.map((playerId, orderIdx) => {
+        {displayOrder.map((playerId) => {
           const player = players.find((p) => p.user._id === playerId);
           if (!player) return null;
 
