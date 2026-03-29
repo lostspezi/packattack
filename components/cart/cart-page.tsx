@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { ReservationConsentModal } from "./reservation-consent-modal";
+import { AddressAutocomplete } from "./address-autocomplete";
 
 interface CartItem {
   _id: string;
@@ -324,13 +325,13 @@ export function CartPage({ lang, dict }: CartPageProps) {
               }
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
             />
-            <input
-              type="text"
-              placeholder={dict["placeholderStreet"] ?? "Street"}
+            <AddressAutocomplete
               value={address.street}
-              onChange={(e) =>
-                setAddress((a) => ({ ...a, street: e.target.value }))
-              }
+              onChange={(street) => setAddress((a) => ({ ...a, street }))}
+              onPlaceSelect={(place) => {
+                setAddress((a) => ({ ...a, ...place }));
+              }}
+              placeholder={dict["placeholderStreet"] ?? "Street"}
               className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
             />
             <div className="grid grid-cols-2 gap-2">

@@ -200,3 +200,83 @@ button[disabled] {
 .desktop-up {
   @apply hidden lg:block;
 }
+
+/* ================================================================
+ * GOOGLE PLACES AUTOCOMPLETE — Dark theme
+ * ================================================================ */
+
+/* Legacy .pac-container dropdown (fallback) */
+.pac-container {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 0.5rem;
+  margin-top: 4px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  font-family: inherit;
+  z-index: 9999;
+}
+
+.pac-item {
+  border-top: 1px solid var(--color-border) !important;
+  padding: 8px 12px;
+  color: var(--color-text-primary) !important;
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.pac-item:first-child {
+  border-top: none !important;
+}
+
+.pac-item:hover,
+.pac-item-selected {
+  background-color: var(--color-surface-elevated) !important;
+}
+
+.pac-item-query {
+  color: var(--color-text-primary) !important;
+  font-size: 0.875rem;
+}
+
+.pac-matched {
+  color: var(--color-pa-green) !important;
+  font-weight: 600;
+}
+
+.pac-icon,
+.pac-icon-marker {
+  filter: invert(0.7);
+}
+
+.pac-container::after {
+  filter: invert(0.7);
+  padding: 4px 8px;
+}
+
+/* New PlaceAutocompleteElement suggestions dropdown */
+.gmp-autocomplete-suggestions-container,
+[class*="gmp-autocomplete"] {
+  background-color: var(--color-surface) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+  z-index: 9999 !important;
+}
+
+.gmp-autocomplete-suggestions-container .suggestion,
+.gmp-autocomplete-suggestions-container [role="option"] {
+  color: var(--color-text-primary) !important;
+  padding: 8px 12px !important;
+}
+
+.gmp-autocomplete-suggestions-container .suggestion:hover,
+.gmp-autocomplete-suggestions-container [role="option"]:hover,
+.gmp-autocomplete-suggestions-container [aria-selected="true"] {
+  background-color: var(--color-surface-elevated) !important;
+}
+
+/* Wrapper styling for the autocomplete element */
+gmp-place-autocomplete {
+  width: 100% !important;
+  display: block !important;
+}
