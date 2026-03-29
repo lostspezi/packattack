@@ -9,6 +9,7 @@ import User from "@/models/user";
 import Season from "@/models/season";
 import CoinTransaction from "@/models/coin-transaction";
 import { createBattleSchema, battleListSchema } from "@/lib/validations/battle";
+import { BATTLE_ELO_RANGE, ELO_DEFAULT } from "@/lib/battle-constants";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { boxId, packsPerPlayer, maxPlayers, visibility, minElo } = parsed.data;
+  const { boxId, packsPerPlayer, maxPlayers, visibility } = parsed.data;
 
   try {
     await connectDB();
@@ -84,7 +85,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Get user elo for eloAtStart
-    const userElo = updatedUser.elo ?? 1000;
+    const creatorElo = updatedUser.elo ?? ELO_DEFAULT;
+    const userElo = creatorElo;
+
+    // Compute eloRange for public battles
+    const eloRange = visibility === "public"
+      ? { min: creatorElo - BATTLE_ELO_RANGE, max: creatorElo + BATTLE_ELO_RANGE }
+      : null;
 
     // Find active season
     const season = await Season.findOne({ status: "active" }).lean();
@@ -100,7 +107,7 @@ export async function POST(req: NextRequest) {
       packsPerPlayer,
       maxPlayers,
       visibility,
-      minElo,
+      eloRange,
       totalRounds: packsPerPlayer * box.cardsPerPack,
       seasonId: season?._id ?? null,
       players: [

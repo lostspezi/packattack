@@ -7,6 +7,7 @@ import User from "@/models/user";
 import CoinTransaction from "@/models/coin-transaction";
 import { getRedis } from "@/lib/redis";
 import { startReadyCheck } from "@/lib/battle-orchestrator";
+import { ELO_DEFAULT } from "@/lib/battle-constants";
 
 export async function POST(
   _req: NextRequest,
@@ -86,13 +87,13 @@ export async function POST(
       return NextResponse.json({ error: "Battle is full" }, { status: 409 });
     }
 
-    // Check minElo
-    if (battle.minElo !== null) {
+    // Check eloRange for public battles
+    if (battle.visibility === "public" && battle.eloRange) {
       const userDoc = await User.findById(userId).select("elo").lean();
-      const userElo = userDoc?.elo ?? 1000;
-      if (userElo < battle.minElo) {
+      const userElo = userDoc?.elo ?? ELO_DEFAULT;
+      if (userElo < battle.eloRange.min || userElo > battle.eloRange.max) {
         return NextResponse.json(
-          { error: "elo_too_low", message: `Minimum ELO required: ${battle.minElo}` },
+          { error: "elo_out_of_range", message: `Elo must be between ${battle.eloRange.min} and ${battle.eloRange.max}` },
           { status: 403 }
         );
       }

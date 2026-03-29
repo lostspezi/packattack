@@ -34,6 +34,7 @@ export interface IBattle extends Document {
   status: "waiting" | "ready_check" | "countdown" | "opening" | "clash" | "finished" | "cancelled";
   visibility: "public" | "private";
   minElo: number | null;
+  eloRange: { min: number; max: number } | null;
   players: IBattlePlayer[];
   rounds: IBattleRound[];
   currentRound: number;
@@ -99,6 +100,10 @@ const BattleSchema = new Schema<IBattle>(
       default: "public",
     },
     minElo: { type: Number, default: null },
+    eloRange: {
+      min: { type: Number },
+      max: { type: Number },
+    },
     players: { type: [BattlePlayerSchema], default: [] },
     rounds: { type: [BattleRoundSchema], default: [] },
     currentRound: { type: Number, default: 0 },

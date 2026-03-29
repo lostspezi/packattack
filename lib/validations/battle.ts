@@ -7,7 +7,6 @@ export const createBattleSchema = z.object({
   packsPerPlayer: z.number().int().min(1).max(BATTLE_MAX_PACKS),
   maxPlayers: z.number().int().min(BATTLE_MIN_PLAYERS).max(BATTLE_MAX_PLAYERS),
   visibility: z.enum(["public", "private"]).default("public"),
-  minElo: z.number().int().min(0).nullable().default(null),
 });
 
 export const joinBattleSchema = z.object({});
