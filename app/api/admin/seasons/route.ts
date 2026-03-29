@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
-import Season from "@/models/season";
+import Season, { type ISeasonReward } from "@/models/season";
 
 export async function GET(_req: NextRequest) {
   const session = await auth();
@@ -74,24 +74,26 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectDB();
-    const season = await Season.create({
-      name: b.name,
-      number: b.number,
+    const nameObj = b.name as { de: string; en: string };
+    const doc = new Season({
+      name: { de: nameObj.de, en: nameObj.en },
+      number: Number(b.number),
       startsAt: new Date(b.startsAt as string),
       endsAt: new Date(b.endsAt as string),
-      status: b.status,
-      rewards: b.rewards ?? [],
+      status: b.status as "upcoming" | "active" | "ended",
+      rewards: (b.rewards as ISeasonReward[]) ?? [],
     });
+    await doc.save();
 
     return NextResponse.json(
       {
-        _id: season._id.toString(),
-        name: season.name,
-        number: season.number,
-        startsAt: season.startsAt,
-        endsAt: season.endsAt,
-        status: season.status,
-        rewards: season.rewards,
+        _id: doc._id.toString(),
+        name: doc.name,
+        number: doc.number,
+        startsAt: doc.startsAt,
+        endsAt: doc.endsAt,
+        status: doc.status,
+        rewards: doc.rewards,
       },
       { status: 201 }
     );
