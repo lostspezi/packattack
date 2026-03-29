@@ -46,6 +46,15 @@ export const shopNavItems: NavItem[] = [
   { key: "shopFulfillments", label: "Versandaufträge", href: "/shop/fulfillments", icon: "Truck" },
 ];
 
+export const battlesNavItems: NavItem[] = [
+  { key: "battlesOverview", label: "Übersicht", href: "/battles", icon: "Swords" },
+  { key: "battlesCreate", label: "Battle erstellen", href: "/battles/create", icon: "Plus" },
+  { key: "battlesLeaderboard", label: "Bestenliste", href: "/battles/leaderboard", icon: "Trophy" },
+  { key: "battlesArchive", label: "Archiv", href: "/battles/archive", icon: "Archive" },
+  { key: "battlesMyBattles", label: "Meine Battles", href: "/battles/my-battles", icon: "User" },
+  { key: "battlesStats", label: "Statistiken", href: "/battles/stats", icon: "BarChart3" },
+];
+
 export const soonNavItems: NavItem[] = [
   { key: "marketplace", label: "Marktplatz", href: "#", icon: "ShoppingBag", soon: true },
 ];
