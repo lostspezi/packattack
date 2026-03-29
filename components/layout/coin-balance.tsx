@@ -9,6 +9,7 @@ export function CoinBalance() {
   const [coins, setCoins] = useState<number | null>(null);
   const [floatText, setFloatText] = useState<string | null>(null);
   const [glowing, setGlowing] = useState(false);
+  const [popping, setPopping] = useState(false);
   const pathname = usePathname();
   const lang = pathname.split("/")[1] || "de";
   const floatTimeout = useRef<ReturnType<typeof setTimeout>>(null);
@@ -47,13 +48,17 @@ export function CoinBalance() {
         const sign = delta > 0 ? "+" : "";
         setFloatText(`${sign}${delta}`);
         if (floatTimeout.current) clearTimeout(floatTimeout.current);
-        floatTimeout.current = setTimeout(() => setFloatText(null), 1200);
+        floatTimeout.current = setTimeout(() => setFloatText(null), 1500);
       }
 
-      // Glow effect
+      // Glow + pop effect
       setGlowing(true);
+      setPopping(true);
       if (glowTimeout.current) clearTimeout(glowTimeout.current);
-      glowTimeout.current = setTimeout(() => setGlowing(false), 800);
+      glowTimeout.current = setTimeout(() => {
+        setGlowing(false);
+        setPopping(false);
+      }, 1000);
     }
 
     window.addEventListener("coin-balance-refresh", handleRefresh);
@@ -70,10 +75,11 @@ export function CoinBalance() {
     <Link
       href={`/${lang}/balance`}
       className={[
-        "relative flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 transition-all",
+        "relative flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 transition-all duration-300",
         glowing
-          ? "border-pa-green/50 bg-pa-green/15 shadow-[0_0_12px_rgba(155,255,0,0.25)]"
+          ? "border-pa-green/60 bg-pa-green/20 shadow-[0_0_20px_rgba(155,255,0,0.35)]"
           : "border-pa-green/15 bg-pa-green/8 hover:opacity-80",
+        popping ? "animate-coin-pop" : "",
       ].join(" ")}
     >
       <Coins className="h-4 w-4 text-pa-green" />
@@ -81,7 +87,7 @@ export function CoinBalance() {
         {coins.toLocaleString()}
       </span>
       {floatText && (
-        <span className="pointer-events-none absolute -top-1 left-1/2 -translate-x-1/2 animate-coin-float text-xs font-bold text-pa-green">
+        <span className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 animate-coin-float text-sm font-bold text-pa-green drop-shadow-[0_0_6px_rgba(155,255,0,0.5)]">
           {floatText}
         </span>
       )}
