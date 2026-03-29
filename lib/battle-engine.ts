@@ -1,4 +1,9 @@
-import { RARITY_ORDER } from "./battle-constants";
+import {
+  RARITY_ORDER,
+  CLOSE_MATCH_THRESHOLD,
+  CARD_REVEAL_RARE_BONUS_MS,
+  CARD_REVEAL_ULTRA_BONUS_MS,
+} from "./battle-constants";
 
 interface RoundCard {
   playerId: string;
@@ -8,17 +13,31 @@ interface RoundCard {
 
 /**
  * Determine the winner of a single round.
- * Primary: highest coinValue. Tiebreaker: highest rarity. Final: random.
+ * Only criterion: highest coinValue. Equal coinValue = draw (returns null).
  */
-export function determineRoundWinner(cards: RoundCard[]): string {
-  const sorted = [...cards].sort((a, b) => {
-    if (b.coinValue !== a.coinValue) return b.coinValue - a.coinValue;
-    const rarityA = RARITY_ORDER[a.rarity] ?? 0;
-    const rarityB = RARITY_ORDER[b.rarity] ?? 0;
-    if (rarityB !== rarityA) return rarityB - rarityA;
-    return Math.random() - 0.5;
-  });
-  return sorted[0].playerId;
+export function determineRoundWinner(cards: RoundCard[]): string | null {
+  if (cards.length === 0) return null;
+
+  const maxCoinValue = Math.max(...cards.map((c) => c.coinValue));
+  const topCards = cards.filter((c) => c.coinValue === maxCoinValue);
+
+  // Draw: multiple cards with the same top coinValue
+  if (topCards.length > 1) return null;
+
+  return topCards[0].playerId;
+}
+
+/**
+ * Determine if a round result is a close match.
+ * Close = top two coinValues differ by less than 20% of the higher value.
+ */
+export function isCloseMatch(cards: RoundCard[]): boolean {
+  if (cards.length < 2) return false;
+  const sorted = [...cards].sort((a, b) => b.coinValue - a.coinValue);
+  const top = sorted[0].coinValue;
+  const second = sorted[1].coinValue;
+  if (top === 0) return false;
+  return (top - second) / top < CLOSE_MATCH_THRESHOLD;
 }
 
 interface PlacementPlayer {
@@ -70,11 +89,12 @@ export function snakeDraftDistribute<T extends DistributableCard>(
 }
 
 /**
- * Get the rarity-based reveal delay in ms for animation timing.
+ * Get extra display time in ms for a card based on its rarity.
+ * Rare+ (order >= 3): +2000ms. Ultra Rare+ (order >= 5): +4000ms.
  */
-export function getRevealDelayMs(maxRarity: string): number {
-  const order = RARITY_ORDER[maxRarity] ?? 1;
-  if (order >= 5) return 5000;
-  if (order >= 3) return 4000;
-  return 3000;
+export function getRarityBonusMs(rarity: string): number {
+  const order = RARITY_ORDER[rarity] ?? 1;
+  if (order >= 5) return CARD_REVEAL_ULTRA_BONUS_MS;
+  if (order >= 3) return CARD_REVEAL_RARE_BONUS_MS;
+  return 0;
 }
