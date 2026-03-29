@@ -2,7 +2,7 @@
 
 import { Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { ELO_RANKS } from "@/lib/battle-constants";
+import { getEloRank, getEloDivision } from "@/lib/battle-elo";
 
 interface BattlePlayer {
   user: {
@@ -23,14 +23,6 @@ interface BattleScoreboardProps {
   scores: Record<string, number>;
   dict: Record<string, string>;
   lang: string;
-}
-
-function getEloRank(elo: number): typeof ELO_RANKS[number] {
-  let rank: typeof ELO_RANKS[number] = ELO_RANKS[0];
-  for (const r of ELO_RANKS) {
-    if (elo >= r.minElo) rank = r;
-  }
-  return rank;
 }
 
 export function BattleScoreboard({ players, scores, dict, lang }: BattleScoreboardProps) {
@@ -82,7 +74,7 @@ export function BattleScoreboard({ players, scores, dict, lang }: BattleScoreboa
                   {p.user.username ?? p.user.name}
                 </p>
                 <p className="text-[10px] text-text-secondary">
-                  {rank.emoji} {rank.label[lang as "de" | "en"] ?? rank.label.de}
+                  {rank.emoji} {getEloDivision(p.eloAtStart)}
                 </p>
               </div>
 

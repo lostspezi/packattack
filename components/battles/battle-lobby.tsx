@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { Users, Swords, CheckCircle2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ELO_RANKS } from "@/lib/battle-constants";
+import { getEloRank, getEloDivision } from "@/lib/battle-elo";
 
 interface BattlePlayer {
   user: {
@@ -31,6 +31,7 @@ interface Battle {
   players: BattlePlayer[];
   box: { name: Record<string, string>; image?: string };
   visibility: string;
+  eloRange?: { min: number; max: number } | null;
 }
 
 interface BattleLobbyProps {
@@ -40,14 +41,6 @@ interface BattleLobbyProps {
   isPlayer: boolean;
   onJoin: () => void;
   onLeave: () => void;
-}
-
-function getEloRank(elo: number): typeof ELO_RANKS[number] {
-  let rank: typeof ELO_RANKS[number] = ELO_RANKS[0];
-  for (const r of ELO_RANKS) {
-    if (elo >= r.minElo) rank = r;
-  }
-  return rank;
 }
 
 /* ------------------------------------------------------------------ */
@@ -397,6 +390,11 @@ export function BattleLobby({ battle, dict, lang, isPlayer, onJoin, onLeave }: B
         <p className="mt-1 text-sm text-text-secondary">
           {battle.packsPerPlayer} {dict["packsLabel"] ?? "Packs"} · {battle.visibility === "public" ? (dict["public"] ?? "Öffentlich") : (dict["private"] ?? "Privat")}
         </p>
+        {battle.eloRange && (
+          <p className="text-xs text-text-secondary">
+            Elo: {battle.eloRange.min}–{battle.eloRange.max}
+          </p>
+        )}
       </div>
 
       {/* Player grid */}
@@ -426,7 +424,7 @@ export function BattleLobby({ battle, dict, lang, isPlayer, onJoin, onLeave }: B
                     {p.user.username ?? p.user.name}
                   </p>
                   <p className="text-xs text-text-secondary">
-                    {rank.emoji} {rank.label[lang as "de" | "en"] ?? rank.label.de}
+                    {rank.emoji} {getEloDivision(p.eloAtStart)}
                   </p>
                 </div>
               </Card>
