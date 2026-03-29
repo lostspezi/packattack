@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { CardFlip } from "./card-flip";
@@ -30,6 +31,7 @@ interface BattlePlayer {
   placement: number | null;
   eloChange: number | null;
   eloAtStart: number;
+  ready: boolean;
 }
 
 interface Battle {
@@ -44,6 +46,9 @@ interface BattleClashProps {
   rounds: Round[];
   players: BattlePlayer[];
   dict: Record<string, string>;
+  revealedCards: Record<string, RoundCard>;
+  roundAnnounce: { roundIndex: number; revealOrder: string[] } | null;
+  roundResult: { winnerId: string | null; isClose: boolean } | null;
 }
 
 function getStreakCount(rounds: Round[], playerId: string): number {
@@ -55,41 +60,122 @@ function getStreakCount(rounds: Round[], playerId: string): number {
   return streak;
 }
 
-export function BattleClash({ battle, currentRound, rounds, players, dict }: BattleClashProps) {
-  const currentRoundData = rounds.find((r) => r.roundIndex === currentRound);
-  const hasCards = currentRoundData && currentRoundData.cards.length > 0;
-  const hasResult = currentRoundData?.winnerId !== undefined && currentRoundData?.winnerId !== null;
+export function BattleClash({
+  battle,
+  currentRound,
+  rounds,
+  players,
+  dict,
+  revealedCards,
+  roundAnnounce,
+  roundResult,
+}: BattleClashProps) {
+  const [showAnnounce, setShowAnnounce] = useState(false);
+  const [spotlightIndex, setSpotlightIndex] = useState<number | null>(null);
+
+  const isAnnouncing = roundAnnounce !== null && roundAnnounce.roundIndex === currentRound;
+  const hasResult = roundResult !== null;
+  const isDraw = hasResult && roundResult.winnerId === null;
+  const winnerId = roundResult?.winnerId ?? null;
+  const isClose = roundResult?.isClose ?? false;
+
+  // Show round announcement animation
+  useEffect(() => {
+    if (!isAnnouncing) return;
+    setShowAnnounce(true);
+    const t = setTimeout(() => setShowAnnounce(false), 2500);
+    return () => clearTimeout(t);
+  }, [isAnnouncing, roundAnnounce?.roundIndex]);
+
+  // Close-match spotlight animation
+  useEffect(() => {
+    if (!hasResult || !isClose || isDraw) {
+      setSpotlightIndex(null);
+      return;
+    }
+    // Cycle spotlight between top players
+    const topPlayers = players
+      .filter((p) => revealedCards[p.user._id])
+      .map((p) => p.user._id);
+    if (topPlayers.length < 2) return;
+
+    let i = 0;
+    setSpotlightIndex(0);
+    const iv = setInterval(() => {
+      i++;
+      if (i >= 8) {
+        clearInterval(iv);
+        setSpotlightIndex(null);
+        return;
+      }
+      setSpotlightIndex(i % topPlayers.length);
+    }, 400);
+    return () => clearInterval(iv);
+  }, [hasResult, isClose, isDraw]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Determine display order: use reveal order if available, else player order
+  const displayOrder = roundAnnounce?.revealOrder ?? players.map((p) => p.user._id);
 
   return (
-    <div className="space-y-4">
+    <div className="relative space-y-4">
+      {/* Round announcement overlay */}
+      {showAnnounce && (
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[14px] bg-bg/80 backdrop-blur-sm">
+          <div className="text-center animate-in zoom-in-50 duration-500">
+            <p className="text-sm font-medium text-text-secondary uppercase tracking-widest">
+              {dict["round"] ?? "Runde"}
+            </p>
+            <p className="text-7xl font-black text-pa-green tabular-nums">
+              {currentRound + 1}
+            </p>
+            <p className="text-sm text-text-secondary">
+              {dict["of"] ?? "von"} {battle.totalRounds}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Round counter */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-text-primary">
-          {dict.round || "Round"}{" "}
+          {dict["round"] ?? "Runde"}{" "}
           <span className="text-pa-green">{currentRound + 1}</span>{" "}
-          {dict.of || "of"}{" "}
+          {dict["of"] ?? "von"}{" "}
           {battle.totalRounds}
         </h2>
-        <span className="text-sm text-text-secondary">
-          {battle.status === "opening" ? (dict.openingPacks || "Opening packs...") : ""}
-        </span>
+        {isDraw && (
+          <span className="rounded border border-yellow-500/30 bg-yellow-500/10 px-3 py-1 text-sm font-bold text-yellow-400 animate-pulse">
+            {dict["draw"] ?? "Unentschieden!"}
+          </span>
+        )}
       </div>
 
-      {/* Player cards grid */}
+      {/* Player cards grid — ordered by reveal order */}
       <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {players.map((player, idx) => {
-          const playerCard = currentRoundData?.cards.find((c) => c.player === player.user._id);
-          const isWinner = hasResult && currentRoundData?.winnerId === player.user._id;
-          const streak = getStreakCount(rounds, player.user._id);
+        {displayOrder.map((playerId, orderIdx) => {
+          const player = players.find((p) => p.user._id === playerId);
+          if (!player) return null;
+
+          const playerCard = revealedCards[playerId];
+          const isRevealed = !!playerCard;
+          const isWinner = hasResult && winnerId === playerId;
+          const isLoser = hasResult && winnerId !== null && winnerId !== playerId;
+          const streak = getStreakCount(rounds, playerId);
           const onFire = streak >= 3;
+
+          // Close-match spotlight: highlight the player the spotlight is on
+          const isSpotlit = spotlightIndex !== null && displayOrder[spotlightIndex % displayOrder.length] === playerId;
 
           return (
             <Card
-              key={player.user._id}
+              key={playerId}
               variant="soft"
               className={[
                 "flex flex-col items-center gap-3 p-4 transition-all duration-500",
-                isWinner ? "border-pa-green/60 ring-2 ring-pa-green/30 bg-pa-green/5" : "",
+                isWinner ? "border-pa-green/60 ring-2 ring-pa-green/30 bg-pa-green/5 scale-105" : "",
+                isLoser ? "opacity-50 grayscale" : "",
+                isDraw && hasResult ? "border-yellow-500/40 ring-1 ring-yellow-500/20" : "",
+                isSpotlit ? "ring-2 ring-yellow-400/60 bg-yellow-400/5 scale-105" : "",
               ].join(" ")}
             >
               {/* Player header */}
@@ -112,7 +198,7 @@ export function BattleClash({ battle, currentRound, rounds, players, dict }: Bat
                   </p>
                   {onFire && (
                     <p className="text-[10px] font-bold text-orange-400 animate-pulse">
-                      🔥 {dict.onFire || "ON FIRE!"}
+                      🔥 {dict["onFire"] ?? "ON FIRE!"}
                     </p>
                   )}
                 </div>
@@ -120,19 +206,27 @@ export function BattleClash({ battle, currentRound, rounds, players, dict }: Bat
 
               {/* Card flip */}
               <CardFlip
+                key={`round-${currentRound}-${playerId}`}
                 card={
                   playerCard
                     ? { name: playerCard.card.name, image: playerCard.card.image, rarity: playerCard.rarity, coinValue: playerCard.coinValue }
                     : { name: "?", rarity: "Common", coinValue: 0 }
                 }
-                revealed={!!hasCards}
-                delay={idx * 200}
+                revealed={isRevealed}
+                delay={0}
               />
 
               {/* Winner badge */}
               {isWinner && (
-                <span className="rounded border border-pa-green/30 bg-pa-green/10 px-2 py-0.5 text-[10px] font-bold text-pa-green">
-                  ✓ {dict.winner || "Winner"}
+                <span className="rounded border border-pa-green/30 bg-pa-green/10 px-2 py-0.5 text-[10px] font-bold text-pa-green animate-in zoom-in-75 duration-300">
+                  ✓ {dict["winner"] ?? "Gewinner"}
+                </span>
+              )}
+
+              {/* Draw badge */}
+              {isDraw && hasResult && (
+                <span className="rounded border border-yellow-500/30 bg-yellow-500/10 px-2 py-0.5 text-[10px] font-bold text-yellow-400">
+                  = {dict["draw"] ?? "Unentschieden"}
                 </span>
               )}
             </Card>
