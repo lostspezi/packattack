@@ -253,31 +253,3 @@ button[disabled] {
   padding: 4px 8px;
 }
 
-/* New PlaceAutocompleteElement suggestions dropdown */
-.gmp-autocomplete-suggestions-container,
-[class*="gmp-autocomplete"] {
-  background-color: var(--color-surface) !important;
-  border: 1px solid var(--color-border) !important;
-  border-radius: 0.5rem !important;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
-  z-index: 9999 !important;
-}
-
-.gmp-autocomplete-suggestions-container .suggestion,
-.gmp-autocomplete-suggestions-container [role="option"] {
-  color: var(--color-text-primary) !important;
-  padding: 8px 12px !important;
-}
-
-.gmp-autocomplete-suggestions-container .suggestion:hover,
-.gmp-autocomplete-suggestions-container [role="option"]:hover,
-.gmp-autocomplete-suggestions-container [aria-selected="true"] {
-  background-color: var(--color-surface-elevated) !important;
-}
-
-/* Wrapper styling for the autocomplete element */
-gmp-place-autocomplete {
-  width: 100% !important;
-  display: block !important;
-  min-height: 1.25rem !important;
-}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import Script from "next/script";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -18,35 +18,13 @@ interface AddressAutocompleteProps {
   className?: string;
 }
 
+interface Suggestion {
+  placeId: string;
+  description: string;
+}
+
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
 const VALID_COUNTRIES = new Set(["DE", "AT", "CH"]);
-
-const SHADOW_STYLES = `
-  :host {
-    width: 100% !important;
-    display: block !important;
-  }
-  * {
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-  input {
-    color: var(--color-text-primary) !important;
-    font-family: inherit !important;
-    font-size: 0.875rem !important;
-    line-height: 1.25rem !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    outline: none !important;
-    width: 100% !important;
-    height: auto !important;
-    min-height: 1.25rem !important;
-  }
-  input::placeholder {
-    color: var(--color-text-muted) !important;
-  }
-`;
 
 export function AddressAutocomplete({
   value,
@@ -55,94 +33,167 @@ export function AddressAutocomplete({
   placeholder,
   className,
 }: AddressAutocompleteProps) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const elementRef = useRef<any>(null);
-  const initializedRef = useRef(false);
-  const onChangeRef = useRef(onChange);
-  const onPlaceSelectRef = useRef(onPlaceSelect);
-  onChangeRef.current = onChange;
-  onPlaceSelectRef.current = onPlaceSelect;
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  const serviceRef = useRef<any>(null);
+  const placesRef = useRef<any>(null);
+  const sessionTokenRef = useRef<any>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const initRef = useRef(() => {
-    if (initializedRef.current || !containerRef.current) return;
-
+  const getService = useCallback(() => {
     const g = window as any;
-    if (!g.google?.maps?.places?.PlaceAutocompleteElement) return;
-
-    initializedRef.current = true;
-
-    const el = new g.google.maps.places.PlaceAutocompleteElement({
-      includedRegionCodes: ["de", "at", "ch"],
-    });
-
-    try {
-      const shadow = el.shadowRoot;
-      if (shadow) {
-        const style = document.createElement("style");
-        style.textContent = SHADOW_STYLES;
-        shadow.appendChild(style);
-      }
-    } catch {
-      // Shadow DOM may be closed — styling will use global CSS fallback
+    if (!g.google?.maps?.places) return null;
+    if (!serviceRef.current) {
+      serviceRef.current = new g.google.maps.places.AutocompleteService();
     }
-
-    el.addEventListener("gmp-placeselect", (e: any) => {
-      const prediction = e.placePrediction ?? e.detail?.placePrediction;
-      if (!prediction) return;
-
-      const place = prediction.toPlace();
-      if (!place) return;
-
-      place.fetchFields({ fields: ["addressComponents"] }).then(() => {
-        const components: any[] = place.addressComponents ?? [];
-        let route = "";
-        let streetNumber = "";
-        let city = "";
-        let zip = "";
-        let countryCode = "";
-
-        for (const comp of components) {
-          const type = comp.types[0];
-          const long = comp.longText ?? comp.long_name ?? "";
-          const short = comp.shortText ?? comp.short_name ?? "";
-          if (type === "route") route = long;
-          else if (type === "street_number") streetNumber = long;
-          else if (type === "locality") city = long;
-          else if (type === "postal_town" && !city) city = long;
-          else if (type === "sublocality_level_1" && !city) city = long;
-          else if (type === "postal_code") zip = long;
-          else if (type === "country") countryCode = short;
-        }
-
-        const street = streetNumber ? `${route} ${streetNumber}` : route;
-        const country = VALID_COUNTRIES.has(countryCode)
-          ? (countryCode as "DE" | "AT" | "CH")
-          : "DE";
-
-        onChangeRef.current(street);
-        onPlaceSelectRef.current({ street, city, zip, country });
-      });
-    });
-
-    if (placeholder) {
-      el.setAttribute("placeholder", placeholder);
+    if (!placesRef.current) {
+      // PlacesService needs a dummy div
+      placesRef.current = new g.google.maps.places.PlacesService(
+        document.createElement("div")
+      );
     }
-
-    containerRef.current.appendChild(el);
-    elementRef.current = el;
-  });
-
-  useEffect(() => {
-    initRef.current();
-    return () => {
-      if (elementRef.current) {
-        elementRef.current.remove();
-        elementRef.current = null;
-        initializedRef.current = false;
-      }
-    };
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current =
+        new g.google.maps.places.AutocompleteSessionToken();
+    }
+    return serviceRef.current;
   }, []);
 
+  const fetchSuggestions = useCallback(
+    (input: string) => {
+      const service = getService();
+      if (!service || input.length < 2) {
+        setSuggestions([]);
+        return;
+      }
+
+      service.getPlacePredictions(
+        {
+          input,
+          componentRestrictions: { country: ["de", "at", "ch"] },
+          types: ["address"],
+          sessionToken: sessionTokenRef.current,
+        },
+        (predictions: any[] | null, status: string) => {
+          const g = window as any;
+          if (
+            status === g.google.maps.places.PlacesServiceStatus.OK &&
+            predictions
+          ) {
+            setSuggestions(
+              predictions.map((p) => ({
+                placeId: p.place_id,
+                description: p.description,
+              }))
+            );
+          } else {
+            setSuggestions([]);
+          }
+        }
+      );
+    },
+    [getService]
+  );
+
+  const handleSelect = useCallback(
+    (suggestion: Suggestion) => {
+      if (!placesRef.current) return;
+
+      placesRef.current.getDetails(
+        {
+          placeId: suggestion.placeId,
+          fields: ["address_components"],
+          sessionToken: sessionTokenRef.current,
+        },
+        (place: any, status: string) => {
+          const g = window as any;
+          if (status !== g.google.maps.places.PlacesServiceStatus.OK || !place)
+            return;
+
+          const components: any[] = place.address_components ?? [];
+          let route = "";
+          let streetNumber = "";
+          let city = "";
+          let zip = "";
+          let countryCode = "";
+
+          for (const comp of components) {
+            const type = comp.types[0];
+            if (type === "route") route = comp.long_name ?? "";
+            else if (type === "street_number")
+              streetNumber = comp.long_name ?? "";
+            else if (type === "locality") city = comp.long_name ?? "";
+            else if (type === "postal_town" && !city)
+              city = comp.long_name ?? "";
+            else if (type === "sublocality_level_1" && !city)
+              city = comp.long_name ?? "";
+            else if (type === "postal_code") zip = comp.long_name ?? "";
+            else if (type === "country") countryCode = comp.short_name ?? "";
+          }
+
+          const street = streetNumber ? `${route} ${streetNumber}` : route;
+          const country = VALID_COUNTRIES.has(countryCode)
+            ? (countryCode as "DE" | "AT" | "CH")
+            : "DE";
+
+          // Reset session token for next search
+          const gg = window as any;
+          sessionTokenRef.current =
+            new gg.google.maps.places.AutocompleteSessionToken();
+
+          onChange(street);
+          onPlaceSelect({ street, city, zip, country });
+        }
+      );
+
+      setSuggestions([]);
+      setShowDropdown(false);
+      setActiveIndex(-1);
+    },
+    [onChange, onPlaceSelect]
+  );
+
+  function handleInputChange(input: string) {
+    onChange(input);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchSuggestions(input);
+      setShowDropdown(true);
+      setActiveIndex(-1);
+    }, 250);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (!showDropdown || suggestions.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => (i < suggestions.length - 1 ? i + 1 : 0));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => (i > 0 ? i - 1 : suggestions.length - 1));
+    } else if (e.key === "Enter" && activeIndex >= 0) {
+      e.preventDefault();
+      handleSelect(suggestions[activeIndex]);
+    } else if (e.key === "Escape") {
+      setShowDropdown(false);
+    }
+  }
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // No API key — render plain input
   if (!API_KEY) {
     return (
       <input
@@ -160,13 +211,38 @@ export function AddressAutocomplete({
       <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&loading=async`}
         strategy="lazyOnload"
-        onReady={() => initRef.current()}
       />
-      <div
-        ref={containerRef}
-        className={className}
-        style={{ position: "relative" }}
-      />
+      <div ref={wrapperRef} style={{ position: "relative" }}>
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => handleInputChange(e.target.value)}
+          onFocus={() => suggestions.length > 0 && setShowDropdown(true)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          className={className}
+          autoComplete="off"
+        />
+        {showDropdown && suggestions.length > 0 && (
+          <ul className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-lg border border-border bg-surface shadow-lg">
+            {suggestions.map((s, i) => (
+              <li
+                key={s.placeId}
+                onMouseDown={() => handleSelect(s)}
+                onMouseEnter={() => setActiveIndex(i)}
+                className={[
+                  "cursor-pointer px-3 py-2 text-sm",
+                  i === activeIndex
+                    ? "bg-surface-elevated text-text-primary"
+                    : "text-text-secondary",
+                ].join(" ")}
+              >
+                {s.description}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </>
   );
 }
