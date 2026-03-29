@@ -7,6 +7,9 @@ export async function register() {
     const { runSeed } = await import("@/lib/seed");
     await runSeed();
 
+    const { runEloResetMigration } = await import("@/lib/migrations/elo-reset-v2");
+    await runEloResetMigration();
+
     const { startReservationWorker } = await import("@/workers/reservation-worker");
     startReservationWorker();
   }
