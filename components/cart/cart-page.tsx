@@ -176,6 +176,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
           title: dict["converted"] ?? "Umgewandelt",
           message: (dict["coinsCredited"] ?? "{coins} Coins gutgeschrieben").replace("{coins}", String(totalConverted)),
         });
+        window.dispatchEvent(new CustomEvent("coin-balance-change", { detail: { delta: totalConverted } }));
       }
       fetchCart();
     } catch {
@@ -343,7 +344,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
                 )}
                 className="flex-shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-white/5"
               >
-                {dict["toCoins"] ?? "In Münzen umwandeln"}
+                {dict["toCoins"] ?? "In Münze(n) umwandeln"}
               </button>
             </div>
           ));

@@ -32,6 +32,21 @@
   will-change: transform;
 }
 
+@keyframes coinFloat {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -24px);
+  }
+}
+
+.animate-coin-float {
+  animation: coinFloat 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 @theme {
   /* Background */
   --color-bg: #12111A;
