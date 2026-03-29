@@ -17,8 +17,9 @@ export default async function ProfilePage({
 
   const session = await auth();
 
-  const [profileDict] = await Promise.all([
+  const [profileDict, battlesDict] = await Promise.all([
     getDictionary(lang as Locale, "profile"),
+    getDictionary(lang as Locale, "battles"),
   ]);
 
   await connectDB();
@@ -73,6 +74,7 @@ export default async function ProfilePage({
       </Card>
 
       <BattleStatsCard
+        lang={lang}
         elo={user?.elo ?? 1000}
         battleStats={{
           wins: user?.battleStats?.wins ?? 0,
@@ -81,6 +83,7 @@ export default async function ProfilePage({
           bestStreak: user?.battleStats?.bestStreak ?? 0,
           totalBattles: user?.battleStats?.totalBattles ?? 0,
         }}
+        dict={battlesDict}
       />
     </div>
   );

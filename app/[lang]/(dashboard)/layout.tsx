@@ -19,9 +19,10 @@ export default async function DashboardLayout({
     redirect(`/${lang}/login`);
   }
 
-  const [commonDict, chatDict, languages] = await Promise.all([
+  const [commonDict, chatDict, battlesDict, languages] = await Promise.all([
     getDictionary(lang, "common"),
     getDictionary(lang, "chat"),
+    getDictionary(lang, "battles"),
     getActiveLanguages(),
   ]);
 
@@ -39,7 +40,7 @@ export default async function DashboardLayout({
         userImage={userImage}
         userRole={userRole}
       />
-      <ActiveBattleBanner lang={lang} />
+      <ActiveBattleBanner lang={lang} dict={battlesDict} />
       <div className="flex flex-1 flex-col">{children}</div>
       <ChatDock
         lang={lang}
