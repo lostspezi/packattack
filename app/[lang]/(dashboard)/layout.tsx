@@ -3,6 +3,7 @@ import { ChatDock } from "@/components/chat/chat-dock";
 import { UserHeader } from "@/components/layout/user-header";
 import { ActiveBattleBanner } from "@/components/battles/active-battle-banner";
 import { GlobalReadyCheck } from "@/components/battles/global-ready-check";
+import { GlobalQueueBanner } from "@/components/battles/global-queue-banner";
 import { auth } from "@/lib/auth";
 import { getActiveLanguages, getDictionary } from "@/lib/i18n";
 
@@ -43,6 +44,7 @@ export default async function DashboardLayout({
       />
       <ActiveBattleBanner lang={lang} dict={battlesDict} />
       <GlobalReadyCheck lang={lang} dict={battlesDict} />
+      <GlobalQueueBanner lang={lang} dict={battlesDict} />
       <div className="flex flex-1 flex-col">{children}</div>
       <ChatDock
         lang={lang}
