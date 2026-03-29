@@ -54,7 +54,7 @@ export async function DELETE(
     await CoinTransaction.create({
       userId,
       amount: item.conversionValue,
-      type: "cart_manual_conversion",
+      type: "card_conversion",
       reason: "Manual conversion from cart",
       relatedPullId: item.pullId,
       relatedBoxId: item.boxId,

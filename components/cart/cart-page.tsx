@@ -10,6 +10,9 @@ import {
   Package,
   Loader2,
   ChevronDown,
+  X,
+  Minus,
+  Plus,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { ReservationConsentModal } from "./reservation-consent-modal";
@@ -45,7 +48,13 @@ export function CartPage({ lang, dict }: CartPageProps) {
   const { toast } = useToast();
   const [items, setItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [converting, setConverting] = useState(false);
+  const [convertDialog, setConvertDialog] = useState<{
+    itemIds: string[];
+    cardName: string;
+    coinsPer: number;
+    quantity: number;
+  } | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
 
   // Address form
@@ -146,21 +155,29 @@ export function CartPage({ lang, dict }: CartPageProps) {
       .finally(() => setEstimateLoading(false));
   }, [address.country, items.length]);
 
-  async function handleConvert(itemId: string) {
-    setConvertingId(itemId);
+  function openConvertDialog(itemIds: string[], cardName: string, coinsPer: number) {
+    setConvertDialog({ itemIds, cardName, coinsPer, quantity: itemIds.length });
+  }
+
+  async function handleConvertConfirm() {
+    if (!convertDialog) return;
+    setConverting(true);
+    let totalConverted = 0;
+    const toConvert = convertDialog.itemIds.slice(0, convertDialog.quantity);
     try {
-      const res = await fetch(`/api/cart/${itemId}`, { method: "DELETE" });
-      const data = await res.json();
-      if (data.success) {
+      for (const id of toConvert) {
+        const res = await fetch(`/api/cart/${id}`, { method: "DELETE" });
+        const data = await res.json();
+        if (data.success) totalConverted += data.convertedCoins;
+      }
+      if (totalConverted > 0) {
         toast({
           type: "success",
           title: dict["converted"] ?? "Umgewandelt",
-          message: (dict["coinsCredited"] ?? "{coins} Coins gutgeschrieben").replace("{coins}", String(data.convertedCoins)),
+          message: (dict["coinsCredited"] ?? "{coins} Coins gutgeschrieben").replace("{coins}", String(totalConverted)),
         });
-        fetchCart();
-      } else {
-        toast({ type: "error", title: "Error", message: data.error });
       }
+      fetchCart();
     } catch {
       toast({
         type: "error",
@@ -168,7 +185,8 @@ export function CartPage({ lang, dict }: CartPageProps) {
         message: dict["convertFailed"] ?? "Umwandlung fehlgeschlagen",
       });
     } finally {
-      setConvertingId(null);
+      setConverting(false);
+      setConvertDialog(null);
     }
   }
 
@@ -318,15 +336,14 @@ export function CartPage({ lang, dict }: CartPageProps) {
                 </p>
               </div>
               <button
-                onClick={() => handleConvert(group.items[0]._id)}
-                disabled={convertingId === group.items[0]._id}
-                className="flex-shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-white/5 disabled:opacity-50"
-              >
-                {convertingId === group.items[0]._id ? (
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                ) : (
-                  <>{dict["toCoins"] ?? "Zu Coins"}</>
+                onClick={() => openConvertDialog(
+                  group.items.map((i) => i._id),
+                  group.card?.name ?? "Unknown",
+                  group.conversionValue
                 )}
+                className="flex-shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-white/5"
+              >
+                {dict["toCoins"] ?? "In Münzen umwandeln"}
               </button>
             </div>
           ));
@@ -501,6 +518,73 @@ export function CartPage({ lang, dict }: CartPageProps) {
           </button>
         </div>
       </div>
+
+      {convertDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="relative mx-4 w-full max-w-sm rounded-xl border border-border bg-surface p-6 shadow-xl">
+            <button
+              onClick={() => setConvertDialog(null)}
+              className="absolute right-3 top-3 rounded-lg p-1 text-text-muted hover:bg-white/5"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <h3 className="mb-1 text-sm font-semibold text-text-primary">
+              {dict["convertTitle"] ?? "In Coins umwandeln"}
+            </h3>
+            <p className="mb-4 text-xs text-text-muted">
+              {convertDialog.cardName}
+            </p>
+
+            {convertDialog.itemIds.length > 1 && (
+              <div className="mb-4 flex items-center justify-center gap-3">
+                <button
+                  onClick={() => setConvertDialog((d) => d ? { ...d, quantity: Math.max(1, d.quantity - 1) } : d)}
+                  className="rounded-lg border border-border p-1.5 text-text-secondary hover:bg-white/5"
+                >
+                  <Minus className="h-4 w-4" />
+                </button>
+                <span className="min-w-12 text-center text-lg font-semibold text-text-primary">
+                  {convertDialog.quantity}
+                </span>
+                <button
+                  onClick={() => setConvertDialog((d) => d ? { ...d, quantity: Math.min(d.itemIds.length, d.quantity + 1) } : d)}
+                  className="rounded-lg border border-border p-1.5 text-text-secondary hover:bg-white/5"
+                >
+                  <Plus className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+
+            <p className="mb-4 text-center text-sm text-text-secondary">
+              {dict["convertConfirmText"] ?? "Du erhältst"}{" "}
+              <span className="font-semibold text-amber-400">
+                {convertDialog.quantity * convertDialog.coinsPer} Coins
+              </span>
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConvertDialog(null)}
+                className="flex-1 rounded-lg border border-border px-4 py-2.5 text-sm text-text-secondary hover:bg-white/5"
+              >
+                {dict["cancel"] ?? "Abbrechen"}
+              </button>
+              <button
+                onClick={handleConvertConfirm}
+                disabled={converting}
+                className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-amber-500 px-4 py-2.5 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-50"
+              >
+                {converting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>{dict["convertConfirm"] ?? "Umwandeln"}</>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showConsent && (
         <ReservationConsentModal
