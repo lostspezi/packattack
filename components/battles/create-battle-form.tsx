@@ -89,7 +89,7 @@ export function CreateBattleForm({ lang, dict }: CreateBattleFormProps) {
         return;
       }
 
-      router.push(`/${lang}/battles/${data.battle.slug}`);
+      router.push(`/${lang}/battles/${data.slug}`);
     } catch {
       setError(dict.error_generic || "Fehler beim Erstellen des Battles.");
     } finally {
