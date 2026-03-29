@@ -586,7 +586,7 @@ export async function runBattle(battleId: string): Promise<void> {
       placements: placements.map((p) => ({
         userId: p.userId,
         placement: p.placement,
-        eloChange: eloChanges.get(p.userId) ?? 0,
+        eloChange: clampedEloChanges.get(p.userId) ?? 0,
         score: scores.get(p.userId) ?? 0,
       })),
     });
