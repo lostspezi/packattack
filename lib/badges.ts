@@ -49,7 +49,7 @@ const CORE_BADGES: Array<{
     slug: "beta-tester",
     label: "Beta-Tester",
     iconUrl: "/badges/beta-badge.webp",
-    description: "Hat PackAttack während der Beta-Phase unterstützt und neue Funktionen mitgetestet.",
+    description: "Hat PACKATTACK während der Beta-Phase unterstützt und neue Funktionen mitgetestet.",
     tone: "green",
     active: true,
     sortOrder: 100,
