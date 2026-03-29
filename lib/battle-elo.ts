@@ -37,6 +37,7 @@ interface EloPlayer {
  */
 export function calculateEloChanges(players: EloPlayer[]): Map<string, number> {
   const changes = new Map<string, number>();
+  const n = players.length;
 
   for (const player of players) {
     const k = getKFactor(player.totalBattles);
@@ -54,13 +55,24 @@ export function calculateEloChanges(players: EloPlayer[]): Map<string, number> {
       }
     }
 
-    const change = Math.round(k * (totalScore - totalExpected));
+    const raw = (k / (n - 1)) * (totalScore - totalExpected);
+    const change = Math.sign(raw) * Math.round(Math.abs(raw));
     changes.set(player.userId, change);
   }
 
   return changes;
 }
 
+export function getEloDivision(elo: number): string {
+  const rank = getEloRank(elo);
+  if (!rank.divisions) return rank.label.en;
+
+  const offset = elo - rank.minElo;
+  const divIndex = Math.min(3, Math.floor(offset / ELO_DIVISION_SIZE));
+  const divLabels = ["IV", "III", "II", "I"];
+  return `${rank.label.en} ${divLabels[divIndex]}`;
+}
+
 export function softResetElo(elo: number): number {
-  return Math.round((elo - ELO_DEFAULT) * 0.5 + ELO_DEFAULT);
+  return Math.max(ELO_FLOOR, Math.round((elo - ELO_DEFAULT) * 0.5 + ELO_DEFAULT));
 }

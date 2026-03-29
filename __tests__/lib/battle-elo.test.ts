@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { calculateEloChanges, getEloRank, getKFactor } from "@/lib/battle-elo";
+import { calculateEloChanges, getEloRank, getEloDivision, getKFactor, softResetElo } from "@/lib/battle-elo";
 
 describe("getKFactor", () => {
   it("returns 25 for new players with < 20 battles", () => {
@@ -85,5 +85,71 @@ describe("calculateEloChanges", () => {
       { userId: "b", elo: 1000, totalBattles: 50, placement: 2 },
     ]);
     expect(Math.abs(newPlayer.get("a")!)).toBeGreaterThan(Math.abs(expPlayer.get("a")!));
+  });
+});
+
+describe("calculateEloChanges (normalized)", () => {
+  it("produces same magnitude change for 2-player and 4-player battles", () => {
+    const twoPlayer = calculateEloChanges([
+      { userId: "a", elo: 1000, totalBattles: 50, placement: 1 },
+      { userId: "b", elo: 1000, totalBattles: 50, placement: 2 },
+    ]);
+    const fourPlayer = calculateEloChanges([
+      { userId: "a", elo: 1000, totalBattles: 50, placement: 1 },
+      { userId: "b", elo: 1000, totalBattles: 50, placement: 2 },
+      { userId: "c", elo: 1000, totalBattles: 50, placement: 3 },
+      { userId: "d", elo: 1000, totalBattles: 50, placement: 4 },
+    ]);
+    expect(Math.abs(twoPlayer.get("a")! - fourPlayer.get("a")!)).toBeLessThanOrEqual(3);
+    expect(Math.abs(twoPlayer.get("b")! - fourPlayer.get("d")!)).toBeLessThanOrEqual(3);
+  });
+
+  it("max loss in 4-player battle with K=15 is around -8", () => {
+    const result = calculateEloChanges([
+      { userId: "a", elo: 1000, totalBattles: 50, placement: 1 },
+      { userId: "b", elo: 1000, totalBattles: 50, placement: 2 },
+      { userId: "c", elo: 1000, totalBattles: 50, placement: 3 },
+      { userId: "d", elo: 1000, totalBattles: 50, placement: 4 },
+    ]);
+    expect(result.get("d")!).toBeGreaterThanOrEqual(-10);
+    expect(result.get("d")!).toBeLessThan(0);
+  });
+
+  it("new player (K=25) loses at most ~13 in a 1v1 against equal opponent", () => {
+    const result = calculateEloChanges([
+      { userId: "a", elo: 1000, totalBattles: 0, placement: 1 },
+      { userId: "b", elo: 1000, totalBattles: 0, placement: 2 },
+    ]);
+    expect(result.get("b")!).toBe(-13);
+    expect(result.get("a")!).toBe(13);
+  });
+});
+
+describe("getEloDivision", () => {
+  it("returns correct division for Bronze IV", () => {
+    expect(getEloDivision(800)).toBe("Bronze IV");
+    expect(getEloDivision(849)).toBe("Bronze IV");
+  });
+  it("returns correct division for Bronze III", () => {
+    expect(getEloDivision(850)).toBe("Bronze III");
+  });
+  it("returns correct division for Silver I", () => {
+    expect(getEloDivision(1150)).toBe("Silver I");
+    expect(getEloDivision(1199)).toBe("Silver I");
+  });
+  it("returns Champion without division", () => {
+    expect(getEloDivision(1800)).toBe("Champion");
+    expect(getEloDivision(2200)).toBe("Champion");
+  });
+});
+
+describe("softResetElo", () => {
+  it("resets toward 800 baseline", () => {
+    expect(softResetElo(1600)).toBe(1200);
+    expect(softResetElo(800)).toBe(800);
+    expect(softResetElo(1000)).toBe(900);
+  });
+  it("never goes below floor", () => {
+    expect(softResetElo(800)).toBeGreaterThanOrEqual(800);
   });
 });
