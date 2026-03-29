@@ -3,6 +3,7 @@ import { getDictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { ProfileForm } from "@/components/profile/profile-form";
+import { BattleStatsCard } from "@/components/battles/battle-stats-card";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
 import { MongoClient, ObjectId } from "mongodb";
@@ -70,6 +71,17 @@ export default async function ProfilePage({
           linkedProviders={linkedProviders}
         />
       </Card>
+
+      <BattleStatsCard
+        elo={user?.elo ?? 1000}
+        battleStats={{
+          wins: user?.battleStats?.wins ?? 0,
+          losses: user?.battleStats?.losses ?? 0,
+          streak: user?.battleStats?.streak ?? 0,
+          bestStreak: user?.battleStats?.bestStreak ?? 0,
+          totalBattles: user?.battleStats?.totalBattles ?? 0,
+        }}
+      />
     </div>
   );
 }
