@@ -3,7 +3,7 @@ import mongoose, { Document, Model, Schema, Types } from "mongoose";
 export interface ICoinTransaction extends Document {
   userId: Types.ObjectId;
   amount: number;
-  type: "admin_grant" | "admin_deduct" | "pack_purchase" | "card_conversion" | "bulk_conversion" | "coin_purchase" | "shipping_payment" | "reservation_expired" | "battle_entry" | "battle_card_conversion" | "battle_refund";
+  type: "admin_grant" | "admin_deduct" | "pack_purchase" | "card_conversion" | "coin_purchase" | "shipping_payment" | "reservation_expired" | "battle_entry" | "battle_card_conversion" | "battle_refund";
   reason: string | null;
   relatedPullId: Types.ObjectId | null;
   relatedBoxId: Types.ObjectId | null;
@@ -20,7 +20,7 @@ const CoinTransactionSchema = new Schema<ICoinTransaction>(
     amount: { type: Number, required: true },
     type: {
       type: String,
-      enum: ["admin_grant", "admin_deduct", "pack_purchase", "card_conversion", "bulk_conversion", "coin_purchase", "shipping_payment", "reservation_expired", "battle_entry", "battle_card_conversion", "battle_refund"],
+      enum: ["admin_grant", "admin_deduct", "pack_purchase", "card_conversion", "coin_purchase", "shipping_payment", "reservation_expired", "battle_entry", "battle_card_conversion", "battle_refund"],
       required: true,
     },
     reason: { type: String, default: null },

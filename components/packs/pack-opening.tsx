@@ -1,16 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import { ShoppingCart, Coins, ArrowRight, Sparkles, RotateCcw } from "lucide-react";
+import { ShoppingCart, Coins, ArrowRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
-import {
-  BULK_COIN_THRESHOLD,
-  BULK_CONVERSION_BONUS,
-  MIN_PACKS_FOR_BULK_OFFER,
-  MIN_BULK_CARDS_FOR_OFFER,
-} from "@/lib/pack-constants";
 
 interface DrawnCard {
   cardId: string;
@@ -72,11 +66,6 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
   const [phase, setPhase] = useState<"reveal" | "review">(isRecovery ? "review" : "reveal");
   const [submitting, setSubmitting] = useState(false);
 
-  // Bulk conversion state
-  const [bulkDismissed, setBulkDismissed] = useState(false);
-  const [bulkConverted, setBulkConverted] = useState(false);
-  const [bulkSubmitting, setBulkSubmitting] = useState(false);
-
   const cards = result.cards;
   const currentCard = cards[currentIndex];
   const isLast = currentIndex >= cards.length - 1;
@@ -88,18 +77,6 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
       ? cards.map((c, i) => (c.status === "reserved" || c.status === "converted") ? i : -1).filter((i) => i >= 0)
       : []
   );
-
-  // Bulk conversion computed values (exclude already-recovered cards)
-  const bulkIndices = new Set(
-    cards.map((c, i) => (c.coinValue < BULK_COIN_THRESHOLD && !recoveredIndices.has(i) ? i : -1)).filter((i) => i >= 0)
-  );
-  const bulkCards = cards.filter((c, i) => c.coinValue < BULK_COIN_THRESHOLD && !recoveredIndices.has(i));
-  const isBulkEligible =
-    result.packCount >= MIN_PACKS_FOR_BULK_OFFER &&
-    bulkCards.length >= MIN_BULK_CARDS_FOR_OFFER;
-  const bulkTotalBase = bulkCards.reduce((sum, c) => sum + c.conversionValue, 0);
-  const bulkTotalWithBonus = Math.floor(bulkTotalBase * (1 + BULK_CONVERSION_BONUS));
-  const bulkBonusAmount = bulkTotalWithBonus - bulkTotalBase;
 
   function setChoice(idx: number, choice: CardChoice) {
     setChoices((prev) => new Map(prev).set(idx, choice));
@@ -114,99 +91,26 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
     }
   }
 
-  // All cards must have a choice before confirming (bulk-converted and recovered count as decided)
+  // All cards must have a choice before confirming (recovered count as decided)
   const allDecided = cards.every(
     (_, i) =>
       recoveredIndices.has(i) ||
-      (bulkConverted && bulkIndices.has(i)) ||
       choices.get(i) === "claim" ||
       choices.get(i) === "convert"
   );
   const claimedCount = [...choices.values()].filter((c) => c === "claim").length;
   const convertedCount = [...choices.values()].filter((c) => c === "convert").length;
-  const coinsBack = cards.reduce((sum, c, i) => {
-    if (bulkConverted && bulkIndices.has(i)) return sum;
-    return choices.get(i) === "convert" ? sum + c.conversionValue : sum;
-  }, 0);
-
-  async function handleBulkConvert() {
-    setBulkSubmitting(true);
-    try {
-      const bulkCardData = cards
-        .map((c, i) => ({ ...c, _idx: i }))
-        .filter((c) => c.coinValue < BULK_COIN_THRESHOLD);
-
-      const res = await fetch("/api/pulls/bulk-convert", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          packGroupId: result.packGroupId,
-          boxId: box._id,
-          cards: bulkCardData.map((c) => ({
-            cardId: c.cardId,
-            cardIndex: c.cardIndex,
-            packIndex: c.packIndex,
-            rarity: c.rarity,
-            coinValue: c.coinValue,
-            conversionValue: c.conversionValue,
-          })),
-        }),
-      });
-
-      const data = (await res.json()) as {
-        newBalance?: number;
-        totalCoins?: number;
-        error?: string;
-      };
-
-      if (!res.ok) {
-        toast({ type: "error", title: data.error ?? "Bulk conversion failed" });
-        setBulkSubmitting(false);
-        return;
-      }
-
-      // Mark all bulk cards as "convert" in local choices
-      setChoices((prev) => {
-        const next = new Map(prev);
-        for (const c of bulkCardData) {
-          next.set(c._idx, "convert");
-        }
-        return next;
-      });
-
-      setBulkConverted(true);
-
-      if (data.newBalance !== undefined) {
-        onCoinsChange(data.newBalance);
-      }
-
-      // Dispatch coin animation event
-      if (data.totalCoins) {
-        window.dispatchEvent(
-          new CustomEvent("coin-balance-change", { detail: { delta: data.totalCoins } })
-        );
-      }
-
-      toast({
-        type: "success",
-        title: isDe
-          ? `${bulkCards.length} Karten umgewandelt (+50% Bonus!)`
-          : `${bulkCards.length} cards converted (+50% bonus!)`,
-      });
-    } catch {
-      toast({ type: "error", title: "Network error" });
-    } finally {
-      setBulkSubmitting(false);
-    }
-  }
+  const coinsBack = cards.reduce(
+    (sum, c, i) => (choices.get(i) === "convert" ? sum + c.conversionValue : sum),
+    0
+  );
 
   async function handleConfirm() {
     setSubmitting(true);
     try {
-      // Send decisions only for cards not already decided (bulk-converted or recovered)
+      // Send decisions only for cards not already decided (recovered)
       for (let i = 0; i < cards.length; i++) {
         if (recoveredIndices.has(i)) continue;
-        if (bulkConverted && bulkIndices.has(i)) continue;
 
         const card = cards[i];
         const decision = choices.get(i);
@@ -279,98 +183,20 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
           </div>
         )}
 
-        {/* Bulk conversion banner */}
-        {isBulkEligible && !bulkConverted && !bulkDismissed && (
-          <div className="relative overflow-hidden rounded-xl border border-pa-green/30 bg-gradient-to-br from-pa-green/10 via-pa-lila/10 to-pa-green/5 p-4">
-            <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-pa-green/5 blur-2xl" />
-            <div className="relative space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-pa-green/15">
-                  <Sparkles className="h-4 w-4 text-pa-green" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-text-primary">
-                    {isDe
-                      ? `${bulkCards.length} Bulk-Karten direkt umwandeln`
-                      : `Convert ${bulkCards.length} bulk cards instantly`}
-                  </p>
-                  <p className="text-xs text-text-secondary">
-                    {isDe
-                      ? `für ${bulkTotalWithBonus} Coins (inkl. +${bulkBonusAmount} Bonus)`
-                      : `for ${bulkTotalWithBonus} Coins (incl. +${bulkBonusAmount} bonus)`}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 rounded-lg bg-white/4 px-3 py-2">
-                <Coins className="h-4 w-4 shrink-0 text-pa-green" />
-                <div className="flex-1 text-xs text-text-secondary">
-                  <span className="text-text-muted line-through">{bulkTotalBase}</span>
-                  {" → "}
-                  <span className="font-bold text-pa-green">{bulkTotalWithBonus} Coins</span>
-                  <span className="ml-1.5 inline-flex items-center rounded bg-pa-green/15 px-1.5 py-0.5 text-[10px] font-bold text-pa-green">
-                    +50%
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  variant="primary"
-                  size="md"
-                  className="flex-1"
-                  loading={bulkSubmitting}
-                  onClick={() => void handleBulkConvert()}
-                >
-                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
-                  {isDe ? "Alle umwandeln" : "Convert all"}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="md"
-                  disabled={bulkSubmitting}
-                  onClick={() => setBulkDismissed(true)}
-                >
-                  {isDe ? "Nein danke" : "No thanks"}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Bulk conversion success indicator */}
-        {bulkConverted && (
-          <div className="flex items-center gap-2 rounded-xl border border-pa-green/20 bg-pa-green/8 px-4 py-3">
-            <Sparkles className="h-4 w-4 shrink-0 text-pa-green" />
-            <p className="text-sm text-pa-green">
-              {isDe
-                ? `${bulkCards.length} Bulk-Karten umgewandelt — +${bulkTotalWithBonus} Coins (inkl. 50% Bonus)`
-                : `${bulkCards.length} bulk cards converted — +${bulkTotalWithBonus} Coins (incl. 50% bonus)`}
-            </p>
-          </div>
-        )}
-
         {/* Card list with decision toggles */}
         <div className="space-y-2">
           {cards.map((c, i) => {
             const choice = choices.get(i);
-            const isBulk = bulkIndices.has(i);
-            const isBulkDone = bulkConverted && isBulk;
             const isRecovered = recoveredIndices.has(i);
-            const bonusValue = isBulk
-              ? Math.floor(c.conversionValue * (1 + BULK_CONVERSION_BONUS))
-              : c.conversionValue;
 
             return (
               <div
                 key={i}
                 className={[
                   "flex items-center gap-3 rounded-xl border p-3",
-                  isBulkDone
-                    ? "border-pa-green/20 bg-pa-green/5"
-                    : isRecovered
-                      ? "border-white/8 bg-white/3 opacity-70"
-                      : "border-border bg-surface",
+                  isRecovered
+                    ? "border-white/8 bg-white/3 opacity-70"
+                    : "border-border bg-surface",
                 ].join(" ")}
               >
                 {/* Image */}
@@ -390,16 +216,8 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
                   </div>
                 </div>
 
-                {/* Decision toggle, bulk badge, or recovered status */}
-                {isBulkDone ? (
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <span className="inline-flex items-center gap-1 rounded-lg bg-pa-green/15 px-2.5 py-1.5 text-xs font-medium text-pa-green">
-                      <Coins className="h-3.5 w-3.5" />
-                      {bonusValue}
-                      <span className="text-[10px] opacity-70">+50%</span>
-                    </span>
-                  </div>
-                ) : isRecovered ? (
+                {/* Decision toggle or recovered status */}
+                {isRecovered ? (
                   <div className="flex items-center gap-1.5 shrink-0">
                     <span className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-medium ${
                       choice === "claim"
@@ -455,30 +273,23 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
                 {claimedCount} {isDe ? "Warenkorb" : "Cart"}
               </span>
               <span className="text-blue-400">
-                {convertedCount + (bulkConverted ? bulkCards.length : 0)}{" "}
+                {convertedCount}{" "}
                 {isDe ? "Umwandlungen" : "Converts"}
               </span>
-              {(coinsBack > 0 || bulkConverted) && (
+              {coinsBack > 0 && (
                 <span className="text-pa-green">
-                  +{coinsBack + (bulkConverted ? bulkTotalWithBonus : 0)} Coins
+                  +{coinsBack} Coins
                 </span>
               )}
             </div>
             {!allDecided && (
               <span className="text-xs text-yellow-400">
                 {isDe
-                  ? `Noch ${cards.length - claimedCount - convertedCount - (bulkConverted ? bulkCards.length : 0) - recoveredIndices.size} offen`
-                  : `${cards.length - claimedCount - convertedCount - (bulkConverted ? bulkCards.length : 0) - recoveredIndices.size} remaining`}
+                  ? `Noch ${cards.length - claimedCount - convertedCount - recoveredIndices.size} offen`
+                  : `${cards.length - claimedCount - convertedCount - recoveredIndices.size} remaining`}
               </span>
             )}
           </div>
-          {bulkConverted && (
-            <p className="text-xs text-pa-green/70">
-              {isDe
-                ? `↳ davon ${bulkCards.length} Bulk-Karten mit +50% Bonus`
-                : `↳ incl. ${bulkCards.length} bulk cards with +50% bonus`}
-            </p>
-          )}
         </div>
 
         {/* Confirm button */}
