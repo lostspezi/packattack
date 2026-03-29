@@ -9,6 +9,7 @@ import {
   CreditCard,
   Package,
   Loader2,
+  ChevronDown,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { ReservationConsentModal } from "./reservation-consent-modal";
@@ -66,6 +67,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
   const [estimateLoading, setEstimateLoading] = useState(false);
   const [showConsent, setShowConsent] = useState(false);
   const [consentAccepted, setConsentAccepted] = useState(false);
+  const [countryOpen, setCountryOpen] = useState(false);
 
   // Single cart-wide countdown (all items share the same expiry)
   const [cartCountdown, setCartCountdown] = useState(0);
@@ -354,20 +356,34 @@ export function CartPage({ lang, dict }: CartPageProps) {
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary placeholder:text-text-muted"
               />
             </div>
-            <select
-              value={address.country}
-              onChange={(e) =>
-                setAddress((a) => ({
-                  ...a,
-                  country: e.target.value as "DE" | "AT" | "CH",
-                }))
-              }
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
-            >
-              <option value="DE">{dict["germany"] ?? "Germany"}</option>
-              <option value="AT">{dict["austria"] ?? "Austria"}</option>
-              <option value="CH">{dict["switzerland"] ?? "Switzerland"}</option>
-            </select>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setCountryOpen((o) => !o)}
+                className="flex w-full items-center justify-between rounded-lg border border-border bg-background px-3 py-2 text-sm text-text-primary"
+              >
+                <span>
+                  {{ DE: dict["germany"] ?? "Germany", AT: dict["austria"] ?? "Austria", CH: dict["switzerland"] ?? "Switzerland" }[address.country]}
+                </span>
+                <ChevronDown className={`h-4 w-4 text-text-muted transition-transform ${countryOpen ? "rotate-180" : ""}`} />
+              </button>
+              {countryOpen && (
+                <ul className="absolute left-0 right-0 top-full z-50 mt-1 overflow-hidden rounded-lg border border-border bg-surface shadow-lg">
+                  {([["DE", dict["germany"] ?? "Germany"], ["AT", dict["austria"] ?? "Austria"], ["CH", dict["switzerland"] ?? "Switzerland"]] as const).map(([code, label]) => (
+                    <li
+                      key={code}
+                      onMouseDown={() => {
+                        setAddress((a) => ({ ...a, country: code }));
+                        setCountryOpen(false);
+                      }}
+                      className={`cursor-pointer px-3 py-2 text-sm ${address.country === code ? "bg-surface-elevated text-text-primary" : "text-text-secondary hover:bg-surface-elevated"}`}
+                    >
+                      {label}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
 
