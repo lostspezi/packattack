@@ -8,7 +8,7 @@ import User from "@/models/user";
 import Box from "@/models/box";
 import CoinTransaction from "@/models/coin-transaction";
 
-const RESERVATION_HOURS = 6;
+const RESERVATION_HOURS = 3;
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
     const cardDoc = await (await import("@/models/card")).default.findById(cardId).select("name image").lean();
 
     if (decision === "claim") {
-      // Use existing cart expiry or start a new 6h window
+      // Use existing cart expiry or start a new 3h window
       const existingItem = await CartItem.findOne({ userId, status: "reserved" })
         .select("expiresAt")
         .lean();
