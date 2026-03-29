@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect } from "react";
 import Script from "next/script";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -21,6 +21,7 @@ interface AddressAutocompleteProps {
 interface Suggestion {
   placeId: string;
   description: string;
+  placePrediction: any;
 }
 
 const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_PLACES_API_KEY;
@@ -36,124 +37,83 @@ export function AddressAutocomplete({
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const serviceRef = useRef<any>(null);
-  const placesRef = useRef<any>(null);
-  const sessionTokenRef = useRef<any>(null);
+  const [apiReady, setApiReady] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
-  const getService = useCallback(() => {
+  async function fetchSuggestions(input: string) {
+    if (!apiReady || input.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
     const g = window as any;
-    if (!g.google?.maps?.places) return null;
-    if (!serviceRef.current) {
-      serviceRef.current = new g.google.maps.places.AutocompleteService();
-    }
-    if (!placesRef.current) {
-      // PlacesService needs a dummy div
-      placesRef.current = new g.google.maps.places.PlacesService(
-        document.createElement("div")
-      );
-    }
-    if (!sessionTokenRef.current) {
-      sessionTokenRef.current =
-        new g.google.maps.places.AutocompleteSessionToken();
-    }
-    return serviceRef.current;
-  }, []);
+    const { AutocompleteSuggestion } = g.google.maps.places;
+    if (!AutocompleteSuggestion) return;
 
-  const fetchSuggestions = useCallback(
-    (input: string) => {
-      const service = getService();
-      if (!service || input.length < 2) {
-        setSuggestions([]);
-        return;
-      }
-
-      service.getPlacePredictions(
+    try {
+      const response = await AutocompleteSuggestion.fetchAutocompleteSuggestions(
         {
           input,
-          componentRestrictions: { country: ["de", "at", "ch"] },
-          types: ["address"],
-          sessionToken: sessionTokenRef.current,
-        },
-        (predictions: any[] | null, status: string) => {
-          const g = window as any;
-          if (
-            status === g.google.maps.places.PlacesServiceStatus.OK &&
-            predictions
-          ) {
-            setSuggestions(
-              predictions.map((p) => ({
-                placeId: p.place_id,
-                description: p.description,
-              }))
-            );
-          } else {
-            setSuggestions([]);
-          }
-        }
-      );
-    },
-    [getService]
-  );
-
-  const handleSelect = useCallback(
-    (suggestion: Suggestion) => {
-      if (!placesRef.current) return;
-
-      placesRef.current.getDetails(
-        {
-          placeId: suggestion.placeId,
-          fields: ["address_components"],
-          sessionToken: sessionTokenRef.current,
-        },
-        (place: any, status: string) => {
-          const g = window as any;
-          if (status !== g.google.maps.places.PlacesServiceStatus.OK || !place)
-            return;
-
-          const components: any[] = place.address_components ?? [];
-          let route = "";
-          let streetNumber = "";
-          let city = "";
-          let zip = "";
-          let countryCode = "";
-
-          for (const comp of components) {
-            const type = comp.types[0];
-            if (type === "route") route = comp.long_name ?? "";
-            else if (type === "street_number")
-              streetNumber = comp.long_name ?? "";
-            else if (type === "locality") city = comp.long_name ?? "";
-            else if (type === "postal_town" && !city)
-              city = comp.long_name ?? "";
-            else if (type === "sublocality_level_1" && !city)
-              city = comp.long_name ?? "";
-            else if (type === "postal_code") zip = comp.long_name ?? "";
-            else if (type === "country") countryCode = comp.short_name ?? "";
-          }
-
-          const street = streetNumber ? `${route} ${streetNumber}` : route;
-          const country = VALID_COUNTRIES.has(countryCode)
-            ? (countryCode as "DE" | "AT" | "CH")
-            : "DE";
-
-          // Reset session token for next search
-          const gg = window as any;
-          sessionTokenRef.current =
-            new gg.google.maps.places.AutocompleteSessionToken();
-
-          onChange(street);
-          onPlaceSelect({ street, city, zip, country });
+          includedRegionCodes: ["de", "at", "ch"],
+          includedPrimaryTypes: ["street_address", "route", "premise"],
+          language: "de",
         }
       );
 
+      setSuggestions(
+        (response.suggestions ?? []).map((s: any) => ({
+          placeId: s.placePrediction.placeId,
+          description: s.placePrediction.text.text,
+          placePrediction: s.placePrediction,
+        }))
+      );
+    } catch {
       setSuggestions([]);
-      setShowDropdown(false);
-      setActiveIndex(-1);
-    },
-    [onChange, onPlaceSelect]
-  );
+    }
+  }
+
+  async function handleSelect(suggestion: Suggestion) {
+    setSuggestions([]);
+    setShowDropdown(false);
+    setActiveIndex(-1);
+
+    try {
+      const g = window as any;
+      const place = suggestion.placePrediction.toPlace();
+      await place.fetchFields({ fields: ["addressComponents"] });
+
+      const components: any[] = place.addressComponents ?? [];
+      let route = "";
+      let streetNumber = "";
+      let city = "";
+      let zip = "";
+      let countryCode = "";
+
+      for (const comp of components) {
+        const type = comp.types[0];
+        const long = comp.longText ?? comp.long_name ?? "";
+        const short = comp.shortText ?? comp.short_name ?? "";
+        if (type === "route") route = long;
+        else if (type === "street_number") streetNumber = long;
+        else if (type === "locality") city = long;
+        else if (type === "postal_town" && !city) city = long;
+        else if (type === "sublocality_level_1" && !city) city = long;
+        else if (type === "postal_code") zip = long;
+        else if (type === "country") countryCode = short;
+      }
+
+      const street = streetNumber ? `${route} ${streetNumber}` : route;
+      const country = VALID_COUNTRIES.has(countryCode)
+        ? (countryCode as "DE" | "AT" | "CH")
+        : "DE";
+
+      onChange(street);
+      onPlaceSelect({ street, city, zip, country });
+    } catch {
+      // Place details fetch failed — keep typed value
+    }
+  }
 
   function handleInputChange(input: string) {
     onChange(input);
@@ -185,7 +145,10 @@ export function AddressAutocomplete({
   // Close dropdown on click outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target as Node)
+      ) {
         setShowDropdown(false);
       }
     }
@@ -211,6 +174,7 @@ export function AddressAutocomplete({
       <Script
         src={`https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&loading=async`}
         strategy="lazyOnload"
+        onReady={() => setApiReady(true)}
       />
       <div ref={wrapperRef} style={{ position: "relative" }}>
         <input
