@@ -54,11 +54,15 @@ export function UserHeader({
   }, [userImage]);
 
   const [cartCount, setCartCount] = useState(0);
+  const [cartTimer, setCartTimer] = useState(0);
 
   const fetchCartCount = useCallback(() => {
     fetch("/api/cart")
       .then((r) => r.json())
-      .then((data) => setCartCount(data.totalItems ?? 0))
+      .then((data) => {
+        setCartCount(data.totalItems ?? 0);
+        setCartTimer(data.cartExpiresInSeconds ?? 0);
+      })
       .catch(() => {});
   }, []);
 
@@ -72,6 +76,33 @@ export function UserHeader({
     setMobileMenuOpen(false);
     fetchCartCount();
   }, [pathnameWithoutLang, fetchCartCount]);
+
+  // Tick cart timer every second
+  useEffect(() => {
+    if (cartTimer <= 0) return;
+    const interval = setInterval(() => {
+      setCartTimer((prev) => {
+        const next = Math.max(0, prev - 1);
+        if (next === 0) fetchCartCount();
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [cartTimer, fetchCartCount]);
+
+  function formatTimer(seconds: number) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+
+  function timerColor(seconds: number) {
+    if (seconds <= 600) return "text-red-400"; // < 10 min
+    if (seconds <= 1800) return "text-orange-400"; // < 30 min
+    if (seconds <= 3600) return "text-amber-400"; // < 1h
+    return "text-text-muted"; // > 1h
+  }
 
   const dashboardHref = `/${lang}/dashboard`;
   const isDashboardActive = pathname === dashboardHref;
@@ -134,9 +165,14 @@ export function UserHeader({
               <ShoppingCart className="h-4 w-4 flex-shrink-0" />
               <span>{dict["cart"] ?? "Warenkorb"}</span>
               {cartCount > 0 && (
-                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-pa-green px-1.5 text-[10px] font-bold text-black">
-                  {cartCount}
-                </span>
+                <>
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-pa-green px-1.5 text-[10px] font-bold text-black">
+                    {cartCount}
+                  </span>
+                  <span className={`font-mono text-xs ${timerColor(cartTimer)}`}>
+                    {formatTimer(cartTimer)}
+                  </span>
+                </>
               )}
             </Link>
 
@@ -266,9 +302,14 @@ export function UserHeader({
               <ShoppingCart className="h-5 w-5 flex-shrink-0" />
               <span className="flex-1">{dict["cart"] ?? "Warenkorb"}</span>
               {cartCount > 0 && (
-                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-pa-green px-1.5 text-[10px] font-bold text-black">
-                  {cartCount}
-                </span>
+                <>
+                  <span className={`font-mono text-xs ${timerColor(cartTimer)}`}>
+                    {formatTimer(cartTimer)}
+                  </span>
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-pa-green px-1.5 text-[10px] font-bold text-black">
+                    {cartCount}
+                  </span>
+                </>
               )}
             </Link>
 

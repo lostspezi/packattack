@@ -23,18 +23,26 @@ export async function GET(req: NextRequest) {
       .sort({ expiresAt: 1 })
       .lean();
 
+    const mappedItems = items.map((item) => ({
+      _id: item._id.toString(),
+      card: item.cardId,
+      box: item.boxId,
+      rarity: item.rarity,
+      conversionValue: item.conversionValue,
+      expiresAt: item.expiresAt,
+      remainingSeconds: Math.max(0, Math.floor((new Date(item.expiresAt).getTime() - now) / 1000)),
+      createdAt: item.createdAt,
+    }));
+
+    // Cart-wide remaining seconds (minimum across all items)
+    const cartExpiresInSeconds = mappedItems.length > 0
+      ? Math.min(...mappedItems.map((i) => i.remainingSeconds))
+      : 0;
+
     return NextResponse.json({
-      items: items.map((item) => ({
-        _id: item._id.toString(),
-        card: item.cardId,
-        box: item.boxId,
-        rarity: item.rarity,
-        conversionValue: item.conversionValue,
-        expiresAt: item.expiresAt,
-        remainingSeconds: Math.max(0, Math.floor((new Date(item.expiresAt).getTime() - now) / 1000)),
-        createdAt: item.createdAt,
-      })),
+      items: mappedItems,
       totalItems: items.length,
+      cartExpiresInSeconds,
     });
   } catch (err) {
     console.error("[cart GET]", err);
