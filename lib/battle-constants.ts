@@ -1,18 +1,25 @@
 // lib/battle-constants.ts
 
 // --- ELO ---
-export const ELO_DEFAULT = 1000;
-export const ELO_K_NEW = 40;       // < 30 battles
-export const ELO_K_EXPERIENCED = 20; // >= 30 battles
-export const ELO_NEW_THRESHOLD = 30;
+export const ELO_DEFAULT = 800;
+export const ELO_FLOOR = 800;
+export const ELO_K_NEW = 25;              // < 20 battles
+export const ELO_K_EXPERIENCED = 15;      // 20-99 battles
+export const ELO_K_VETERAN = 10;          // 100+ battles
+export const ELO_NEW_THRESHOLD = 20;
+export const ELO_VETERAN_THRESHOLD = 100;
 
 export const ELO_RANKS = [
-  { key: "bronze",   label: { de: "Bronze", en: "Bronze" },   minElo: 0,    emoji: "🥉" },
-  { key: "silver",   label: { de: "Silber", en: "Silver" },   minElo: 1000, emoji: "🥈" },
-  { key: "gold",     label: { de: "Gold", en: "Gold" },       minElo: 1200, emoji: "🥇" },
-  { key: "diamond",  label: { de: "Diamant", en: "Diamond" }, minElo: 1400, emoji: "💎" },
-  { key: "champion", label: { de: "Champion", en: "Champion" }, minElo: 1600, emoji: "👑" },
+  { key: "bronze",   label: { de: "Bronze", en: "Bronze" },     minElo: 800,  emoji: "🥉", divisions: true },
+  { key: "silver",   label: { de: "Silber", en: "Silver" },     minElo: 1000, emoji: "🥈", divisions: true },
+  { key: "gold",     label: { de: "Gold", en: "Gold" },         minElo: 1200, emoji: "🥇", divisions: true },
+  { key: "platin",   label: { de: "Platin", en: "Platinum" },   minElo: 1400, emoji: "💠", divisions: true },
+  { key: "diamond",  label: { de: "Diamant", en: "Diamond" },   minElo: 1600, emoji: "💎", divisions: true },
+  { key: "champion", label: { de: "Champion", en: "Champion" }, minElo: 1800, emoji: "👑", divisions: false },
 ] as const;
+
+export const ELO_DIVISION_SIZE = 50;
+export const BATTLE_ELO_RANGE = 200;
 
 // --- Battle ---
 export const BATTLE_COUNTDOWN_SECONDS = 3;  // "3-2-1-FIGHT!" after all ready

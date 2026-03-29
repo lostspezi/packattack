@@ -1,13 +1,19 @@
 import {
   ELO_DEFAULT,
+  ELO_FLOOR,
   ELO_K_NEW,
   ELO_K_EXPERIENCED,
+  ELO_K_VETERAN,
   ELO_NEW_THRESHOLD,
+  ELO_VETERAN_THRESHOLD,
   ELO_RANKS,
+  ELO_DIVISION_SIZE,
 } from "./battle-constants";
 
 export function getKFactor(totalBattles: number): number {
-  return totalBattles < ELO_NEW_THRESHOLD ? ELO_K_NEW : ELO_K_EXPERIENCED;
+  if (totalBattles < ELO_NEW_THRESHOLD) return ELO_K_NEW;
+  if (totalBattles < ELO_VETERAN_THRESHOLD) return ELO_K_EXPERIENCED;
+  return ELO_K_VETERAN;
 }
 
 export function getEloRank(elo: number) {

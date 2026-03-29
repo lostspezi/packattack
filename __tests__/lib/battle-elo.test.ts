@@ -2,19 +2,24 @@ import { describe, it, expect } from "vitest";
 import { calculateEloChanges, getEloRank, getKFactor } from "@/lib/battle-elo";
 
 describe("getKFactor", () => {
-  it("returns 40 for new players with < 30 battles", () => {
-    expect(getKFactor(0)).toBe(40);
-    expect(getKFactor(29)).toBe(40);
+  it("returns 25 for new players with < 20 battles", () => {
+    expect(getKFactor(0)).toBe(25);
+    expect(getKFactor(19)).toBe(25);
   });
-  it("returns 20 for experienced players with >= 30 battles", () => {
-    expect(getKFactor(30)).toBe(20);
-    expect(getKFactor(100)).toBe(20);
+  it("returns 15 for experienced players with 20-99 battles", () => {
+    expect(getKFactor(20)).toBe(15);
+    expect(getKFactor(99)).toBe(15);
+  });
+  it("returns 10 for veteran players with 100+ battles", () => {
+    expect(getKFactor(100)).toBe(10);
+    expect(getKFactor(500)).toBe(10);
   });
 });
 
 describe("getEloRank", () => {
   it("returns bronze for ELO < 1000", () => {
-    expect(getEloRank(500).key).toBe("bronze");
+    expect(getEloRank(800).key).toBe("bronze");
+    expect(getEloRank(999).key).toBe("bronze");
   });
   it("returns silver for ELO 1000-1199", () => {
     expect(getEloRank(1000).key).toBe("silver");
@@ -22,12 +27,18 @@ describe("getEloRank", () => {
   });
   it("returns gold for ELO 1200-1399", () => {
     expect(getEloRank(1200).key).toBe("gold");
+    expect(getEloRank(1399).key).toBe("gold");
   });
-  it("returns diamond for ELO 1400-1599", () => {
-    expect(getEloRank(1400).key).toBe("diamond");
+  it("returns platin for ELO 1400-1599", () => {
+    expect(getEloRank(1400).key).toBe("platin");
+    expect(getEloRank(1599).key).toBe("platin");
   });
-  it("returns champion for ELO >= 1600", () => {
-    expect(getEloRank(1600).key).toBe("champion");
+  it("returns diamond for ELO 1600-1799", () => {
+    expect(getEloRank(1600).key).toBe("diamond");
+    expect(getEloRank(1799).key).toBe("diamond");
+  });
+  it("returns champion for ELO >= 1800", () => {
+    expect(getEloRank(1800).key).toBe("champion");
     expect(getEloRank(2000).key).toBe("champion");
   });
 });
