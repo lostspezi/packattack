@@ -37,7 +37,7 @@ export function CreateBattleForm({ lang, dict }: CreateBattleFormProps) {
   const [error, setError] = useState<string>("");
 
   useEffect(() => {
-    fetch("/api/boxes?status=published")
+    fetch("/api/packs")
       .then((res) => res.json())
       .then((data) => {
         const list: Box[] = data.boxes ?? [];
