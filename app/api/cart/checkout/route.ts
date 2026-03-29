@@ -178,14 +178,10 @@ export async function POST(req: NextRequest) {
           status: "pending_payment",
         });
 
-        const minExpiry = new Date(Date.now() + 30 * 60 * 1000);
+        // Mark cart items as checked_out immediately to prevent double orders
         await CartItem.updateMany(
-          {
-            _id: { $in: cartItems.map((i) => i._id) },
-            status: "reserved",
-            expiresAt: { $lt: minExpiry },
-          },
-          { expiresAt: minExpiry }
+          { _id: { $in: cartItems.map((i) => i._id) }, status: "reserved" },
+          { status: "checked_out", orderId: order._id }
         );
 
         let stripeCustomerId = user.stripeCustomerId;

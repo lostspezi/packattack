@@ -178,16 +178,15 @@ async function handleShippingCheckoutCompleted(session: Stripe.Checkout.Session)
 
   const cartItemIds = order.items.map((i: { cartItemId: unknown }) => i.cartItemId) as string[];
 
-  // Verify ALL cart items are still reserved before completing
-  const stillReservedCount = await CartItem.countDocuments({
+  // Verify ALL cart items are still checked_out (not expired/reverted)
+  const checkedOutCount = await CartItem.countDocuments({
     _id: { $in: cartItemIds },
-    status: "reserved",
+    status: "checked_out",
   });
-  if (stillReservedCount !== order.items.length) {
+  if (checkedOutCount !== order.items.length) {
     console.error(
-      `[shipping webhook] Order ${order.orderNumber}: only ${stillReservedCount}/${order.items.length} items still reserved. Refunding.`
+      `[shipping webhook] Order ${order.orderNumber}: only ${checkedOutCount}/${order.items.length} items checked out. Refunding.`
     );
-    // Refund the Stripe payment
     if (session.payment_intent) {
       try {
         await (await import("@/lib/stripe")).default.refunds.create({
@@ -207,11 +206,6 @@ async function handleShippingCheckoutCompleted(session: Stripe.Checkout.Session)
   order.status = "paid";
   order.stripePaymentIntentId = session.payment_intent as string;
   await order.save();
-
-  await CartItem.updateMany(
-    { _id: { $in: cartItemIds }, status: "reserved" },
-    { status: "checked_out", orderId: order._id }
-  );
 
   const cartItems = await CartItem.find({ _id: { $in: cartItemIds } }).select("pullId").lean();
   const pullIds = cartItems.map((c) => c.pullId);
@@ -267,8 +261,18 @@ async function handleShippingCheckoutExpired(session: Stripe.Checkout.Session) {
   const { orderId } = session.metadata || {};
   if (!orderId) return;
 
-  await Order.findByIdAndUpdate(
-    orderId,
-    { paymentStatus: "failed", status: "cancelled" }
+  const order = await Order.findById(orderId);
+  if (!order || order.paymentStatus === "paid") return;
+
+  order.paymentStatus = "failed";
+  order.status = "cancelled";
+  await order.save();
+
+  // Revert cart items back to reserved so the user can re-order or convert
+  const cartItemIds = order.items.map((i: { cartItemId: unknown }) => i.cartItemId) as string[];
+  const minExpiry = new Date(Date.now() + 30 * 60 * 1000);
+  await CartItem.updateMany(
+    { _id: { $in: cartItemIds }, status: "checked_out" },
+    { status: "reserved", $unset: { orderId: 1 }, expiresAt: minExpiry }
   );
 }
