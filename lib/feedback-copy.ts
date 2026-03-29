@@ -11,6 +11,8 @@ export interface FeedbackUiCopy {
   common: {
     feedback: string;
     all: string;
+    open: string;
+    archive: string;
     allStatuses: string;
     allTypes: string;
     assignedToAll: string;
@@ -37,6 +39,7 @@ export interface FeedbackUiCopy {
   };
   list: {
     empty: string;
+    archiveEmpty: string;
     noMatches: string;
     myFeedbackTitle: string;
     myFeedbackSubtitle: string;
@@ -114,6 +117,7 @@ export interface FeedbackUiCopy {
     updated: string;
     loading: string;
     empty: string;
+    archiveEmpty: string;
     analytics: string;
   };
   analytics: {
@@ -139,6 +143,8 @@ const en: FeedbackUiCopy = {
   common: {
     feedback: "Feedback",
     all: "All",
+    open: "Open",
+    archive: "Archive",
     allStatuses: "All",
     allTypes: "All types",
     assignedToAll: "Assigned to all",
@@ -164,7 +170,8 @@ const en: FeedbackUiCopy = {
     system: "System",
   },
   list: {
-    empty: "You haven't submitted any feedback yet.",
+    empty: "You have no open feedback tickets.",
+    archiveEmpty: "No archived feedback yet.",
     noMatches: "No feedback tickets found.",
     myFeedbackTitle: "Feedback",
     myFeedbackSubtitle: "Track your tickets, reply to admins, and see what still needs attention.",
@@ -242,6 +249,7 @@ const en: FeedbackUiCopy = {
     updated: "Updated",
     loading: "Loading feedback inbox...",
     empty: "No tickets match the current filters.",
+    archiveEmpty: "No archived tickets yet.",
     analytics: "Analytics",
   },
   analytics: {
@@ -267,6 +275,8 @@ const de: FeedbackUiCopy = {
   common: {
     feedback: "Feedback",
     all: "Alle",
+    open: "Offen",
+    archive: "Archiv",
     allStatuses: "Alle Status",
     allTypes: "Alle Typen",
     assignedToAll: "Alle Zust\u00E4ndigen",
@@ -292,7 +302,8 @@ const de: FeedbackUiCopy = {
     system: "System",
   },
   list: {
-    empty: "Du hast noch kein Feedback gesendet.",
+    empty: "Du hast aktuell keine offenen Feedback-Tickets.",
+    archiveEmpty: "Noch keine archivierten Tickets.",
     noMatches: "Keine Feedback-Tickets gefunden.",
     myFeedbackTitle: "Feedback",
     myFeedbackSubtitle: "Behalte deine Tickets im Blick, antworte auf Admins und sieh, was noch offen ist.",
@@ -370,6 +381,7 @@ const de: FeedbackUiCopy = {
     updated: "Aktualisiert",
     loading: "Feedback-Inbox wird geladen...",
     empty: "Keine Tickets passen zu den aktuellen Filtern.",
+    archiveEmpty: "Noch keine archivierten Tickets.",
     analytics: "Analysen",
   },
   analytics: {

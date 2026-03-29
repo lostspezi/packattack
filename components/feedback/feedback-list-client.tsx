@@ -29,15 +29,21 @@ export function FeedbackListClient({ lang, dict = {} }: FeedbackListClientProps)
   const { toast } = useToast();
   const [items, setItems] = useState<FeedbackItemSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"open" | "archive">("open");
   const [status, setStatus] = useState("");
   const [kind, setKind] = useState("");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState({ open: 0, archive: 0 });
 
   useEffect(() => {
     setPage(1);
-  }, [kind, status]);
+  }, [kind, status, tab]);
+
+  useEffect(() => {
+    setStatus("");
+  }, [tab]);
 
   useEffect(() => {
     let active = true;
@@ -48,6 +54,7 @@ export function FeedbackListClient({ lang, dict = {} }: FeedbackListClientProps)
         const params = new URLSearchParams();
         params.set("page", String(page));
         params.set("limit", "8");
+        params.set("tab", tab);
         if (status) params.set("status", status);
         if (kind) params.set("kind", kind);
         const res = await fetch(`/api/feedback?${params.toString()}`);
@@ -66,6 +73,7 @@ export function FeedbackListClient({ lang, dict = {} }: FeedbackListClientProps)
           setItems(payload.items);
           setTotal(payload.total);
           setTotalPages(payload.totalPages);
+          setCounts(payload.counts);
         }
       } catch {
         toast({ type: "error", title: copy.common.networkError });
@@ -78,21 +86,62 @@ export function FeedbackListClient({ lang, dict = {} }: FeedbackListClientProps)
     return () => {
       active = false;
     };
-  }, [copy.common.networkError, copy.form.createError, dict, kind, lang, page, status, toast]);
+  }, [copy.common.networkError, copy.form.createError, dict, kind, lang, page, status, tab, toast]);
+
+  const statusOptions = [
+    { value: "", label: copy.common.allStatuses },
+    ...FEEDBACK_STATUSES.filter((value) => value !== "closed").map((value) => ({
+      value,
+      label: getFeedbackStatusLabel(lang, value, dict),
+    })),
+  ];
+
+  const emptyLabel =
+    status || kind
+      ? copy.list.noMatches
+      : tab === "archive"
+        ? copy.list.archiveEmpty
+        : copy.list.empty;
 
   return (
     <div className="space-y-5">
+      <div className="flex flex-wrap gap-2">
+        {[
+          { value: "open" as const, label: copy.common.open, count: counts.open },
+          { value: "archive" as const, label: copy.common.archive, count: counts.archive },
+        ].map((option) => {
+          const active = tab === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => setTab(option.value)}
+              className={[
+                "inline-flex items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors",
+                active
+                  ? "border-pa-green/20 bg-pa-green/12 text-pa-green"
+                  : "border-white/8 bg-white/4 text-text-secondary hover:text-text-primary",
+              ].join(" ")}
+            >
+              <span>{option.label}</span>
+              <span className="rounded-full border border-current/10 px-2 py-0.5 text-xs">
+                {option.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Select
-            options={[
-              { value: "", label: copy.common.allStatuses },
-              ...FEEDBACK_STATUSES.map((value) => ({ value, label: getFeedbackStatusLabel(lang, value, dict) })),
-            ]}
-            value={status}
-            onChange={setStatus}
-            className="w-full min-w-[180px]"
-          />
+        <div className={`grid gap-3 ${tab === "open" ? "sm:grid-cols-2" : "sm:grid-cols-1"}`}>
+          {tab === "open" ? (
+            <Select
+              options={statusOptions}
+              value={status}
+              onChange={setStatus}
+              className="w-full min-w-[180px]"
+            />
+          ) : null}
           <Select
             options={[
               { value: "", label: copy.common.allTypes },
@@ -117,7 +166,7 @@ export function FeedbackListClient({ lang, dict = {} }: FeedbackListClientProps)
         </Card>
       ) : items.length === 0 ? (
         <Card variant="soft" className="p-6 text-sm text-text-muted">
-          {status || kind ? copy.list.noMatches : copy.list.empty}
+          {emptyLabel}
         </Card>
       ) : (
         <div className="space-y-4">

@@ -103,6 +103,10 @@ export interface FeedbackListResponse {
   total: number;
   page: number;
   totalPages: number;
+  counts: {
+    open: number;
+    archive: number;
+  };
 }
 
 export interface AdminFeedbackListResponse extends FeedbackListResponse {

@@ -12,6 +12,7 @@ import {
   createFeedbackSchema,
 } from "@/lib/validations";
 import FeedbackItem from "@/models/feedback-item";
+import { FEEDBACK_OPEN_STATUSES } from "@/lib/feedback-constants";
 import {
   deleteFeedbackAttachments,
 } from "@/lib/feedback-attachments";
@@ -118,6 +119,7 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "10", 10)));
   const status = searchParams.get("status") ?? "";
   const kind = searchParams.get("kind") ?? "";
+  const tab = searchParams.get("tab") === "archive" ? "archive" : "open";
   const skip = (page - 1) * limit;
 
   try {
@@ -127,18 +129,36 @@ export async function GET(req: NextRequest) {
       submitterUserId: userId,
     };
 
-    if (status) query.status = status;
+    if (tab === "archive") {
+      query.status = "closed";
+    } else if (status && status !== "closed") {
+      query.status = status;
+    } else {
+      query.status = { $in: FEEDBACK_OPEN_STATUSES };
+    }
     if (kind) query.kind = kind;
 
-    const [items, total] = await Promise.all([
+    const [items, total, openCount, archiveCount] = await Promise.all([
       FeedbackItem.find(query)
-        .sort({ lastActivityAt: -1 })
+        .sort(
+          tab === "archive"
+            ? { closedAt: -1, lastActivityAt: -1 }
+            : { lastActivityAt: -1 }
+        )
         .skip(skip)
         .limit(limit)
         .populate("submitterUserId", "name username email role preferences.language")
         .populate("assignedTo", "name username email role preferences.language")
         .lean(),
       FeedbackItem.countDocuments(query),
+      FeedbackItem.countDocuments({
+        submitterUserId: userId,
+        status: { $in: FEEDBACK_OPEN_STATUSES },
+      }),
+      FeedbackItem.countDocuments({
+        submitterUserId: userId,
+        status: "closed",
+      }),
     ]);
 
     return NextResponse.json({
@@ -151,6 +171,10 @@ export async function GET(req: NextRequest) {
       total,
       page,
       totalPages: Math.max(1, Math.ceil(total / limit)),
+      counts: {
+        open: openCount,
+        archive: archiveCount,
+      },
     });
   } catch (err) {
     console.error("[feedback GET]", err);
