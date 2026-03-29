@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { RARITY_ORDER } from "@/lib/battle-constants";
 
 interface CardData {
   name: string;
@@ -35,27 +36,38 @@ const RARITY_BADGE: Record<string, string> = {
   "Ultra Rare": "bg-gradient-to-r from-pink-500/30 via-yellow-400/30 to-blue-500/30 text-white",
 };
 
-function isUltraRare(rarity: string) {
-  return rarity === "Ultra Rare" || rarity === "Secret Rare" || rarity === "Hyper Rare" || rarity === "Special Illustration Rare";
+function getRarityTier(rarity: string): "common" | "rare" | "ultra" {
+  const order = RARITY_ORDER[rarity] ?? 1;
+  if (order >= 5) return "ultra";
+  if (order >= 3) return "rare";
+  return "common";
 }
 
 export function CardFlip({ card, revealed, delay = 0 }: CardFlipProps) {
   const [flipped, setFlipped] = useState(false);
+  const [showEffects, setShowEffects] = useState(false);
 
   useEffect(() => {
     if (!revealed) return;
-    const t = setTimeout(() => setFlipped(true), delay);
+    const t = setTimeout(() => {
+      setFlipped(true);
+      // Show rarity effects after flip completes
+      setTimeout(() => setShowEffects(true), 700);
+    }, delay);
     return () => clearTimeout(t);
   }, [revealed, delay]);
 
   const glow = RARITY_GLOW[card.rarity] ?? RARITY_GLOW["Common"];
   const badge = RARITY_BADGE[card.rarity] ?? RARITY_BADGE["Common"];
-  const ultra = isUltraRare(card.rarity);
+  const tier = getRarityTier(card.rarity);
 
   return (
     <div className="perspective-500 w-32 h-44">
       <div
-        className="relative h-full w-full transition-transform duration-700"
+        className={[
+          "relative h-full w-full transition-transform duration-700",
+          showEffects && tier === "ultra" ? "animate-[shake_0.3s_ease-in-out_2]" : "",
+        ].join(" ")}
         style={{
           transformStyle: "preserve-3d",
           transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
@@ -76,16 +88,49 @@ export function CardFlip({ card, revealed, delay = 0 }: CardFlipProps) {
           className={[
             "absolute inset-0 rounded-[10px] border-2 overflow-hidden flex flex-col",
             glow,
-            ultra ? "shadow-[0_0_18px_4px_rgba(250,200,50,0.35)]" : "shadow-md",
+            tier === "ultra"
+              ? "shadow-[0_0_24px_6px_rgba(250,200,50,0.45)]"
+              : tier === "rare"
+              ? "shadow-[0_0_14px_3px_rgba(100,150,255,0.3)]"
+              : "shadow-md",
           ].join(" ")}
           style={{
             backfaceVisibility: "hidden",
             transform: "rotateY(180deg)",
-            background: ultra
+            background: tier === "ultra"
               ? "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)"
               : "var(--color-surface, #1a1a1a)",
           }}
         >
+          {/* Rarity glow overlay */}
+          {showEffects && tier !== "common" && (
+            <div
+              className={[
+                "absolute inset-0 z-10 pointer-events-none rounded-[10px] animate-pulse",
+                tier === "ultra"
+                  ? "bg-gradient-to-t from-yellow-400/20 via-transparent to-yellow-400/10"
+                  : "bg-gradient-to-t from-blue-400/15 via-transparent to-blue-400/5",
+              ].join(" ")}
+            />
+          )}
+
+          {/* Particle dots for ultra rare */}
+          {showEffects && tier === "ultra" && (
+            <div className="absolute inset-0 z-10 pointer-events-none overflow-hidden rounded-[10px]">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="absolute h-1.5 w-1.5 rounded-full bg-yellow-400/70 animate-[float_2s_ease-in-out_infinite]"
+                  style={{
+                    left: `${15 + i * 14}%`,
+                    bottom: `${10 + (i % 3) * 20}%`,
+                    animationDelay: `${i * 0.3}s`,
+                  }}
+                />
+              ))}
+            </div>
+          )}
+
           {card.image ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
