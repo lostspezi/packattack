@@ -270,46 +270,67 @@ export function CartPage({ lang, dict }: CartPageProps) {
           </div>
         </div>
 
-        {items.map((item) => (
-          <div
-            key={item._id}
-            className="flex items-center gap-4 rounded-lg border border-border bg-card p-3"
-          >
-            <div className="h-16 w-12 flex-shrink-0 overflow-hidden rounded bg-white/5">
-              {item.card?.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.card.image}
-                  alt={item.card.name ?? ""}
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-text-muted">
-                  ?
-                </div>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-text-primary">
-                {item.card?.name ?? "Unknown"}
-              </p>
-              <p className="text-xs text-text-muted">
-                {item.rarity} — {item.conversionValue} Coins
-              </p>
-            </div>
-            <button
-              onClick={() => handleConvert(item._id)}
-              disabled={convertingId === item._id}
-              className="flex-shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-white/5 disabled:opacity-50"
+        {(() => {
+          // Group items by card ID
+          const groups = new Map<string, { items: CartItem[]; card: CartItem["card"]; rarity: string; conversionValue: number }>();
+          for (const item of items) {
+            const key = item.card?._id ?? item._id;
+            const existing = groups.get(key);
+            if (existing) {
+              existing.items.push(item);
+            } else {
+              groups.set(key, { items: [item], card: item.card, rarity: item.rarity, conversionValue: item.conversionValue });
+            }
+          }
+          return Array.from(groups.entries()).map(([key, group]) => (
+            <div
+              key={key}
+              className="flex items-center gap-4 rounded-lg border border-border bg-card p-3"
             >
-              {convertingId === item._id ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <>{dict["toCoins"] ?? "Zu Coins"}</>
-              )}
-            </button>
-          </div>
-        ))}
+              <div className="relative h-16 w-12 flex-shrink-0 overflow-hidden rounded bg-white/5">
+                {group.card?.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={group.card.image}
+                    alt={group.card.name ?? ""}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center text-text-muted">
+                    ?
+                  </div>
+                )}
+                {group.items.length > 1 && (
+                  <span className="absolute -right-1 -top-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-pa-green px-1 text-[10px] font-bold text-black">
+                    {group.items.length}x
+                  </span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-text-primary">
+                  {group.card?.name ?? "Unknown"}
+                </p>
+                <p className="text-xs text-text-muted">
+                  {group.rarity} — {group.conversionValue * group.items.length} Coins
+                  {group.items.length > 1 && (
+                    <span className="text-text-disabled"> ({group.items.length}x {group.conversionValue})</span>
+                  )}
+                </p>
+              </div>
+              <button
+                onClick={() => handleConvert(group.items[0]._id)}
+                disabled={convertingId === group.items[0]._id}
+                className="flex-shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-white/5 disabled:opacity-50"
+              >
+                {convertingId === group.items[0]._id ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <>{dict["toCoins"] ?? "Zu Coins"}</>
+                )}
+              </button>
+            </div>
+          ));
+        })()}
       </div>
 
       {/* Checkout sidebar */}
