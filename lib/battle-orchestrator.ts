@@ -5,10 +5,25 @@ import {
   determineRoundWinner,
   calculatePlacements,
   snakeDraftDistribute,
-  getRevealDelayMs,
+  getRarityBonusMs,
+  isCloseMatch,
 } from "./battle-engine";
 import { calculateEloChanges } from "./battle-elo";
-import { RARITY_ORDER, BATTLE_COUNTDOWN_SECONDS } from "./battle-constants";
+import {
+  RARITY_ORDER,
+  BATTLE_COUNTDOWN_SECONDS,
+  READY_CHECK_TIMEOUT_SECONDS,
+  ROUND_ANNOUNCE_MS,
+  ROUND_BUILDUP_MS,
+  CARD_REVEAL_FLIP_MS,
+  CARD_REVEAL_DISPLAY_MS,
+  BETWEEN_REVEALS_MS,
+  COMPARISON_PAUSE_MS,
+  WINNER_REVEAL_MS,
+  WINNER_CLOSE_REVEAL_MS,
+  SCORE_UPDATE_MS,
+  ROUND_TRANSITION_MS,
+} from "./battle-constants";
 import Battle from "@/models/battle";
 import BattlePull from "@/models/battle-pull";
 import Box from "@/models/box";
@@ -28,6 +43,90 @@ function publish(battleId: string, data: Record<string, unknown>): void {
   redis
     .publish(`battle:${battleId}`, JSON.stringify(data))
     .catch(() => {});
+}
+
+/* ------------------------------------------------------------------ */
+/*  Ready-check                                                        */
+/* ------------------------------------------------------------------ */
+
+export async function startReadyCheck(battleId: string): Promise<void> {
+  await Battle.updateOne(
+    { _id: battleId },
+    {
+      $set: {
+        status: "ready_check",
+        readyCheckStartedAt: new Date(),
+      },
+    },
+  );
+
+  publish(battleId, {
+    type: "ready_check_start",
+    timeoutSeconds: READY_CHECK_TIMEOUT_SECONDS,
+  });
+
+  // Wait for the timeout period
+  await sleep(READY_CHECK_TIMEOUT_SECONDS * 1000);
+
+  // Re-check battle state — it may have already started if all went ready
+  const battle = await Battle.findById(battleId).lean();
+  if (!battle || battle.status !== "ready_check") {
+    // Battle already started (all players went ready) or was cancelled
+    return;
+  }
+
+  // Kick non-ready players and refund their coins
+  const CoinTransaction = (await import("@/models/coin-transaction")).default;
+  const notReadyPlayers = battle.players.filter((p) => !p.ready);
+  const readyPlayers = battle.players.filter((p) => p.ready);
+
+  for (const player of notReadyPlayers) {
+    const refundAmount = player.coinsReserved;
+    if (refundAmount > 0) {
+      await User.updateOne(
+        { _id: player.user },
+        { $inc: { coins: refundAmount } },
+      );
+      await CoinTransaction.create({
+        userId: player.user,
+        amount: refundAmount,
+        type: "battle_refund",
+        relatedBattleId: new mongoose.Types.ObjectId(battleId),
+      });
+    }
+  }
+
+  // Remove non-ready players, reset ready status on remaining, go back to waiting
+  const kickedUserIds = notReadyPlayers.map((p) => p.user.toString());
+
+  await Battle.updateOne(
+    { _id: battleId },
+    {
+      $set: {
+        status: "waiting",
+        readyCheckStartedAt: null,
+      },
+      $pull: {
+        players: { user: { $in: notReadyPlayers.map((p) => p.user) } },
+      },
+    },
+  );
+
+  // Reset ready status for remaining players
+  if (readyPlayers.length > 0) {
+    for (let i = 0; i < readyPlayers.length; i++) {
+      await Battle.updateOne(
+        { _id: battleId, "players.user": readyPlayers[i].user },
+        { $set: { "players.$.ready": false } },
+      );
+    }
+  }
+
+  publish(battleId, {
+    type: "players_kicked",
+    kickedUserIds,
+    refunded: true,
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -66,7 +165,7 @@ export async function runBattle(battleId: string): Promise<void> {
     const cardDocs = await Card.find({
       _id: { $in: box.cards.map((c) => c.card) },
     })
-      .select("name image")
+      .select("name image internalPrice")
       .lean();
 
     const cardMap = new Map(
@@ -195,7 +294,7 @@ export async function runBattle(battleId: string): Promise<void> {
     publish(battleId, { type: "opening_complete" });
 
     /* ============================================================== */
-    /*  3. CLASH ROUNDS                                                */
+    /*  3. CLASH ROUNDS — sequential reveal with tension               */
     /* ============================================================== */
     await Battle.updateOne({ _id: battleId }, { $set: { status: "clash" } });
 
@@ -204,6 +303,8 @@ export async function runBattle(battleId: string): Promise<void> {
     for (const player of battle.players) {
       scores.set(player.user.toString(), 0);
     }
+
+    const playerIds = battle.players.map((p) => p.user.toString());
 
     for (let r = 0; r < totalRounds; r++) {
       const round = rounds[r];
@@ -217,77 +318,117 @@ export async function runBattle(battleId: string): Promise<void> {
         revealCards.map((c) => [c._id.toString(), c]),
       );
 
-      // Determine max rarity for animation delay
-      let maxRarity = "Common";
-      for (const rc of round.cards) {
-        if ((RARITY_ORDER[rc.rarity] ?? 0) > (RARITY_ORDER[maxRarity] ?? 0)) {
-          maxRarity = rc.rarity;
+      // Randomize reveal order each round
+      const revealOrder = [...playerIds].sort(() => Math.random() - 0.5);
+
+      // --- Step 1: Round announcement ---
+      publish(battleId, {
+        type: "round_announce",
+        roundIndex: r,
+        totalRounds,
+        revealOrder,
+      });
+      await sleep(ROUND_ANNOUNCE_MS);
+
+      // --- Step 2: Buildup (cards appear face-down) ---
+      await sleep(ROUND_BUILDUP_MS);
+
+      // --- Step 3: Reveal cards one by one ---
+      for (let i = 0; i < revealOrder.length; i++) {
+        const playerId = revealOrder[i];
+        const cardData = round.cards.find((c) => c.player.toString() === playerId);
+        if (!cardData) continue;
+
+        const doc = revealMap.get(cardData.card.toString());
+        const rarityBonus = getRarityBonusMs(cardData.rarity);
+
+        publish(battleId, {
+          type: "card_reveal",
+          roundIndex: r,
+          playerId,
+          card: {
+            _id: cardData.card.toString(),
+            name: doc?.name ?? "Unknown",
+            image: doc?.image ?? null,
+          },
+          rarity: cardData.rarity,
+          coinValue: cardData.coinValue,
+        });
+
+        // Wait for flip animation + display time + rarity bonus
+        await sleep(CARD_REVEAL_FLIP_MS + CARD_REVEAL_DISPLAY_MS + rarityBonus);
+
+        // Pause between reveals (except after last card)
+        if (i < revealOrder.length - 1) {
+          await sleep(BETWEEN_REVEALS_MS);
         }
       }
 
-      // Publish round_reveal with card data
-      publish(battleId, {
-        type: "round_reveal",
-        roundIndex: r,
-        cards: round.cards.map((c) => {
-          const doc = revealMap.get(c.card.toString());
-          return {
-            playerId: c.player.toString(),
-            cardId: c.card.toString(),
-            name: doc?.name ?? "Unknown",
-            image: doc?.image ?? null,
-            rarity: c.rarity,
-            coinValue: c.coinValue,
-          };
-        }),
-      });
+      // --- Step 4: Comparison pause ---
+      await sleep(COMPARISON_PAUSE_MS);
 
-      // Wait for animation
-      await sleep(getRevealDelayMs(maxRarity));
-
-      // Determine winner
+      // --- Step 5: Determine winner ---
       const roundCards = round.cards.map((c) => ({
         playerId: c.player.toString(),
         coinValue: c.coinValue,
         rarity: c.rarity,
       }));
       const winnerId = determineRoundWinner(roundCards);
+      const closeMatch = isCloseMatch(roundCards);
 
-      // Update local rounds array so streak calculation in achievements can use it
-      round.winnerId = new mongoose.Types.ObjectId(winnerId);
+      // Update local rounds array
+      round.winnerId = winnerId ? new mongoose.Types.ObjectId(winnerId) : null;
 
-      // Update local score
-      scores.set(winnerId, (scores.get(winnerId) ?? 0) + 1);
+      // Update local score (only if there is a winner, not on draw)
+      if (winnerId) {
+        scores.set(winnerId, (scores.get(winnerId) ?? 0) + 1);
+      }
 
       // Update battle in DB
+      const dbUpdate: Record<string, unknown> = {
+        [`rounds.${r}.winnerId`]: winnerId
+          ? new mongoose.Types.ObjectId(winnerId)
+          : null,
+        [`rounds.${r}.revealedAt`]: new Date(),
+        currentRound: r + 1,
+      };
+      if (winnerId) {
+        dbUpdate[`players.$[p].score`] = scores.get(winnerId);
+      }
+
       await Battle.updateOne(
         { _id: battleId },
-        {
-          $set: {
-            [`rounds.${r}.winnerId`]: new mongoose.Types.ObjectId(winnerId),
-            [`rounds.${r}.revealedAt`]: new Date(),
-            [`players.$[p].score`]: scores.get(winnerId),
-            currentRound: r + 1,
-          },
-        },
-        {
-          arrayFilters: [
-            { "p.user": new mongoose.Types.ObjectId(winnerId) },
-          ],
-        },
+        { $set: dbUpdate },
+        winnerId
+          ? {
+              arrayFilters: [
+                { "p.user": new mongoose.Types.ObjectId(winnerId) },
+              ],
+            }
+          : {},
       );
 
-      // Publish round result
+      // --- Step 6: Publish round result ---
       publish(battleId, {
         type: "round_result",
         roundIndex: r,
         winnerId,
         scores: Object.fromEntries(scores),
+        isClose: closeMatch,
       });
 
-      // Brief pause between rounds (except after last)
+      // Wait for winner reveal animation
+      const winnerRevealTime = closeMatch
+        ? WINNER_CLOSE_REVEAL_MS
+        : WINNER_REVEAL_MS;
+      await sleep(winnerRevealTime);
+
+      // Score update display
+      await sleep(SCORE_UPDATE_MS);
+
+      // Transition to next round (except after last)
       if (r < totalRounds - 1) {
-        await sleep(1500);
+        await sleep(ROUND_TRANSITION_MS);
       }
     }
 
@@ -448,10 +589,19 @@ export async function runBattle(battleId: string): Promise<void> {
           const pull = battlePulls.find(
             (bp) => bp._id.toString() === c.id,
           );
+          const originalPull = allPulls.find(
+            (ap) => ap.cardId === pull?.card.toString(),
+          );
           return {
             pullId: c.id,
-            cardId: pull?.card.toString(),
+            card: {
+              _id: pull?.card.toString(),
+              name: originalPull?.name ?? "Unknown",
+              image: originalPull?.image ?? null,
+            },
+            rarity: pull?.rarity ?? "Common",
             coinValue: c.coinValue,
+            conversionValue: pull?.conversionValue ?? c.coinValue,
           };
         }),
       });
