@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Clock, AlertTriangle, Coins, X } from "lucide-react";
 
 interface ReservationConsentModalProps {
@@ -10,22 +9,6 @@ interface ReservationConsentModalProps {
 }
 
 export function ReservationConsentModal({ dict, onAccept, onClose }: ReservationConsentModalProps) {
-  const [accepting, setAccepting] = useState(false);
-
-  async function handleAccept() {
-    setAccepting(true);
-    try {
-      await fetch("/api/account/profile", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reservationRulesAccepted: true }),
-      });
-      onAccept();
-    } finally {
-      setAccepting(false);
-    }
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div className="relative mx-4 w-full max-w-md rounded-xl border border-border bg-surface p-6 shadow-xl">
@@ -56,9 +39,8 @@ export function ReservationConsentModal({ dict, onAccept, onClose }: Reservation
         </div>
 
         <button
-          onClick={handleAccept}
-          disabled={accepting}
-          className="mt-6 w-full rounded-lg bg-pa-green px-4 py-3 text-sm font-semibold text-black hover:bg-pa-green/90 disabled:opacity-50"
+          onClick={onAccept}
+          className="mt-6 w-full rounded-lg bg-pa-green px-4 py-3 text-sm font-semibold text-black hover:bg-pa-green/90"
         >
           {dict["consentAccept"] ?? "Verstanden"}
         </button>

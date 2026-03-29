@@ -105,12 +105,16 @@ export function CartPage({ lang, dict }: CartPageProps) {
             country: sa.country || "DE",
           });
         }
-        if (profile?.reservationRulesAccepted) {
-          setConsentAccepted(true);
-        }
       })
       .catch(() => {});
   }, [fetchCart]);
+
+  // Show consent modal once when cart has items
+  useEffect(() => {
+    if (items.length > 0 && !consentAccepted && !loading) {
+      setShowConsent(true);
+    }
+  }, [items.length, consentAccepted, loading]);
 
   // Cart-wide countdown ticker
   useEffect(() => {
@@ -167,11 +171,6 @@ export function CartPage({ lang, dict }: CartPageProps) {
   }
 
   async function handleCheckout() {
-    if (!consentAccepted) {
-      setShowConsent(true);
-      return;
-    }
-
     if (!address.name || !address.street || !address.city || !address.zip) {
       toast({
         type: "error",
@@ -486,9 +485,11 @@ export function CartPage({ lang, dict }: CartPageProps) {
           onAccept={() => {
             setConsentAccepted(true);
             setShowConsent(false);
-            handleCheckout();
           }}
-          onClose={() => setShowConsent(false)}
+          onClose={() => {
+            setConsentAccepted(true);
+            setShowConsent(false);
+          }}
         />
       )}
     </div>
