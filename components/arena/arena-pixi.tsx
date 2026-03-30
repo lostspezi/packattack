@@ -68,8 +68,10 @@ export default function ArenaPixi(props: ArenaPixiProps) {
     if (!containerRef.current || appRef.current) return;
 
     const container = containerRef.current;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
+    // Use container size (not window size) to match the fixed-position overlay
+    const rect = container.getBoundingClientRect();
+    const width = Math.round(rect.width);
+    const height = Math.round(rect.height);
 
     const app = new Application();
     await app.init({
@@ -80,6 +82,10 @@ export default function ArenaPixi(props: ArenaPixiProps) {
       resolution: Math.min(window.devicePixelRatio, 2),
       autoDensity: true,
     });
+
+    // Ensure canvas fills the container
+    app.canvas.style.width = "100%";
+    app.canvas.style.height = "100%";
 
     container.appendChild(app.canvas);
     appRef.current = app;
