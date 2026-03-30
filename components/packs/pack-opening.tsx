@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { Pack3D } from "./pack-3d";
 import { PackRipper } from "./pack-ripper";
-import { CardFlipper } from "./card-flipper";
+import { CardRevealGrid } from "./card-reveal-grid";
 import { ParticleCanvas, type ParticleCanvasHandle } from "./particle-canvas";
 import { usePackSounds, type SoundKey } from "./use-pack-sounds";
 import { getMaxTierFromCards } from "./effect-tiers";
@@ -79,17 +79,13 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
     return "ripping";
   };
 
-  const [currentIndex, setCurrentIndex] = useState(0);
   const [choices, setChoices] = useState<Map<number, CardChoice>>(initialChoices);
   const [phase, setPhase] = useState<Phase>(getInitialPhase);
   const [submitting, setSubmitting] = useState(false);
-  const [flippingBack, setFlippingBack] = useState(false);
 
   const particleRef = useRef<ParticleCanvasHandle>(null);
 
   const cards = result.cards;
-  const currentCard = cards[currentIndex];
-  const isLast = currentIndex >= cards.length - 1;
   const boxName = isDe ? (box.name.de || box.name.en) : (box.name.en || box.name.de);
   const maxTier = getMaxTierFromCards(cards);
 
@@ -102,19 +98,6 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
 
   function setChoice(idx: number, choice: CardChoice) {
     setChoices((prev) => new Map(prev).set(idx, choice));
-  }
-
-  function advanceCard() {
-    if (isLast) {
-      setPhase("review");
-    } else {
-      // Flip card back first, then advance after animation
-      setFlippingBack(true);
-      setTimeout(() => {
-        setCurrentIndex((i) => i + 1);
-        setFlippingBack(false);
-      }, 450);
-    }
   }
 
   const handlePlaySound = useCallback((key: string, volume?: number) => {
@@ -363,20 +346,14 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
           onPlaySound={handlePlaySound}
         />
       )}
-      {phase === "reveal" && currentCard && (
-        <CardFlipper
-          card={currentCard}
-          index={currentIndex}
-          total={cards.length}
-          packIndex={currentCard.packIndex}
+      {phase === "reveal" && (
+        <CardRevealGrid
+          cards={cards}
           packCount={result.packCount}
           lang={lang}
           particleRef={particleRef}
-          onChoice={(choice) => setChoice(currentIndex, choice)}
-          onNext={advanceCard}
           onPlaySound={handlePlaySound}
-          choice={choices.get(currentIndex) ?? null}
-          flippingBack={flippingBack}
+          onAllRevealed={() => setPhase("review")}
         />
       )}
     </div>
