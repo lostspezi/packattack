@@ -73,20 +73,28 @@ export function CardReview({
 
   const { groups, recoveredGroups } = groupCards(cards, recoveredIndices);
 
+  // Wrap onSetChoice to close confirm dialog on any change
+  function handleSetChoice(idx: number, choice: CardChoice) {
+    onSetChoice(idx, choice);
+    setConfirmOpen(false);
+  }
+
   // Bulk actions — apply to all non-recovered cards
   function setAllChoices(choice: "claim" | "convert") {
     cards.forEach((_, i) => {
       if (!recoveredIndices.has(i)) onSetChoice(i, choice);
     });
+    setConfirmOpen(false);
   }
 
-  // Set choice for all indices in a group
+  // Set choice for all indices in a group (no deselect — only switch)
   function setGroupChoice(group: CardGroup, choice: "claim" | "convert") {
     for (const idx of group.indices) {
       if (!recoveredIndices.has(idx)) {
-        onSetChoice(idx, choices.get(idx) === choice ? null : choice);
+        onSetChoice(idx, choice);
       }
     }
+    setConfirmOpen(false);
   }
 
   // Stats
@@ -171,7 +179,7 @@ export function CardReview({
             key={group.card.cardId}
             group={group}
             choices={choices}
-            onSetChoice={onSetChoice}
+            onSetChoice={handleSetChoice}
             onSetGroupChoice={setGroupChoice}
             isDe={isDe}
           />
@@ -183,7 +191,7 @@ export function CardReview({
             key={`recovered-${group.card.cardId}`}
             group={group}
             choices={choices}
-            onSetChoice={onSetChoice}
+            onSetChoice={handleSetChoice}
             onSetGroupChoice={() => {}}
             isDe={isDe}
             locked
@@ -309,8 +317,8 @@ function CardGroupRow({ group, choices, onSetChoice, onSetGroupChoice, isDe, loc
           <ChoiceButtons
             choice={singleChoice}
             conversionValue={card.conversionValue}
-            onClaim={() => onSetChoice(indices[0], singleChoice === "claim" ? null : "claim")}
-            onConvert={() => onSetChoice(indices[0], singleChoice === "convert" ? null : "convert")}
+            onClaim={() => onSetChoice(indices[0], "claim")}
+            onConvert={() => onSetChoice(indices[0], "convert")}
             isDe={isDe}
           />
         ) : (
@@ -345,8 +353,8 @@ function CardGroupRow({ group, choices, onSetChoice, onSetGroupChoice, isDe, loc
                 <ChoiceButtons
                   choice={copyChoice}
                   conversionValue={card.conversionValue}
-                  onClaim={() => onSetChoice(idx, copyChoice === "claim" ? null : "claim")}
-                  onConvert={() => onSetChoice(idx, copyChoice === "convert" ? null : "convert")}
+                  onClaim={() => onSetChoice(idx, "claim")}
+                  onConvert={() => onSetChoice(idx, "convert")}
                   isDe={isDe}
                   small
                 />
