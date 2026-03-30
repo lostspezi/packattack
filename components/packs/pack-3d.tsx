@@ -73,16 +73,9 @@ export function Pack3D({ boxName, onReady }: Pack3DProps) {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/images/card-back.jpg" alt={boxName} className="absolute inset-0 w-full h-full object-cover rounded-2xl" />
       </motion.div>
-      <div className="flex flex-col items-center gap-2">
-        <motion.span
-          className="text-2xl text-pa-green"
-          animate={{ y: [-8, 8] }}
-          transition={{ duration: 1.2, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }}
-        >
-          &#8593;
-        </motion.span>
-        <span className="text-[11px] text-pa-green/60 uppercase tracking-[2px]">Swipe to Open</span>
-      </div>
+      <p className="text-[11px] text-pa-green/50 uppercase tracking-[2px] mt-5">
+        Tap to Open
+      </p>
     </div>
   );
 }

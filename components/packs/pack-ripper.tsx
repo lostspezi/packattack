@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, useMotionValue, useSpring } from "motion/react";
+import { Scissors } from "lucide-react";
 import type { EffectTier } from "./effect-tiers";
 import { TIER_CONFIGS } from "./effect-tiers";
 import type { ParticleCanvasHandle } from "./particle-canvas";
@@ -381,7 +382,7 @@ export function PackRipper({
               animate={{ left: ["5%", "85%", "5%"] }}
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             >
-              <span className="text-pa-green text-sm font-bold drop-shadow-[0_0_8px_rgba(155,255,0,0.9)]">&#9654;</span>
+              <Scissors className="w-4 h-4 text-pa-green rotate-0 drop-shadow-[0_0_6px_rgba(155,255,0,0.7)]" />
             </motion.div>
           )}
           {progress < 0.01 && (
