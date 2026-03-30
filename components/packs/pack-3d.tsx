@@ -44,6 +44,9 @@ export function Pack3D({ boxName, boxImage, onReady }: Pack3DProps) {
       style={{ perspective: 800 }}
     >
       <motion.div
+        role="button"
+        tabIndex={0}
+        aria-label="Booster pack — click or press Enter to open"
         className="relative w-[200px] h-[280px] rounded-2xl border-2 border-pa-green/50 cursor-pointer animate-pack-float"
         style={{
           rotateX: springX,
@@ -54,6 +57,7 @@ export function Pack3D({ boxName, boxImage, onReady }: Pack3DProps) {
         }}
         whileTap={{ scale: 0.97 }}
         onClick={onReady}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onReady(); } }}
       >
         <div className="absolute inset-0 rounded-2xl animate-holo-shimmer pointer-events-none" />
         <div

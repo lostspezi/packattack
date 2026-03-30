@@ -96,16 +96,23 @@ export function CardFlipper({
       <div className="relative">
         <div
           ref={cardRef}
-          className="bg-surface border border-border rounded-[14px] p-6 text-center space-y-4 cursor-pointer"
+          className="bg-surface border border-border rounded-[14px] p-6 text-center cursor-pointer"
           onClick={handleFlip}
-          style={{ perspective: 1000 }}
+          role="button"
+          tabIndex={0}
+          aria-label={isDe ? "Karte aufdecken" : "Flip card to reveal"}
+          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); handleFlip(); } }}
+          style={{ perspective: 1000, minHeight: "16rem" }}
         >
           <div style={{
             transformStyle: "preserve-3d",
             transition: `transform ${config.flipDuration}s cubic-bezier(0.4, 0, 0.2, 1)`,
             transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+            position: "relative",
+            minHeight: "16rem",
           }}>
-            <div style={{ backfaceVisibility: "hidden", display: flipped ? "none" : "block" }}>
+            {/* Card Back — visible when not flipped */}
+            <div style={{ backfaceVisibility: "hidden", position: "absolute", inset: 0 }}>
               <div className="w-48 h-64 mx-auto bg-gradient-to-br from-pa-green/10 to-pa-lila/20 rounded-xl flex items-center justify-center border border-pa-green/20">
                 <div className="flex flex-col items-center gap-2">
                   <span className="text-4xl">?</span>
@@ -113,7 +120,8 @@ export function CardFlipper({
                 </div>
               </div>
             </div>
-            <div style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)", display: flipped ? "block" : "none" }}>
+            {/* Card Front — visible when flipped */}
+            <div style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
               <CardFront card={card} tier={tier} isDe={isDe} />
             </div>
           </div>
@@ -210,10 +218,10 @@ function ActionButtons({ card, choice, onChoice, onNext, isLast, isDe }: {
       <Button variant="ghost" size="sm" className="w-full" onClick={onNext}>
         <ArrowRight className="w-3.5 h-3.5 mr-1" />
         {isLast
-          ? isDe ? "Zur Ubersicht" : "Go to overview"
+          ? isDe ? "Zur Übersicht" : "Go to overview"
           : choice
-            ? isDe ? "Nachste Karte" : "Next card"
-            : isDe ? "Uberspringen — spater entscheiden" : "Skip — decide later"}
+            ? isDe ? "Nächste Karte" : "Next card"
+            : isDe ? "Überspringen — später entscheiden" : "Skip — decide later"}
       </Button>
     </div>
   );

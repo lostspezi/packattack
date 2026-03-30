@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useCallback } from "react";
 import { ShoppingCart, Coins, RotateCcw } from "lucide-react";
+import { useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
@@ -55,6 +56,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
   const isDe = lang === "de";
   const { toast } = useToast();
   const { play } = usePackSounds();
+  const prefersReducedMotion = useReducedMotion();
 
   const isRecovery = result.isRecovery ?? false;
 
@@ -73,6 +75,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
   const getInitialPhase = (): Phase => {
     if (isRecovery) return "review";
     if (quickOpen) return "review";
+    if (prefersReducedMotion) return "reveal";
     return "idle";
   };
 
@@ -334,25 +337,18 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
     );
   }
 
-  // ─── IDLE PHASE: 3D pack display, click to start ripping ───
-  if (phase === "idle") {
-    return (
-      <div className="relative max-w-md mx-auto flex flex-col items-center py-8">
-        <ParticleCanvas ref={particleRef} />
+  // ─── ANIMATION PHASES: idle, ripping, reveal — single wrapper with one ParticleCanvas ───
+  return (
+    <div className="relative max-w-md mx-auto flex flex-col items-center py-8">
+      <ParticleCanvas ref={particleRef} />
+      {phase === "idle" && (
         <Pack3D
           boxName={boxName}
           boxImage={box.image ?? null}
           onReady={() => setPhase("ripping")}
         />
-      </div>
-    );
-  }
-
-  // ─── RIPPING PHASE: Swipe-to-rip animation ───
-  if (phase === "ripping") {
-    return (
-      <div className="relative max-w-md mx-auto flex flex-col items-center">
-        <ParticleCanvas ref={particleRef} />
+      )}
+      {phase === "ripping" && (
         <PackRipper
           boxName={boxName}
           boxImage={box.image ?? null}
@@ -361,29 +357,22 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
           onRipComplete={() => setPhase("reveal")}
           onPlaySound={handlePlaySound}
         />
-      </div>
-    );
-  }
-
-  // ─── REVEAL PHASE: Cards one by one with flip animation ───
-  if (!currentCard) return null;
-
-  return (
-    <div className="relative max-w-md mx-auto">
-      <ParticleCanvas ref={particleRef} />
-      <CardFlipper
-        card={currentCard}
-        index={currentIndex}
-        total={cards.length}
-        packIndex={currentCard.packIndex}
-        packCount={result.packCount}
-        lang={lang}
-        particleRef={particleRef}
-        onChoice={(choice) => setChoice(currentIndex, choice)}
-        onNext={advanceCard}
-        onPlaySound={handlePlaySound}
-        choice={choices.get(currentIndex) ?? null}
-      />
+      )}
+      {phase === "reveal" && currentCard && (
+        <CardFlipper
+          card={currentCard}
+          index={currentIndex}
+          total={cards.length}
+          packIndex={currentCard.packIndex}
+          packCount={result.packCount}
+          lang={lang}
+          particleRef={particleRef}
+          onChoice={(choice) => setChoice(currentIndex, choice)}
+          onNext={advanceCard}
+          onPlaySound={handlePlaySound}
+          choice={choices.get(currentIndex) ?? null}
+        />
+      )}
     </div>
   );
 }

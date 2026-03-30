@@ -91,7 +91,11 @@ export class ParticleEngine {
       p.y += p.vy * dt;
       p.vy += 120 * dt;
       p.life -= dt * 1000;
-      if (p.life <= 0) this.particles.splice(i, 1);
+      if (p.life <= 0) {
+        // Swap with last element and pop (O(1) instead of O(n) splice)
+        this.particles[i] = this.particles[this.particles.length - 1];
+        this.particles.pop();
+      }
     }
   }
 

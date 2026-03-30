@@ -105,7 +105,16 @@ export function PackRipper({ boxName, boxImage, maxTier, particleRef, onRipCompl
 
   return (
     <div ref={containerRef} className="relative flex flex-col items-center py-8">
-      <motion.div className="relative cursor-grab active:cursor-grabbing touch-none" onPanStart={handlePanStart} onPan={handlePan} onPanEnd={handlePanEnd}>
+      <motion.div
+        className="relative cursor-grab active:cursor-grabbing touch-none"
+        role="button"
+        aria-label="Swipe up to rip open pack"
+        tabIndex={0}
+        onPanStart={handlePanStart}
+        onPan={handlePan}
+        onPanEnd={handlePanEnd}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); triggerComplete(); } }}
+      >
         <motion.div
           className="w-[200px] h-[80px] rounded-t-2xl border-2 border-pa-green/50 border-b-0 relative overflow-hidden"
           style={{ background: "linear-gradient(145deg, #2a1f4e, #1a0f3e)", y: topY, rotateX: topRotate, opacity: topOpacity }}
