@@ -261,19 +261,32 @@ export function PackRipper({
           <div className="absolute inset-0 animate-holo-shimmer pointer-events-none" />
         </div>
 
-        {/* Tear line overlay — positioned over the pack, above both halves */}
+        {/* Tear line overlay — inside the pack */}
         <div
-          className="absolute left-[-4px] right-[-4px] pointer-events-none"
+          className="absolute left-0 w-full pointer-events-none"
           style={{ top: TEAR_Y - 1 + gap / 2, height: 2, zIndex: 10 }}
         >
+          {/* Animated arrow hint — visible only before ripping starts */}
+          {progress < 0.01 && (
+            <motion.div
+              className="absolute -translate-y-1/2 flex items-center gap-1"
+              style={{ top: "50%" }}
+              animate={{ left: ["5%", "85%", "5%"] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <span className="text-pa-green text-xs font-bold drop-shadow-[0_0_6px_rgba(155,255,0,0.8)]">&#9654;</span>
+            </motion.div>
+          )}
+
           {/* Background tear line (dashed, visible where not yet ripped) */}
-          <div
-            className="absolute inset-0"
-            style={{
-              left: `${progress * 100}%`,
-              background: "repeating-linear-gradient(90deg, rgba(155,255,0,0.5) 0px, rgba(155,255,0,0.5) 8px, transparent 8px, transparent 14px)",
-            }}
-          />
+          {progress < 0.01 && (
+            <div
+              className="absolute inset-0"
+              style={{
+                background: "repeating-linear-gradient(90deg, rgba(155,255,0,0.5) 0px, rgba(155,255,0,0.5) 8px, transparent 8px, transparent 14px)",
+              }}
+            />
+          )}
 
           {/* Rip glow — visible portion (left to progress) */}
           {progress > 0 && (
@@ -322,14 +335,6 @@ export function PackRipper({
         </div>
       </div>
 
-      {/* Hint text */}
-      <motion.p
-        className="mt-6 text-[11px] text-pa-green/60 uppercase tracking-[2px]"
-        animate={{ opacity: [0.4, 1] }}
-        transition={{ duration: 1, repeat: Infinity, repeatType: "reverse" }}
-      >
-        &#8594; {progress > 0.01 ? "Keep going..." : "Drag along the tear line"}
-      </motion.p>
     </div>
   );
 }
