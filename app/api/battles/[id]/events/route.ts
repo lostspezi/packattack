@@ -108,8 +108,11 @@ export async function GET(
       subscriberRedis.on("message", (_ch: string, message: string) => {
         try {
           const parsed = JSON.parse(message);
-          // Filter distribution events — only forward to the target user
+          // Filter player-specific events — only forward to the target user
           if (parsed.type === "distribution" && parsed.targetUserId !== userId) {
+            return;
+          }
+          if (parsed.type === "hand_dealt" && parsed.targetUserId !== userId) {
             return;
           }
           const eventType = parsed.type ?? "message";
