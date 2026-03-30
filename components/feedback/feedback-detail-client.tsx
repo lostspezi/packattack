@@ -31,7 +31,11 @@ import {
   resolveFeedbackError,
   type FeedbackDictionary,
 } from "@/lib/feedback-i18n";
-import type { FeedbackDetailResponse, FeedbackMessageSummary } from "@/types/feedback";
+import type {
+  FeedbackActorSummary,
+  FeedbackDetailResponse,
+  FeedbackMessageSummary,
+} from "@/types/feedback";
 import {
   FeedbackKindBadge,
   FeedbackPriorityBadge,
@@ -47,6 +51,20 @@ interface FeedbackDetailClientProps {
   feedbackId: string;
   dict?: FeedbackDictionary;
   mode?: "user" | "staff";
+}
+
+function getActorHoverDetails(actor?: FeedbackActorSummary | null): string | undefined {
+  if (!actor) return undefined;
+
+  const details: string[] = [];
+  if (actor.username) {
+    details.push(`Username: ${actor.username}`);
+  }
+  if (actor.email) {
+    details.push(`Email: ${actor.email}`);
+  }
+
+  return details.length > 0 ? details.join("\n") : undefined;
 }
 
 const textareaClassName = "w-full rounded-[10px] border border-white/8 bg-white/3 px-4 py-3 text-sm text-text-primary outline-none focus:border-pa-green/35 focus:ring-2 focus:ring-pa-green/6";
@@ -313,7 +331,15 @@ export function FeedbackDetailClient({ lang, feedbackId, dict = {}, mode = "user
                   <p>{copy.common.created}: <span className="text-text-primary">{formatFeedbackDate(feedback.createdAt, lang)}</span></p>
                   <p>{copy.common.lastActivity}: <span className="text-text-primary">{formatFeedbackDate(feedback.lastActivityAt, lang)}</span></p>
                   <p>{copy.common.waiting}: <span className="text-text-primary">{getFeedbackWaitingLabel(lang, feedback.waitingOn, dict)}</span></p>
-                  <p>{copy.common.assigned}: <span className="text-text-primary">{feedback.assignedTo?.name ?? copy.common.unassigned}</span></p>
+                  <p>
+                    {copy.common.assigned}: {" "}
+                    <span
+                      title={getActorHoverDetails(feedback.assignedTo)}
+                      className={feedback.assignedTo ? "cursor-help text-text-primary" : "text-text-primary"}
+                    >
+                      {feedback.assignedTo?.name ?? copy.common.unassigned}
+                    </span>
+                  </p>
                 </div>
                 <FeedbackAttachmentList lang={lang} dict={dict} attachments={feedback.attachments} />
               </div>
@@ -353,7 +379,12 @@ export function FeedbackDetailClient({ lang, feedbackId, dict = {}, mode = "user
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-sm font-semibold text-text-primary">
-                          {message.author?.name ?? getFeedbackActorLabel(lang, message.authorType, dict)}
+                          <span
+                            title={getActorHoverDetails(message.author)}
+                            className={message.author ? "cursor-help" : undefined}
+                          >
+                            {message.author?.name ?? getFeedbackActorLabel(lang, message.authorType, dict)}
+                          </span>
                           {message.isInternal && (
                             <span className="ml-2 text-xs font-medium uppercase tracking-wider text-yellow-300">{copy.detail.internalNoteLabel}</span>
                           )}
@@ -532,7 +563,12 @@ export function FeedbackDetailClient({ lang, feedbackId, dict = {}, mode = "user
                       <div>
                         <p className="text-sm font-medium text-text-primary">{formatFeedbackAuditMessage(lang, entry, dict)}</p>
                         <p className="mt-1 text-xs text-text-muted">
-                          {entry.actor?.name ?? getFeedbackActorLabel(lang, entry.actorType, dict)}
+                          <span
+                            title={getActorHoverDetails(entry.actor)}
+                            className={entry.actor ? "cursor-help" : undefined}
+                          >
+                            {entry.actor?.name ?? getFeedbackActorLabel(lang, entry.actorType, dict)}
+                          </span>
                           {entry.visibility === "internal" ? ` · ${copy.detail.internalNoteLabel}` : ""}
                         </p>
                       </div>

@@ -16,7 +16,11 @@ import {
   resolveFeedbackError,
   type FeedbackDictionary,
 } from "@/lib/feedback-i18n";
-import type { AdminFeedbackListResponse, FeedbackItemSummary } from "@/types/feedback";
+import type {
+  AdminFeedbackListResponse,
+  FeedbackActorSummary,
+  FeedbackItemSummary,
+} from "@/types/feedback";
 import {
   FeedbackKindBadge,
   FeedbackPriorityBadge,
@@ -27,6 +31,20 @@ import {
 interface AdminFeedbackInboxProps {
   lang: string;
   dict?: FeedbackDictionary;
+}
+
+function getActorHoverDetails(actor: FeedbackActorSummary | null): string | undefined {
+  if (!actor) return undefined;
+
+  const details: string[] = [];
+  if (actor.username) {
+    details.push(`Username: ${actor.username}`);
+  }
+  if (actor.email) {
+    details.push(`Email: ${actor.email}`);
+  }
+
+  return details.length > 0 ? details.join("\n") : undefined;
 }
 
 export function AdminFeedbackInbox({ lang, dict = {} }: AdminFeedbackInboxProps) {
@@ -274,8 +292,22 @@ export function AdminFeedbackInbox({ lang, dict = {} }: AdminFeedbackInboxProps)
                   <td className="px-4 py-3 align-top"><FeedbackKindBadge kind={item.kind} lang={lang} dict={dict} /></td>
                   <td className="px-4 py-3 align-top"><FeedbackStatusBadge status={item.status} lang={lang} dict={dict} /></td>
                   <td className="px-4 py-3 align-top"><FeedbackPriorityBadge priority={item.priority} lang={lang} dict={dict} /></td>
-                  <td className="px-4 py-3 align-top text-sm text-text-secondary">{item.submitter?.name ?? copy.common.user}</td>
-                  <td className="px-4 py-3 align-top text-sm text-text-secondary">{item.assignedTo?.name ?? copy.common.unassigned}</td>
+                  <td className="px-4 py-3 align-top text-sm text-text-secondary">
+                    <span
+                      title={getActorHoverDetails(item.submitter)}
+                      className={item.submitter ? "cursor-help" : undefined}
+                    >
+                      {item.submitter?.name ?? copy.common.user}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 align-top text-sm text-text-secondary">
+                    <span
+                      title={getActorHoverDetails(item.assignedTo)}
+                      className={item.assignedTo ? "cursor-help" : undefined}
+                    >
+                      {item.assignedTo?.name ?? copy.common.unassigned}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 align-top text-sm text-text-secondary">{formatFeedbackDate(item.lastActivityAt, lang)}</td>
                 </tr>
               ))
