@@ -60,11 +60,41 @@ class PlayerSlot extends Container {
     this.bgGfx.roundRect(-slotW / 2, -slotH / 2, slotW, slotH, 8);
     this.bgGfx.stroke({ color: this._color, width: 2, alpha: 0.5 });
 
-    this.nameLabel.y = -slotH / 2 + 16;
-    this.nameLabel.style.fontSize = Math.max(10, Math.round(slotH * 0.15));
+    // Recreate text labels at correct size (avoids PixiJS TexturePool bug)
+    const nameText = this.nameLabel.text;
+    const scoreText = this.scoreLabel.text;
 
+    this.removeChild(this.nameLabel);
+    this.nameLabel.destroy();
+    this.nameLabel = new Text({
+      text: nameText,
+      style: {
+        fontFamily: "monospace",
+        fontSize: Math.max(10, Math.round(slotH * 0.15)),
+        fill: ARENA_COLORS.textPrimary,
+        fontWeight: "bold",
+        align: "center",
+      },
+    });
+    this.nameLabel.anchor.set(0.5);
+    this.nameLabel.y = -slotH / 2 + 16;
+    this.addChild(this.nameLabel);
+
+    this.removeChild(this.scoreLabel);
+    this.scoreLabel.destroy();
+    this.scoreLabel = new Text({
+      text: scoreText,
+      style: {
+        fontFamily: "monospace",
+        fontSize: Math.max(16, Math.round(slotH * 0.25)),
+        fill: this._color,
+        fontWeight: "bold",
+        align: "center",
+      },
+    });
+    this.scoreLabel.anchor.set(0.5);
     this.scoreLabel.y = slotH / 2 - 20;
-    this.scoreLabel.style.fontSize = Math.max(16, Math.round(slotH * 0.25));
+    this.addChild(this.scoreLabel);
   }
 
   updateScore(score: number, tweens: TweenManager): void {

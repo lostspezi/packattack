@@ -58,16 +58,48 @@ export class BattleCenterLayer extends Container {
     this.canvasW = w;
     this.canvasH = h;
 
-    this.vsLabel.x = w / 2;
-    this.vsLabel.y = h * VS_LABEL.y;
-    this.vsLabel.style.fontSize = Math.round(h * VS_LABEL.fontSize);
-
-    this.roundLabel.x = w / 2;
-    this.roundLabel.y = h * VS_LABEL.y - h * 0.06;
-    this.roundLabel.style.fontSize = Math.round(h * 0.018);
+    // Recreate text labels at correct size (avoids PixiJS TexturePool bug)
+    this.rebuildLabels(w, h);
 
     // Reposition any existing played cards
     this.positionPlayedCards();
+  }
+
+  private rebuildLabels(w: number, h: number): void {
+    this.removeChild(this.vsLabel);
+    this.vsLabel.destroy();
+    this.vsLabel = new Text({
+      text: "VS",
+      style: {
+        fontFamily: "monospace",
+        fontSize: Math.round(h * VS_LABEL.fontSize),
+        fill: ARENA_COLORS.textMuted,
+        fontWeight: "bold",
+        align: "center",
+      },
+    });
+    this.vsLabel.anchor.set(0.5);
+    this.vsLabel.alpha = 0.4;
+    this.vsLabel.x = w / 2;
+    this.vsLabel.y = h * VS_LABEL.y;
+    this.addChild(this.vsLabel);
+
+    const roundText = this.roundLabel.text;
+    this.removeChild(this.roundLabel);
+    this.roundLabel.destroy();
+    this.roundLabel = new Text({
+      text: roundText,
+      style: {
+        fontFamily: "monospace",
+        fontSize: Math.round(h * 0.018),
+        fill: ARENA_COLORS.textSecondary,
+        align: "center",
+      },
+    });
+    this.roundLabel.anchor.set(0.5);
+    this.roundLabel.x = w / 2;
+    this.roundLabel.y = h * VS_LABEL.y - h * 0.06;
+    this.addChild(this.roundLabel);
   }
 
   setRound(current: number, total: number): void {
@@ -153,9 +185,8 @@ export class BattleCenterLayer extends Container {
 
   clearPlayedCards(): void {
     for (const card of this.playedCards) {
+      card.visible = false;
       this.removeChild(card);
-      // Defer destroy to avoid PixiJS TexturePool crash during render
-      setTimeout(() => card.destroy(), 0);
     }
     this.playedCards = [];
   }

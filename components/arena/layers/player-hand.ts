@@ -113,8 +113,8 @@ export class PlayerHandLayer extends Container {
 
   clearHand(): void {
     for (const card of this.cards) {
+      card.visible = false;
       this.removeChild(card);
-      setTimeout(() => card.destroy(), 0);
     }
     this.cards = [];
     this.selectedIndex = null;

@@ -57,13 +57,44 @@ export class OverlayLayer extends Container {
     this.bgOverlay.rect(0, 0, w, h);
     this.bgOverlay.fill({ color: ARENA_COLORS.bg, alpha: ROUND_ANNOUNCE.bgAlpha });
 
+    // Recreate text at correct size (avoids PixiJS TexturePool bug with fontSize mutation)
+    const mainTextContent = this.mainText.text;
+    const subTextContent = this.subText.text;
+
+    this.removeChild(this.mainText);
+    this.mainText.destroy();
+    this.mainText = new Text({
+      text: mainTextContent,
+      style: {
+        fontFamily: "monospace",
+        fontSize: Math.round(h * ROUND_ANNOUNCE.numberFontSize),
+        fill: ARENA_COLORS.paGreen,
+        fontWeight: "bold",
+        align: "center",
+      },
+    });
+    this.mainText.anchor.set(0.5);
     this.mainText.x = w / 2;
     this.mainText.y = h / 2;
-    this.mainText.style.fontSize = Math.round(h * ROUND_ANNOUNCE.numberFontSize);
+    this.addChild(this.mainText);
 
+    this.removeChild(this.subText);
+    this.subText.destroy();
+    this.subText = new Text({
+      text: subTextContent,
+      style: {
+        fontFamily: "monospace",
+        fontSize: Math.round(h * ROUND_ANNOUNCE.labelFontSize),
+        fill: ARENA_COLORS.textSecondary,
+        fontWeight: "bold",
+        align: "center",
+        letterSpacing: 4,
+      },
+    });
+    this.subText.anchor.set(0.5);
     this.subText.x = w / 2;
     this.subText.y = h / 2 - h * 0.1;
-    this.subText.style.fontSize = Math.round(h * ROUND_ANNOUNCE.labelFontSize);
+    this.addChild(this.subText);
   }
 
   /** Show "RUNDE X VON Y" with zoom-in animation. */
