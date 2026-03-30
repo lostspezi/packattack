@@ -45,6 +45,21 @@ export const SCORE_UPDATE_MS = 3000;
 export const ROUND_TRANSITION_MS = 2000;
 export const CLOSE_MATCH_THRESHOLD = 0.2;  // 20% coinValue difference = "close"
 
+// --- Card Selection (new mechanic) ---
+export const HAND_SIZE = 5;
+export const SELECTION_TIMEOUT_MS = 20_000;
+
+// New round choreography (replaces sequential reveal)
+export const HAND_DEAL_MS = 2000;          // time to show hand cards appearing
+export const HAND_REVEAL_MS = 3000;        // time for cards to flip face-up
+export const SELECTION_WAIT_DISPLAY_MS = 1500; // display "waiting for players" after own selection
+export const SIMULTANEOUS_REVEAL_MS = 2000;    // all cards flip at once
+export const COIN_VALUE_EFFECT_THRESHOLDS = {
+  medium: 1,    // $1+ = green glow, light sparks
+  high: 5,      // $5+ = purple/gold glow, screen shake
+  extreme: 20,  // $20+ = gold explosion, confetti
+};
+
 // --- Preset Chat ---
 export const PRESET_CHAT_COOLDOWN_MS = 2000;
 
