@@ -348,6 +348,9 @@ export async function runBattle(battleId: string): Promise<void> {
     );
     for (const pid of playerIds) scores.set(pid, 0);
 
+    // Track which cardIds were actually played (for distribution filtering)
+    const playedCardRefs: Array<{ cardId: string; roundIndex: number }> = [];
+
     for (let r = 0; r < totalRounds; r++) {
       // 1. Round announcement
       publish(battleId, {
@@ -422,6 +425,11 @@ export async function runBattle(battleId: string): Promise<void> {
           image: card.image,
         };
       });
+
+      // Track played cards for distribution
+      for (const pc of playedCards) {
+        playedCardRefs.push({ cardId: pc.card, roundIndex: r });
+      }
 
       // 6. Simultaneous reveal — send all cards to everyone
       const maxCoinValue = Math.max(...playedCards.map((c) => c.coinValue));
@@ -601,15 +609,29 @@ export async function runBattle(battleId: string): Promise<void> {
       );
     }
 
-    // Snake-draft distribution
+    // Snake-draft distribution — only played cards, not discarded hand cards
     const battlePulls = await BattlePull.find({ battle: battleId })
       .sort({ coinValue: -1 })
       .lean();
 
-    const distributableCards = battlePulls.map((bp) => ({
-      id: bp._id.toString(),
-      coinValue: bp.coinValue,
-    }));
+    // Match played cards to BattlePull records by cardId + roundIndex
+    const playedPullIds = new Set<string>();
+    for (const ref of playedCardRefs) {
+      const match = battlePulls.find(
+        (bp) =>
+          bp.card.toString() === ref.cardId &&
+          bp.roundIndex === ref.roundIndex &&
+          !playedPullIds.has(bp._id.toString()),
+      );
+      if (match) playedPullIds.add(match._id.toString());
+    }
+
+    const distributableCards = battlePulls
+      .filter((bp) => playedPullIds.has(bp._id.toString()))
+      .map((bp) => ({
+        id: bp._id.toString(),
+        coinValue: bp.coinValue,
+      }));
 
     const playersByPlacement = placements.map((p) => p.userId);
     const distribution = snakeDraftDistribute(
@@ -634,6 +656,18 @@ export async function runBattle(battleId: string): Promise<void> {
         });
       }
     }
+    // Mark unplayed pulls as discarded
+    for (const bp of battlePulls) {
+      if (!playedPullIds.has(bp._id.toString())) {
+        bulkOps.push({
+          updateOne: {
+            filter: { _id: bp._id },
+            update: { $set: { status: "discarded" } },
+          },
+        });
+      }
+    }
+
     if (bulkOps.length > 0) {
       await BattlePull.bulkWrite(bulkOps);
     }
