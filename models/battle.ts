@@ -7,9 +7,22 @@ export interface IBattleRoundCard {
   coinValue: number;
 }
 
+export interface IBattleHandCard {
+  player: Types.ObjectId;
+  dealtCards: Array<{
+    card: Types.ObjectId;
+    coinValue: number;
+    rarity: string;
+    name: string;
+    image: string;
+  }>;
+  selectedIndex: number | null; // 0-4, null = not yet selected
+}
+
 export interface IBattleRound {
   roundIndex: number;
   cards: IBattleRoundCard[];
+  hands?: IBattleHandCard[];
   winnerId: Types.ObjectId | null;
   revealedAt: Date | null;
 }
@@ -61,6 +74,17 @@ const BattleRoundSchema = new Schema<IBattleRound>(
   {
     roundIndex: { type: Number, required: true },
     cards: { type: [BattleRoundCardSchema], default: [] },
+    hands: [{
+      player: { type: Schema.Types.ObjectId, ref: "User" },
+      dealtCards: [{
+        card: { type: Schema.Types.ObjectId, ref: "Card" },
+        coinValue: Number,
+        rarity: String,
+        name: String,
+        image: String,
+      }],
+      selectedIndex: { type: Number, default: null },
+    }],
     winnerId: { type: Schema.Types.ObjectId, ref: "User", default: null },
     revealedAt: { type: Date, default: null },
   },
