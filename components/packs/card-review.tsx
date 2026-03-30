@@ -171,6 +171,7 @@ export function CardReview({
             key={group.card.cardId}
             group={group}
             choices={choices}
+            onSetChoice={onSetChoice}
             onSetGroupChoice={setGroupChoice}
             isDe={isDe}
           />
@@ -182,6 +183,7 @@ export function CardReview({
             key={`recovered-${group.card.cardId}`}
             group={group}
             choices={choices}
+            onSetChoice={onSetChoice}
             onSetGroupChoice={() => {}}
             isDe={isDe}
             locked
@@ -242,94 +244,162 @@ export function CardReview({
 
 // ─── Card Group Row ───────────────────────────────────────────────────
 
-function CardGroupRow({ group, choices, onSetGroupChoice, isDe, locked }: {
+function CardGroupRow({ group, choices, onSetChoice, onSetGroupChoice, isDe, locked }: {
   group: CardGroup;
   choices: Map<number, CardChoice>;
+  onSetChoice: (idx: number, choice: CardChoice) => void;
   onSetGroupChoice: (g: CardGroup, c: "claim" | "convert") => void;
   isDe: boolean;
   locked?: boolean;
 }) {
   const { card, indices } = group;
   const count = indices.length;
-  // Use first index's choice as representative (all should be the same for a group toggle)
-  const choice = choices.get(indices[0]) ?? null;
-  // Check if all indices in group have the same choice
-  const allSame = indices.every((i) => choices.get(i) === choice);
-  const effectiveChoice = allSame ? choice : null;
+  const isSingle = count === 1;
+
+  // For single cards, use the direct choice
+  const singleChoice = isSingle ? (choices.get(indices[0]) ?? null) : null;
+
+  // For multi cards: check if all have the same choice (for header highlight)
+  const allClaim = !isSingle && indices.every((i) => choices.get(i) === "claim");
+  const allConvert = !isSingle && indices.every((i) => choices.get(i) === "convert");
 
   return (
     <div
       className={[
-        "flex items-center gap-3 rounded-xl border p-2.5 sm:p-3",
+        "rounded-xl border overflow-hidden",
         locked ? "border-white/8 bg-white/3 opacity-60" : "border-border bg-surface",
       ].join(" ")}
     >
-      {/* Image + count badge */}
-      <div className="relative shrink-0">
-        {card.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={card.image}
-            alt=""
-            className="w-11 sm:w-14 rounded"
-            loading="lazy"
-            draggable={false}
-          />
-        ) : (
-          <div className="w-11 sm:w-14 aspect-[63/88] bg-white/4 rounded" />
-        )}
-        {count > 1 && (
-          <span className="absolute -top-1.5 -right-1.5 bg-pa-green text-bg text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-            {count}x
-          </span>
-        )}
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-text-primary truncate">{card.name}</p>
-        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-          <Badge variant="info" className="text-[10px]">{card.rarity}</Badge>
-          <span className="text-[11px] text-text-muted">{card.coinValue} Coins</span>
+      {/* Main row */}
+      <div className="flex items-center gap-3 p-2.5 sm:p-3">
+        {/* Image + count badge */}
+        <div className="relative shrink-0">
+          {card.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={card.image}
+              alt=""
+              className="w-11 sm:w-14 rounded"
+              loading="lazy"
+              draggable={false}
+            />
+          ) : (
+            <div className="w-11 sm:w-14 aspect-[63/88] bg-white/4 rounded" />
+          )}
           {count > 1 && (
-            <span className="text-[11px] text-text-muted">
-              · {card.conversionValue * count} {isDe ? "gesamt" : "total"}
+            <span className="absolute -top-1.5 -right-1.5 bg-pa-green text-bg text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
+              {count}x
             </span>
           )}
         </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-text-primary truncate">{card.name}</p>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            <Badge variant="info" className="text-[10px]">{card.rarity}</Badge>
+            <span className="text-[11px] text-text-muted">{card.coinValue} Coins</span>
+          </div>
+        </div>
+
+        {/* Decision toggle — single card or locked */}
+        {locked ? (
+          <LockedBadge choice={choices.get(indices[0]) ?? null} conversionValue={card.conversionValue * count} isDe={isDe} />
+        ) : isSingle ? (
+          <ChoiceButtons
+            choice={singleChoice}
+            conversionValue={card.conversionValue}
+            onClaim={() => onSetChoice(indices[0], singleChoice === "claim" ? null : "claim")}
+            onConvert={() => onSetChoice(indices[0], singleChoice === "convert" ? null : "convert")}
+            isDe={isDe}
+          />
+        ) : (
+          /* Multi: "All to" buttons for the group */
+          <ChoiceButtons
+            choice={allClaim ? "claim" : allConvert ? "convert" : null}
+            conversionValue={card.conversionValue * count}
+            onClaim={() => onSetGroupChoice(group, "claim")}
+            onConvert={() => onSetGroupChoice(group, "convert")}
+            isDe={isDe}
+            label={isDe ? "Alle" : "All"}
+          />
+        )}
       </div>
 
-      {/* Decision toggle */}
-      {locked ? (
-        <LockedBadge choice={effectiveChoice} conversionValue={card.conversionValue * count} isDe={isDe} />
-      ) : (
-        <div className="flex gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={() => onSetGroupChoice(group, "claim")}
-            className={`px-2 sm:px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-              effectiveChoice === "claim"
-                ? "bg-green-500/15 text-green-400 border-green-500/30"
-                : "bg-white/4 text-text-muted border-border hover:bg-white/6"
-            }`}
-          >
-            <ShoppingCart className="w-3.5 h-3.5 inline mr-0.5 sm:mr-1" />
-            <span className="hidden sm:inline">{isDe ? "Warenkorb" : "Cart"}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onSetGroupChoice(group, "convert")}
-            className={`px-2 sm:px-2.5 py-1.5 text-xs font-medium rounded-lg border transition-all ${
-              effectiveChoice === "convert"
-                ? "bg-blue-500/15 text-blue-400 border-blue-500/30"
-                : "bg-white/4 text-text-muted border-border hover:bg-white/6"
-            }`}
-          >
-            <Coins className="w-3.5 h-3.5 inline mr-0.5 sm:mr-1" />
-            {card.conversionValue * count}
-          </button>
+      {/* Per-copy rows for multi cards */}
+      {!locked && !isSingle && (
+        <div className="border-t border-border/50">
+          {indices.map((idx, copyIdx) => {
+            const copyChoice = choices.get(idx) ?? null;
+            return (
+              <div
+                key={idx}
+                className={[
+                  "flex items-center justify-between gap-3 px-3 sm:px-4 py-2",
+                  copyIdx < indices.length - 1 ? "border-b border-border/30" : "",
+                ].join(" ")}
+              >
+                <span className="text-xs text-text-muted">
+                  {isDe ? "Kopie" : "Copy"} {copyIdx + 1}
+                </span>
+                <ChoiceButtons
+                  choice={copyChoice}
+                  conversionValue={card.conversionValue}
+                  onClaim={() => onSetChoice(idx, copyChoice === "claim" ? null : "claim")}
+                  onConvert={() => onSetChoice(idx, copyChoice === "convert" ? null : "convert")}
+                  isDe={isDe}
+                  small
+                />
+              </div>
+            );
+          })}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Reusable Choice Buttons ──────────────────────────────────────────
+
+function ChoiceButtons({ choice, conversionValue, onClaim, onConvert, isDe, label, small }: {
+  choice: CardChoice;
+  conversionValue: number;
+  onClaim: () => void;
+  onConvert: () => void;
+  isDe: boolean;
+  label?: string;
+  small?: boolean;
+}) {
+  const size = small ? "px-1.5 py-1 text-[11px]" : "px-2 sm:px-2.5 py-1.5 text-xs";
+  const iconSize = small ? "w-3 h-3" : "w-3.5 h-3.5";
+
+  return (
+    <div className="flex gap-1.5 shrink-0">
+      <button
+        type="button"
+        onClick={onClaim}
+        className={`${size} font-medium rounded-lg border transition-all ${
+          choice === "claim"
+            ? "bg-green-500/15 text-green-400 border-green-500/30"
+            : "bg-white/4 text-text-muted border-border hover:bg-white/6"
+        }`}
+      >
+        <ShoppingCart className={`${iconSize} inline mr-0.5 sm:mr-1`} />
+        {label && <span className="hidden sm:inline mr-0.5">{label} </span>}
+        <span className="hidden sm:inline">{isDe ? "Warenkorb" : "Cart"}</span>
+      </button>
+      <button
+        type="button"
+        onClick={onConvert}
+        className={`${size} font-medium rounded-lg border transition-all ${
+          choice === "convert"
+            ? "bg-blue-500/15 text-blue-400 border-blue-500/30"
+            : "bg-white/4 text-text-muted border-border hover:bg-white/6"
+        }`}
+      >
+        <Coins className={`${iconSize} inline mr-0.5 sm:mr-1`} />
+        {conversionValue}
+      </button>
     </div>
   );
 }
