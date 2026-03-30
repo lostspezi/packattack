@@ -73,6 +73,23 @@ interface DistributedCard {
   decision?: "claim" | "convert";
 }
 
+interface HandCard {
+  index: number;
+  card: string;
+  coinValue: number;
+  rarity: string;
+  name: string;
+  image: string;
+}
+
+interface PlayedCard {
+  playerId: string;
+  card: { _id: string; name: string; image: string };
+  coinValue: number;
+  rarity: string;
+  effectTier: string;
+}
+
 interface BattleViewProps {
   lang: string;
   slug: string;
@@ -94,6 +111,10 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
   const [revealedCards, setRevealedCards] = useState<Record<string, RoundCard>>({});
   const [roundAnnounce, setRoundAnnounce] = useState<{ roundIndex: number; revealOrder: string[] } | null>(null);
   const [roundResult, setRoundResult] = useState<{ winnerId: string | null; isClose: boolean } | null>(null);
+  const [handCards, setHandCards] = useState<HandCard[] | null>(null);
+  const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
+  const [playersSelected, setPlayersSelected] = useState<Set<string>>(new Set());
+  const [revealedPlayedCards, setRevealedPlayedCards] = useState<PlayedCard[] | null>(null);
 
   const battleRef = useRef<Battle | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -125,6 +146,21 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
       return null;
     }
   }, [slug]);
+
+  const handleSelectCard = async (cardIndex: number) => {
+    if (!battle || selectedCardIndex !== null) return;
+    setSelectedCardIndex(cardIndex);
+    try {
+      await fetch(`/api/battles/${battle._id}/select-card`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roundIndex: battle.currentRound, cardIndex }),
+      });
+    } catch (err) {
+      console.error("Failed to select card:", err);
+      setSelectedCardIndex(null);
+    }
+  };
 
   const connectSSE = useCallback((battleId: string) => {
     if (eventSourceRef.current) {
@@ -239,6 +275,10 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
         setRoundAnnounce({ roundIndex: data.roundIndex, revealOrder: data.revealOrder });
         setRevealedCards({});
         setRoundResult(null);
+        setHandCards(null);
+        setSelectedCardIndex(null);
+        setPlayersSelected(new Set());
+        setRevealedPlayedCards(null);
       } catch { /* ignore */ }
     });
 
@@ -330,6 +370,31 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
       } catch { /* ignore */ }
     });
 
+    es.addEventListener("hand_dealt", (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        setHandCards(data.cards);
+        setSelectedCardIndex(null);
+        setPlayersSelected(new Set());
+        setRevealedPlayedCards(null);
+      } catch { /* ignore */ }
+    });
+
+    es.addEventListener("player_selected", (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        setPlayersSelected((prev) => new Set([...prev, data.userId]));
+      } catch { /* ignore */ }
+    });
+
+    es.addEventListener("cards_reveal", (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        setRevealedPlayedCards(data.cards);
+        setHandCards(null);
+      } catch { /* ignore */ }
+    });
+
     es.onerror = () => {
       // Browser will auto-reconnect for EventSource
     };
@@ -403,6 +468,12 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
             revealedCards={revealedCards}
             roundAnnounce={roundAnnounce}
             roundResult={roundResult}
+            handCards={handCards}
+            selectedCardIndex={selectedCardIndex}
+            playersSelected={playersSelected}
+            revealedPlayedCards={revealedPlayedCards}
+            onSelectCard={handleSelectCard}
+            isPlayer={isPlayer}
           />
         )}
 
