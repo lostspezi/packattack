@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Volume2, VolumeX } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import { useToast } from "@/components/ui/toast";
@@ -10,7 +10,7 @@ import { CardRevealGrid } from "./card-reveal-grid";
 import { CardReview } from "./card-review";
 import { ParticleCanvas, type ParticleCanvasHandle } from "./particle-canvas";
 import { usePackSounds, type SoundKey } from "./use-pack-sounds";
-import { getMaxTierFromCards } from "./effect-tiers";
+import { getMaxTierFromCards, TIER_CONFIGS } from "./effect-tiers";
 
 interface DrawnCard {
   cardId: string;
@@ -83,6 +83,14 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
   const [submitting, setSubmitting] = useState(false);
 
   const particleRef = useRef<ParticleCanvasHandle>(null);
+
+  // Lock body scroll during animation overlay
+  const isOverlay = phase !== "review";
+  useEffect(() => {
+    if (!isOverlay) return;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, [isOverlay]);
 
   const cards = result.cards;
   const boxName = isDe ? (box.name.de || box.name.en) : (box.name.en || box.name.de);
@@ -169,40 +177,56 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
     );
   }
 
-  // ─── ANIMATION PHASES: idle, ripping, reveal — single wrapper with one ParticleCanvas ───
+  // ─── ANIMATION PHASES: fullscreen overlay for ripping + reveal ───
   return (
-    <div className={`relative mx-auto flex flex-col items-center py-8 ${phase === "reveal" ? "max-w-4xl" : "max-w-md"}`}>
-      <ParticleCanvas ref={particleRef} />
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-auto bg-black/95">
+      {/* Ambient background glow */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse 50% 40% at 50% 45%, ${TIER_CONFIGS[maxTier].glowColor || "rgba(155,255,0,0.08)"} 0%, transparent 70%)`,
+        }}
+      />
 
-      {/* Volume control — top right corner */}
+      {/* Particle canvas — covers entire overlay */}
+      <div className="absolute inset-0">
+        <ParticleCanvas ref={particleRef} />
+      </div>
+
+      {/* Volume control — top right */}
       <SoundControl volume={masterVolume} onChange={setMasterVolume} />
 
-      {phase === "idle" && (
-        <Pack3D
-          boxName={boxName}
-          onReady={() => setPhase("ripping")}
-        />
-      )}
-      {phase === "ripping" && (
-        <PackRipper
-          boxName={boxName}
-          cardCount={cards.length}
-          maxTier={maxTier}
-          particleRef={particleRef}
-          onRipComplete={() => setPhase("reveal")}
-          onPlaySound={handlePlaySound}
-        />
-      )}
-      {phase === "reveal" && (
-        <CardRevealGrid
-          cards={cards}
-          packCount={result.packCount}
-          lang={lang}
-          particleRef={particleRef}
-          onPlaySound={handlePlaySound}
-          onAllRevealed={() => setPhase("review")}
-        />
-      )}
+      {/* Content */}
+      <div className={`relative z-10 w-full ${phase === "reveal" ? "max-w-4xl px-3 sm:px-6" : "max-w-md"}`}>
+        {phase === "idle" && (
+          <Pack3D
+            boxName={boxName}
+            onReady={() => setPhase("ripping")}
+          />
+        )}
+        {phase === "ripping" && (
+          <div className="flex flex-col items-center">
+            <PackRipper
+              boxName={boxName}
+              cardCount={cards.length}
+              maxTier={maxTier}
+              particleRef={particleRef}
+              onRipComplete={() => setPhase("reveal")}
+              onPlaySound={handlePlaySound}
+            />
+          </div>
+        )}
+        {phase === "reveal" && (
+          <CardRevealGrid
+            cards={cards}
+            packCount={result.packCount}
+            lang={lang}
+            particleRef={particleRef}
+            onPlaySound={handlePlaySound}
+            onAllRevealed={() => setPhase("review")}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -213,7 +237,7 @@ function SoundControl({ volume, onChange }: { volume: number; onChange: (v: numb
   const isMuted = volume <= 0;
 
   return (
-    <div className="absolute top-2 right-2 z-40 flex items-center gap-2 bg-surface/80 backdrop-blur-sm border border-border rounded-lg px-2.5 py-1.5">
+    <div className="fixed top-4 right-4 z-[60] flex items-center gap-2 bg-surface/80 backdrop-blur-sm border border-border rounded-lg px-2.5 py-1.5">
       <button
         type="button"
         onClick={() => onChange(isMuted ? 0.5 : 0)}
