@@ -97,8 +97,8 @@ function PackFaceDesign({ cardCount, offsetY = 0 }: { cardCount: number; offsetY
 
       {/* Card count badge */}
       <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center" style={{ top: 24, zIndex: 2 }}>
-        <div className="px-3 py-1 rounded-full" style={{ border: "1px solid rgba(155,255,0,0.15)", background: "rgba(155,255,0,0.04)" }}>
-          <span className="text-[8px] font-bold uppercase tracking-[2px] leading-none" style={{ color: "rgba(155,255,0,0.4)" }}>
+        <div className="flex items-center justify-center px-3 h-5 rounded-full" style={{ border: "1px solid rgba(155,255,0,0.15)", background: "rgba(155,255,0,0.04)" }}>
+          <span className="text-[8px] font-bold uppercase tracking-[2px] leading-none block" style={{ color: "rgba(155,255,0,0.4)" }}>
             {cardCount} Cards
           </span>
         </div>
