@@ -116,8 +116,8 @@ export default async function DashboardPage({
           {/* Marketplace teaser */}
           <Card variant="soft" className="p-5 opacity-60 cursor-not-allowed">
             <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-pa-lila/20 flex items-center justify-center shrink-0">
-                <ShoppingBag className="w-5 h-5 text-pa-lila" />
+              <div className="w-10 h-10 rounded-lg bg-pa-green/10 flex items-center justify-center shrink-0">
+                <ShoppingBag className="w-5 h-5 text-pa-green" />
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-1">
