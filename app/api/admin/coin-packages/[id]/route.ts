@@ -52,23 +52,43 @@ export async function PATCH(
   }
 
   const data = parsed.data;
+  const canUseStripe = Boolean(process.env.STRIPE_SECRET_KEY);
 
   // If price changed, create new Stripe Price and archive old one
   if (data.priceEurCents && data.priceEurCents !== existing.priceEurCents) {
-    if (existing.stripePriceId) {
-      await stripe.prices.update(existing.stripePriceId, { active: false });
+    if (canUseStripe) {
+      if (existing.stripePriceId) {
+        await stripe.prices.update(existing.stripePriceId, { active: false });
+      }
+
+      let productId = existing.stripeProductId;
+      if (!productId) {
+        const product = await stripe.products.create({
+          name: existing.name.en,
+          metadata: { source: "packattack", type: "coin_package" },
+        });
+        productId = product.id;
+        existing.stripeProductId = product.id;
+      }
+
+      const newPrice = await stripe.prices.create({
+        product: productId,
+        unit_amount: data.priceEurCents,
+        currency: "eur",
+      });
+      existing.stripePriceId = newPrice.id;
+    } else if (process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 });
     }
-    const newPrice = await stripe.prices.create({
-      product: existing.stripeProductId!,
-      unit_amount: data.priceEurCents,
-      currency: "eur",
-    });
-    existing.stripePriceId = newPrice.id;
   }
 
   // If deactivated, archive Stripe Price
   if (data.isActive === false && existing.isActive && existing.stripePriceId) {
-    await stripe.prices.update(existing.stripePriceId, { active: false });
+    if (canUseStripe) {
+      await stripe.prices.update(existing.stripePriceId, { active: false });
+    } else if (process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 });
+    }
   }
 
   Object.assign(existing, data);
@@ -88,6 +108,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
+  const canUseStripe = Boolean(process.env.STRIPE_SECRET_KEY);
   await connectDB();
   const pkg = await CoinPackage.findById(id);
   if (!pkg) {
@@ -97,7 +118,11 @@ export async function DELETE(
   // Soft delete: deactivate instead of removing
   pkg.isActive = false;
   if (pkg.stripePriceId) {
-    await stripe.prices.update(pkg.stripePriceId, { active: false });
+    if (canUseStripe) {
+      await stripe.prices.update(pkg.stripePriceId, { active: false });
+    } else if (process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 });
+    }
   }
   await pkg.save();
 
