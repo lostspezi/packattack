@@ -92,6 +92,29 @@ export function NotificationDropdown({
     }
   }
 
+  async function handleDelete(id: string) {
+    const isUnread = notifications.some((n) => n.id === id && !n.read);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete", id }),
+      });
+
+      if (res.ok && isUnread) {
+        const newUnread = Math.max(
+          0,
+          notifications.filter((n) => !n.read && n.id !== id).length
+        );
+        onUnreadCountChange?.(newUnread);
+      }
+    } catch {
+      // silently ignore
+    }
+  }
+
   return (
     <div className="flex flex-col">
       {/* Header */}
@@ -128,6 +151,7 @@ export function NotificationDropdown({
               lang={lang}
               dict={dict}
               onMarkRead={handleMarkRead}
+              onDelete={handleDelete}
             />
           ))
         )}

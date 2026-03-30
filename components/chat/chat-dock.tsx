@@ -1165,9 +1165,9 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     <>
       <div className="hidden xl:block">
         {desktopOpen ? (
-          <div className="fixed bottom-4 right-4 top-20 z-30 w-[420px]">{panelContent}</div>
+          <div className="fixed bottom-4 right-4 top-20 z-[60] w-[420px]">{panelContent}</div>
         ) : (
-          <div className={`fixed bottom-24 right-4 z-30 ${launcherAnimationClassName}`}>
+          <div className={`fixed bottom-24 right-4 z-[60] ${launcherAnimationClassName}`}>
             <button
               type="button"
               onClick={openPanel}
@@ -1196,7 +1196,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className={`fixed bottom-24 right-4 z-30 inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-surface-elevated/95 text-pa-green ring-1 ring-white/6 ${launcherAnimationClassName}`}
+            className={`fixed bottom-24 right-4 z-[60] inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-surface-elevated/95 text-pa-green ring-1 ring-white/6 ${launcherAnimationClassName}`}
             title={copy.page.expand}
           >
             <MessagesSquare className="h-5 w-5" />
@@ -1208,8 +1208,8 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           </button>
         ) : (
           <>
-            <div className="fixed inset-0 z-30 bg-black/60" onClick={() => setMobileOpen(false)} />
-            <div className="fixed inset-x-3 bottom-3 top-24 z-[35]">{panelContent}</div>
+            <div className="fixed inset-0 z-[70] bg-black/60" onClick={() => setMobileOpen(false)} />
+            <div className="fixed inset-x-3 bottom-3 top-24 z-[75]">{panelContent}</div>
           </>
         )}
       </div>

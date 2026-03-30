@@ -320,6 +320,7 @@ export function ChatMessageReactions({
       }
     }
 
+    // Avoid synchronous state updates inside effect to prevent cascading renders
     const frame = window.requestAnimationFrame(updatePosition);
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
@@ -379,7 +380,7 @@ export function ChatMessageReactions({
 
   useEffect(() => {
     if (reactions.length === 0) {
-      queueMicrotask(() => {
+      Promise.resolve().then(() => {
         setHoveredReaction(null);
         setContextMenu(null);
         setSelectedReactionEmoji(null);
@@ -389,11 +390,11 @@ export function ChatMessageReactions({
     }
 
     if (hoveredReaction && !reactions.some((reaction) => reaction.emoji === hoveredReaction.emoji)) {
-      queueMicrotask(() => setHoveredReaction(null));
+      Promise.resolve().then(() => setHoveredReaction(null));
     }
 
     if (contextMenu && !reactions.some((reaction) => reaction.emoji === contextMenu.emoji)) {
-      queueMicrotask(() => setContextMenu(null));
+      Promise.resolve().then(() => setContextMenu(null));
     }
 
     if (!selectedReactionEmoji) {
@@ -401,7 +402,7 @@ export function ChatMessageReactions({
     }
 
     if (!reactions.some((reaction) => reaction.emoji === selectedReactionEmoji)) {
-      queueMicrotask(() => setSelectedReactionEmoji(reactions[0]?.emoji ?? null));
+      Promise.resolve().then(() => setSelectedReactionEmoji(reactions[0]?.emoji ?? null));
     }
   }, [contextMenu, hoveredReaction, reactions, selectedReactionEmoji]);
 
