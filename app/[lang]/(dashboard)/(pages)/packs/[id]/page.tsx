@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, Package, ChevronDown, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, Package, ChevronDown, AlertTriangle, Coins, Layers } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -97,6 +97,7 @@ export default function PackDetailPage() {
   const [openResult, setOpenResult] = useState<OpenResult | null>(null);
   const [userCoins, setUserCoins] = useState<number | null>(null);
   const [showBoxInfo, setShowBoxInfo] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState<"normal" | "quick" | null>(null);
   const quickOpenRef = useRef(false);
 
   const [pendingOtherBox, setPendingOtherBox] = useState<{
@@ -396,10 +397,7 @@ export default function PackDetailPage() {
                   className="flex-1"
                   disabled={!canAfford || opening || box.availableCards === 0 || !!pendingOtherBox}
                   loading={opening}
-                  onClick={() => {
-                    quickOpenRef.current = false;
-                    void handleOpen();
-                  }}
+                  onClick={() => setConfirmOpen("normal")}
                 >
                   <Package className="w-4 h-4 mr-1.5" />
                   {isDe ? "Pack Öffnen" : "Open Pack"} — {totalCost} Coins
@@ -408,10 +406,7 @@ export default function PackDetailPage() {
                   variant="secondary"
                   size="lg"
                   disabled={!canAfford || opening || box.availableCards === 0 || !!pendingOtherBox}
-                  onClick={() => {
-                    quickOpenRef.current = true;
-                    void handleOpen();
-                  }}
+                  onClick={() => setConfirmOpen("quick")}
                 >
                   {isDe ? "Schnell" : "Quick"}
                 </Button>
@@ -586,10 +581,79 @@ export default function PackDetailPage() {
             size="lg"
             className="w-full shadow-[0_0_24px_theme(colors.pa-green/0.2)]"
             disabled={!canAfford || box.availableCards === 0}
-            onClick={() => { setShowBoxInfo(false); void handleOpen(); }}
+            onClick={() => { setShowBoxInfo(false); setConfirmOpen("normal"); }}
           >
             🎴 {isDe ? "Pack öffnen" : "Open Pack"} — {totalCost} Coins
           </Button>
+        </div>
+      </Modal>
+
+      {/* ─── Pack Opening Confirmation Dialog ─── */}
+      <Modal
+        open={confirmOpen !== null}
+        onClose={() => setConfirmOpen(null)}
+        title={isDe ? "Pack öffnen?" : "Open pack?"}
+        size="sm"
+      >
+        <div className="space-y-4">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-sm">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-pa-green/10">
+                <Package className="w-4 h-4 text-pa-green" />
+              </div>
+              <div>
+                <p className="text-text-primary font-medium">
+                  {packCount} {packCount === 1 ? "Booster" : "Booster"}
+                </p>
+                <p className="text-xs text-text-muted">{name}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10">
+                <Layers className="w-4 h-4 text-blue-400" />
+              </div>
+              <p className="text-text-primary">
+                {packCount * box.cardsPerPack} {isDe ? "Karten" : "cards"}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-yellow-500/10">
+                <Coins className="w-4 h-4 text-yellow-400" />
+              </div>
+              <div>
+                <p className="text-text-primary font-medium">
+                  {totalCost.toLocaleString()} Coins
+                </p>
+                <p className="text-xs text-text-muted">
+                  {isDe ? "Verbleibendes Guthaben" : "Remaining balance"}: {((userCoins ?? 0) - totalCost).toLocaleString()} Coins
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-1">
+            <Button
+              variant="ghost"
+              size="md"
+              className="flex-1"
+              onClick={() => setConfirmOpen(null)}
+            >
+              {isDe ? "Abbrechen" : "Cancel"}
+            </Button>
+            <Button
+              variant="primary"
+              size="md"
+              className="flex-1"
+              loading={opening}
+              onClick={() => {
+                quickOpenRef.current = confirmOpen === "quick";
+                setConfirmOpen(null);
+                void handleOpen();
+              }}
+            >
+              {isDe ? "Öffnen" : "Open"}
+            </Button>
+          </div>
         </div>
       </Modal>
     </div>
