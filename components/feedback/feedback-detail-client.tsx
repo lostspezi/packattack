@@ -76,6 +76,27 @@ export function FeedbackDetailClient({ lang, feedbackId, dict = {}, mode = "user
   const [areaTags, setAreaTags] = useState("");
   const [issueTags, setIssueTags] = useState("");
   const [savingTriage, setSavingTriage] = useState(false);
+  const [staffUsers, setStaffUsers] = useState<{ id: string; name: string; username: string }[]>([]);
+
+  useEffect(() => {
+    async function loadStaffUsers() {
+      if (mode !== "staff") return;
+      try {
+        const res = await fetch("/api/admin/users?role=admin,super_admin&limit=100");
+        if (res.ok) {
+          const payload = await res.json();
+          setStaffUsers(payload.users.map((u: any) => ({
+            id: u._id,
+            name: u.name,
+            username: u.username,
+          })));
+        }
+      } catch (err) {
+        console.error("Failed to load staff users:", err);
+      }
+    }
+    loadStaffUsers();
+  }, [mode]);
 
   useEffect(() => {
     let active = true;
@@ -458,12 +479,21 @@ export function FeedbackDetailClient({ lang, feedbackId, dict = {}, mode = "user
                   </div>
                 </div>
 
-                <Input
-                  label={copy.detail.assigneeLabel}
-                  value={assignee}
-                  onChange={(e) => setAssignee(e.target.value)}
-                  placeholder={copy.detail.assigneePlaceholder}
-                />
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-text-secondary">{copy.detail.assigneeLabel}</label>
+                  <Select
+                    options={[
+                      { value: "", label: copy.common.unassigned || "Unassigned" },
+                      ...staffUsers.map((u) => ({
+                        value: u.username,
+                        label: `${u.username}${u.name ? ` (${u.name})` : ""}`,
+                      })),
+                    ]}
+                    value={assignee}
+                    onChange={(value) => setAssignee(value)}
+                    className="w-full"
+                  />
+                </div>
                 <Input
                   label={copy.detail.areaTagsLabel}
                   value={areaTags}

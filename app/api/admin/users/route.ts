@@ -40,7 +40,11 @@ export async function GET(req: NextRequest) {
   }
 
   if (roleFilter) {
-    query.role = roleFilter;
+    if (roleFilter.includes(",")) {
+      query.role = { $in: roleFilter.split(",") };
+    } else {
+      query.role = roleFilter;
+    }
   }
 
   if (verifiedFilter === "true") {
