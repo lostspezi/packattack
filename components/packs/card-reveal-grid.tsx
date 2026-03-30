@@ -88,7 +88,7 @@ export function CardRevealGrid({
   }, [flippedSet, cards, onPlaySound, particleRef]);
 
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-5 py-4">
+    <div className="w-full max-w-4xl mx-auto space-y-5 py-4 px-3 sm:px-4">
       {/* Header */}
       <div className="text-center">
         <p className="text-sm text-text-muted">
@@ -97,8 +97,8 @@ export function CardRevealGrid({
         </p>
       </div>
 
-      {/* Card grid — flex-wrap with fixed card width for uniform sizing */}
-      <div className="flex flex-wrap justify-center gap-3">
+      {/* Responsive grid: 3 cols mobile, 4 tablet, 5 desktop */}
+      <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3">
         {cards.map((card, i) => (
           <GridCard
             key={i}
@@ -158,14 +158,11 @@ function GridCard({
     else cardRefs.current.delete(index);
   };
 
-  // Fixed card width — keeps all cards the same size
-  const cardWidth = "w-[130px] sm:w-[150px]";
-
   if (reducedMotion) {
     return (
       <div
         ref={setRef}
-        className={`${cardWidth} cursor-pointer`}
+        className="cursor-pointer"
         onClick={() => onFlip(index)}
         role="button"
         tabIndex={0}
@@ -182,7 +179,7 @@ function GridCard({
   }
 
   return (
-    <div className={`${cardWidth} relative ${shaking ? "animate-screen-shake" : ""}`}>
+    <div className={`relative ${shaking ? "animate-screen-shake" : ""}`}>
       <div
         ref={setRef}
         className="cursor-pointer"

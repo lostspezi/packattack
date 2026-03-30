@@ -328,7 +328,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
 
   // ─── ANIMATION PHASES: idle, ripping, reveal — single wrapper with one ParticleCanvas ───
   return (
-    <div className="relative max-w-md mx-auto flex flex-col items-center py-8">
+    <div className={`relative mx-auto flex flex-col items-center py-8 ${phase === "reveal" ? "max-w-4xl" : "max-w-md"}`}>
       <ParticleCanvas ref={particleRef} />
       {phase === "idle" && (
         <Pack3D
