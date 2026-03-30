@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   NotificationItem,
@@ -11,6 +11,7 @@ interface NotificationDropdownProps {
   lang: string;
   dict: Record<string, string>;
   open?: boolean;
+  unreadCount?: number;
   onUnreadCountChange?: (count: number) => void;
 }
 
@@ -24,20 +25,25 @@ export function NotificationDropdown({
   lang,
   dict,
   open,
+  unreadCount,
   onUnreadCountChange,
 }: NotificationDropdownProps) {
   const [notifications, setNotifications] = useState<NotificationData[]>([]);
   const [loading, setLoading] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
+  const lastLoadedUnreadRef = useRef<number | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/notifications?page=1&limit=20");
+      const res = await fetch("/api/notifications?page=1&limit=20", {
+        cache: "no-store",
+      });
       if (!res.ok) return;
       const data: NotificationsResponse = await res.json();
       setNotifications(data.notifications);
       onUnreadCountChange?.(data.unreadCount);
+      lastLoadedUnreadRef.current = data.unreadCount ?? 0;
     } catch {
       // silently ignore
     } finally {
@@ -48,10 +54,19 @@ export function NotificationDropdown({
   // Fetch notifications when dropdown opens
   useEffect(() => {
     if (open) {
-      fetchNotifications();
+      void fetchNotifications();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
+
+  // Keep the open dropdown list in sync with realtime unread updates.
+  useEffect(() => {
+    if (!open || typeof unreadCount !== "number") return;
+    if (lastLoadedUnreadRef.current === null) return;
+    if (unreadCount !== lastLoadedUnreadRef.current) {
+      void fetchNotifications();
+    }
+  }, [open, unreadCount, fetchNotifications]);
 
   async function handleMarkRead(id: string) {
     setNotifications((prev) =>

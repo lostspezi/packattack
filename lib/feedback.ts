@@ -321,34 +321,28 @@ export async function createNotifications(inputs: NotificationInput[]): Promise<
 
   if (merged.length > 0) {
     await Promise.all(
-      merged.map((item) =>
-        Notification.findOneAndUpdate(
-          {
-            userId: item.userId,
-            category: item.category ?? null,
-            entityType: item.entityType ?? null,
-            entityId: item.entityId ?? null,
-          },
-          {
-            $set: {
-              title: item.title,
-              message: item.message,
-              type: item.type,
-              cta: item.cta ?? null,
-              category: item.category ?? null,
-              entityType: item.entityType ?? null,
-              entityId: item.entityId ?? null,
-              read: false,
-              createdAt: new Date(),
-            },
-          },
-          {
-            upsert: true,
-            returnDocument: "after",
-            setDefaultsOnInsert: true,
-          }
-        )
-      )
+      merged.map(async (item) => {
+        const filter = {
+          userId: item.userId,
+          category: item.category ?? null,
+          entityType: item.entityType ?? null,
+          entityId: item.entityId ?? null,
+        };
+
+        await Notification.findOneAndDelete(filter);
+
+        await Notification.create({
+          userId: item.userId,
+          title: item.title,
+          message: item.message,
+          type: item.type,
+          cta: item.cta ?? null,
+          category: item.category ?? null,
+          entityType: item.entityType ?? null,
+          entityId: item.entityId ?? null,
+          read: false,
+        });
+      })
     );
   }
 
@@ -414,8 +408,29 @@ export async function syncFeedbackQueueNotifications(): Promise<void> {
   }
 
   const title = overdueCount > 0
-    ? "Feedback-Queue braucht Aufmerksamkeit"
+    ? "Feedback-Ticket braucht Aufmerksamkeit"
     : "Offene Feedback-Tickets warten auf Pr\u00FCfung";
+
+  // Route staff directly to one actionable ticket so the CTA matches its label.
+  const [overdueTicket, newTicket, waitingTicket] = await Promise.all([
+    FeedbackItem.findOne({
+      status: { $in: FEEDBACK_OPEN_STATUSES },
+      lastActivityAt: { $lte: overdueBefore },
+    })
+      .sort({ lastActivityAt: 1 })
+      .select("_id")
+      .lean(),
+    FeedbackItem.findOne({ status: "new" })
+      .sort({ createdAt: 1 })
+      .select("_id")
+      .lean(),
+    FeedbackItem.findOne({ status: "waiting", waitingOn: "staff" })
+      .sort({ lastActivityAt: 1 })
+      .select("_id")
+      .lean(),
+  ]);
+
+  const targetTicketId = overdueTicket?._id ?? newTicket?._id ?? waitingTicket?._id;
 
   const message = [
     newCount > 0 ? `${newCount} neu` : null,
@@ -432,8 +447,10 @@ export async function syncFeedbackQueueNotifications(): Promise<void> {
       message,
       type: overdueCount > 0 ? "warning" : "info",
       cta: {
-        label: "Queue \u00F6ffnen",
-        url: `/${user.preferences?.language ?? "de"}/admin/feedback`,
+        label: "Ticket \u00F6ffnen",
+        url: targetTicketId
+          ? `/${user.preferences?.language ?? "de"}/admin/feedback/${targetTicketId.toString()}`
+          : `/${user.preferences?.language ?? "de"}/admin/feedback`,
       },
       category: "feedback_queue_attention",
       entityType: "feedback_queue",

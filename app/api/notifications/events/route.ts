@@ -15,15 +15,27 @@ interface SessionUserIdentity {
 }
 
 async function resolveNotificationUserId(identity: SessionUserIdentity): Promise<string | null> {
+  const id = identity.id?.trim();
   const email = identity.email?.trim().toLowerCase();
-  if (email) {
-    const dbUser = await User.findOne({ email }).select("_id").lean();
-    if (dbUser?._id) {
-      return dbUser._id.toString();
-    }
+
+  let userIdFromSession: string | null = null;
+  if (id && /^[a-f\d]{24}$/i.test(id)) {
+    const byId = await User.findById(id).select("_id").lean();
+    userIdFromSession = byId?._id?.toString() ?? null;
   }
 
-  return identity.id ?? null;
+  let userIdFromEmail: string | null = null;
+  if (email) {
+    const byEmail = await User.findOne({ email }).select("_id").lean();
+    userIdFromEmail = byEmail?._id?.toString() ?? null;
+  }
+
+  // If session id and email resolve to different users, trust email to avoid stale-token misses.
+  if (userIdFromSession && userIdFromEmail && userIdFromSession !== userIdFromEmail) {
+    return userIdFromEmail;
+  }
+
+  return userIdFromSession ?? userIdFromEmail ?? id ?? null;
 }
 
 export async function GET(_req: NextRequest) {

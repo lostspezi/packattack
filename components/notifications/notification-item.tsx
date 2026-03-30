@@ -2,7 +2,7 @@
 
 import { CheckCircle, XCircle, Info, AlertTriangle, X } from "lucide-react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { usePathname } from "next/navigation";
 
 export interface NotificationData {
   id: string;
@@ -58,12 +58,19 @@ function timeAgo(date: string | Date): string {
 
 export function NotificationItem({
   notification,
+  lang,
   dict: _dict,
   onMarkRead,
   onDelete,
 }: NotificationItemProps) {
+  const pathname = usePathname();
   void _dict;
   const { icon: Icon, color } = typeConfig[notification.type] ?? typeConfig.info;
+
+  const currentLang = pathname.split("/").filter(Boolean)[0] || lang || "de";
+  const ctaHref = notification.cta
+    ? notification.cta.url.replace(/^\/(de|en)(?=\/|$)/, `/${currentLang}`)
+    : null;
 
   function handleClick() {
     if (!notification.read) {
@@ -91,12 +98,11 @@ export function NotificationItem({
         </p>
         {notification.cta && (
           <Link
-            href={notification.cta.url}
+            href={ctaHref ?? notification.cta.url}
             onClick={(e) => e.stopPropagation()}
+            className="mt-2 inline-flex items-center justify-center rounded-[10px] bg-pa-green px-3 py-1.5 text-xs font-bold text-bg"
           >
-            <Button variant="primary" size="sm" className="mt-2 text-xs py-1 px-2">
-              {notification.cta.label}
-            </Button>
+            {notification.cta.label}
           </Link>
         )}
         <p className="text-[11px] text-text-muted mt-1">

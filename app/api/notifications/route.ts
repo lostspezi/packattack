@@ -5,6 +5,8 @@ import { runRedisCommand } from "@/lib/redis";
 import Notification from "@/models/notification";
 import User from "@/models/user";
 
+export const dynamic = "force-dynamic";
+
 interface SessionUserIdentity {
   id?: string | null;
   email?: string | null;
@@ -17,15 +19,27 @@ function unreadKey(userId: string) {
 }
 
 async function resolveNotificationUserId(identity: SessionUserIdentity): Promise<string | null> {
+  const id = identity.id?.trim();
   const email = identity.email?.trim().toLowerCase();
-  if (email) {
-    const dbUser = await User.findOne({ email }).select("_id").lean();
-    if (dbUser?._id) {
-      return dbUser._id.toString();
-    }
+
+  let userIdFromSession: string | null = null;
+  if (id && /^[a-f\d]{24}$/i.test(id)) {
+    const byId = await User.findById(id).select("_id").lean();
+    userIdFromSession = byId?._id?.toString() ?? null;
   }
 
-  return identity.id ?? null;
+  let userIdFromEmail: string | null = null;
+  if (email) {
+    const byEmail = await User.findOne({ email }).select("_id").lean();
+    userIdFromEmail = byEmail?._id?.toString() ?? null;
+  }
+
+  // If session id and email resolve to different users, trust email to avoid stale-token misses.
+  if (userIdFromSession && userIdFromEmail && userIdFromSession !== userIdFromEmail) {
+    return userIdFromEmail;
+  }
+
+  return userIdFromSession ?? userIdFromEmail ?? id ?? null;
 }
 
 async function setUnreadCache(userId: string, unreadCount: number): Promise<void> {
@@ -93,21 +107,28 @@ export async function GET(req: NextRequest) {
       await setUnreadCache(userId, unreadCount);
     }
 
-    return NextResponse.json({
-      notifications: notifications.map((n) => ({
-        id: n._id.toString(),
-        title: n.title,
-        message: n.message,
-        type: n.type,
-        cta: n.cta ?? null,
-        read: n.read,
-        createdAt: n.createdAt,
-      })),
-      total,
-      page,
-      limit,
-      unreadCount,
-    });
+    return NextResponse.json(
+      {
+        notifications: notifications.map((n) => ({
+          id: n._id.toString(),
+          title: n.title,
+          message: n.message,
+          type: n.type,
+          cta: n.cta ?? null,
+          read: n.read,
+          createdAt: n.createdAt,
+        })),
+        total,
+        page,
+        limit,
+        unreadCount,
+      },
+      {
+        headers: {
+          "Cache-Control": "no-store",
+        },
+      }
+    );
   } catch (err) {
     console.error("[notifications GET]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

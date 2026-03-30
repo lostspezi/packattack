@@ -19,7 +19,9 @@ export function NotificationBell() {
 
   const fetchUnreadCount = useCallback(async () => {
     try {
-      const res = await fetch("/api/notifications?page=1&limit=1");
+      const res = await fetch("/api/notifications?page=1&limit=1", {
+        cache: "no-store",
+      });
       if (!res.ok) return;
       const data: UnreadResponse = await res.json();
       setUnreadCount(data.unreadCount ?? 0);
@@ -114,6 +116,7 @@ export function NotificationBell() {
               lang="en"
               dict={{}}
               open={open}
+              unreadCount={unreadCount}
               onUnreadCountChange={handleUnreadCountChange}
             />
           </div>,

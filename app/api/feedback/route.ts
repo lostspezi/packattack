@@ -5,6 +5,7 @@ import { assertFeedbackSubmissionAllowed, getRequestIpAddress } from "@/lib/feed
 import {
   FEEDBACK_ATTACHMENT_MAX_FILES,
   FEEDBACK_ATTACHMENT_MAX_SIZE,
+  deleteFeedbackAttachments,
   isAllowedFeedbackAttachmentType,
   uploadFeedbackAttachment,
 } from "@/lib/feedback-attachments";
@@ -12,11 +13,10 @@ import {
   createFeedbackSchema,
 } from "@/lib/validations";
 import FeedbackItem from "@/models/feedback-item";
-import { FEEDBACK_OPEN_STATUSES } from "@/lib/feedback-constants";
+import { FEEDBACK_OPEN_STATUSES, FEEDBACK_STAFF_ROLES } from "@/lib/feedback-constants";
+import User from "@/models/user";
 import {
-  deleteFeedbackAttachments,
-} from "@/lib/feedback-attachments";
-import {
+  createNotifications,
   findFeedbackById,
   generateFeedbackTicketNo,
   getFeedbackPainScore,
@@ -314,6 +314,32 @@ export async function POST(req: NextRequest) {
         message: `Added ${parsedRequest.attachments.length} attachment${parsedRequest.attachments.length === 1 ? "" : "s"}`,
         visibility: "public",
       });
+    }
+
+    const staffUsers = await User.find({ role: { $in: FEEDBACK_STAFF_ROLES } })
+      .select("_id preferences.language")
+      .lean();
+
+    const notifyOwnTicket = !isFeedbackStaff(userRole);
+    const staffRecipients = staffUsers.filter((staff) => notifyOwnTicket || staff._id.toString() !== userId);
+
+    if (staffRecipients.length > 0) {
+      await createNotifications(
+        staffRecipients.map((staff) => ({
+          userId: staff._id.toString(),
+          title: "Neues Feedback eingegangen",
+          message: `${created.ticketNo}: ${created.title}`,
+          type: "info",
+          cta: {
+            label: "Ticket öffnen",
+            url: `/${staff.preferences?.language ?? "de"}/admin/feedback/${created._id.toString()}`,
+          },
+          category: "feedback_ticket_new",
+          entityType: "feedback_ticket",
+          entityId: created._id.toString(),
+          merge: false,
+        }))
+      );
     }
 
     await syncFeedbackQueueNotifications();
