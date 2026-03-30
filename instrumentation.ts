@@ -13,14 +13,5 @@ export async function register() {
     const { startReservationWorker } = await import("@/workers/reservation-worker");
     startReservationWorker();
 
-    // Periodic matchmaking queue sweep every 5 seconds
-    const { processMatchmakingQueue } = await import("@/lib/battle-matchmaker");
-    setInterval(async () => {
-      try {
-        await processMatchmakingQueue();
-      } catch (err) {
-        console.error("[matchmaking] sweep error:", err);
-      }
-    }, 5000);
   }
 }

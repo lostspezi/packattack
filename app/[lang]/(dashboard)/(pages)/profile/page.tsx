@@ -3,7 +3,7 @@ import { getDictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { ProfileForm } from "@/components/profile/profile-form";
-import { BattleStatsCard } from "@/components/battles/battle-stats-card";
+
 import connectDB from "@/lib/db";
 import User from "@/models/user";
 import { MongoClient, ObjectId } from "mongodb";
@@ -17,10 +17,7 @@ export default async function ProfilePage({
 
   const session = await auth();
 
-  const [profileDict, battlesDict] = await Promise.all([
-    getDictionary(lang as Locale, "profile"),
-    getDictionary(lang as Locale, "battles"),
-  ]);
+  const profileDict = await getDictionary(lang as Locale, "profile");
 
   await connectDB();
 
@@ -73,18 +70,6 @@ export default async function ProfilePage({
         />
       </Card>
 
-      <BattleStatsCard
-        lang={lang}
-        elo={user?.elo ?? 1000}
-        battleStats={{
-          wins: user?.battleStats?.wins ?? 0,
-          losses: user?.battleStats?.losses ?? 0,
-          streak: user?.battleStats?.streak ?? 0,
-          bestStreak: user?.battleStats?.bestStreak ?? 0,
-          totalBattles: user?.battleStats?.totalBattles ?? 0,
-        }}
-        dict={battlesDict}
-      />
     </div>
   );
 }
