@@ -48,6 +48,7 @@ interface PlacementPlayer {
 
 /**
  * Calculate final placements. Primary: score desc. Tiebreaker: totalValue desc.
+ * Players with equal score AND equal totalValue share the same placement.
  */
 export function calculatePlacements(
   players: PlacementPlayer[]
@@ -56,7 +57,22 @@ export function calculatePlacements(
     if (b.score !== a.score) return b.score - a.score;
     return b.totalValue - a.totalValue;
   });
-  return sorted.map((p, i) => ({ userId: p.userId, placement: i + 1 }));
+
+  const result: Array<{ userId: string; placement: number }> = [];
+  for (let i = 0; i < sorted.length; i++) {
+    if (i === 0) {
+      result.push({ userId: sorted[i].userId, placement: 1 });
+    } else {
+      const prev = sorted[i - 1];
+      const curr = sorted[i];
+      if (curr.score === prev.score && curr.totalValue === prev.totalValue) {
+        result.push({ userId: curr.userId, placement: result[i - 1].placement });
+      } else {
+        result.push({ userId: curr.userId, placement: i + 1 });
+      }
+    }
+  }
+  return result;
 }
 
 interface DistributableCard {
