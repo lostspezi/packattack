@@ -11,21 +11,20 @@ describe("determineRoundWinner", () => {
     expect(determineRoundWinner(cards)).toBe("b");
   });
 
-  it("breaks ties with rarity", () => {
+  it("returns null (draw) when coinValues are equal", () => {
     const cards = [
       { playerId: "a", coinValue: 50, rarity: "Common" },
       { playerId: "b", coinValue: 50, rarity: "Ultra Rare" },
     ];
-    expect(determineRoundWinner(cards)).toBe("b");
+    expect(determineRoundWinner(cards)).toBeNull();
   });
 
-  it("returns a winner even when value and rarity are equal", () => {
+  it("returns null (draw) when all values and rarities are equal", () => {
     const cards = [
       { playerId: "a", coinValue: 50, rarity: "Common" },
       { playerId: "b", coinValue: 50, rarity: "Common" },
     ];
-    const winner = determineRoundWinner(cards);
-    expect(["a", "b"]).toContain(winner);
+    expect(determineRoundWinner(cards)).toBeNull();
   });
 });
 
