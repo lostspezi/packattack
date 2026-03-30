@@ -320,7 +320,6 @@ export function ChatMessageReactions({
       }
     }
 
-    updatePosition();
     const frame = window.requestAnimationFrame(updatePosition);
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("keydown", handleEscape);
@@ -380,19 +379,21 @@ export function ChatMessageReactions({
 
   useEffect(() => {
     if (reactions.length === 0) {
-      setHoveredReaction(null);
-      setContextMenu(null);
-      setSelectedReactionEmoji(null);
-      setViewerOpen(false);
+      queueMicrotask(() => {
+        setHoveredReaction(null);
+        setContextMenu(null);
+        setSelectedReactionEmoji(null);
+        setViewerOpen(false);
+      });
       return;
     }
 
     if (hoveredReaction && !reactions.some((reaction) => reaction.emoji === hoveredReaction.emoji)) {
-      setHoveredReaction(null);
+      queueMicrotask(() => setHoveredReaction(null));
     }
 
     if (contextMenu && !reactions.some((reaction) => reaction.emoji === contextMenu.emoji)) {
-      setContextMenu(null);
+      queueMicrotask(() => setContextMenu(null));
     }
 
     if (!selectedReactionEmoji) {
@@ -400,7 +401,7 @@ export function ChatMessageReactions({
     }
 
     if (!reactions.some((reaction) => reaction.emoji === selectedReactionEmoji)) {
-      setSelectedReactionEmoji(reactions[0]?.emoji ?? null);
+      queueMicrotask(() => setSelectedReactionEmoji(reactions[0]?.emoji ?? null));
     }
   }, [contextMenu, hoveredReaction, reactions, selectedReactionEmoji]);
 

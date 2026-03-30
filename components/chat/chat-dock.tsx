@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronRight,
   ExternalLink,
@@ -222,7 +222,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         };
     }
   })();
-  function isMentionForCurrentUser(message: ChatMessageSummary, username = selfUsername) {
+  const isMentionForCurrentUser = useCallback((message: ChatMessageSummary, username?: string) => {
     return messageMentionsViewer(
       {
         authorUserId: message.author?.id ?? null,
@@ -230,9 +230,9 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         mentionTargets: message.mentionTargets,
       },
       currentUserId,
-      username
+      username ?? selfUsername
     );
-  }
+  }, [currentUserId, selfUsername]);
 
   function openUserCard(
     user: ChatAuthorSummary | ChatOnlineUserSummary | null | undefined,
@@ -336,7 +336,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     return () => window.cancelAnimationFrame(frame);
   }, [permissions.canPost, sending]);
 
-  async function loadOverview() {
+  const loadOverview = useCallback(async () => {
     try {
       setLoadError(null);
       const res = await fetch("/api/chat", { cache: "no-store" });
@@ -353,7 +353,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         payload.messages.filter(
           (message) =>
             (message.visibleSeq ?? 0) > payload.readState.lastReadVisibleSeq &&
-            isMentionForCurrentUser(message, payload.selfUsername)
+            isMentionForCurrentUser(message, payload.selfUsername ?? undefined)
         ).length
       );
     } catch {
@@ -361,11 +361,11 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     } finally {
       setLoading(false);
     }
-  }
+  }, [copy.states.loadError, isMentionForCurrentUser]);
 
   useEffect(() => {
     void loadOverview();
-  }, []);
+  }, [loadOverview]);
 
   function triggerLauncherAnimation() {
     if (typeof window === "undefined") return;
@@ -491,6 +491,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     copy.states.deleted,
     copy.states.soundUnavailable,
     currentUserId,
+    isMentionForCurrentUser,
     isPanelOpen,
     isStaff,
     readState.soundMode,

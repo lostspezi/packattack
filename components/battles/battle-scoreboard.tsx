@@ -25,7 +25,7 @@ interface BattleScoreboardProps {
   lang: string;
 }
 
-export function BattleScoreboard({ players, scores, dict, lang }: BattleScoreboardProps) {
+export function BattleScoreboard({ players, scores, dict }: BattleScoreboardProps) {
   const sorted = [...players].sort((a, b) => (scores[b.user._id] ?? 0) - (scores[a.user._id] ?? 0));
 
   return (

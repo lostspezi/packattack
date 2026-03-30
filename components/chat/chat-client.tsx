@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Flag, ImageIcon, ShieldAlert, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -127,7 +127,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
     loading: onlineUsersLoading,
     users: onlineUsers,
   } = useChatOnlineUsers(onlineUsersOpen, room.onlineCount, copy.page.onlineUsersLoadError);
-  function isMentionForCurrentUser(message: ChatMessageSummary) {
+  const isMentionForCurrentUser = useCallback((message: ChatMessageSummary) => {
     return messageMentionsViewer(
       {
         authorUserId: message.author?.id ?? null,
@@ -137,7 +137,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
       currentUserId,
       initialData.selfUsername
     );
-  }
+  }, [currentUserId, initialData.selfUsername]);
 
   function openUserCard(
     user: ChatAuthorSummary | ChatOnlineUserSummary | null | undefined,
@@ -269,7 +269,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
     };
 
     return () => source.close();
-  }, [copy.reports.error, copy.states.deleted, copy.states.soundUnavailable, currentUserId, initialData.selfUsername, readState.soundMode, toast]);
+  }, [copy.reports.error, copy.states.deleted, copy.states.soundUnavailable, currentUserId, initialData.selfUsername, isMentionForCurrentUser, readState.soundMode, toast]);
 
   useEffect(() => {
     if (!room.lastVisibleSeq || room.lastVisibleSeq <= readState.lastReadVisibleSeq) return;

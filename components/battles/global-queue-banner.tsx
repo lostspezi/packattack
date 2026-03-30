@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X, Loader2 } from "lucide-react";
+import { X, Loader2 } from "lucide-react";
 
 interface GlobalQueueBannerProps {
   lang: string;
