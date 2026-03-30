@@ -8,7 +8,6 @@ import type { ParticleCanvasHandle } from "./particle-canvas";
 
 interface PackRipperProps {
   boxName: string;
-  boxImage: string | null;
   maxTier: EffectTier;
   particleRef: React.RefObject<ParticleCanvasHandle | null>;
   onRipComplete: () => void;
@@ -18,7 +17,7 @@ interface PackRipperProps {
 const AUTO_COMPLETE_THRESHOLD = 0.7;
 const SWIPE_RANGE = 200;
 
-export function PackRipper({ boxName, boxImage, maxTier, particleRef, onRipComplete, onPlaySound }: PackRipperProps) {
+export function PackRipper({ boxName, maxTier, particleRef, onRipComplete, onPlaySound }: PackRipperProps) {
   const [completed, setCompleted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const ripSoundPlayed = useRef(false);
@@ -75,12 +74,14 @@ export function PackRipper({ boxName, boxImage, maxTier, particleRef, onRipCompl
     return (
       <div ref={containerRef} className="relative flex flex-col items-center gap-0 py-8">
         <motion.div
-          className="w-[200px] h-[80px] rounded-t-2xl border-2 border-pa-green/50 border-b-0"
-          style={{ background: "linear-gradient(145deg, #2a1f4e, #1a0f3e)" }}
+          className="w-[200px] h-[80px] rounded-t-2xl border-2 border-pa-green/50 border-b-0 relative overflow-hidden"
           initial={{ y: -40, rotateX: -5, opacity: 1 }}
           animate={{ y: -250, rotateX: -35, opacity: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-        />
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/card-back.jpg" alt="" className="absolute inset-0 w-full h-full object-cover object-top" />
+        </motion.div>
         <motion.div
           className="w-[220px] h-3 rounded-full"
           style={{ background: TIER_CONFIGS[maxTier].colors[0] }}
@@ -89,15 +90,19 @@ export function PackRipper({ boxName, boxImage, maxTier, particleRef, onRipCompl
           transition={{ duration: 0.8 }}
         />
         <div
-          className="w-[200px] h-[200px] rounded-b-2xl border-2 border-pa-green/50 border-t-0 flex items-center justify-center"
-          style={{ background: "linear-gradient(145deg, #2a1f4e, #1a0f3e)", boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
+          className="w-[200px] h-[200px] rounded-b-2xl border-2 border-pa-green/50 border-t-0 overflow-hidden relative"
+          style={{ boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/card-back.jpg" alt="" className="absolute inset-0 w-full h-full object-cover object-bottom" />
           <motion.div
-            className="w-[70px] h-[98px] rounded-lg bg-gradient-to-br from-white/8 to-white/3 border border-white/10"
+            className="absolute inset-0 flex items-center justify-center"
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.4 }}
-          />
+          >
+            <div className="w-[70px] h-[98px] rounded-lg bg-white/5 border border-white/10" />
+          </motion.div>
         </div>
       </div>
     );
@@ -117,8 +122,10 @@ export function PackRipper({ boxName, boxImage, maxTier, particleRef, onRipCompl
       >
         <motion.div
           className="w-[200px] h-[80px] rounded-t-2xl border-2 border-pa-green/50 border-b-0 relative overflow-hidden"
-          style={{ background: "linear-gradient(145deg, #2a1f4e, #1a0f3e)", y: topY, rotateX: topRotate, opacity: topOpacity }}
+          style={{ y: topY, rotateX: topRotate, opacity: topOpacity }}
         >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/card-back.jpg" alt="" className="absolute inset-0 w-full h-full object-cover object-top" />
           <div className="absolute inset-0 animate-holo-shimmer pointer-events-none" />
         </motion.div>
         <motion.div
@@ -126,15 +133,11 @@ export function PackRipper({ boxName, boxImage, maxTier, particleRef, onRipCompl
           style={{ background: "#9BFF00", boxShadow: "0 0 30px #9BFF00, 0 0 60px rgba(155,255,0,0.5)", opacity: glowOpacity, scaleX: glowScale }}
         />
         <div
-          className="w-[200px] h-[200px] rounded-b-2xl border-2 border-pa-green/50 border-t-0 flex items-center justify-center"
-          style={{ background: "linear-gradient(145deg, #2a1f4e, #1a0f3e)", boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
+          className="w-[200px] h-[200px] rounded-b-2xl border-2 border-pa-green/50 border-t-0 overflow-hidden relative"
+          style={{ boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
         >
-          {boxImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={boxImage} alt={boxName} className="w-[100px] h-auto rounded-lg opacity-60" />
-          ) : (
-            <span className="text-2xl font-black text-pa-green/40">PA</span>
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/card-back.jpg" alt={boxName} className="absolute inset-0 w-full h-full object-cover" />
         </div>
       </motion.div>
       <motion.p
