@@ -23,7 +23,7 @@ export class CardSprite extends Container {
   private imageSprite: Sprite | null = null;
   private _faceUp = false;
   private _data: CardData | null = null;
-  private _borderColor = ARENA_COLORS.paLila;
+  private _borderColor: number = ARENA_COLORS.paLila;
 
   constructor(cardW: number, cardH: number) {
     super();

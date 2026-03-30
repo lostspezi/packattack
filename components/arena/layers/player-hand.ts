@@ -122,7 +122,7 @@ export class PlayerHandLayer extends Container {
   }
 
   /** Call every frame to update the timer bar. */
-  update(_deltaMs: number): void {
+  update(/* _deltaMs */): void {
     if (this.timerStartMs === null) return;
     const elapsed = Date.now() - this.timerStartMs;
     const remaining = Math.max(0, 1 - elapsed / SELECTION_TIMEOUT_MS);

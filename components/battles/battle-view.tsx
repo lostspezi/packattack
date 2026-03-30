@@ -4,7 +4,6 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Loader2, AlertCircle } from "lucide-react";
 import { BattleLobby } from "./battle-lobby";
-import { BattleClash } from "./battle-clash";
 import { BattleScoreboard } from "./battle-scoreboard";
 import { BattlePodium } from "./battle-podium";
 import { BattleDecide } from "./battle-decide";
@@ -109,8 +108,7 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
   const [eloChanges, setEloChanges] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>("");
-  const [revealedCards, setRevealedCards] = useState<Record<string, RoundCard>>({});
-  const [roundAnnounce, setRoundAnnounce] = useState<{ roundIndex: number; revealOrder: string[]; totalRounds?: number } | null>(null);
+const [roundAnnounce, setRoundAnnounce] = useState<{ roundIndex: number; revealOrder: string[]; totalRounds?: number } | null>(null);
   const [roundResult, setRoundResult] = useState<{ winnerId: string | null; isClose: boolean } | null>(null);
   const [handCards, setHandCards] = useState<HandCard[] | null>(null);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
@@ -274,7 +272,6 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
       try {
         const data = JSON.parse(e.data);
         setRoundAnnounce({ roundIndex: data.roundIndex, revealOrder: data.revealOrder ?? [], totalRounds: data.totalRounds });
-        setRevealedCards({});
         setRoundResult(null);
         setHandCards(null);
         setSelectedCardIndex(null);
@@ -286,13 +283,6 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
     es.addEventListener("card_reveal", (e) => {
       try {
         const data = JSON.parse(e.data);
-        const card: RoundCard = {
-          player: data.playerId,
-          card: data.card ?? { _id: data.cardId, name: data.name, image: data.image ?? null },
-          rarity: data.rarity,
-          coinValue: data.coinValue ?? 0,
-        };
-        setRevealedCards((prev) => ({ ...prev, [data.playerId]: card }));
         setBattle((prev) => {
           if (!prev) return prev;
           return { ...prev, status: "clash", currentRound: data.roundIndex };
@@ -460,37 +450,18 @@ export function BattleView({ lang, slug, dict }: BattleViewProps) {
         )}
 
         {isClashing && (
-          <>
-            <ArenaCanvas
-              battle={battle}
-              isPlayer={isPlayer}
-              currentUserId={currentUserId ?? null}
-              roundAnnounce={roundAnnounce}
-              handCards={handCards}
-              selectedCardIndex={selectedCardIndex}
-              playersSelected={playersSelected}
-              revealedPlayedCards={revealedPlayedCards}
-              roundResult={roundResult}
-              onSelectCard={handleSelectCard}
-            />
-            {/* Temporary DOM card selection UI — replaced by PixiJS hand in Phase 3 */}
-            <BattleClash
-              battle={battle}
-              currentRound={battle.currentRound}
-              rounds={battle.rounds}
-              players={battle.players}
-              dict={dict}
-              revealedCards={revealedCards}
-              roundAnnounce={roundAnnounce}
-              roundResult={roundResult}
-              handCards={handCards}
-              selectedCardIndex={selectedCardIndex}
-              playersSelected={playersSelected}
-              revealedPlayedCards={revealedPlayedCards}
-              onSelectCard={handleSelectCard}
-              isPlayer={isPlayer}
-            />
-          </>
+          <ArenaCanvas
+            battle={battle}
+            isPlayer={isPlayer}
+            currentUserId={currentUserId ?? null}
+            roundAnnounce={roundAnnounce}
+            handCards={handCards}
+            selectedCardIndex={selectedCardIndex}
+            playersSelected={playersSelected}
+            revealedPlayedCards={revealedPlayedCards}
+            roundResult={roundResult}
+            onSelectCard={handleSelectCard}
+          />
         )}
 
         {isFinished && (

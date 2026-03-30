@@ -9,12 +9,6 @@ import {
 import type { TweenManager } from "../tween";
 import { easeOutElastic } from "../tween";
 
-interface PlayerData {
-  userId: string;
-  name: string;
-  score: number;
-  color: number;
-}
 
 class PlayerSlot extends Container {
   private bgGfx: Graphics;

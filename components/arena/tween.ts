@@ -25,8 +25,11 @@ export function lerp(from: number, to: number, t: number): number {
 
 type EasingFn = (t: number) => number;
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type TweenTarget = Record<string, any>;
+
 interface ActiveTween {
-  target: Record<string, number>;
+  target: TweenTarget;
   props: Array<{ key: string; from: number; to: number }>;
   duration: number;
   elapsed: number;
@@ -44,7 +47,7 @@ export class TweenManager {
 
   /** Tween target's numeric properties to the given values over duration ms. */
   to(
-    target: Record<string, number>,
+    target: TweenTarget,
     to: Record<string, number>,
     duration: number,
     opts?: { easing?: EasingFn; onComplete?: () => void; onUpdate?: () => void },
@@ -87,7 +90,7 @@ export class TweenManager {
   }
 
   /** Kill all tweens for a specific target object. */
-  killTarget(target: Record<string, number>): void {
+  killTarget(target: TweenTarget): void {
     this.tweens = this.tweens.filter((tw) => tw.target !== target);
   }
 
