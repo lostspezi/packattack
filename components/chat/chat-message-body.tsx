@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 import { escapeMentionRegex } from "@/lib/chat-mentions";
+import { isChatLinkCandidate } from "@/lib/chat-links";
 
 const LINK_PATTERN =
   /(?<!@)\b((?:https?:\/\/|www\.)[^\s]+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?)/gi;
@@ -22,15 +23,16 @@ function splitMessageBody(body: string) {
       segments.push({ text: body.slice(lastIndex, matchIndex) });
     }
 
-    if (cleanedMatch.length > 0) {
+    if (cleanedMatch.length > 0 && isChatLinkCandidate(cleanedMatch)) {
       segments.push({
         text: cleanedMatch,
         href: normalizeHref(cleanedMatch),
       });
-    }
-
-    if (trailing.length > 0) {
-      segments.push({ text: trailing });
+      if (trailing.length > 0) {
+        segments.push({ text: trailing });
+      }
+    } else {
+      segments.push({ text: rawMatch });
     }
 
     lastIndex = matchIndex + rawMatch.length;
