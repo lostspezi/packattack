@@ -416,7 +416,7 @@ export function ChatMessageReactions({
           <div
             ref={pickerRef}
             style={dropdownStyle}
-            className="z-[95] overflow-hidden rounded-[18px] border border-white/10 bg-surface-elevated/98 shadow-2xl shadow-black/35 ring-1 ring-white/8 backdrop-blur-xl"
+            className="z-95 overflow-hidden rounded-[18px] border border-white/10 bg-surface-elevated/98 shadow-2xl shadow-black/35 ring-1 ring-white/8 backdrop-blur-xl"
           >
             <EmojiPicker
               className="packattack-emoji-picker"

@@ -40,7 +40,7 @@ function Checkbox({
           }}
           onClick={() => onCheckedChange(!checked)}
           className={[
-            "w-5 h-5 rounded-[5px] border-2 flex items-center justify-center flex-shrink-0",
+            "w-5 h-5 rounded-[5px] border-2 flex items-center justify-center shrink-0",
             checked
               ? "bg-pa-green border-pa-green"
               : "bg-transparent border-white/20",

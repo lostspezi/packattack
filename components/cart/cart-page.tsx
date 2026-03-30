@@ -311,7 +311,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
               key={key}
               className="flex items-center gap-4 rounded-lg border border-border bg-card p-3"
             >
-              <div className="relative h-16 w-12 flex-shrink-0 overflow-hidden rounded bg-white/5">
+              <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded bg-white/5">
                 {group.card?.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -347,7 +347,7 @@ export function CartPage({ lang, dict }: CartPageProps) {
                   group.card?.name ?? "Unknown",
                   group.conversionValue
                 )}
-                className="flex-shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-white/5"
+                className="shrink-0 rounded-lg border border-border px-3 py-1.5 text-xs text-text-secondary hover:bg-white/5"
               >
                 {dict["toCoins"] ?? "In Münze(n) umwandeln"}
               </button>

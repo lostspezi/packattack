@@ -95,29 +95,29 @@ export function UserDropdown({
       className="rounded-xl border border-border bg-surface p-2 shadow-xl shadow-black/30"
     >
       <Link href={`/${lang}/dashboard`} onClick={onClose} className={`${itemClass} sm:hidden`}>
-        <Bell className="h-4 w-4 flex-shrink-0 text-text-muted" />
+        <Bell className="h-4 w-4 shrink-0 text-text-muted" />
         <span>Benachrichtigungen</span>
       </Link>
 
       <div className="my-1 h-px bg-border sm:hidden" />
 
       <Link href={`/${lang}/feedback`} onClick={onClose} className={itemClass}>
-        <MessageSquareMore className="h-4 w-4 flex-shrink-0 text-text-muted" />
+        <MessageSquareMore className="h-4 w-4 shrink-0 text-text-muted" />
         <span>Feedback</span>
       </Link>
 
       <Link href={`/${lang}/profile`} onClick={onClose} className={itemClass}>
-        <User className="h-4 w-4 flex-shrink-0 text-text-muted" />
+        <User className="h-4 w-4 shrink-0 text-text-muted" />
         <span>Profil</span>
       </Link>
 
       <Link href={`/${lang}/settings`} onClick={onClose} className={itemClass}>
-        <Settings className="h-4 w-4 flex-shrink-0 text-text-muted" />
+        <Settings className="h-4 w-4 shrink-0 text-text-muted" />
         <span>Einstellungen</span>
       </Link>
 
       <Link href={`/${lang}/account`} onClick={onClose} className={itemClass}>
-        <Shield className="h-4 w-4 flex-shrink-0 text-text-muted" />
+        <Shield className="h-4 w-4 shrink-0 text-text-muted" />
         <span>Account</span>
       </Link>
 
@@ -130,13 +130,13 @@ export function UserDropdown({
               onClick={onClose}
               className={itemClass}
             >
-              <Store className="h-4 w-4 flex-shrink-0 text-text-muted" />
+              <Store className="h-4 w-4 shrink-0 text-text-muted" />
               <span>Shopverwaltung</span>
             </Link>
           )}
           {isAdmin && (
             <Link href={`/${lang}/admin`} onClick={onClose} className={itemClass}>
-              <BarChart3 className="h-4 w-4 flex-shrink-0 text-text-muted" />
+              <BarChart3 className="h-4 w-4 shrink-0 text-text-muted" />
               <span>Admin Panel</span>
             </Link>
           )}
@@ -152,7 +152,7 @@ export function UserDropdown({
         }}
         className={`${itemClass} text-red-400 hover:text-red-300`}
       >
-        <LogOut className="h-4 w-4 flex-shrink-0" />
+        <LogOut className="h-4 w-4 shrink-0" />
         <span>Abmelden</span>
       </button>
     </div>,

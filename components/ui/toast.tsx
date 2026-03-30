@@ -42,7 +42,7 @@ function Toast({ type, title, message, onClose }: ToastProps) {
       ].join(" ")}
       role="alert"
     >
-      <span className="flex-shrink-0 mt-0.5">{icons[type]}</span>
+      <span className="shrink-0 mt-0.5">{icons[type]}</span>
       <div className="flex-1 min-w-0">
         <p className="text-text-primary text-sm font-medium">{title}</p>
         {message && (
@@ -52,7 +52,7 @@ function Toast({ type, title, message, onClose }: ToastProps) {
       {onClose && (
         <button
           onClick={onClose}
-          className="flex-shrink-0 text-text-muted hover:text-text-secondary"
+          className="shrink-0 text-text-muted hover:text-text-secondary"
           aria-label="Close notification"
         >
           <X className="w-4 h-4" />

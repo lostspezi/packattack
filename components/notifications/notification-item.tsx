@@ -79,7 +79,7 @@ export function NotificationItem({
         !notification.read ? "border-l-2 border-pa-green" : "border-l-2 border-transparent",
       ].join(" ")}
     >
-      <div className={["mt-0.5 flex-shrink-0", color].join(" ")}>
+      <div className={["mt-0.5 shrink-0", color].join(" ")}>
         <Icon className="w-4 h-4" />
       </div>
       <div className="flex-1 min-w-0 pr-6">

@@ -115,18 +115,18 @@ export function UserHeader({
 
   return (
     <>
-      <header className="relative z-40 flex h-16 flex-shrink-0 items-center justify-between border-b border-border bg-surface px-4 md:px-6">
+      <header className="relative z-40 flex h-16 shrink-0 items-center justify-between border-b border-border bg-surface px-4 md:px-6">
         <div className="flex items-center gap-3 md:gap-6">
           <button
             onClick={() => setMobileMenuOpen((prev) => !prev)}
-            className="flex-shrink-0 rounded-lg p-2 text-text-muted transition-colors hover:text-text-primary md:hidden"
+            className="shrink-0 rounded-lg p-2 text-text-muted transition-colors hover:text-text-primary md:hidden"
             aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
 
-          <Link href={dashboardHref} className="flex-shrink-0">
+          <Link href={dashboardHref} className="shrink-0">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/images/logo.svg" alt="PackAttack.gg" className="h-5 w-auto sm:h-6" />
           </Link>
@@ -141,7 +141,7 @@ export function UserHeader({
                   : "text-text-muted hover:text-text-primary",
               ].join(" ")}
             >
-              <LayoutGrid className="h-4 w-4 flex-shrink-0" />
+              <LayoutGrid className="h-4 w-4 shrink-0" />
               <span>{dict["dashboard"] ?? "Dashboard"}</span>
             </Link>
 
@@ -154,7 +154,7 @@ export function UserHeader({
                   : "text-text-secondary hover:bg-white/4 hover:text-text-primary",
               ].join(" ")}
             >
-              <Package className="h-4 w-4 flex-shrink-0" />
+              <Package className="h-4 w-4 shrink-0" />
               <span>{dict["packs"] ?? "Packs"}</span>
             </Link>
 
@@ -167,7 +167,7 @@ export function UserHeader({
                   : "text-text-secondary hover:bg-white/4 hover:text-text-primary",
               ].join(" ")}
             >
-              <ShoppingCart className="h-4 w-4 flex-shrink-0" />
+              <ShoppingCart className="h-4 w-4 shrink-0" />
               <span>{dict["cart"] ?? "Warenkorb"}</span>
               {cartCount > 0 && (
                 <>
@@ -183,7 +183,7 @@ export function UserHeader({
 
             <span className="select-none rounded-lg px-3 py-2 text-sm font-medium text-text-muted opacity-35">
               <span className="flex items-center gap-2">
-                <ShoppingBag className="h-4 w-4 flex-shrink-0" />
+                <ShoppingBag className="h-4 w-4 shrink-0" />
                 <span>{dict["marketplace"] ?? "Marktplatz"}</span>
                 <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
                   Soon
@@ -214,7 +214,7 @@ export function UserHeader({
                 alt={userName}
                 width={32}
                 height={32}
-                className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
+                className="h-8 w-8 shrink-0 rounded-full object-cover"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = "/images/default-avatar.png";
                 }}
@@ -239,7 +239,7 @@ export function UserHeader({
       </header>
 
       <div
-        className="fixed inset-0 z-[70] flex md:hidden"
+        className="fixed inset-0 z-70 flex md:hidden"
         style={{
           visibility: mobileMenuOpen ? "visible" : "hidden",
           transition: mobileMenuOpen ? "visibility 0s" : "visibility 0s 0.3s",
@@ -260,7 +260,7 @@ export function UserHeader({
             mobileMenuOpen ? "translate-x-0" : "-translate-x-full",
           ].join(" ")}
         >
-          <div className="flex h-16 flex-shrink-0 items-center border-b border-border px-4">
+          <div className="flex h-16 shrink-0 items-center border-b border-border px-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/images/logo.svg" alt="PackAttack.gg" className="h-5 w-auto" />
           </div>
@@ -276,7 +276,7 @@ export function UserHeader({
                   : "text-text-muted hover:text-text-primary",
               ].join(" ")}
             >
-              <LayoutGrid className="h-5 w-5 flex-shrink-0" />
+              <LayoutGrid className="h-5 w-5 shrink-0" />
               <span>{dict["dashboard"] ?? "Dashboard"}</span>
             </Link>
 
@@ -290,7 +290,7 @@ export function UserHeader({
                   : "text-text-muted hover:text-text-primary",
               ].join(" ")}
             >
-              <Package className="h-5 w-5 flex-shrink-0" />
+              <Package className="h-5 w-5 shrink-0" />
               <span>{dict["packs"] ?? "Packs"}</span>
             </Link>
 
@@ -304,7 +304,7 @@ export function UserHeader({
                   : "text-text-muted hover:text-text-primary",
               ].join(" ")}
             >
-              <ShoppingCart className="h-5 w-5 flex-shrink-0" />
+              <ShoppingCart className="h-5 w-5 shrink-0" />
               <span className="flex-1">{dict["cart"] ?? "Warenkorb"}</span>
               {cartCount > 0 && (
                 <>
@@ -319,7 +319,7 @@ export function UserHeader({
             </Link>
 
             <span className="flex select-none items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-text-muted opacity-35">
-              <ShoppingBag className="h-5 w-5 flex-shrink-0" />
+              <ShoppingBag className="h-5 w-5 shrink-0" />
               <span className="flex-1">{dict["marketplace"] ?? "Marktplatz"}</span>
               <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
                 Soon
@@ -334,7 +334,7 @@ export function UserHeader({
             </div>
           </div>
 
-          <div className="flex-shrink-0 px-3 pb-6">
+          <div className="shrink-0 px-3 pb-6">
             <div className="flex items-center gap-3 rounded-lg border border-white/6 bg-white/3 px-3 py-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -342,7 +342,7 @@ export function UserHeader({
                 alt={userName}
                 width={32}
                 height={32}
-                className="h-8 w-8 flex-shrink-0 rounded-full object-cover"
+                className="h-8 w-8 shrink-0 rounded-full object-cover"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = "/images/default-avatar.png";
                 }}

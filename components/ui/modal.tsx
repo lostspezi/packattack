@@ -34,7 +34,7 @@ function Modal({ open, onClose, title, children, size = "md" }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[90] flex items-center justify-center p-4"
+      className="fixed inset-0 z-90 flex items-center justify-center p-4"
       aria-modal="true"
       role="dialog"
     >
@@ -58,7 +58,7 @@ function Modal({ open, onClose, title, children, size = "md" }: ModalProps) {
           )}
           <button
             onClick={onClose}
-            className="ml-auto text-text-muted hover:text-text-secondary flex-shrink-0"
+            className="ml-auto text-text-muted hover:text-text-secondary shrink-0"
             aria-label="Close modal"
           >
             <X className="w-5 h-5" />

@@ -131,7 +131,7 @@ function Dropdown({
                   ].join(" ")}
                 >
                   <span>{item.label}</span>
-                  {isSelected ? <Check className="h-3.5 w-3.5 flex-shrink-0" /> : null}
+                  {isSelected ? <Check className="h-3.5 w-3.5 shrink-0" /> : null}
                 </button>
               );
             })}

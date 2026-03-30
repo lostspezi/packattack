@@ -96,7 +96,7 @@ export function OrdersList({ lang, dict }: OrdersListProps) {
               {new Date(order.createdAt).toLocaleDateString(lang)}
             </p>
           </div>
-          <ChevronRight className="h-4 w-4 flex-shrink-0 text-text-muted" />
+          <ChevronRight className="h-4 w-4 shrink-0 text-text-muted" />
         </Link>
       ))}
 

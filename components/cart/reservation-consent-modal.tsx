@@ -25,15 +25,15 @@ export function ReservationConsentModal({ dict, onAccept, onClose }: Reservation
 
         <div className="space-y-3 text-sm text-text-secondary">
           <div className="flex gap-3">
-            <Clock className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
+            <Clock className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
             <p>{dict["consentRule1"] ?? "Dein Warenkorb hat ein 3-Stunden-Reservierungsfenster. Die erste beanspruchte Karte startet den Timer."}</p>
           </div>
           <div className="flex gap-3">
-            <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
             <p>{dict["consentRule2"] ?? "Wenn du den Checkout nicht innerhalb von 3 Stunden abschließt, werden alle Karten automatisch in Coins umgewandelt."}</p>
           </div>
           <div className="flex gap-3">
-            <Coins className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-400" />
+            <Coins className="mt-0.5 h-5 w-5 shrink-0 text-amber-400" />
             <p>{dict["consentRule3"] ?? "Du kannst einzelne Karten jederzeit manuell im Warenkorb in Coins umwandeln."}</p>
           </div>
         </div>

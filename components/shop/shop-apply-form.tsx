@@ -122,7 +122,7 @@ export function ShopApplyForm({ lang }: { lang: string }) {
           onClick={() => fileInputRef.current?.click()}
           className="flex items-center gap-2 bg-white/3 border border-white/8 rounded-[10px] px-4 py-3 text-sm text-text-secondary hover:border-white/16 transition-colors cursor-pointer text-left"
         >
-          <Upload className="w-4 h-4 flex-shrink-0 text-text-muted" />
+          <Upload className="w-4 h-4 shrink-0 text-text-muted" />
           {file ? (
             <span className="text-text-primary truncate">{file.name}</span>
           ) : (

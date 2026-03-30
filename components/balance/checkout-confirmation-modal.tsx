@@ -60,7 +60,7 @@ export function CheckoutConfirmationModal({
             type="checkbox"
             checked={consentChecked}
             onChange={(e) => setConsentChecked(e.target.checked)}
-            className="accent-pa-green mt-1 flex-shrink-0"
+            className="accent-pa-green mt-1 shrink-0"
           />
           <span className="text-text-secondary text-xs leading-relaxed">
             {lang === "en"

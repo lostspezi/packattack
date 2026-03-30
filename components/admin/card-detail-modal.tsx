@@ -113,7 +113,7 @@ export function CardDetailModal({
       <div className="space-y-5 max-h-[80vh] overflow-y-auto pr-1">
         {/* Top section: image + info */}
         <div className="flex gap-5">
-          <div className="flex-shrink-0">
+          <div className="shrink-0">
             {card.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

@@ -136,7 +136,7 @@ function Select({
             >
               <span className="truncate">{option.label}</span>
               {isSelected && (
-                <Check size={size === "sm" ? 12 : 14} className="text-pa-green flex-shrink-0" />
+                <Check size={size === "sm" ? 12 : 14} className="text-pa-green shrink-0" />
               )}
             </button>
           );
@@ -172,7 +172,7 @@ function Select({
         <ChevronDown
           size={size === "sm" ? 14 : 16}
           className={[
-            "text-text-muted transition-transform flex-shrink-0",
+            "text-text-muted transition-transform shrink-0",
             open ? "rotate-180" : "",
           ].join(" ")}
         />

@@ -85,7 +85,7 @@ export function FeedbackDetailClient({ lang, feedbackId, dict = {}, mode = "user
         const res = await fetch("/api/admin/users?role=admin,super_admin&limit=100");
         if (res.ok) {
           const payload = await res.json();
-          setStaffUsers(payload.users.map((u: any) => ({
+          setStaffUsers(payload.users.map((u: { _id: string; name: string; username: string }) => ({
             id: u._id,
             name: u.name,
             username: u.username,

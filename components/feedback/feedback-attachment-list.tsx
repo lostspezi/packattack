@@ -44,7 +44,7 @@ export function FeedbackAttachmentList({ lang, dict = {}, attachments, compact =
             )}
             <div className="flex items-center justify-between gap-3 p-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-[10px] bg-white/4 text-text-muted">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] bg-white/4 text-text-muted">
                   {attachment.isImage ? (
                     <ImageIcon className="h-4 w-4" />
                   ) : attachment.contentType === "application/pdf" ? (

@@ -2,7 +2,7 @@
 
 export function LoadingScreen() {
   return (
-    <div className="fixed inset-0 z-[100] bg-bg flex flex-col items-center justify-center gap-7">
+    <div className="fixed inset-0 z-100 bg-bg flex flex-col items-center justify-center gap-7">
       {/* Boosterpack with fill animation */}
       <div className="relative w-[140px] h-[192px]">
         {/* Glow rings */}

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Package, Loader2, Coins, ChevronRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+
 import { CoinChestAnimation } from "@/components/balance/coin-chest-animation";
 import { useToast } from "@/components/ui/toast";
 
