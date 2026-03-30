@@ -58,8 +58,11 @@ export class PlayerHandLayer extends Container {
       // Position from center
       const pos = this.getCardPosition(i, cardData.length);
       card.x = pos.x;
-      card.y = pos.y + 40; // start below
-      card.alpha = 0;
+      card.y = pos.y;
+      card.alpha = 1;
+
+      // Show face immediately for debugging
+      card.showFront();
 
       // Make interactive
       card.eventMode = "static";
@@ -70,14 +73,7 @@ export class PlayerHandLayer extends Container {
       this.addChild(card);
       this.cards.push(card);
 
-      // Animate in with stagger
-      tweens.to(card, { y: pos.y, alpha: 1 }, 300 + i * 80, {
-        easing: easeOutCubic,
-        onComplete: () => {
-          // Flip to show face
-          card.animateFlip(tweens, 300);
-        },
-      });
+      console.log(`[hand] card ${i} at x=${pos.x.toFixed(0)} y=${pos.y.toFixed(0)} w=${cardW.toFixed(0)} h=${cardH.toFixed(0)} alpha=${card.alpha} visible=${card.visible} parent=${!!card.parent}`);
     }
   }
 
