@@ -358,7 +358,6 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
       )}
       {phase === "reveal" && currentCard && (
         <CardFlipper
-          key={`${currentCard.cardId}-${currentIndex}`}
           card={currentCard}
           index={currentIndex}
           total={cards.length}

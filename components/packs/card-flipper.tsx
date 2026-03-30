@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ShoppingCart, Coins, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -37,10 +37,30 @@ export function CardFlipper({
   const prefersReducedMotion = useReducedMotion();
   const [flipped, setFlipped] = useState(false);
   const [shaking, setShaking] = useState(false);
+  // displayedCard holds the card shown on the front face — updates only after flip-back
+  const [displayedCard, setDisplayedCard] = useState(card);
+  const prevCardIdRef = useRef(card.cardId);
   const cardRef = useRef<HTMLDivElement>(null);
   const isLast = index >= total - 1;
-  const tier = getEffectTier(card.coinValue);
+  const tier = getEffectTier(displayedCard.coinValue);
   const config = TIER_CONFIGS[tier];
+  const FLIP_BACK_MS = 400;
+
+  useEffect(() => {
+    if (card.cardId !== prevCardIdRef.current) {
+      prevCardIdRef.current = card.cardId;
+      if (flipped) {
+        // Flip back first, then swap card data after animation
+        setFlipped(false);
+        const timer = setTimeout(() => {
+          setDisplayedCard(card);
+        }, FLIP_BACK_MS);
+        return () => clearTimeout(timer);
+      } else {
+        setDisplayedCard(card);
+      }
+    }
+  }, [card, flipped]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleFlip = useCallback(() => {
     if (flipped) return;
@@ -100,7 +120,7 @@ export function CardFlipper({
         >
           <div style={{
             transformStyle: "preserve-3d",
-            transition: `transform ${config.flipDuration}s cubic-bezier(0.4, 0, 0.2, 1)`,
+            transition: `transform ${flipped ? config.flipDuration : FLIP_BACK_MS / 1000}s cubic-bezier(0.4, 0, 0.2, 1)`,
             transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
             position: "relative",
             minHeight: "16rem",
@@ -115,7 +135,7 @@ export function CardFlipper({
             </div>
             {/* Card Front — visible when flipped */}
             <div style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-              <CardFront card={card} tier={tier} isDe={isDe} />
+              <CardFront card={displayedCard} tier={tier} isDe={isDe} />
             </div>
           </div>
         </div>
