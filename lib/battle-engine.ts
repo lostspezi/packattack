@@ -3,6 +3,7 @@ import {
   CLOSE_MATCH_THRESHOLD,
   CARD_REVEAL_RARE_BONUS_MS,
   CARD_REVEAL_ULTRA_BONUS_MS,
+  HAND_SIZE,
 } from "./battle-constants";
 
 interface RoundCard {
@@ -113,4 +114,27 @@ export function getRarityBonusMs(rarity: string): number {
   if (order >= 5) return CARD_REVEAL_ULTRA_BONUS_MS;
   if (order >= 3) return CARD_REVEAL_RARE_BONUS_MS;
   return 0;
+}
+
+export interface DealableCard {
+  card: string;
+  coinValue: number;
+  rarity: string;
+  name: string;
+  image: string;
+}
+
+export interface DealtHand {
+  player: string;
+  dealtCards: DealableCard[];
+  selectedIndex: null;
+}
+
+export function dealHands(pool: DealableCard[], playerIds: string[]): DealtHand[] {
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return playerIds.map((playerId, i) => ({
+    player: playerId,
+    dealtCards: shuffled.slice(i * HAND_SIZE, (i + 1) * HAND_SIZE),
+    selectedIndex: null,
+  }));
 }

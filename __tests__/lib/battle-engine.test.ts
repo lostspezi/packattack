@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { determineRoundWinner, snakeDraftDistribute, calculatePlacements } from "@/lib/battle-engine";
+import { determineRoundWinner, snakeDraftDistribute, calculatePlacements, dealHands } from "@/lib/battle-engine";
 
 describe("determineRoundWinner", () => {
   it("returns player with highest coinValue", () => {
@@ -100,5 +100,56 @@ describe("snakeDraftDistribute", () => {
     const firstTotal = result.get("first")!.reduce((s, c) => s + c.coinValue, 0);
     const secondTotal = result.get("second")!.reduce((s, c) => s + c.coinValue, 0);
     expect(firstTotal).toBeGreaterThanOrEqual(secondTotal);
+  });
+});
+
+describe("dealHands", () => {
+  const mockCards = Array.from({ length: 20 }, (_, i) => ({
+    card: `card-${i}`,
+    coinValue: (i + 1) * 0.5,
+    rarity: i % 5 === 0 ? "Ultra Rare" : i % 3 === 0 ? "Rare" : "Common",
+    name: `Card ${i}`,
+    image: `/img/${i}.png`,
+  }));
+
+  it("deals HAND_SIZE cards to each player", () => {
+    const hands = dealHands(mockCards, ["p1", "p2"]);
+    expect(hands).toHaveLength(2);
+    expect(hands[0].dealtCards).toHaveLength(5);
+    expect(hands[1].dealtCards).toHaveLength(5);
+  });
+
+  it("assigns correct player to each hand", () => {
+    const hands = dealHands(mockCards, ["p1", "p2"]);
+    expect(hands[0].player).toBe("p1");
+    expect(hands[1].player).toBe("p2");
+  });
+
+  it("sets selectedIndex to null for all hands", () => {
+    const hands = dealHands(mockCards, ["p1", "p2"]);
+    expect(hands[0].selectedIndex).toBeNull();
+    expect(hands[1].selectedIndex).toBeNull();
+  });
+
+  it("does not give the same card to two players", () => {
+    const hands = dealHands(mockCards, ["p1", "p2"]);
+    const allCardIds = hands.flatMap(h => h.dealtCards.map(c => c.card));
+    const unique = new Set(allCardIds);
+    expect(unique.size).toBe(allCardIds.length);
+  });
+
+  it("works with 4 players (needs 20 cards)", () => {
+    const hands = dealHands(mockCards, ["p1", "p2", "p3", "p4"]);
+    expect(hands).toHaveLength(4);
+    hands.forEach(h => expect(h.dealtCards).toHaveLength(5));
+  });
+
+  it("shuffles cards (not always same distribution)", () => {
+    const results = new Set<string>();
+    for (let i = 0; i < 10; i++) {
+      const hands = dealHands(mockCards, ["p1", "p2"]);
+      results.add(hands[0].dealtCards.map(c => c.card).join(","));
+    }
+    expect(results.size).toBeGreaterThan(1);
   });
 });
