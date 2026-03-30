@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { type EffectTier, TIER_CONFIGS, getEffectTier } from "./effect-tiers";
 import type { ParticleCanvasHandle } from "./particle-canvas";
 
@@ -47,16 +46,11 @@ export function CardRevealGrid({
     const tier = getEffectTier(card.coinValue);
     const config = TIER_CONFIGS[tier];
 
-    // Play sound
     onPlaySound(config.soundKey, config.volume);
-
-    // Mark as flipped
     setFlippedSet((prev) => new Set(prev).add(index));
 
-    // Trigger effects after flip animation completes
     const delay = config.flipPauseMs + (config.flipDuration * 500);
     setTimeout(() => {
-      // Particles
       if (config.particleCount > 0 && particleRef.current) {
         const el = cardRefs.current.get(index);
         const container = el?.closest(".relative");
@@ -78,7 +72,6 @@ export function CardRevealGrid({
         }
       }
 
-      // Screen shake on the individual card
       if (config.screenShake) {
         setShakingSet((prev) => new Set(prev).add(index));
         setTimeout(() => setShakingSet((prev) => {
@@ -88,31 +81,24 @@ export function CardRevealGrid({
         }), 150);
       }
 
-      // Confetti
       if (config.confetti && particleRef.current) {
         particleRef.current.emitConfetti(config.colors, 40);
       }
     }, delay);
   }, [flippedSet, cards, onPlaySound, particleRef]);
 
-  // Grid columns: 2 for ≤4 cards, 3 for 5-9, 4 for 10+
-  const cols = cards.length <= 4 ? 2 : cards.length <= 9 ? 3 : 4;
-
   return (
-    <div className="w-full max-w-2xl mx-auto space-y-4 py-4">
+    <div className="w-full max-w-2xl mx-auto space-y-5 py-4">
       {/* Header */}
-      <div className="text-center space-y-1">
+      <div className="text-center">
         <p className="text-sm text-text-muted">
           {revealedCount}/{cards.length} {isDe ? "aufgedeckt" : "revealed"}
           {packCount > 1 && ` · ${packCount} Packs`}
         </p>
       </div>
 
-      {/* Card grid */}
-      <div
-        className="grid gap-3 justify-center"
-        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
-      >
+      {/* Card grid — flex-wrap with fixed card width for uniform sizing */}
+      <div className="flex flex-wrap justify-center gap-3">
         {cards.map((card, i) => (
           <GridCard
             key={i}
@@ -128,12 +114,13 @@ export function CardRevealGrid({
         ))}
       </div>
 
-      {/* Continue button — visible once all cards revealed */}
+      {/* Continue button */}
       {allRevealed && (
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.3 }}
+          className="pt-2"
         >
           <Button
             variant="primary"
@@ -171,11 +158,14 @@ function GridCard({
     else cardRefs.current.delete(index);
   };
 
+  // Fixed card width — keeps all cards the same size
+  const cardWidth = "w-[130px] sm:w-[150px]";
+
   if (reducedMotion) {
     return (
       <div
         ref={setRef}
-        className="bg-surface border border-border rounded-xl p-2 text-center cursor-pointer"
+        className={`${cardWidth} cursor-pointer`}
         onClick={() => onFlip(index)}
         role="button"
         tabIndex={0}
@@ -185,17 +175,17 @@ function GridCard({
         {flipped ? (
           <GridCardFront card={card} tier={tier} />
         ) : (
-          <GridCardBack isDe={isDe} />
+          <GridCardBack />
         )}
       </div>
     );
   }
 
   return (
-    <div className={`relative ${shaking ? "animate-screen-shake" : ""}`}>
+    <div className={`${cardWidth} relative ${shaking ? "animate-screen-shake" : ""}`}>
       <div
         ref={setRef}
-        className="bg-surface border border-border rounded-xl p-2 text-center cursor-pointer"
+        className="cursor-pointer"
         onClick={() => onFlip(index)}
         role="button"
         tabIndex={0}
@@ -211,7 +201,7 @@ function GridCard({
         }}>
           {/* Card Back */}
           <div style={{ backfaceVisibility: "hidden" }}>
-            <GridCardBack isDe={isDe} />
+            <GridCardBack />
           </div>
           {/* Card Front */}
           <div style={{
@@ -243,9 +233,9 @@ function GridCard({
 
 // ─── Card Back (face-down) ────────────────────────────────────────────
 
-function GridCardBack({ isDe }: { isDe: boolean }) {
+function GridCardBack() {
   return (
-    <div className="aspect-[63/88] rounded-lg overflow-hidden relative flex items-center justify-center border border-pa-green/20">
+    <div className="aspect-[63/88] rounded-xl overflow-hidden relative border border-pa-green/20 shadow-lg">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/images/card-back.jpg"
@@ -253,9 +243,6 @@ function GridCardBack({ isDe }: { isDe: boolean }) {
         className="absolute inset-0 w-full h-full object-cover"
         draggable={false}
       />
-      <span className="relative text-[10px] text-pa-green font-medium drop-shadow-lg select-none pointer-events-none">
-        {isDe ? "Aufdecken" : "Reveal"}
-      </span>
     </div>
   );
 }
@@ -268,31 +255,33 @@ function GridCardFront({ card, tier }: {
 }) {
   const config = TIER_CONFIGS[tier];
   return (
-    <div className="space-y-1.5">
+    <div className="relative">
+      {/* Card image */}
       {card.image ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={card.image}
           alt={card.name}
-          className="aspect-[63/88] w-full object-cover rounded-lg"
+          className="aspect-[63/88] w-full object-cover rounded-xl"
           draggable={false}
         />
       ) : (
-        <div className="aspect-[63/88] w-full bg-white/4 rounded-lg flex items-center justify-center">
+        <div className="aspect-[63/88] w-full bg-white/4 rounded-xl flex items-center justify-center border border-border">
           <span className="text-text-muted text-xs">?</span>
         </div>
       )}
-      <div className="space-y-0.5 px-1 pb-1">
-        <p className="text-xs font-medium text-text-primary truncate">{card.name}</p>
-        <div className="flex items-center justify-center gap-1.5">
-          <Badge variant="info" className="text-[10px] px-1.5 py-0">{card.rarity}</Badge>
+
+      {/* Overlay info at bottom of card */}
+      <div className="absolute inset-x-0 bottom-0 rounded-b-xl bg-gradient-to-t from-black/80 via-black/50 to-transparent px-2 pt-5 pb-2">
+        <p className="text-[11px] font-semibold text-white truncate leading-tight">{card.name}</p>
+        <div className="flex items-center gap-1.5 mt-0.5">
+          <span className="text-[9px] text-white/60">{card.rarity}</span>
           {tier >= 2 && (
             <span className="text-[9px] font-bold uppercase" style={{ color: config.colors[0] }}>
               {config.label}
             </span>
           )}
         </div>
-        <p className="text-[10px] text-text-muted">{card.coinValue} Coins</p>
       </div>
     </div>
   );
