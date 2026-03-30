@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
-import { motion, useMotionValue, useTransform, type PanInfo } from "motion/react";
+import { motion, useMotionValue, useTransform } from "motion/react";
 import type { EffectTier } from "./effect-tiers";
 import { TIER_CONFIGS } from "./effect-tiers";
 import type { ParticleCanvasHandle } from "./particle-canvas";
@@ -29,14 +29,8 @@ export function PackRipper({ boxName, maxTier, particleRef, onRipComplete, onPla
   const glowOpacity = useTransform(progress, [0, 0.5, 0.7], [0, 0.5, 1]);
   const glowScale = useTransform(progress, [0, 0.7], [0.5, 1.5]);
 
-  const handlePanStart = useCallback(() => {
-    if (!ripSoundPlayed.current) {
-      onPlaySound("rip", 0.4);
-      ripSoundPlayed.current = true;
-    }
-  }, [onPlaySound]);
-
   const triggerComplete = useCallback(() => {
+    if (completed) return;
     setCompleted(true);
     onPlaySound("burst", 0.7);
     if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
@@ -50,25 +44,17 @@ export function PackRipper({ boxName, maxTier, particleRef, onRipComplete, onPla
       });
     }
     setTimeout(() => onRipComplete(), 800);
-  }, [maxTier, onPlaySound, onRipComplete, particleRef]);
+  }, [completed, maxTier, onPlaySound, onRipComplete, particleRef]);
 
-  const handlePan = useCallback(
-    (_: PointerEvent, info: PanInfo) => {
-      const clamped = Math.min(0, Math.max(-SWIPE_RANGE, info.offset.y));
-      dragY.set(clamped);
-      const prog = Math.abs(clamped) / SWIPE_RANGE;
-      if (prog >= AUTO_COMPLETE_THRESHOLD && !completed) triggerComplete();
-    },
-    [completed, dragY, triggerComplete],
-  );
-
-  const handlePanEnd = useCallback(() => {
-    const prog = Math.abs(dragY.get()) / SWIPE_RANGE;
-    if (prog < AUTO_COMPLETE_THRESHOLD) {
-      dragY.set(0);
-      ripSoundPlayed.current = false;
+  const handleDragUpdate = useCallback(() => {
+    const val = dragY.get();
+    if (!ripSoundPlayed.current && val < -10) {
+      onPlaySound("rip", 0.4);
+      ripSoundPlayed.current = true;
     }
-  }, [dragY]);
+    const prog = Math.abs(val) / SWIPE_RANGE;
+    if (prog >= AUTO_COMPLETE_THRESHOLD) triggerComplete();
+  }, [dragY, onPlaySound, triggerComplete]);
 
   if (completed) {
     return (
@@ -115,9 +101,19 @@ export function PackRipper({ boxName, maxTier, particleRef, onRipComplete, onPla
         role="button"
         aria-label="Swipe up to rip open pack"
         tabIndex={0}
-        onPanStart={handlePanStart}
-        onPan={handlePan}
-        onPanEnd={handlePanEnd}
+        drag="y"
+        dragConstraints={{ top: -SWIPE_RANGE, bottom: 0 }}
+        dragElastic={0}
+        dragMomentum={false}
+        style={{ y: dragY }}
+        onDrag={handleDragUpdate}
+        onDragEnd={() => {
+          const prog = Math.abs(dragY.get()) / SWIPE_RANGE;
+          if (prog < AUTO_COMPLETE_THRESHOLD) {
+            dragY.set(0);
+            ripSoundPlayed.current = false;
+          }
+        }}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); triggerComplete(); } }}
       >
         <motion.div
