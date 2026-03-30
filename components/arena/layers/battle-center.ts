@@ -58,48 +58,19 @@ export class BattleCenterLayer extends Container {
     this.canvasW = w;
     this.canvasH = h;
 
-    // Recreate text labels at correct size (avoids PixiJS TexturePool bug)
-    this.rebuildLabels(w, h);
+    this.vsLabel.x = w / 2;
+    this.vsLabel.y = h * VS_LABEL.y;
+    // Scale text instead of changing fontSize (avoids PixiJS TexturePool bug)
+    const vsScale = (h * VS_LABEL.fontSize) / 32;
+    this.vsLabel.scale.set(vsScale);
+
+    this.roundLabel.x = w / 2;
+    this.roundLabel.y = h * VS_LABEL.y - h * 0.06;
+    const roundScale = (h * 0.018) / 14;
+    this.roundLabel.scale.set(roundScale);
 
     // Reposition any existing played cards
     this.positionPlayedCards();
-  }
-
-  private rebuildLabels(w: number, h: number): void {
-    this.removeChild(this.vsLabel);
-    this.vsLabel.destroy();
-    this.vsLabel = new Text({
-      text: "VS",
-      style: {
-        fontFamily: "monospace",
-        fontSize: Math.round(h * VS_LABEL.fontSize),
-        fill: ARENA_COLORS.textMuted,
-        fontWeight: "bold",
-        align: "center",
-      },
-    });
-    this.vsLabel.anchor.set(0.5);
-    this.vsLabel.alpha = 0.4;
-    this.vsLabel.x = w / 2;
-    this.vsLabel.y = h * VS_LABEL.y;
-    this.addChild(this.vsLabel);
-
-    const roundText = this.roundLabel.text;
-    this.removeChild(this.roundLabel);
-    this.roundLabel.destroy();
-    this.roundLabel = new Text({
-      text: roundText,
-      style: {
-        fontFamily: "monospace",
-        fontSize: Math.round(h * 0.018),
-        fill: ARENA_COLORS.textSecondary,
-        align: "center",
-      },
-    });
-    this.roundLabel.anchor.set(0.5);
-    this.roundLabel.x = w / 2;
-    this.roundLabel.y = h * VS_LABEL.y - h * 0.06;
-    this.addChild(this.roundLabel);
   }
 
   setRound(current: number, total: number): void {
