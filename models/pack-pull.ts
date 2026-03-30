@@ -9,6 +9,7 @@ export interface IPackPull extends Document {
   conversionValue: number;
   status: "pending" | "claimed" | "converted" | "reserved";
   decidedAt: Date | null;
+  jackpotAnnouncedAt: Date | null;
   packGroupId: string;
   packIndex: number;
   cardIndex: number;
@@ -31,6 +32,7 @@ const PackPullSchema = new Schema<IPackPull>(
       required: true,
     },
     decidedAt: { type: Date, default: null },
+    jackpotAnnouncedAt: { type: Date, default: null },
     packGroupId: { type: String, required: true },
     packIndex: { type: Number, required: true },
     cardIndex: { type: Number, required: true },
