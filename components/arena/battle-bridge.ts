@@ -112,9 +112,7 @@ export class BattleBridge {
   }
 
   onHandDealt(data: { cards: HandCardData[] }): void {
-    console.log("[bridge] onHandDealt", { isPlayer: this.state.isPlayer, cardCount: data.cards.length, canvasW: this.layers.playerHand.width });
-    if (!this.state.isPlayer) return; // spectators don't see the hand
-
+    // No isPlayer guard — server only sends hand_dealt to players
     const cardData: CardData[] = data.cards.map((c) => ({
       index: c.index,
       card: c.card,
