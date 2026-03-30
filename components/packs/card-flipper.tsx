@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ShoppingCart, Coins, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,12 +71,6 @@ export function CardFlipper({
     }, delay);
   }, [flipped, config, onPlaySound, particleRef]);
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFlipped(false);
-     
-    setShaking(false);
-  }, [card.cardId, index]);
 
   if (prefersReducedMotion) {
     return (
@@ -113,11 +107,10 @@ export function CardFlipper({
           }}>
             {/* Card Back — visible when not flipped */}
             <div style={{ backfaceVisibility: "hidden", position: "absolute", inset: 0 }}>
-              <div className="w-48 h-64 mx-auto bg-gradient-to-br from-pa-green/10 to-pa-lila/20 rounded-xl flex items-center justify-center border border-pa-green/20">
-                <div className="flex flex-col items-center gap-2">
-                  <span className="text-4xl">?</span>
-                  <span className="text-sm text-pa-green font-medium">{isDe ? "Tippe zum Aufdecken" : "Tap to reveal"}</span>
-                </div>
+              <div className="w-48 h-64 mx-auto rounded-xl overflow-hidden relative flex items-center justify-center border border-pa-green/20">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/card-back.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" />
+                <span className="relative text-sm text-pa-green font-medium drop-shadow-lg">{isDe ? "Tippe zum Aufdecken" : "Tap to reveal"}</span>
               </div>
             </div>
             {/* Card Front — visible when flipped */}
