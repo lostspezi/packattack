@@ -53,13 +53,11 @@ export function CardRevealGrid({
     setTimeout(() => {
       if (config.particleCount > 0 && particleRef.current) {
         const el = cardRefs.current.get(index);
-        const container = el?.closest(".relative");
-        if (el && container) {
+        if (el) {
           const rect = el.getBoundingClientRect();
-          const containerRect = container.getBoundingClientRect();
           particleRef.current.emit({
-            x: rect.left - containerRect.left + rect.width / 2,
-            y: rect.top - containerRect.top + rect.height / 2,
+            x: rect.left + rect.width / 2,
+            y: rect.top + rect.height / 2,
             count: config.particleCount,
             colors: config.colors,
             speed: [60, 180],

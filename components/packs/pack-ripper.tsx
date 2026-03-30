@@ -201,11 +201,10 @@ export function PackRipper({
     onPlaySound("burst", 0.7);
     if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
     const packRect = packRef.current?.getBoundingClientRect();
-    const containerRect = containerRef.current?.getBoundingClientRect();
-    if (packRect && containerRect && particleRef.current) {
+    if (packRect && particleRef.current) {
       particleRef.current.emit({
-        x: packRect.left - containerRect.left + PACK_W / 2,
-        y: packRect.top - containerRect.top + TEAR_Y,
+        x: packRect.left + PACK_W / 2,
+        y: packRect.top + TEAR_Y,
         count: 40, colors: tierColors,
         speed: [100, 300], size: [3, 8],
         lifetime: [600, 1400], gravity: 70,
@@ -218,14 +217,13 @@ export function PackRipper({
   const emitSparks = useCallback(
     (clientX: number) => {
       const packRect = packRef.current?.getBoundingClientRect();
-      const containerRect = containerRef.current?.getBoundingClientRect();
-      if (!packRect || !containerRect || !particleRef.current) return;
+      if (!packRect || !particleRef.current) return;
       const relX = clientX - packRect.left;
       if (Math.abs(relX - lastEmitX.current) < 12) return;
       lastEmitX.current = relX;
       particleRef.current.emit({
-        x: packRect.left - containerRect.left + relX,
-        y: packRect.top - containerRect.top + TEAR_Y,
+        x: packRect.left + relX,
+        y: packRect.top + TEAR_Y,
         count: 3, colors: tierColors,
         speed: [40, 130], size: [1, 4],
         lifetime: [200, 600], gravity: 50,
