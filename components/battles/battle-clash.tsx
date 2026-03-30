@@ -290,7 +290,7 @@ export function BattleClash({
               >
                 <div className="text-xs text-text-secondary">{card.rarity}</div>
                 <div className="mt-1 text-lg font-bold text-pa-green">
-                  ${card.coinValue.toFixed(2)}
+                  {Math.round(card.coinValue)} <span className="text-xs font-normal">Coins</span>
                 </div>
                 <div className="mt-1 truncate text-xs text-text-secondary">{card.name}</div>
               </button>
@@ -320,7 +320,7 @@ export function BattleClash({
                            card.effectTier === "high" ? "#c864ff" :
                            "#9BFF00"
                   }}>
-                    ${card.coinValue.toFixed(2)}
+                    {Math.round(card.coinValue)} <span className="text-xs font-normal opacity-70">Coins</span>
                   </div>
                 </div>
               </div>

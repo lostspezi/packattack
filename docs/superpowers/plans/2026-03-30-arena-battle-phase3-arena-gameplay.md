@@ -235,7 +235,7 @@ export class CardSprite extends Container {
   /** Set card data and optionally show face-up. */
   setCard(data: CardData, faceUp = false): void {
     this._data = data;
-    this.valueLabel.text = `$${data.coinValue.toFixed(2)}`;
+    this.valueLabel.text = `${Math.round(data.coinValue)}`;
     this.nameLabel.text = data.name;
     if (faceUp) this.showFront();
     else this.showBack();

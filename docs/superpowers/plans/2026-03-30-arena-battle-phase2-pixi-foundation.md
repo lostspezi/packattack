@@ -812,7 +812,7 @@ export interface ArenaPixiProps {
   isPlayer: boolean;
   currentUserId: string | null;
   // SSE-driven state
-  roundAnnounce: { roundIndex: number; totalRounds?: number } | null;
+  roundAnnounce: { roundIndex: number; revealOrder: string[]; totalRounds?: number } | null;
   handCards: HandCard[] | null;
   selectedCardIndex: number | null;
   playersSelected: Set<string>;
@@ -1006,6 +1006,18 @@ Replace the `<BattleClash>` component with `<ArenaCanvas>` during the clash phas
 
 **Files:**
 - Modify: `components/battles/battle-view.tsx`
+
+- [ ] **Step 0: Fix `round_announce` SSE handler to include `totalRounds`**
+
+The orchestrator sends `totalRounds` in the `round_announce` event, but `battle-view.tsx` currently doesn't capture it. Update the handler and state type:
+
+```typescript
+// State type (line ~112):
+const [roundAnnounce, setRoundAnnounce] = useState<{ roundIndex: number; revealOrder: string[]; totalRounds: number } | null>(null);
+
+// In the round_announce handler (line ~275):
+setRoundAnnounce({ roundIndex: data.roundIndex, revealOrder: data.revealOrder ?? [], totalRounds: data.totalRounds });
+```
 
 - [ ] **Step 1: Add ArenaCanvas import**
 

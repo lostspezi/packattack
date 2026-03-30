@@ -315,7 +315,7 @@ export async function runBattle(battleId: string): Promise<void> {
     for (const pid of playerIds) scores.set(pid, 0);
 
     // Track which cardIds were actually played (for distribution filtering)
-    const playedCardRefs: Array<{ cardId: string; roundIndex: number }> = [];
+    const playedCardRefs: Array<{ cardId: string; roundIndex: number; userId: string }> = [];
 
     for (let r = 0; r < totalRounds; r++) {
       // 1. Round announcement
@@ -394,7 +394,7 @@ export async function runBattle(battleId: string): Promise<void> {
 
       // Track played cards for distribution
       for (const pc of playedCards) {
-        playedCardRefs.push({ cardId: pc.card, roundIndex: r });
+        playedCardRefs.push({ cardId: pc.card, roundIndex: r, userId: pc.player });
       }
 
       // 6. Simultaneous reveal — send all cards to everyone
@@ -578,11 +578,11 @@ export async function runBattle(battleId: string): Promise<void> {
     // Save BattlePull records for played cards ONLY (hand cards are virtual)
     const playedPullDocs = playedCardRefs.map((ref) => {
       const pull = allPulls.find(
-        (p) => p.cardId === ref.cardId && p.roundIndex === ref.roundIndex,
+        (p) => p.cardId === ref.cardId && p.roundIndex === ref.roundIndex && p.userId === ref.userId,
       );
       return {
         battle: new mongoose.Types.ObjectId(battleId),
-        user: new mongoose.Types.ObjectId(pull?.userId ?? ref.cardId),
+        user: new mongoose.Types.ObjectId(ref.userId),
         card: new mongoose.Types.ObjectId(ref.cardId),
         rarity: pull?.rarity ?? "Common",
         coinValue: pull?.coinValue ?? 0,
