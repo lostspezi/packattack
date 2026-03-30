@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, Package, ChevronDown, AlertTriangle } from "lucide-react";
 import Link from "next/link";
@@ -97,6 +97,7 @@ export default function PackDetailPage() {
   const [openResult, setOpenResult] = useState<OpenResult | null>(null);
   const [userCoins, setUserCoins] = useState<number | null>(null);
   const [showBoxInfo, setShowBoxInfo] = useState(false);
+  const quickOpenRef = useRef(false);
 
   const [pendingOtherBox, setPendingOtherBox] = useState<{
     boxName: string;
@@ -229,6 +230,7 @@ export default function PackDetailPage() {
         result={openResult}
         box={box}
         lang={lang}
+        quickOpen={quickOpenRef.current}
         onDone={() => {
           setOpenResult(null);
           fetch(`/api/packs/${id}`).then((r) => r.ok ? r.json() : null).then((d) => { if (d) setBox(d as BoxDetail); }).catch(() => {});
@@ -387,16 +389,33 @@ export default function PackDetailPage() {
 
             {/* CTA + Balance inline */}
             <div className="flex items-center gap-3 mt-3 flex-wrap">
-              <Button
-                variant="primary"
-                size="md"
-                loading={opening}
-                disabled={!canAfford || box.availableCards === 0 || !!pendingOtherBox}
-                onClick={() => void handleOpen()}
-                className="shadow-[0_0_24px_theme(colors.pa-green/0.2)]"
-              >
-                🎴 {isDe ? "Pack öffnen" : "Open Pack"} — {totalCost} Coins
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  className="flex-1"
+                  disabled={!canAfford || opening || box.availableCards === 0 || !!pendingOtherBox}
+                  loading={opening}
+                  onClick={() => {
+                    quickOpenRef.current = false;
+                    void handleOpen();
+                  }}
+                >
+                  <Package className="w-4 h-4 mr-1.5" />
+                  {isDe ? "Pack Öffnen" : "Open Pack"} — {totalCost} Coins
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  disabled={!canAfford || opening || box.availableCards === 0 || !!pendingOtherBox}
+                  onClick={() => {
+                    quickOpenRef.current = true;
+                    void handleOpen();
+                  }}
+                >
+                  {isDe ? "Schnell" : "Quick"}
+                </Button>
+              </div>
               <span className={`text-sm font-bold tabular-nums ${canAfford ? "text-pa-green" : "text-red-400"}`}>
                 {(userCoins ?? 0).toLocaleString()} Coins
               </span>
