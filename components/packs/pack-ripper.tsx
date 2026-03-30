@@ -66,7 +66,7 @@ export function PackRipper({ boxName, maxTier, particleRef, onRipComplete, onPla
           transition={{ duration: 0.6, ease: "easeOut" }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/card-back.jpg" alt="" className="absolute w-full h-[280px] object-cover top-0 left-0" />
+          <img src="/images/card-back.jpg" alt="" draggable={false} className="absolute w-full h-[280px] object-cover top-0 left-0 pointer-events-none" />
         </motion.div>
         <motion.div
           className="w-[220px] h-3 rounded-full"
@@ -97,7 +97,7 @@ export function PackRipper({ boxName, maxTier, particleRef, onRipComplete, onPla
   return (
     <div ref={containerRef} className="relative flex flex-col items-center py-8">
       <motion.div
-        className="relative cursor-grab active:cursor-grabbing touch-none"
+        className="relative cursor-grab active:cursor-grabbing touch-none select-none"
         role="button"
         aria-label="Swipe up to rip open pack"
         tabIndex={0}
@@ -121,7 +121,7 @@ export function PackRipper({ boxName, maxTier, particleRef, onRipComplete, onPla
           style={{ y: topY, rotateX: topRotate, opacity: topOpacity }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/card-back.jpg" alt="" className="absolute w-full h-[280px] object-cover top-0 left-0" />
+          <img src="/images/card-back.jpg" alt="" draggable={false} className="absolute w-full h-[280px] object-cover top-0 left-0 pointer-events-none" />
           <div className="absolute inset-0 animate-holo-shimmer pointer-events-none" />
         </motion.div>
         <motion.div
@@ -133,7 +133,7 @@ export function PackRipper({ boxName, maxTier, particleRef, onRipComplete, onPla
           style={{ boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/card-back.jpg" alt={boxName} className="absolute w-full h-[280px] object-cover left-0" style={{ top: "-80px" }} />
+          <img src="/images/card-back.jpg" alt={boxName} draggable={false} className="absolute w-full h-[280px] object-cover left-0 pointer-events-none" style={{ top: "-80px" }} />
         </div>
       </motion.div>
       <motion.p
