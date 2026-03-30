@@ -1,5 +1,5 @@
 // components/arena/card-sprite.ts
-import { Container, Graphics, Text, Sprite, Assets } from "pixi.js";
+import { Container, Graphics, Text, Sprite, Assets, Rectangle } from "pixi.js";
 import { ARENA_COLORS } from "@/lib/arena-constants";
 import { type TweenManager, easeOutCubic } from "./tween";
 
@@ -29,6 +29,7 @@ export class CardSprite extends Container {
     super();
     this.cardW = cardW;
     this.cardH = cardH;
+    this.hitArea = new Rectangle(0, 0, cardW, cardH);
 
     // Border (drawn behind everything)
     this.borderGfx = new Graphics();

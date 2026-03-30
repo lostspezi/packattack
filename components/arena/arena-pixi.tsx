@@ -5,7 +5,7 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { Application } from "pixi.js";
-import { ARENA_COLORS, ARENA_ASPECT_RATIO } from "@/lib/arena-constants";
+import { ARENA_COLORS } from "@/lib/arena-constants";
 import { TweenManager } from "./tween";
 import { BattleBridge } from "./battle-bridge";
 import { BackgroundLayer } from "./layers/background";
@@ -68,8 +68,8 @@ export default function ArenaPixi(props: ArenaPixiProps) {
     if (!containerRef.current || appRef.current) return;
 
     const container = containerRef.current;
-    const width = container.clientWidth;
-    const height = container.clientHeight || Math.round(width / ARENA_ASPECT_RATIO);
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
     const app = new Application();
     await app.init({
@@ -83,6 +83,9 @@ export default function ArenaPixi(props: ArenaPixiProps) {
 
     container.appendChild(app.canvas);
     appRef.current = app;
+
+    // Enable event propagation on stage (required for PixiJS 8)
+    app.stage.eventMode = "static";
 
     // Build scene tree (order = draw order, back to front)
     const tweenManager = new TweenManager();
@@ -127,7 +130,7 @@ export default function ArenaPixi(props: ArenaPixiProps) {
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const w = entry.contentRect.width;
-        const h = entry.contentRect.height || Math.round(w / ARENA_ASPECT_RATIO);
+        const h = entry.contentRect.height;
         app.renderer.resize(w, h);
         bridge.resize(w, h);
       }
@@ -208,8 +211,7 @@ export default function ArenaPixi(props: ArenaPixiProps) {
   return (
     <div
       ref={containerRef}
-      className="relative w-full overflow-hidden rounded-xl border border-border bg-bg"
-      style={{ height: "calc(100vh - 8rem)" }}
+      className="fixed inset-0 z-50 overflow-hidden bg-black"
     />
   );
 }
