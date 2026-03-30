@@ -5,10 +5,12 @@ import { motion, useMotionValue, useSpring } from "motion/react";
 
 interface Pack3DProps {
   boxName: string;
+  lang?: string;
   onReady: () => void;
 }
 
-export function Pack3D({ boxName, onReady }: Pack3DProps) {
+export function Pack3D({ boxName, lang, onReady }: Pack3DProps) {
+  const isDe = lang === "de";
   const containerRef = useRef<HTMLDivElement>(null);
   const rotateX = useMotionValue(0);
   const rotateY = useMotionValue(0);
@@ -45,7 +47,7 @@ export function Pack3D({ boxName, onReady }: Pack3DProps) {
       <motion.div
         role="button"
         tabIndex={0}
-        aria-label="Booster pack — click or press Enter to open"
+        aria-label={isDe ? "Booster Pack — klicke oder drücke Enter zum Öffnen" : "Booster pack — click or press Enter to open"}
         className="relative w-[200px] h-[280px] rounded-2xl border-2 border-pa-green/50 cursor-pointer animate-pack-float"
         style={{
           rotateX: springX,
@@ -74,7 +76,7 @@ export function Pack3D({ boxName, onReady }: Pack3DProps) {
         <img src="/images/card-back.jpg" alt={boxName} className="absolute inset-0 w-full h-full object-cover rounded-2xl" />
       </motion.div>
       <p className="text-[11px] text-pa-green/50 uppercase tracking-[2px] mt-5">
-        Tap to Open
+        {isDe ? "Tippe zum Öffnen" : "Tap to Open"}
       </p>
     </div>
   );

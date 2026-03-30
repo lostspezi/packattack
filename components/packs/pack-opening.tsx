@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback, useEffect } from "react";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, SkipForward } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import { useToast } from "@/components/ui/toast";
 import { Pack3D } from "./pack-3d";
@@ -185,8 +185,19 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
         <ParticleCanvas ref={particleRef} />
       </div>
 
-      {/* Volume control — top right */}
-      <SoundControl volume={masterVolume} onChange={setMasterVolume} />
+      {/* Controls — top right */}
+      <div className="fixed top-4 right-4 z-[60] flex items-center gap-2">
+        <SoundControl volume={masterVolume} onChange={setMasterVolume} />
+        <button
+          type="button"
+          onClick={() => setPhase("review")}
+          className="flex items-center gap-1.5 bg-surface/80 backdrop-blur-sm border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-muted hover:text-text-primary transition-colors"
+          aria-label={isDe ? "Überspringen" : "Skip"}
+        >
+          <SkipForward className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">{isDe ? "Überspringen" : "Skip"}</span>
+        </button>
+      </div>
 
       {/* Content */}
       <div className={`relative z-10 w-full ${phase === "reveal" ? "max-w-4xl px-3 sm:px-6" : "max-w-md"}`}>
@@ -206,6 +217,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
             {phase === "idle" ? (
               <Pack3D
                 boxName={boxName}
+                lang={lang}
                 onReady={() => setPhase("ripping")}
               />
             ) : (
@@ -241,7 +253,7 @@ function SoundControl({ volume, onChange }: { volume: number; onChange: (v: numb
   const isMuted = volume <= 0;
 
   return (
-    <div className="fixed top-4 right-4 z-[60] flex items-center gap-2 bg-surface/80 backdrop-blur-sm border border-border rounded-lg px-2.5 py-1.5">
+    <div className="flex items-center gap-2 bg-surface/80 backdrop-blur-sm border border-border rounded-lg px-2.5 py-1.5">
       <button
         type="button"
         onClick={() => onChange(isMuted ? 0.5 : 0)}

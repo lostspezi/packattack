@@ -16,6 +16,7 @@ interface Particle {
   y: number;
   vx: number;
   vy: number;
+  gravity: number;
   size: number;
   color: string;
   life: number;
@@ -51,6 +52,7 @@ export class ParticleEngine {
       this.particles.push({
         x: config.x, y: config.y,
         vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+        gravity: config.gravity,
         size, color: config.colors[Math.floor(Math.random() * config.colors.length)],
         life: lifetime, maxLife: lifetime, shape: config.shape,
       });
@@ -63,6 +65,7 @@ export class ParticleEngine {
       this.particles.push({
         x: Math.random() * width, y: -10 - Math.random() * 50,
         vx: (Math.random() - 0.5) * 60, vy: 80 + Math.random() * 120,
+        gravity: 120,
         size: 4 + Math.random() * 6,
         color: colors[Math.floor(Math.random() * colors.length)],
         life: 2500 + Math.random() * 1000, maxLife: 3500, shape: "square",
@@ -89,7 +92,7 @@ export class ParticleEngine {
       const p = this.particles[i];
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.vy += 120 * dt;
+      p.vy += p.gravity * dt;
       p.life -= dt * 1000;
       if (p.life <= 0) {
         // Swap with last element and pop (O(1) instead of O(n) splice)

@@ -286,7 +286,7 @@ function CardGroupRow({ group, choices, onSetChoice, onSetGroupChoice, isDe, loc
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={card.image}
-              alt=""
+              alt={card.name}
               className="w-11 sm:w-14 rounded"
               loading="lazy"
               draggable={false}
