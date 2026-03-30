@@ -85,6 +85,73 @@ export const ARENA_TIMING = {
   confettiDurationMs: 3000,
 } as const;
 
+// --- Card layout ---
+export const CARD_LAYOUT = {
+  // Hand cards (bottom of screen, interactive)
+  handY: 0.78,
+  handCardGap: 0.02,      // gap between cards in hand
+  handCardLiftY: -0.04,   // Y offset when card is selected (lifts up)
+
+  // Battle center (played cards)
+  centerY: 0.42,
+  centerCardGap: 0.04,    // gap between played cards in center
+
+  // Face-down card (when placed in center before reveal)
+  faceDownScale: 0.85,
+
+  // Card dimensions in canvas-relative units
+  cardW: 0.08,
+  cardH: 0.17,
+  handCardW: 0.09,
+  handCardH: 0.19,
+} as const;
+
+// --- Timer bar ---
+export const TIMER_BAR = {
+  y: 0.95,
+  height: 0.012,
+  width: 0.5,             // centered, 50% of canvas width
+  bgColor: 0x2d2c3d,
+  fillColor: 0x9bff00,
+  warnColor: 0xff6b6b,    // turns red below 25%
+} as const;
+
+// --- VS label ---
+export const VS_LABEL = {
+  y: 0.38,
+  fontSize: 0.05,         // relative to canvas height
+  color: 0xffffff,
+} as const;
+
+// --- Round announce overlay ---
+export const ROUND_ANNOUNCE = {
+  bgAlpha: 0.85,
+  numberFontSize: 0.15,   // relative to canvas height
+  labelFontSize: 0.03,
+  durationMs: 2500,
+  zoomInMs: 300,
+  holdMs: 1800,
+  fadeOutMs: 400,
+} as const;
+
+// --- Effect tiers (particle counts and intensities) ---
+export const EFFECT_TIERS = {
+  low:     { particles: 0,  shake: 0,   glowAlpha: 0,    confetti: false },
+  medium:  { particles: 8,  shake: 0,   glowAlpha: 0.15, confetti: false },
+  high:    { particles: 20, shake: 3,   glowAlpha: 0.3,  confetti: false },
+  extreme: { particles: 50, shake: 8,   glowAlpha: 0.5,  confetti: true  },
+} as const;
+
+// --- Podium ---
+export const PODIUM = {
+  firstY: 0.45,
+  secondY: 0.52,
+  thirdY: 0.58,
+  avatarSize: 0.08,
+  labelFontSize: 0.025,
+  eloFontSize: 0.02,
+} as const;
+
 // --- Canvas ---
 export const ARENA_ASPECT_RATIO = 16 / 9;
 export const ARENA_MIN_WIDTH = 640;
