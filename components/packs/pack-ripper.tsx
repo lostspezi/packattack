@@ -91,7 +91,7 @@ function PackFaceDesign({ cardCount, offsetY = 0 }: { cardCount: number; offsetY
 
       {/* Soft glow behind logo */}
       <div className="absolute left-1/2 -translate-x-1/2" style={{
-        top: 100, width: 160, height: 80,
+        top: 110, width: 160, height: 80,
         background: "radial-gradient(ellipse at center, rgba(155,255,0,0.06) 0%, transparent 70%)",
       }} />
 
@@ -105,16 +105,16 @@ function PackFaceDesign({ cardCount, offsetY = 0 }: { cardCount: number; offsetY
       </div>
 
       {/* Line above logo */}
-      <div className="absolute left-[20px] right-[20px] h-[1px]" style={{ top: 105, background: "linear-gradient(90deg, transparent, rgba(155,255,0,0.1), transparent)" }} />
+      <div className="absolute left-[20px] right-[20px] h-[1px]" style={{ top: 115, background: "linear-gradient(90deg, transparent, rgba(155,255,0,0.1), transparent)" }} />
 
       {/* Logo */}
-      <div className="absolute left-1/2 -translate-x-1/2" style={{ top: 120, width: 160, zIndex: 2 }}>
+      <div className="absolute left-1/2 -translate-x-1/2" style={{ top: 130, width: 160, zIndex: 2 }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/images/logo.svg" alt="Pack Attack" draggable={false} className="w-full h-auto" style={{ filter: "drop-shadow(0 0 8px rgba(155,255,0,0.3))" }} />
       </div>
 
       {/* Subtitle */}
-      <div className="absolute left-0 right-0 flex justify-center" style={{ top: 155, zIndex: 2 }}>
+      <div className="absolute left-0 right-0 flex justify-center" style={{ top: 165, zIndex: 2 }}>
         <span className="text-[7px] font-bold uppercase tracking-[3px]" style={{ color: "rgba(155,255,0,0.3)" }}>
           Booster Pack
         </span>
