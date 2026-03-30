@@ -344,7 +344,6 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
       {phase === "idle" && (
         <Pack3D
           boxName={boxName}
-          boxImage={box.image ?? null}
           onReady={() => setPhase("ripping")}
         />
       )}

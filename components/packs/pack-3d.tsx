@@ -5,11 +5,10 @@ import { motion, useMotionValue, useSpring } from "motion/react";
 
 interface Pack3DProps {
   boxName: string;
-  boxImage: string | null;
   onReady: () => void;
 }
 
-export function Pack3D({ boxName, boxImage, onReady }: Pack3DProps) {
+export function Pack3D({ boxName, onReady }: Pack3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const rotateX = useMotionValue(0);
   const rotateY = useMotionValue(0);
@@ -71,17 +70,8 @@ export function Pack3D({ boxName, boxImage, onReady }: Pack3DProps) {
             background: "repeating-linear-gradient(90deg, rgba(155,255,0,0.4) 0px, rgba(155,255,0,0.4) 6px, transparent 6px, transparent 12px)",
           }}
         />
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
-          {boxImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={boxImage} alt={boxName} className="w-[120px] h-auto rounded-lg opacity-80" />
-          ) : (
-            <>
-              <span className="text-3xl font-black text-pa-green" style={{ textShadow: "0 0 20px rgba(155,255,0,0.5)" }}>PA</span>
-              <span className="text-[9px] text-pa-green/50 uppercase tracking-[3px]">Pack Attack</span>
-            </>
-          )}
-        </div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/card-back.jpg" alt={boxName} className="absolute inset-0 w-full h-full object-cover rounded-2xl" />
       </motion.div>
       <div className="flex flex-col items-center gap-2">
         <motion.span
