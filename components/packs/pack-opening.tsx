@@ -350,6 +350,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
       {phase === "ripping" && (
         <PackRipper
           boxName={boxName}
+          cardCount={cards.length}
           maxTier={maxTier}
           particleRef={particleRef}
           onRipComplete={() => setPhase("reveal")}

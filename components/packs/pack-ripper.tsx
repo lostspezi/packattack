@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import { motion } from "motion/react";
+import { motion, useMotionValue, useSpring } from "motion/react";
 import type { EffectTier } from "./effect-tiers";
 import { TIER_CONFIGS } from "./effect-tiers";
 import type { ParticleCanvasHandle } from "./particle-canvas";
 
 interface PackRipperProps {
   boxName: string;
+  cardCount: number;
   maxTier: EffectTier;
   particleRef: React.RefObject<ParticleCanvasHandle | null>;
   onRipComplete: () => void;
@@ -20,7 +21,6 @@ const TEAR_Y = 95;
 const TEAR_ZONE = 55;
 const COMPLETE_THRESHOLD = 0.9;
 
-// Dark metallic foil wrapper
 const FOIL_BG = "linear-gradient(160deg, #1a0e35 0%, #2a1850 15%, #1d0f3a 30%, #24043A 50%, #1a0e35 70%, #2a1850 85%, #1d0f3a 100%)";
 
 function packBodyShadow(isBottom = false) {
@@ -32,20 +32,12 @@ function packBodyShadow(isBottom = false) {
 /** 3D puffy depth — light center, dark edges */
 function DepthOverlay() {
   return (
-    <div
-      className="absolute inset-0 pointer-events-none"
-      style={{
-        background:
-          "radial-gradient(ellipse 70% 60% at 40% 40%, rgba(255,255,255,0.06) 0%, transparent 60%), " +
-          "radial-gradient(ellipse 80% 80% at 50% 50%, transparent 50%, rgba(0,0,0,0.25) 100%)",
-      }}
-    />
+    <div className="absolute inset-0 pointer-events-none" style={{
+      background:
+        "radial-gradient(ellipse 70% 50% at 45% 40%, rgba(255,255,255,0.07) 0%, transparent 50%), " +
+        "radial-gradient(ellipse 90% 90% at 50% 50%, transparent 40%, rgba(0,0,0,0.3) 100%)",
+    }} />
   );
-}
-
-/** Foil shimmer overlay */
-function FoilShimmer() {
-  return <div className="absolute inset-0 animate-foil-shimmer pointer-events-none" style={{ zIndex: 3 }} />;
 }
 
 /** Sealed foil side edges */
@@ -60,169 +52,99 @@ function SideEdges() {
   );
 }
 
-/** Circuit/energy line pattern background */
-function CircuitPattern() {
+/** Subtle static foil highlight — no animation */
+function FoilHighlight() {
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 1 }}>
-      {/* Diagonal energy lines */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `
-            repeating-linear-gradient(135deg, transparent, transparent 18px, rgba(155,255,0,0.03) 18px, rgba(155,255,0,0.03) 19px),
-            repeating-linear-gradient(45deg, transparent, transparent 24px, rgba(155,255,0,0.02) 24px, rgba(155,255,0,0.02) 25px)
-          `,
-        }}
-      />
-      {/* Horizontal circuit traces */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `
-            repeating-linear-gradient(0deg, transparent, transparent 30px, rgba(155,255,0,0.025) 30px, rgba(155,255,0,0.025) 31px)
-          `,
-        }}
-      />
-      {/* Corner accent — top left */}
-      <svg className="absolute top-[14px] left-[10px] w-[40px] h-[40px]" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0 35 L0 8 L8 0 L35 0" stroke="rgba(155,255,0,0.15)" strokeWidth="1.5" fill="none" />
-        <circle cx="8" cy="0" r="2" fill="rgba(155,255,0,0.12)" />
-      </svg>
-      {/* Corner accent — top right */}
-      <svg className="absolute top-[14px] right-[10px] w-[40px] h-[40px]" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M40 35 L40 8 L32 0 L5 0" stroke="rgba(155,255,0,0.15)" strokeWidth="1.5" fill="none" />
-        <circle cx="32" cy="0" r="2" fill="rgba(155,255,0,0.12)" />
-      </svg>
-      {/* Corner accent — bottom left */}
-      <svg className="absolute bottom-[14px] left-[10px] w-[40px] h-[40px]" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0 5 L0 32 L8 40 L35 40" stroke="rgba(155,255,0,0.15)" strokeWidth="1.5" fill="none" />
-        <circle cx="8" cy="40" r="2" fill="rgba(155,255,0,0.12)" />
-      </svg>
-      {/* Corner accent — bottom right */}
-      <svg className="absolute bottom-[14px] right-[10px] w-[40px] h-[40px]" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M40 5 L40 32 L32 40 L5 40" stroke="rgba(155,255,0,0.15)" strokeWidth="1.5" fill="none" />
-        <circle cx="32" cy="40" r="2" fill="rgba(155,255,0,0.12)" />
-      </svg>
-    </div>
-  );
-}
-
-/** Central energy burst behind the logo */
-function EnergyBurst() {
-  return (
-    <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 1 }}>
-      <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
-        style={{
-          width: 200,
-          height: 200,
-          background: "radial-gradient(ellipse at center, rgba(155,255,0,0.08) 0%, rgba(36,4,58,0.05) 40%, transparent 70%)",
-        }}
-      />
-      {/* Diagonal light streaks */}
-      <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[250px] h-[2px]"
-        style={{
-          background: "linear-gradient(90deg, transparent 0%, rgba(155,255,0,0.06) 30%, rgba(155,255,0,0.12) 50%, rgba(155,255,0,0.06) 70%, transparent 100%)",
-          transform: "translate(-50%,-50%) rotate(-15deg)",
-        }}
-      />
-      <div
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[180px] h-[1px]"
-        style={{
-          background: "linear-gradient(90deg, transparent 0%, rgba(255,215,0,0.06) 30%, rgba(255,215,0,0.1) 50%, rgba(255,215,0,0.06) 70%, transparent 100%)",
-          transform: "translate(-50%,-50%) rotate(20deg)",
-        }}
-      />
-    </div>
+    <div className="absolute inset-0 pointer-events-none" style={{
+      zIndex: 3,
+      background: "linear-gradient(125deg, transparent 30%, rgba(155,255,0,0.04) 42%, rgba(255,255,255,0.06) 48%, rgba(255,215,0,0.03) 54%, transparent 66%)",
+    }} />
   );
 }
 
 /** The full pack face design — logo + branding + patterns */
-function PackFaceDesign({ isTopHalf, offsetY = 0 }: { isTopHalf?: boolean; offsetY?: number }) {
-  // We render the full 310px design, then clip via the parent overflow:hidden
+function PackFaceDesign({ cardCount, offsetY = 0 }: { cardCount: number; offsetY?: number }) {
   return (
     <div className="absolute left-0 w-full pointer-events-none" style={{ top: offsetY, height: PACK_H }}>
-      <CircuitPattern />
-      <EnergyBurst />
+      {/* Subtle diagonal lines */}
+      <div className="absolute inset-0" style={{
+        background: `
+          repeating-linear-gradient(135deg, transparent, transparent 20px, rgba(155,255,0,0.02) 20px, rgba(155,255,0,0.02) 21px),
+          repeating-linear-gradient(45deg, transparent, transparent 28px, rgba(155,255,0,0.015) 28px, rgba(155,255,0,0.015) 29px)
+        `,
+      }} />
 
-      {/* Logo */}
-      <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center" style={{ top: 115, width: 170, zIndex: 2 }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/images/logo.svg" alt="Pack Attack" draggable={false} className="w-full h-auto drop-shadow-[0_0_12px_rgba(155,255,0,0.4)]" />
-      </div>
+      {/* Corner brackets */}
+      <svg className="absolute top-[14px] left-[10px] w-[30px] h-[30px]" viewBox="0 0 30 30" fill="none">
+        <path d="M0 25 L0 6 L6 0 L25 0" stroke="rgba(155,255,0,0.12)" strokeWidth="1" />
+      </svg>
+      <svg className="absolute top-[14px] right-[10px] w-[30px] h-[30px]" viewBox="0 0 30 30" fill="none">
+        <path d="M30 25 L30 6 L24 0 L5 0" stroke="rgba(155,255,0,0.12)" strokeWidth="1" />
+      </svg>
+      <svg className="absolute bottom-[14px] left-[10px] w-[30px] h-[30px]" viewBox="0 0 30 30" fill="none">
+        <path d="M0 5 L0 24 L6 30 L25 30" stroke="rgba(155,255,0,0.12)" strokeWidth="1" />
+      </svg>
+      <svg className="absolute bottom-[14px] right-[10px] w-[30px] h-[30px]" viewBox="0 0 30 30" fill="none">
+        <path d="M30 5 L30 24 L24 30 L5 30" stroke="rgba(155,255,0,0.12)" strokeWidth="1" />
+      </svg>
 
-      {/* "BOOSTER PACK" subtitle */}
-      <div className="absolute left-0 right-0 flex justify-center" style={{ top: 152, zIndex: 2 }}>
-        <span
-          className="text-[8px] font-bold uppercase tracking-[4px]"
-          style={{ color: "rgba(155,255,0,0.35)", textShadow: "0 0 6px rgba(155,255,0,0.15)" }}
-        >
-          Booster Pack
-        </span>
-      </div>
+      {/* Soft glow behind logo */}
+      <div className="absolute left-1/2 -translate-x-1/2" style={{
+        top: 100, width: 160, height: 80,
+        background: "radial-gradient(ellipse at center, rgba(155,255,0,0.06) 0%, transparent 70%)",
+      }} />
 
       {/* Card count badge */}
-      <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center" style={{ top: 22, zIndex: 2 }}>
-        <div
-          className="px-3 py-0.5 rounded-full border"
-          style={{
-            borderColor: "rgba(155,255,0,0.2)",
-            background: "rgba(155,255,0,0.05)",
-          }}
-        >
-          <span className="text-[9px] font-bold uppercase tracking-[2px]" style={{ color: "rgba(155,255,0,0.45)" }}>
-            5 Cards
+      <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center" style={{ top: 24, zIndex: 2 }}>
+        <div className="px-3 py-0.5 rounded-full" style={{ border: "1px solid rgba(155,255,0,0.15)", background: "rgba(155,255,0,0.04)" }}>
+          <span className="text-[8px] font-bold uppercase tracking-[2px]" style={{ color: "rgba(155,255,0,0.4)" }}>
+            {cardCount} Cards
           </span>
         </div>
       </div>
 
-      {/* Decorative horizontal line above logo */}
-      <div className="absolute left-[20px] right-[20px] h-[1px]" style={{ top: 100, background: "linear-gradient(90deg, transparent, rgba(155,255,0,0.12), transparent)", zIndex: 2 }} />
+      {/* Line above logo */}
+      <div className="absolute left-[20px] right-[20px] h-[1px]" style={{ top: 105, background: "linear-gradient(90deg, transparent, rgba(155,255,0,0.1), transparent)" }} />
 
-      {/* Decorative horizontal line below subtitle */}
-      <div className="absolute left-[20px] right-[20px] h-[1px]" style={{ top: 170, background: "linear-gradient(90deg, transparent, rgba(155,255,0,0.12), transparent)", zIndex: 2 }} />
+      {/* Logo */}
+      <div className="absolute left-1/2 -translate-x-1/2" style={{ top: 120, width: 160, zIndex: 2 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/images/logo.svg" alt="Pack Attack" draggable={false} className="w-full h-auto" style={{ filter: "drop-shadow(0 0 8px rgba(155,255,0,0.3))" }} />
+      </div>
 
-      {/* "GG" watermark */}
-      <div className="absolute left-1/2 -translate-x-1/2 flex items-center justify-center" style={{ bottom: 40, zIndex: 2 }}>
-        <span
-          className="text-[36px] font-black"
-          style={{
-            color: "transparent",
-            WebkitTextStroke: "1px rgba(155,255,0,0.06)",
-            letterSpacing: "8px",
-          }}
-        >
+      {/* Subtitle */}
+      <div className="absolute left-0 right-0 flex justify-center" style={{ top: 155, zIndex: 2 }}>
+        <span className="text-[7px] font-bold uppercase tracking-[3px]" style={{ color: "rgba(155,255,0,0.3)" }}>
+          Booster Pack
+        </span>
+      </div>
+
+      {/* Line below subtitle */}
+      <div className="absolute left-[20px] right-[20px] h-[1px]" style={{ top: 172, background: "linear-gradient(90deg, transparent, rgba(155,255,0,0.1), transparent)" }} />
+
+      {/* GG watermark */}
+      <div className="absolute left-1/2 -translate-x-1/2" style={{ bottom: 44, zIndex: 1 }}>
+        <span className="text-[32px] font-black" style={{ color: "transparent", WebkitTextStroke: "1px rgba(155,255,0,0.04)", letterSpacing: "6px" }}>
           GG
         </span>
       </div>
 
-      {/* Bottom text */}
-      <div className="absolute left-0 right-0 flex justify-center" style={{ bottom: 22, zIndex: 2 }}>
-        <span className="text-[7px] uppercase tracking-[2px]" style={{ color: "rgba(155,255,0,0.2)" }}>
+      {/* Bottom URL */}
+      <div className="absolute left-0 right-0 flex justify-center" style={{ bottom: 24, zIndex: 2 }}>
+        <span className="text-[6px] uppercase tracking-[2px]" style={{ color: "rgba(155,255,0,0.18)" }}>
           packattack.gg
         </span>
       </div>
 
-      {/* Subtle inner border */}
-      {!isTopHalf && (
-        <div
-          className="absolute pointer-events-none rounded-lg"
-          style={{
-            top: 14,
-            left: 10,
-            right: 10,
-            bottom: 14,
-            border: "1px solid rgba(155,255,0,0.06)",
-          }}
-        />
-      )}
+      {/* Inner border */}
+      <div className="absolute rounded-lg pointer-events-none" style={{ top: 12, left: 8, right: 8, bottom: 12, border: "1px solid rgba(155,255,0,0.05)" }} />
     </div>
   );
 }
 
 export function PackRipper({
   boxName,
+  cardCount,
   maxTier,
   particleRef,
   onRipComplete,
@@ -238,11 +160,37 @@ export function PackRipper({
   const lastEmitX = useRef(-1);
   const animFrameRef = useRef<number>(0);
 
+  // 3D mouse-tracking tilt
+  const tiltX = useMotionValue(0);
+  const tiltY = useMotionValue(0);
+  const springX = useSpring(tiltX, { stiffness: 120, damping: 18 });
+  const springY = useSpring(tiltY, { stiffness: 120, damping: 18 });
+
   const tierColors = TIER_CONFIGS[maxTier].colors;
   const glowColor = tierColors[0];
-
   const gap = progress * 12;
   const topTiltDeg = progress * -4;
+
+  // Mouse tracking for 3D tilt
+  const handleMouseMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (rippingRef.current) return; // don't tilt while ripping
+      const rect = packRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      const x = (e.clientY - cy) / (rect.height / 2);
+      const y = (e.clientX - cx) / (rect.width / 2);
+      tiltX.set(x * -10);
+      tiltY.set(y * 10);
+    },
+    [tiltX, tiltY],
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    tiltX.set(0);
+    tiltY.set(0);
+  }, [tiltX, tiltY]);
 
   const triggerComplete = useCallback(() => {
     if (completedRef.current) return;
@@ -252,14 +200,12 @@ export function PackRipper({
     setProgress(1);
     onPlaySound("burst", 0.7);
     if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
-
     const packRect = packRef.current?.getBoundingClientRect();
     const containerRect = containerRef.current?.getBoundingClientRect();
     if (packRect && containerRect && particleRef.current) {
-      const ox = packRect.left - containerRect.left;
-      const oy = packRect.top - containerRect.top + TEAR_Y;
       particleRef.current.emit({
-        x: ox + PACK_W / 2, y: oy,
+        x: packRect.left - containerRect.left + PACK_W / 2,
+        y: packRect.top - containerRect.top + TEAR_Y,
         count: 40, colors: tierColors,
         speed: [100, 300], size: [3, 8],
         lifetime: [600, 1400], gravity: 70,
@@ -297,6 +243,9 @@ export function PackRipper({
       const relY = e.clientY - rect.top;
       if (Math.abs(relY - TEAR_Y) > TEAR_ZONE) return;
       rippingRef.current = true;
+      // Reset tilt when starting to rip
+      tiltX.set(0);
+      tiltY.set(0);
       packRef.current?.setPointerCapture(e.pointerId);
       if (!ripSoundPlayed.current) {
         onPlaySound("rip", 0.4);
@@ -306,12 +255,15 @@ export function PackRipper({
       setProgress(prog);
       emitSparks(e.clientX);
     },
-    [onPlaySound, emitSparks],
+    [onPlaySound, emitSparks, tiltX, tiltY],
   );
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!rippingRef.current || completedRef.current) return;
+      if (!rippingRef.current || completedRef.current) {
+        handleMouseMove(e);
+        return;
+      }
       const rect = packRef.current?.getBoundingClientRect();
       if (!rect) return;
       const prog = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
@@ -319,7 +271,7 @@ export function PackRipper({
       emitSparks(e.clientX);
       if (prog >= COMPLETE_THRESHOLD) triggerComplete();
     },
-    [emitSparks, triggerComplete],
+    [emitSparks, triggerComplete, handleMouseMove],
   );
 
   const handlePointerUp = useCallback(() => {
@@ -340,7 +292,6 @@ export function PackRipper({
     return (
       <div ref={containerRef} className="relative flex flex-col items-center py-8">
         <div className="relative" style={{ width: PACK_W }}>
-          {/* Top half flies away */}
           <motion.div
             className="absolute top-0 left-0 w-full overflow-hidden pack-crimp-top"
             style={{ height: TEAR_Y, transformOrigin: "bottom center", background: FOIL_BG }}
@@ -348,12 +299,11 @@ export function PackRipper({
             animate={{ rotateX: -60, y: -200, opacity: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <PackFaceDesign isTopHalf offsetY={0} />
+            <PackFaceDesign cardCount={cardCount} offsetY={0} />
             <DepthOverlay />
-            <FoilShimmer />
+            <FoilHighlight />
           </motion.div>
 
-          {/* Glow burst */}
           <motion.div
             className="absolute left-0 right-0 h-[6px] rounded-full"
             style={{ top: TEAR_Y - 3, background: glowColor, boxShadow: `0 0 25px ${glowColor}, 0 0 50px ${glowColor}` }}
@@ -362,14 +312,13 @@ export function PackRipper({
             transition={{ duration: 0.8 }}
           />
 
-          {/* Bottom half stays */}
           <div
             className="absolute left-0 w-full overflow-hidden pack-crimp-bottom"
             style={{ top: TEAR_Y, height: PACK_H - TEAR_Y, background: FOIL_BG, boxShadow: packBodyShadow(true) }}
           >
-            <PackFaceDesign offsetY={-TEAR_Y} />
+            <PackFaceDesign cardCount={cardCount} offsetY={-TEAR_Y} />
             <DepthOverlay />
-            <FoilShimmer />
+            <FoilHighlight />
             <SideEdges />
           </div>
         </div>
@@ -380,11 +329,22 @@ export function PackRipper({
 
   // ─── Active ripping ───
   return (
-    <div ref={containerRef} className="relative flex flex-col items-center py-8">
-      <div
+    <div
+      ref={containerRef}
+      className="relative flex flex-col items-center py-8"
+      style={{ perspective: 800 }}
+      onPointerLeave={handleMouseLeave}
+    >
+      <motion.div
         ref={packRef}
         className="relative select-none touch-none cursor-crosshair"
-        style={{ width: PACK_W, height: PACK_H + gap, perspective: 800 }}
+        style={{
+          width: PACK_W,
+          height: PACK_H + gap,
+          rotateX: springX,
+          rotateY: springY,
+          transformStyle: "preserve-3d",
+        }}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
@@ -408,18 +368,14 @@ export function PackRipper({
             boxShadow: packBodyShadow(false),
           }}
         >
-          <PackFaceDesign isTopHalf offsetY={0} />
+          <PackFaceDesign cardCount={cardCount} offsetY={0} />
           <DepthOverlay />
-          <FoilShimmer />
+          <FoilHighlight />
           <SideEdges />
         </div>
 
         {/* ── Tear line overlay ── */}
-        <div
-          className="absolute left-0 w-full pointer-events-none"
-          style={{ top: TEAR_Y - 1 + gap / 2, height: 2, zIndex: 10 }}
-        >
-          {/* Animated arrow hint */}
+        <div className="absolute left-0 w-full pointer-events-none" style={{ top: TEAR_Y - 1 + gap / 2, height: 2, zIndex: 10 }}>
           {progress < 0.01 && (
             <motion.div
               className="absolute -translate-y-1/2 flex items-center"
@@ -430,38 +386,23 @@ export function PackRipper({
               <span className="text-pa-green text-sm font-bold drop-shadow-[0_0_8px_rgba(155,255,0,0.9)]">&#9654;</span>
             </motion.div>
           )}
-
-          {/* Dashed tear line */}
           {progress < 0.01 && (
-            <div
-              className="absolute inset-0"
-              style={{ background: "repeating-linear-gradient(90deg, rgba(155,255,0,0.5) 0px, rgba(155,255,0,0.5) 8px, transparent 8px, transparent 14px)" }}
-            />
+            <div className="absolute inset-0" style={{ background: "repeating-linear-gradient(90deg, rgba(155,255,0,0.5) 0px, rgba(155,255,0,0.5) 8px, transparent 8px, transparent 14px)" }} />
           )}
-
-          {/* Rip glow */}
           {progress > 0 && (
-            <div
-              className="absolute top-1/2 h-[4px] -translate-y-1/2 left-0 rounded-full"
-              style={{
-                width: `${progress * 100}%`,
-                background: `linear-gradient(90deg, ${glowColor}80, ${glowColor})`,
-                boxShadow: `0 0 10px ${glowColor}, 0 0 25px ${glowColor}80`,
-              }}
-            />
+            <div className="absolute top-1/2 h-[4px] -translate-y-1/2 left-0 rounded-full" style={{
+              width: `${progress * 100}%`,
+              background: `linear-gradient(90deg, ${glowColor}80, ${glowColor})`,
+              boxShadow: `0 0 10px ${glowColor}, 0 0 25px ${glowColor}80`,
+            }} />
           )}
-
-          {/* Rip cursor dot */}
           {progress > 0.01 && (
-            <div
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full"
-              style={{
-                left: `${progress * 100}%`,
-                width: 14, height: 14,
-                background: glowColor,
-                boxShadow: `0 0 12px ${glowColor}, 0 0 24px ${glowColor}, 0 0 40px ${glowColor}80`,
-              }}
-            />
+            <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full" style={{
+              left: `${progress * 100}%`,
+              width: 14, height: 14,
+              background: glowColor,
+              boxShadow: `0 0 12px ${glowColor}, 0 0 24px ${glowColor}, 0 0 40px ${glowColor}80`,
+            }} />
           )}
         </div>
 
@@ -475,12 +416,12 @@ export function PackRipper({
             boxShadow: packBodyShadow(true),
           }}
         >
-          <PackFaceDesign offsetY={-TEAR_Y} />
+          <PackFaceDesign cardCount={cardCount} offsetY={-TEAR_Y} />
           <DepthOverlay />
-          <FoilShimmer />
+          <FoilHighlight />
           <SideEdges />
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
