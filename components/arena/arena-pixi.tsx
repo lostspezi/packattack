@@ -58,7 +58,10 @@ export default function ArenaPixi(props: ArenaPixiProps) {
   const appRef = useRef<Application | null>(null);
   const bridgeRef = useRef<BattleBridge | null>(null);
   const onSelectCardRef = useRef(props.onSelectCard);
-  onSelectCardRef.current = props.onSelectCard;
+
+  useEffect(() => {
+    onSelectCardRef.current = props.onSelectCard;
+  }, [props.onSelectCard]);
 
   // Initialize PixiJS Application
   const initApp = useCallback(async () => {
@@ -66,7 +69,7 @@ export default function ArenaPixi(props: ArenaPixiProps) {
 
     const container = containerRef.current;
     const width = container.clientWidth;
-    const height = Math.round(width / ARENA_ASPECT_RATIO);
+    const height = container.clientHeight || Math.round(width / ARENA_ASPECT_RATIO);
 
     const app = new Application();
     await app.init({
@@ -124,7 +127,7 @@ export default function ArenaPixi(props: ArenaPixiProps) {
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const w = entry.contentRect.width;
-        const h = Math.round(w / ARENA_ASPECT_RATIO);
+        const h = entry.contentRect.height || Math.round(w / ARENA_ASPECT_RATIO);
         app.renderer.resize(w, h);
         bridge.resize(w, h);
       }
@@ -206,7 +209,7 @@ export default function ArenaPixi(props: ArenaPixiProps) {
     <div
       ref={containerRef}
       className="relative w-full overflow-hidden rounded-xl border border-border bg-bg"
-      style={{ aspectRatio: `${ARENA_ASPECT_RATIO}` }}
+      style={{ height: "calc(100vh - 8rem)" }}
     />
   );
 }

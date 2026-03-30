@@ -52,9 +52,10 @@ export class TweenManager {
     duration: number,
     opts?: { easing?: EasingFn; onComplete?: () => void; onUpdate?: () => void },
   ): void {
+    if (!target) return;
     const props = Object.keys(to).map((key) => ({
       key,
-      from: target[key] ?? 0,
+      from: (target[key] as number) ?? 0,
       to: to[key],
     }));
     this.tweens.push({
@@ -72,6 +73,11 @@ export class TweenManager {
   update(deltaMs: number): void {
     for (let i = this.tweens.length - 1; i >= 0; i--) {
       const tw = this.tweens[i];
+      // Guard: target may have been destroyed (PixiJS nullifies properties)
+      if (!tw.target || (tw.target as { destroyed?: boolean }).destroyed) {
+        this.tweens.splice(i, 1);
+        continue;
+      }
       tw.elapsed += deltaMs;
       const progress = Math.min(tw.elapsed / tw.duration, 1);
       const eased = tw.easing(progress);
