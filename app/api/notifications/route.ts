@@ -3,11 +3,29 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import { runRedisCommand } from "@/lib/redis";
 import Notification from "@/models/notification";
+import User from "@/models/user";
+
+interface SessionUserIdentity {
+  id?: string | null;
+  email?: string | null;
+}
 
 const UNREAD_CACHE_TTL = 60;
 
 function unreadKey(userId: string) {
   return `notifications:unread:${userId}`;
+}
+
+async function resolveNotificationUserId(identity: SessionUserIdentity): Promise<string | null> {
+  const email = identity.email?.trim().toLowerCase();
+  if (email) {
+    const dbUser = await User.findOne({ email }).select("_id").lean();
+    if (dbUser?._id) {
+      return dbUser._id.toString();
+    }
+  }
+
+  return identity.id ?? null;
 }
 
 async function setUnreadCache(userId: string, unreadCount: number): Promise<void> {
@@ -41,10 +59,16 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "20", 10)));
   const skip = (page - 1) * limit;
 
-  const userId = session.user.id;
-
   try {
     await connectDB();
+
+    const userId = await resolveNotificationUserId({
+      id: session.user.id,
+      email: session.user.email ?? null,
+    });
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const [notifications, total] = await Promise.all([
       Notification.find({ userId })
@@ -96,8 +120,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const userId = session.user.id;
-
   let body: { action?: string; id?: string };
   try {
     body = await req.json();
@@ -109,6 +131,14 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectDB();
+
+    const userId = await resolveNotificationUserId({
+      id: session.user.id,
+      email: session.user.email ?? null,
+    });
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     if (action === "markRead") {
       if (!id) {
@@ -125,6 +155,17 @@ export async function POST(req: NextRequest) {
       await Notification.updateMany({ userId, read: false }, { read: true });
       await setUnreadCache(userId, 0);
       await publishUnreadCount(userId, 0);
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === "delete") {
+      if (!id) {
+        return NextResponse.json({ error: "Missing id" }, { status: 400 });
+      }
+      await Notification.findOneAndDelete({ _id: id, userId });
+      const count = await Notification.countDocuments({ userId, read: false });
+      await setUnreadCache(userId, count);
+      await publishUnreadCount(userId, count);
       return NextResponse.json({ ok: true });
     }
 

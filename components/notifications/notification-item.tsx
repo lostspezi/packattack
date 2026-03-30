@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle, XCircle, Info, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, Info, AlertTriangle, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +19,7 @@ interface NotificationItemProps {
   lang: string;
   dict: Record<string, string>;
   onMarkRead: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 const typeConfig = {
@@ -59,6 +60,7 @@ export function NotificationItem({
   notification,
   dict: _dict,
   onMarkRead,
+  onDelete,
 }: NotificationItemProps) {
   void _dict;
   const { icon: Icon, color } = typeConfig[notification.type] ?? typeConfig.info;
@@ -73,14 +75,14 @@ export function NotificationItem({
     <div
       onClick={handleClick}
       className={[
-        "flex gap-3 px-4 py-3 cursor-pointer hover:bg-white/4 transition-colors",
+        "group relative flex gap-3 px-4 py-3 cursor-pointer hover:bg-white/4 transition-colors",
         !notification.read ? "border-l-2 border-pa-green" : "border-l-2 border-transparent",
       ].join(" ")}
     >
       <div className={["mt-0.5 flex-shrink-0", color].join(" ")}>
         <Icon className="w-4 h-4" />
       </div>
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 pr-6">
         <p className="text-sm font-semibold text-text-primary truncate">
           {notification.title}
         </p>
@@ -101,6 +103,19 @@ export function NotificationItem({
           {timeAgo(notification.createdAt)}
         </p>
       </div>
+
+      {onDelete && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(notification.id);
+          }}
+          className="absolute right-3 top-3 rounded p-1 text-text-muted opacity-0 transition-colors hover:bg-white/10 hover:text-white group-hover:opacity-100 focus:opacity-100"
+          title="Dismiss notification"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      )}
     </div>
   );
 }

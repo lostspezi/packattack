@@ -3,10 +3,28 @@ import { auth } from "@/lib/auth";
 import { getRedis } from "@/lib/redis";
 import connectDB from "@/lib/db";
 import Notification from "@/models/notification";
+import User from "@/models/user";
 
 export const dynamic = "force-dynamic";
 
 const UNREAD_CACHE_TTL = 60;
+
+interface SessionUserIdentity {
+  id?: string | null;
+  email?: string | null;
+}
+
+async function resolveNotificationUserId(identity: SessionUserIdentity): Promise<string | null> {
+  const email = identity.email?.trim().toLowerCase();
+  if (email) {
+    const dbUser = await User.findOne({ email }).select("_id").lean();
+    if (dbUser?._id) {
+      return dbUser._id.toString();
+    }
+  }
+
+  return identity.id ?? null;
+}
 
 export async function GET(_req: NextRequest) {
   const session = await auth();
@@ -14,7 +32,15 @@ export async function GET(_req: NextRequest) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const userId = session.user.id;
+  await connectDB();
+  const userId = await resolveNotificationUserId({
+    id: session.user.id,
+    email: session.user.email ?? null,
+  });
+  if (!userId) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const channel = `notifications:${userId}`;
   const cacheKey = `notifications:unread:${userId}`;
 
@@ -33,7 +59,6 @@ export async function GET(_req: NextRequest) {
         if (cached !== null) {
           unreadCount = parseInt(cached, 10);
         } else {
-          await connectDB();
           unreadCount = await Notification.countDocuments({
             userId,
             read: false,

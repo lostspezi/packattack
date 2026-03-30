@@ -330,14 +330,17 @@ export async function createNotifications(inputs: NotificationInput[]): Promise<
             entityId: item.entityId ?? null,
           },
           {
-            title: item.title,
-            message: item.message,
-            type: item.type,
-            cta: item.cta ?? null,
-            category: item.category ?? null,
-            entityType: item.entityType ?? null,
-            entityId: item.entityId ?? null,
-            read: false,
+            $set: {
+              title: item.title,
+              message: item.message,
+              type: item.type,
+              cta: item.cta ?? null,
+              category: item.category ?? null,
+              entityType: item.entityType ?? null,
+              entityId: item.entityId ?? null,
+              read: false,
+              createdAt: new Date(),
+            },
           },
           {
             upsert: true,
@@ -353,7 +356,14 @@ export async function createNotifications(inputs: NotificationInput[]): Promise<
     "feedback:invalidate-unread",
     undefined,
     async (redis) => {
-      await Promise.all(affectedUsers.map((userId) => redis.del(unreadKey(userId))));
+      await Promise.all(
+        affectedUsers.map(async (userId) => {
+          await redis.del(unreadKey(userId));
+          const count = await Notification.countDocuments({ userId, read: false });
+          await redis.set(unreadKey(userId), count, "EX", 60);
+          await redis.publish(`notifications:${userId}`, JSON.stringify({ unreadCount: count }));
+        })
+      );
     }
   );
 }
@@ -390,7 +400,14 @@ export async function syncFeedbackQueueNotifications(): Promise<void> {
       "feedback:clear-queue-unread",
       undefined,
       async (redis) => {
-        await Promise.all(userIds.map((userId) => redis.del(unreadKey(userId))));
+        await Promise.all(
+          userIds.map(async (userId) => {
+            await redis.del(unreadKey(userId));
+            const count = await Notification.countDocuments({ userId, read: false });
+            await redis.set(unreadKey(userId), count, "EX", 60);
+            await redis.publish(`notifications:${userId}`, JSON.stringify({ unreadCount: count }));
+          })
+        );
       }
     );
     return;

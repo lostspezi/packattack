@@ -27,6 +27,19 @@ import {
   syncFeedbackQueueNotifications,
 } from "@/lib/feedback";
 
+const LOCAL_FEEDBACK_RATE_LIMIT_BYPASS_EMAILS = new Set(
+  (process.env.FEEDBACK_RATE_LIMIT_BYPASS_EMAILS ?? "tester@packattack.gg")
+    .split(",")
+    .map((entry) => entry.trim().toLowerCase())
+    .filter(Boolean)
+);
+
+function shouldBypassFeedbackRateLimit(email?: string | null): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  if (!email) return false;
+  return LOCAL_FEEDBACK_RATE_LIMIT_BYPASS_EMAILS.has(email.trim().toLowerCase());
+}
+
 interface ParsedFeedbackRequest {
   data: unknown;
   attachments: Array<{
@@ -186,6 +199,7 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   const userId = session?.user?.id;
   const userRole = (session?.user as { role?: string } | undefined)?.role ?? null;
+  const userEmail = (session?.user as { email?: string | null } | undefined)?.email ?? null;
 
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -206,15 +220,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const rateLimit = await assertFeedbackSubmissionAllowed({
-    userId,
-    ipAddress: getRequestIpAddress(req.headers.get("x-forwarded-for")),
-    title: parsed.data.title,
-    description: parsed.data.description,
-  });
+  const bypassRateLimit = shouldBypassFeedbackRateLimit(userEmail);
 
-  if (!rateLimit.allowed) {
-    return NextResponse.json({ error: rateLimit.error ?? "Too many feedback submissions" }, { status: 429 });
+  if (!bypassRateLimit) {
+    const rateLimit = await assertFeedbackSubmissionAllowed({
+      userId,
+      ipAddress: getRequestIpAddress(req.headers.get("x-forwarded-for")),
+      title: parsed.data.title,
+      description: parsed.data.description,
+    });
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: rateLimit.error ?? "Too many feedback submissions" }, { status: 429 });
+    }
   }
 
   let createdFeedbackId = "";
