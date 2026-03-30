@@ -76,7 +76,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
     if (isRecovery) return "review";
     if (quickOpen) return "review";
     if (prefersReducedMotion) return "reveal";
-    return "idle";
+    return "ripping";
   };
 
   const [currentIndex, setCurrentIndex] = useState(0);
