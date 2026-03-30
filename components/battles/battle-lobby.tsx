@@ -111,15 +111,15 @@ function ReadyCheckOverlay({
   const isUrgent = timer <= 10;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/95 backdrop-blur-md">
-      {/* Animated background ring */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-bg/98">
+      {/* Subtle pulsing glow */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div
           className={[
-            "h-[400px] w-[400px] rounded-full border-2 opacity-20 animate-ping",
-            isUrgent ? "border-red-500" : "border-pa-green",
+            "h-[300px] w-[300px] rounded-full opacity-10 animate-pulse",
+            isUrgent ? "bg-red-500" : "bg-pa-green",
           ].join(" ")}
-          style={{ animationDuration: isUrgent ? "1s" : "2s" }}
+          style={{ filter: "blur(80px)" }}
         />
       </div>
 
@@ -167,7 +167,7 @@ function ReadyCheckOverlay({
               strokeDasharray={`${2 * Math.PI * 44}`}
               strokeDashoffset={`${2 * Math.PI * 44 * (1 - timer / 30)}`}
               className={[
-                "transition-all duration-1000 ease-linear",
+                "transition-[stroke-dashoffset] duration-1000 ease-linear",
                 isUrgent ? "text-red-500" : "text-pa-green",
               ].join(" ")}
             />
