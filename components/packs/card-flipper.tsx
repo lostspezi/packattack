@@ -39,28 +39,32 @@ export function CardFlipper({
   const [shaking, setShaking] = useState(false);
   // displayedCard holds the card shown on the front face — updates only after flip-back
   const [displayedCard, setDisplayedCard] = useState(card);
-  const prevCardIdRef = useRef(card.cardId);
+  const [prevCardId, setPrevCardId] = useState(card.cardId);
   const cardRef = useRef<HTMLDivElement>(null);
   const isLast = index >= total - 1;
   const tier = getEffectTier(displayedCard.coinValue);
   const config = TIER_CONFIGS[tier];
   const FLIP_BACK_MS = 400;
 
-  useEffect(() => {
-    if (card.cardId !== prevCardIdRef.current) {
-      prevCardIdRef.current = card.cardId;
-      if (flipped) {
-        // Flip back first, then swap card data after animation
-        setFlipped(false); // eslint-disable-line react-hooks/set-state-in-effect
-        const timer = setTimeout(() => {
-          setDisplayedCard(card);
-        }, FLIP_BACK_MS);
-        return () => clearTimeout(timer);
-      } else {
-        setDisplayedCard(card);
-      }
+  // Detect card change during render (no refs in effects)
+  if (card.cardId !== prevCardId) {
+    setPrevCardId(card.cardId);
+    if (flipped) {
+      setFlipped(false);
+    } else {
+      setDisplayedCard(card);
     }
-  }, [card, flipped]);  
+  }
+
+  // After flip-back completes, swap the displayed card to the new one
+  useEffect(() => {
+    if (!flipped && displayedCard.cardId !== card.cardId) {
+      const timer = setTimeout(() => {
+        setDisplayedCard(card);
+      }, FLIP_BACK_MS);
+      return () => clearTimeout(timer);
+    }
+  }, [flipped, card, displayedCard.cardId]);
 
   const handleFlip = useCallback(() => {
     if (flipped) return;
