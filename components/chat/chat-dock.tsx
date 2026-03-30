@@ -33,6 +33,7 @@ import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
 import { messageMentionsViewer } from "@/lib/chat-mentions";
 import { mergeChatMessageSummaries } from "@/lib/chat-message-summary";
+import { isChatAdmin } from "@/lib/chat-constants";
 import type { ChatDictionary } from "@/lib/chat-i18n";
 import { getChatUiCopy } from "@/lib/chat-i18n";
 import type {
@@ -117,6 +118,14 @@ function isProtectedModerationTarget(message: ChatMessageSummary, currentUserId:
   );
 }
 
+function canEditOwnAdminMessage(message: ChatMessageSummary, currentUserId: string) {
+  return (
+    !message.isDeleted &&
+    message.author?.id === currentUserId &&
+    isChatAdmin(message.author?.role)
+  );
+}
+
 function formatTimeoutPreset(minutes: number) {
   if (minutes >= 1440) {
     return `${Math.round(minutes / 60 / 24 * 10) / 10} T`;
@@ -154,6 +163,10 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const [reportTarget, setReportTarget] = useState<ChatMessageSummary | null>(null);
   const [reportCategory, setReportCategory] = useState("spam");
   const [reportNote, setReportNote] = useState("");
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<ChatMessageSummary | null>(null);
+  const [editBody, setEditBody] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
   const [onlineUsersOpen, setOnlineUsersOpen] = useState(false);
   const [gifPickerOpen, setGifPickerOpen] = useState(false);
   const [pendingReactionMessageIds, setPendingReactionMessageIds] = useState<string[]>([]);
@@ -663,6 +676,62 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     }
   }
 
+  function openEditModal(message: ChatMessageSummary) {
+    setEditTarget(message);
+    setEditBody(message.body);
+    setEditOpen(true);
+  }
+
+  function closeEditModal(force = false) {
+    if (savingEdit && !force) return;
+    setEditOpen(false);
+    setEditTarget(null);
+    setEditBody("");
+  }
+
+  async function submitEditMessage() {
+    if (!editTarget || savingEdit) return;
+
+    const trimmed = editBody.trim();
+    if (!trimmed) {
+      toast({ type: "error", title: copy.messageEditor.emptyBody });
+      return;
+    }
+
+    setSavingEdit(true);
+    try {
+      const res = await fetch(`/api/chat/${editTarget.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ body: trimmed }),
+      });
+      const payload = await res.json();
+
+      if (!res.ok) {
+        const error = payload.error as string | undefined;
+        if (error === "forbidden") {
+          toast({ type: "error", title: copy.messageEditor.forbidden });
+          return;
+        }
+        if (error === "not_editable" || error === "not_found") {
+          toast({ type: "error", title: copy.messageEditor.notEditable });
+          return;
+        }
+        toast({ type: "error", title: copy.messageEditor.updateError });
+        return;
+      }
+
+      const nextMessage = payload.message as ChatMessageSummary;
+      setMessages((current) => mergeChatMessageSummaries(current, nextMessage));
+      toast({ type: "success", title: copy.messageEditor.success });
+      closeEditModal(true);
+    } catch {
+      toast({ type: "error", title: copy.messageEditor.updateError });
+    } finally {
+      setSavingEdit(false);
+    }
+  }
+
   function getModerationLabel(action: QuickModerationAction): string {
     switch (action) {
       case "delete_message":
@@ -963,6 +1032,15 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                           </button>
                         }
                         items={[
+                          ...(canEditOwnAdminMessage(message, currentUserId)
+                            ? [
+                                {
+                                  label: copy.messageEditor.edit,
+                                  value: `edit:${message.id}`,
+                                  onClick: () => openEditModal(message),
+                                },
+                              ]
+                            : []),
                           ...(message.isDeleted
                             ? [
                                 {
@@ -1213,6 +1291,34 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           </>
         )}
       </div>
+
+      <Modal open={editOpen} onClose={closeEditModal} title={copy.messageEditor.title}>
+        <div className="space-y-4">
+          <textarea
+            value={editBody}
+            onChange={(event) => setEditBody(event.target.value)}
+            rows={4}
+            maxLength={500}
+            disabled={savingEdit}
+            className="w-full rounded-[12px] border border-white/8 bg-white/3 px-4 py-3 text-sm text-text-primary outline-none focus:border-pa-green/35 focus:ring-2 focus:ring-pa-green/6 disabled:cursor-not-allowed disabled:opacity-70"
+          />
+          <div className="flex items-center justify-between gap-3 text-xs text-text-muted">
+            <span>{editBody.trim().length} / 500</span>
+            <div className="flex items-center gap-3">
+              <Button variant="secondary" onClick={() => closeEditModal()} disabled={savingEdit}>
+                {copy.reports.cancel}
+              </Button>
+              <Button
+                onClick={submitEditMessage}
+                loading={savingEdit}
+                disabled={!editTarget || !editBody.trim()}
+              >
+                {savingEdit ? copy.messageEditor.saving : copy.messageEditor.save}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={reportOpen} onClose={() => setReportOpen(false)} title={copy.reports.title}>
         <p className="text-sm text-text-secondary">{copy.reports.description}</p>

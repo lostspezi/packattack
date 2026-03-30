@@ -74,6 +74,7 @@ export const CHAT_ARCHIVE_EVENT_TYPES = [
   "message_held",
   "message_blocked",
   "message_deleted",
+  "message_updated",
   "message_reacted",
   "moderation_action",
   "report_created",
@@ -95,18 +96,35 @@ export type ChatReportCategory = (typeof CHAT_REPORT_CATEGORIES)[number];
 export type ChatReactionEmoji = string;
 export type ChatArchiveEventType = (typeof CHAT_ARCHIVE_EVENT_TYPES)[number];
 
+function normalizeRoleAlias(role?: string | null): string {
+  if (!role) return "";
+
+  const compact = role.trim().toLowerCase().replace(/[\s-]+/g, "_");
+  if (compact === "superadmin" || compact === "super_admin") {
+    return "super_admin";
+  }
+  return compact;
+}
+
+export function isChatAdmin(role?: string | null): boolean {
+  const normalized = normalizeRoleAlias(role);
+  return normalized === "admin" || normalized === "super_admin";
+}
+
 export function isChatStaff(role?: string | null): boolean {
-  return CHAT_STAFF_ROLES.includes((role ?? "") as (typeof CHAT_STAFF_ROLES)[number]);
+  return CHAT_STAFF_ROLES.includes(
+    normalizeRoleAlias(role) as (typeof CHAT_STAFF_ROLES)[number]
+  );
 }
 
 export function canPostChatLinks(role?: string | null): boolean {
   return CHAT_LINK_ALLOWED_ROLES.includes(
-    (role ?? "") as (typeof CHAT_LINK_ALLOWED_ROLES)[number]
+    normalizeRoleAlias(role) as (typeof CHAT_LINK_ALLOWED_ROLES)[number]
   );
 }
 
 export function getChatRoleBadgeLabel(role?: string | null): string | null {
-  switch (role) {
+  switch (normalizeRoleAlias(role)) {
     case "admin":
     case "super_admin":
       return "ADMIN";

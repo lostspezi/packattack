@@ -186,6 +186,10 @@ export const createChatMessageSchema = z.object({
   message: "Message must contain text or a GIF",
 });
 
+export const updateChatMessageSchema = z.object({
+  body: z.string().trim().min(1).max(500),
+});
+
 export const chatHistoryQuerySchema = z.object({
   limit: z.number().int().min(1).max(100).optional(),
   beforeVisibleSeq: z.number().int().min(1).optional(),

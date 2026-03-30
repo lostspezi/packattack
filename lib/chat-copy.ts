@@ -89,6 +89,17 @@ export interface ChatUiCopy {
     tooltipAndOthers: string;
     updateError: string;
   };
+  messageEditor: {
+    edit: string;
+    title: string;
+    save: string;
+    saving: string;
+    emptyBody: string;
+    success: string;
+    forbidden: string;
+    notEditable: string;
+    updateError: string;
+  };
   states: {
     networkError: string;
     loadError: string;
@@ -260,6 +271,17 @@ const de: ChatUiCopy = {
     tooltipReactedBy: "reagiert von",
     tooltipAndOthers: "und {count} weitere",
     updateError: "Reaktion konnte nicht gespeichert werden.",
+  },
+  messageEditor: {
+    edit: "Bearbeiten",
+    title: "Nachricht bearbeiten",
+    save: "Speichern",
+    saving: "Speichert...",
+    emptyBody: "Bitte gib eine Nachricht ein.",
+    success: "Nachricht aktualisiert",
+    forbidden: "Du kannst nur eigene Admin-Nachrichten bearbeiten.",
+    notEditable: "Diese Nachricht kann nicht bearbeitet werden.",
+    updateError: "Nachricht konnte nicht aktualisiert werden.",
   },
   states: {
     networkError: "Netzwerkfehler",
@@ -433,6 +455,17 @@ const en: ChatUiCopy = {
     tooltipReactedBy: "reacted by",
     tooltipAndOthers: "and {count} others",
     updateError: "Could not save reaction.",
+  },
+  messageEditor: {
+    edit: "Edit",
+    title: "Edit message",
+    save: "Save",
+    saving: "Saving...",
+    emptyBody: "Please enter a message.",
+    success: "Message updated",
+    forbidden: "You can only edit your own admin messages.",
+    notEditable: "This message cannot be edited.",
+    updateError: "Could not update message.",
   },
   states: {
     networkError: "Network error",
