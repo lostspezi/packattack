@@ -49,6 +49,7 @@ export class PlayerHandLayer extends Container {
 
     const cardW = this.canvasW * CARD_LAYOUT.handCardW;
     const cardH = this.canvasH * CARD_LAYOUT.handCardH;
+    console.log("[hand] dealHand", { canvasW: this.canvasW, canvasH: this.canvasH, cardW, cardH, count: cardData.length });
 
     for (let i = 0; i < cardData.length; i++) {
       const card = new CardSprite(cardW, cardH);
@@ -113,7 +114,7 @@ export class PlayerHandLayer extends Container {
   clearHand(): void {
     for (const card of this.cards) {
       this.removeChild(card);
-      card.destroy();
+      setTimeout(() => card.destroy(), 0);
     }
     this.cards = [];
     this.selectedIndex = null;

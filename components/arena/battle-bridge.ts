@@ -8,7 +8,6 @@ import type { EffectsLayer } from "./layers/effects";
 import type { OverlayLayer } from "./layers/overlay";
 import type { TweenManager } from "./tween";
 import type { CardData } from "./card-sprite";
-import { ARENA_COLORS } from "@/lib/arena-constants";
 
 export interface ArenaLayers {
   background: BackgroundLayer;
@@ -113,6 +112,7 @@ export class BattleBridge {
   }
 
   onHandDealt(data: { cards: HandCardData[] }): void {
+    console.log("[bridge] onHandDealt", { isPlayer: this.state.isPlayer, cardCount: data.cards.length, canvasW: this.layers.playerHand.width });
     if (!this.state.isPlayer) return; // spectators don't see the hand
 
     const cardData: CardData[] = data.cards.map((c) => ({

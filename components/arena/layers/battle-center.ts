@@ -154,7 +154,8 @@ export class BattleCenterLayer extends Container {
   clearPlayedCards(): void {
     for (const card of this.playedCards) {
       this.removeChild(card);
-      card.destroy();
+      // Defer destroy to avoid PixiJS TexturePool crash during render
+      setTimeout(() => card.destroy(), 0);
     }
     this.playedCards = [];
   }

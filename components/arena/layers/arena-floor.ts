@@ -28,14 +28,14 @@ export class ArenaFloorLayer extends Container {
     const railY = h * ARENA_ZONES.railingY;
     const railH = h * ARENA_SIZES.railingHeight;
 
-    // Floor background
+    // Floor background — subtle elevated surface
     this.floorGfx.clear();
     this.floorGfx.rect(0, floorY, w, floorH);
-    this.floorGfx.fill(ARENA_COLORS.surface);
+    this.floorGfx.fill({ color: ARENA_COLORS.surface, alpha: 0.5 });
 
-    // Center radial glow (ellipse)
+    // Center radial glow — very subtle
     this.glowGfx.clear();
-    this.glowGfx.ellipse(w / 2, h * ARENA_ZONES.battleCenterY, w * 0.3, h * 0.12);
+    this.glowGfx.ellipse(w / 2, h * ARENA_ZONES.battleCenterY, w * 0.25, h * 0.1);
     this.glowGfx.fill(ARENA_COLORS.floorGlow);
 
     // Railing (glowing horizontal line)
