@@ -1,10 +1,16 @@
 "use client";
 
-import React, { useState } from "react";
-import { ShoppingCart, Coins, ArrowRight, RotateCcw } from "lucide-react";
+import React, { useState, useRef, useCallback } from "react";
+import { ShoppingCart, Coins, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
+import { Pack3D } from "./pack-3d";
+import { PackRipper } from "./pack-ripper";
+import { CardFlipper } from "./card-flipper";
+import { ParticleCanvas, type ParticleCanvasHandle } from "./particle-canvas";
+import { usePackSounds, type SoundKey } from "./use-pack-sounds";
+import { getMaxTierFromCards } from "./effect-tiers";
 
 interface DrawnCard {
   cardId: string;
@@ -30,6 +36,7 @@ interface OpenResult {
 interface BoxInfo {
   _id: string;
   name: { de: string; en: string };
+  image?: string | null;
 }
 
 interface PackOpeningProps {
@@ -38,13 +45,16 @@ interface PackOpeningProps {
   lang: string;
   onDone: () => void;
   onCoinsChange: (coins: number) => void;
+  quickOpen?: boolean;
 }
 
 type CardChoice = "claim" | "convert" | null;
+type Phase = "idle" | "ripping" | "reveal" | "review";
 
-export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOpeningProps) {
+export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpen }: PackOpeningProps) {
   const isDe = lang === "de";
   const { toast } = useToast();
+  const { play } = usePackSounds();
 
   const isRecovery = result.isRecovery ?? false;
 
@@ -60,16 +70,24 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
     return map;
   })();
 
+  const getInitialPhase = (): Phase => {
+    if (isRecovery) return "review";
+    if (quickOpen) return "review";
+    return "idle";
+  };
+
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [revealed, setRevealed] = useState(false);
   const [choices, setChoices] = useState<Map<number, CardChoice>>(initialChoices);
-  const [phase, setPhase] = useState<"reveal" | "review">(isRecovery ? "review" : "reveal");
+  const [phase, setPhase] = useState<Phase>(getInitialPhase);
   const [submitting, setSubmitting] = useState(false);
+
+  const particleRef = useRef<ParticleCanvasHandle>(null);
 
   const cards = result.cards;
   const currentCard = cards[currentIndex];
   const isLast = currentIndex >= cards.length - 1;
   const boxName = isDe ? (box.name.de || box.name.en) : (box.name.en || box.name.de);
+  const maxTier = getMaxTierFromCards(cards);
 
   // Cards already decided before recovery (not changeable)
   const recoveredIndices = new Set(
@@ -87,9 +105,12 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
       setPhase("review");
     } else {
       setCurrentIndex((i) => i + 1);
-      setRevealed(false);
     }
   }
+
+  const handlePlaySound = useCallback((key: string, volume?: number) => {
+    play(key as SoundKey, volume);
+  }, [play]);
 
   // All cards must have a choice before confirming (recovered count as decided)
   const allDecided = cards.every(
@@ -313,124 +334,56 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange }: PackOp
     );
   }
 
-  // ─── REVEAL PHASE: Cards one by one ───
+  // ─── IDLE PHASE: 3D pack display, click to start ripping ───
+  if (phase === "idle") {
+    return (
+      <div className="relative max-w-md mx-auto flex flex-col items-center py-8">
+        <ParticleCanvas ref={particleRef} />
+        <Pack3D
+          boxName={boxName}
+          boxImage={box.image ?? null}
+          onReady={() => setPhase("ripping")}
+        />
+      </div>
+    );
+  }
+
+  // ─── RIPPING PHASE: Swipe-to-rip animation ───
+  if (phase === "ripping") {
+    return (
+      <div className="relative max-w-md mx-auto flex flex-col items-center">
+        <ParticleCanvas ref={particleRef} />
+        <PackRipper
+          boxName={boxName}
+          boxImage={box.image ?? null}
+          maxTier={maxTier}
+          particleRef={particleRef}
+          onRipComplete={() => setPhase("reveal")}
+          onPlaySound={handlePlaySound}
+        />
+      </div>
+    );
+  }
+
+  // ─── REVEAL PHASE: Cards one by one with flip animation ───
   if (!currentCard) return null;
 
   return (
-    <div className="max-w-md mx-auto space-y-6 py-8">
-      {/* Progress */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-text-muted">
-          {isDe ? "Karte" : "Card"} {currentIndex + 1}/{cards.length}
-        </p>
-        {result.packCount > 1 && (
-          <p className="text-xs text-text-muted">
-            Pack {currentCard.packIndex + 1}/{result.packCount}
-          </p>
-        )}
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-1 bg-white/6 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-pa-green rounded-full transition-all"
-          style={{ width: `${((currentIndex + 1) / cards.length) * 100}%` }}
-        />
-      </div>
-
-      {/* Card display */}
-      <div className="bg-surface border border-border rounded-[14px] p-6 text-center space-y-4">
-        {!revealed ? (
-          <button type="button" onClick={() => setRevealed(true)} className="w-full space-y-4">
-            <div className="w-48 h-64 mx-auto bg-gradient-to-br from-pa-green/10 to-pa-lila/20 rounded-xl flex items-center justify-center border border-pa-green/20">
-              <span className="text-4xl">?</span>
-            </div>
-            <p className="text-sm text-pa-green font-medium">
-              {isDe ? "Tippe zum Aufdecken" : "Tap to reveal"}
-            </p>
-          </button>
-        ) : (
-          <>
-            {currentCard.image ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={currentCard.image}
-                alt={currentCard.name}
-                className="w-48 mx-auto rounded-xl"
-              />
-            ) : (
-              <div className="w-48 h-64 mx-auto bg-white/4 rounded-xl flex items-center justify-center">
-                <span className="text-text-muted">?</span>
-              </div>
-            )}
-
-            <div className="space-y-1">
-              <h3 className="text-lg font-bold text-text-primary">{currentCard.name}</h3>
-              <Badge variant="info">{currentCard.rarity}</Badge>
-            </div>
-
-            <div className="flex items-center justify-center gap-4 text-sm">
-              <span className="text-text-muted">
-                {isDe ? "Wert" : "Value"}:{" "}
-                <strong className="text-text-primary">{currentCard.coinValue} Coins</strong>
-              </span>
-              <span className="text-text-muted">
-                {isDe ? "Umwandlung" : "Convert"}:{" "}
-                <strong className="text-text-primary">
-                  {currentCard.conversionValue} Coins
-                </strong>
-              </span>
-            </div>
-
-            {/* Optional inline decision + skip */}
-            <div className="flex flex-col gap-2 pt-2">
-              {(() => {
-                const choice = choices.get(currentIndex);
-                return (
-                  <>
-                    <div className="flex gap-2">
-                      <Button
-                        variant={choice === "claim" ? "primary" : "secondary"}
-                        size="md"
-                        className="flex-1"
-                        onClick={() => setChoice(currentIndex, choice === "claim" ? null : "claim")}
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-1.5" />
-                        {isDe ? "Warenkorb" : "Cart"}
-                      </Button>
-                      <Button
-                        variant={choice === "convert" ? "primary" : "secondary"}
-                        size="md"
-                        className="flex-1"
-                        onClick={() =>
-                          setChoice(currentIndex, choice === "convert" ? null : "convert")
-                        }
-                      >
-                        <Coins className="w-4 h-4 mr-1.5" />
-                        {currentCard.conversionValue} Coins
-                      </Button>
-                    </div>
-                    <Button variant="ghost" size="sm" className="w-full" onClick={advanceCard}>
-                      <ArrowRight className="w-3.5 h-3.5 mr-1" />
-                      {isLast
-                        ? isDe
-                          ? "Zur Übersicht"
-                          : "Go to overview"
-                        : choice
-                          ? isDe
-                            ? "Nächste Karte"
-                            : "Next card"
-                          : isDe
-                            ? "Überspringen — später entscheiden"
-                            : "Skip — decide later"}
-                    </Button>
-                  </>
-                );
-              })()}
-            </div>
-          </>
-        )}
-      </div>
+    <div className="relative max-w-md mx-auto">
+      <ParticleCanvas ref={particleRef} />
+      <CardFlipper
+        card={currentCard}
+        index={currentIndex}
+        total={cards.length}
+        packIndex={currentCard.packIndex}
+        packCount={result.packCount}
+        lang={lang}
+        particleRef={particleRef}
+        onChoice={(choice) => setChoice(currentIndex, choice)}
+        onNext={advanceCard}
+        onPlaySound={handlePlaySound}
+        choice={choices.get(currentIndex) ?? null}
+      />
     </div>
   );
 }
