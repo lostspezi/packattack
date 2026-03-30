@@ -51,7 +51,7 @@ export function CardFlipper({
       prevCardIdRef.current = card.cardId;
       if (flipped) {
         // Flip back first, then swap card data after animation
-        setFlipped(false);
+        setFlipped(false); // eslint-disable-line react-hooks/set-state-in-effect
         const timer = setTimeout(() => {
           setDisplayedCard(card);
         }, FLIP_BACK_MS);
@@ -60,7 +60,7 @@ export function CardFlipper({
         setDisplayedCard(card);
       }
     }
-  }, [card, flipped]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [card, flipped]);  
 
   const handleFlip = useCallback(() => {
     if (flipped) return;

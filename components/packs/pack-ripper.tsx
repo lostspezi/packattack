@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { motion, useMotionValue, useTransform } from "motion/react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { motion } from "motion/react";
 import type { EffectTier } from "./effect-tiers";
 import { TIER_CONFIGS } from "./effect-tiers";
 import type { ParticleCanvasHandle } from "./particle-canvas";
@@ -14,134 +14,323 @@ interface PackRipperProps {
   onPlaySound: (key: "rip" | "burst", volume?: number) => void;
 }
 
-const AUTO_COMPLETE_THRESHOLD = 0.7;
-const SWIPE_RANGE = 200;
+const PACK_W = 200;
+const PACK_H = 280;
+const TEAR_Y = 80; // px from top of pack where the tear sits
+const TEAR_ZONE = 50; // px tolerance above/below tear line for starting
+const COMPLETE_THRESHOLD = 0.9;
 
-export function PackRipper({ boxName, maxTier, particleRef, onRipComplete, onPlaySound }: PackRipperProps) {
+export function PackRipper({
+  boxName,
+  maxTier,
+  particleRef,
+  onRipComplete,
+  onPlaySound,
+}: PackRipperProps) {
   const [completed, setCompleted] = useState(false);
+  const [progress, setProgress] = useState(0); // 0-1 horizontal rip progress
   const containerRef = useRef<HTMLDivElement>(null);
+  const packRef = useRef<HTMLDivElement>(null);
+  const rippingRef = useRef(false);
+  const completedRef = useRef(false);
   const ripSoundPlayed = useRef(false);
-  const dragY = useMotionValue(0);
-  const progress = useTransform(dragY, [0, -SWIPE_RANGE], [0, 1]);
-  const topY = useTransform(progress, [0, 0.7, 1], [0, -40, -200]);
-  const topRotate = useTransform(progress, [0, 0.7, 1], [0, -5, -25]);
-  const topOpacity = useTransform(progress, [0.7, 1], [1, 0]);
-  const glowOpacity = useTransform(progress, [0, 0.5, 0.7], [0, 0.5, 1]);
-  const glowScale = useTransform(progress, [0, 0.7], [0.5, 1.5]);
+  const lastEmitX = useRef(-1);
+  const animFrameRef = useRef<number>(0);
+
+  const tierColors = TIER_CONFIGS[maxTier].colors;
+  const glowColor = tierColors[0];
+
+  // Gap between top and bottom grows with progress
+  const gap = progress * 10;
+  // Top piece tilts slightly as rip progresses
+  const topTiltDeg = progress * -3;
 
   const triggerComplete = useCallback(() => {
-    if (completed) return;
+    if (completedRef.current) return;
+    completedRef.current = true;
+    rippingRef.current = false;
     setCompleted(true);
+    setProgress(1);
     onPlaySound("burst", 0.7);
     if (navigator.vibrate) navigator.vibrate([50, 30, 100]);
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (rect && particleRef.current) {
-      const tierColors = TIER_CONFIGS[maxTier].colors;
+
+    // Big particle burst along the full tear line
+    const packRect = packRef.current?.getBoundingClientRect();
+    const containerRect = containerRef.current?.getBoundingClientRect();
+    if (packRect && containerRect && particleRef.current) {
+      const ox = packRect.left - containerRect.left;
+      const oy = packRect.top - containerRect.top + TEAR_Y;
       particleRef.current.emit({
-        x: rect.width / 2, y: rect.height * 0.35,
-        count: 25, colors: tierColors, speed: [100, 250], size: [3, 7],
-        lifetime: [600, 1200], gravity: 80, spread: Math.PI, shape: "circle",
+        x: ox + PACK_W / 2,
+        y: oy,
+        count: 35,
+        colors: tierColors,
+        speed: [100, 280],
+        size: [3, 8],
+        lifetime: [600, 1400],
+        gravity: 70,
+        spread: Math.PI,
+        shape: "circle",
       });
     }
-    setTimeout(() => onRipComplete(), 800);
-  }, [completed, maxTier, onPlaySound, onRipComplete, particleRef]);
+    setTimeout(() => onRipComplete(), 900);
+  }, [onPlaySound, onRipComplete, particleRef, tierColors]);
 
-  const handleDragUpdate = useCallback(() => {
-    const val = dragY.get();
-    if (!ripSoundPlayed.current && val < -10) {
-      onPlaySound("rip", 0.4);
-      ripSoundPlayed.current = true;
-    }
-    const prog = Math.abs(val) / SWIPE_RANGE;
-    if (prog >= AUTO_COMPLETE_THRESHOLD) triggerComplete();
-  }, [dragY, onPlaySound, triggerComplete]);
+  const emitSparks = useCallback(
+    (clientX: number) => {
+      const packRect = packRef.current?.getBoundingClientRect();
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      if (!packRect || !containerRect || !particleRef.current) return;
 
+      const relX = clientX - packRect.left;
+      // Only emit every ~12px of movement
+      if (Math.abs(relX - lastEmitX.current) < 12) return;
+      lastEmitX.current = relX;
+
+      const ox = packRect.left - containerRect.left + relX;
+      const oy = packRect.top - containerRect.top + TEAR_Y;
+      particleRef.current.emit({
+        x: ox,
+        y: oy,
+        count: 3,
+        colors: tierColors,
+        speed: [40, 130],
+        size: [1, 4],
+        lifetime: [200, 600],
+        gravity: 50,
+        spread: Math.PI * 0.8,
+        shape: "circle",
+      });
+    },
+    [particleRef, tierColors],
+  );
+
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      if (completedRef.current) return;
+      const rect = packRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const relY = e.clientY - rect.top;
+      // Only start if pointer is near the tear line
+      if (Math.abs(relY - TEAR_Y) > TEAR_ZONE) return;
+
+      rippingRef.current = true;
+      packRef.current?.setPointerCapture(e.pointerId);
+
+      if (!ripSoundPlayed.current) {
+        onPlaySound("rip", 0.4);
+        ripSoundPlayed.current = true;
+      }
+
+      const relX = e.clientX - rect.left;
+      const prog = Math.max(0, Math.min(1, relX / rect.width));
+      setProgress(prog);
+      emitSparks(e.clientX);
+    },
+    [onPlaySound, emitSparks],
+  );
+
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!rippingRef.current || completedRef.current) return;
+      const rect = packRef.current?.getBoundingClientRect();
+      if (!rect) return;
+
+      const relX = e.clientX - rect.left;
+      const prog = Math.max(0, Math.min(1, relX / rect.width));
+      setProgress(prog);
+      emitSparks(e.clientX);
+
+      if (prog >= COMPLETE_THRESHOLD) {
+        triggerComplete();
+      }
+    },
+    [emitSparks, triggerComplete],
+  );
+
+  const handlePointerUp = useCallback(() => {
+    if (completedRef.current) return;
+    rippingRef.current = false;
+    // Snap back if not complete
+    setProgress(0);
+    ripSoundPlayed.current = false;
+    lastEmitX.current = -1;
+  }, []);
+
+  // Cleanup animation frame on unmount
+  useEffect(() => {
+    const ref = animFrameRef;
+    return () => {
+      if (ref.current) cancelAnimationFrame(ref.current);
+    };
+  }, []);
+
+  // ─── Completed state: top flips away ───
   if (completed) {
     return (
-      <div ref={containerRef} className="relative flex flex-col items-center gap-0 py-8">
-        <motion.div
-          className="w-[200px] h-[80px] rounded-t-2xl border-2 border-pa-green/50 border-b-0 relative overflow-hidden"
-          initial={{ y: -40, rotateX: -5, opacity: 1 }}
-          animate={{ y: -250, rotateX: -35, opacity: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/card-back.jpg" alt="" draggable={false} className="absolute w-full h-[280px] object-cover top-0 left-0 pointer-events-none" />
-        </motion.div>
-        <motion.div
-          className="w-[220px] h-3 rounded-full"
-          style={{ background: TIER_CONFIGS[maxTier].colors[0] }}
-          initial={{ opacity: 1, scaleX: 1.5 }}
-          animate={{ opacity: 0, scaleX: 3 }}
-          transition={{ duration: 0.8 }}
-        />
-        <div
-          className="w-[200px] h-[200px] rounded-b-2xl border-2 border-pa-green/50 border-t-0 overflow-hidden relative"
-          style={{ boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/card-back.jpg" alt="" className="absolute w-full h-[280px] object-cover left-0" style={{ top: "-80px" }} />
+      <div ref={containerRef} className="relative flex flex-col items-center py-8">
+        <div className="relative" style={{ width: PACK_W }}>
+          {/* Top half — flies away */}
           <motion.div
-            className="absolute inset-0 flex items-center justify-center"
-            initial={{ y: 20, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ delay: 0.3, duration: 0.4 }}
+            className="absolute top-0 left-0 w-full overflow-hidden rounded-t-2xl border-2 border-pa-green/50 border-b-0"
+            style={{ height: TEAR_Y, transformOrigin: "bottom center" }}
+            initial={{ rotateX: 0, y: 0, opacity: 1 }}
+            animate={{ rotateX: -60, y: -180, opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
           >
-            <div className="w-[70px] h-[98px] rounded-lg bg-white/5 border border-white/10" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/card-back.jpg"
+              alt=""
+              draggable={false}
+              className="absolute w-full object-cover top-0 left-0 pointer-events-none"
+              style={{ height: PACK_H }}
+            />
           </motion.div>
+
+          {/* Glow burst at tear line */}
+          <motion.div
+            className="absolute left-[-10px] right-[-10px] h-[6px] rounded-full"
+            style={{ top: TEAR_Y - 3, background: glowColor, boxShadow: `0 0 20px ${glowColor}, 0 0 40px ${glowColor}` }}
+            initial={{ opacity: 1, scaleY: 1 }}
+            animate={{ opacity: 0, scaleY: 4 }}
+            transition={{ duration: 0.8 }}
+          />
+
+          {/* Bottom half — stays */}
+          <div
+            className="absolute left-0 w-full overflow-hidden rounded-b-2xl border-2 border-pa-green/50 border-t-0"
+            style={{ top: TEAR_Y, height: PACK_H - TEAR_Y, boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/images/card-back.jpg"
+              alt=""
+              draggable={false}
+              className="absolute w-full object-cover left-0 pointer-events-none"
+              style={{ height: PACK_H, top: -TEAR_Y }}
+            />
+          </div>
         </div>
+        {/* Spacer to maintain layout height */}
+        <div style={{ height: PACK_H + 40 }} />
       </div>
     );
   }
 
+  // ─── Active ripping state ───
   return (
     <div ref={containerRef} className="relative flex flex-col items-center py-8">
-      <motion.div
-        className="relative cursor-grab active:cursor-grabbing touch-none select-none"
+      <div
+        ref={packRef}
+        className="relative select-none touch-none cursor-crosshair"
+        style={{ width: PACK_W, height: PACK_H + gap, perspective: 600 }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         role="button"
-        aria-label="Swipe up to rip open pack"
         tabIndex={0}
-        drag="y"
-        dragConstraints={{ top: -SWIPE_RANGE, bottom: 0 }}
-        dragElastic={0}
-        dragMomentum={false}
-        style={{ y: dragY }}
-        onDrag={handleDragUpdate}
-        onDragEnd={() => {
-          const prog = Math.abs(dragY.get()) / SWIPE_RANGE;
-          if (prog < AUTO_COMPLETE_THRESHOLD) {
-            dragY.set(0);
-            ripSoundPlayed.current = false;
+        aria-label="Drag along the tear line to rip open the pack"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            triggerComplete();
           }
         }}
-        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); triggerComplete(); } }}
       >
-        <motion.div
-          className="w-[200px] h-[80px] rounded-t-2xl border-2 border-pa-green/50 border-b-0 relative overflow-hidden"
-          style={{ y: topY, rotateX: topRotate, opacity: topOpacity }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/card-back.jpg" alt="" draggable={false} className="absolute w-full h-[280px] object-cover top-0 left-0 pointer-events-none" />
-          <div className="absolute inset-0 animate-holo-shimmer pointer-events-none" />
-        </motion.div>
-        <motion.div
-          className="w-[220px] h-2 rounded-full mx-auto"
-          style={{ background: "#9BFF00", boxShadow: "0 0 30px #9BFF00, 0 0 60px rgba(155,255,0,0.5)", opacity: glowOpacity, scaleX: glowScale }}
-        />
+        {/* Top half */}
         <div
-          className="w-[200px] h-[200px] rounded-b-2xl border-2 border-pa-green/50 border-t-0 overflow-hidden relative"
-          style={{ boxShadow: "0 20px 40px rgba(0,0,0,0.5)" }}
+          className="absolute top-0 left-0 w-full overflow-hidden rounded-t-2xl border-2 border-pa-green/50 border-b-0"
+          style={{
+            height: TEAR_Y,
+            transform: `rotateX(${topTiltDeg}deg)`,
+            transformOrigin: "bottom center",
+            transition: "transform 0.1s ease-out",
+          }}
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/card-back.jpg" alt={boxName} draggable={false} className="absolute w-full h-[280px] object-cover left-0 pointer-events-none" style={{ top: "-80px" }} />
+          <img
+            src="/images/card-back.jpg"
+            alt=""
+            draggable={false}
+            className="absolute w-full object-cover top-0 left-0 pointer-events-none"
+            style={{ height: PACK_H }}
+          />
+          <div className="absolute inset-0 animate-holo-shimmer pointer-events-none" />
         </div>
-      </motion.div>
+
+        {/* Tear line zone */}
+        <div
+          className="absolute left-0 w-full"
+          style={{ top: TEAR_Y, height: Math.max(gap, 4) }}
+        >
+          {/* Background tear line (dashed, visible where not yet ripped) */}
+          <div
+            className="absolute top-1/2 h-[2px] -translate-y-1/2"
+            style={{
+              left: `${progress * 100}%`,
+              right: 0,
+              background: "repeating-linear-gradient(90deg, rgba(155,255,0,0.3) 0px, rgba(155,255,0,0.3) 6px, transparent 6px, transparent 12px)",
+            }}
+          />
+
+          {/* Rip glow — visible portion (left to progress) */}
+          {progress > 0 && (
+            <div
+              className="absolute top-1/2 h-[4px] -translate-y-1/2 left-0 rounded-full"
+              style={{
+                width: `${progress * 100}%`,
+                background: `linear-gradient(90deg, ${glowColor}80, ${glowColor})`,
+                boxShadow: `0 0 8px ${glowColor}, 0 0 20px ${glowColor}60`,
+                transition: "width 0.05s linear",
+              }}
+            />
+          )}
+
+          {/* Rip cursor — bright dot at rip point */}
+          {progress > 0.01 && (
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full"
+              style={{
+                left: `${progress * 100}%`,
+                width: 12,
+                height: 12,
+                background: glowColor,
+                boxShadow: `0 0 12px ${glowColor}, 0 0 24px ${glowColor}, 0 0 36px ${glowColor}80`,
+              }}
+            />
+          )}
+        </div>
+
+        {/* Bottom half */}
+        <div
+          className="absolute left-0 w-full overflow-hidden rounded-b-2xl border-2 border-pa-green/50 border-t-0"
+          style={{
+            top: TEAR_Y + gap,
+            height: PACK_H - TEAR_Y,
+            boxShadow: "0 20px 40px rgba(0,0,0,0.5)",
+          }}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/images/card-back.jpg"
+            alt={boxName}
+            draggable={false}
+            className="absolute w-full object-cover left-0 pointer-events-none"
+            style={{ height: PACK_H, top: -TEAR_Y }}
+          />
+        </div>
+      </div>
+
+      {/* Hint text */}
       <motion.p
         className="mt-6 text-[11px] text-pa-green/60 uppercase tracking-[2px]"
         animate={{ opacity: [0.4, 1] }}
         transition={{ duration: 1, repeat: Infinity, repeatType: "reverse" }}
       >
-        &#8593; Swipe up to rip open
+        &#8594; {progress > 0.01 ? "Keep going..." : "Drag along the tear line"}
       </motion.p>
     </div>
   );
