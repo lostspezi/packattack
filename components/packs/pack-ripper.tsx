@@ -261,18 +261,17 @@ export function PackRipper({
           <div className="absolute inset-0 animate-holo-shimmer pointer-events-none" />
         </div>
 
-        {/* Tear line zone */}
+        {/* Tear line overlay — positioned over the pack, above both halves */}
         <div
-          className="absolute left-0 w-full"
-          style={{ top: TEAR_Y, height: Math.max(gap, 4) }}
+          className="absolute left-[-4px] right-[-4px] pointer-events-none"
+          style={{ top: TEAR_Y - 1 + gap / 2, height: 2, zIndex: 10 }}
         >
           {/* Background tear line (dashed, visible where not yet ripped) */}
           <div
-            className="absolute top-1/2 h-[2px] -translate-y-1/2"
+            className="absolute inset-0"
             style={{
               left: `${progress * 100}%`,
-              right: 0,
-              background: "repeating-linear-gradient(90deg, rgba(155,255,0,0.3) 0px, rgba(155,255,0,0.3) 6px, transparent 6px, transparent 12px)",
+              background: "repeating-linear-gradient(90deg, rgba(155,255,0,0.5) 0px, rgba(155,255,0,0.5) 8px, transparent 8px, transparent 14px)",
             }}
           />
 
@@ -283,8 +282,7 @@ export function PackRipper({
               style={{
                 width: `${progress * 100}%`,
                 background: `linear-gradient(90deg, ${glowColor}80, ${glowColor})`,
-                boxShadow: `0 0 8px ${glowColor}, 0 0 20px ${glowColor}60`,
-                transition: "width 0.05s linear",
+                boxShadow: `0 0 10px ${glowColor}, 0 0 25px ${glowColor}80`,
               }}
             />
           )}
@@ -295,10 +293,10 @@ export function PackRipper({
               className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full"
               style={{
                 left: `${progress * 100}%`,
-                width: 12,
-                height: 12,
+                width: 14,
+                height: 14,
                 background: glowColor,
-                boxShadow: `0 0 12px ${glowColor}, 0 0 24px ${glowColor}, 0 0 36px ${glowColor}80`,
+                boxShadow: `0 0 12px ${glowColor}, 0 0 24px ${glowColor}, 0 0 40px ${glowColor}80`,
               }}
             />
           )}
