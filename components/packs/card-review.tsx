@@ -118,62 +118,64 @@ export function CardReview({
   const totalValue = cards.reduce((sum, c) => sum + c.conversionValue, 0);
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4 py-6 px-3 sm:px-4">
-      {/* Header */}
-      <div className="text-center space-y-1">
-        <h2 className="text-lg sm:text-xl font-bold text-text-primary">
-          {isDe ? "Deine Karten" : "Your Cards"}
-        </h2>
-        <p className="text-sm text-text-secondary">
-          {boxName} · {cards.length} {isDe ? "Karten" : "cards"}
-          {groups.length < cards.length - recoveredIndices.size && (
-            <span className="text-text-muted">
-              {" "}({groups.length} {isDe ? "einzigartige" : "unique"})
-            </span>
-          )}
-        </p>
-      </div>
-
-      {/* Recovery banner */}
-      {isRecovery && (
-        <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/8 px-4 py-3">
-          <RotateCcw className="h-4 w-4 shrink-0 text-blue-400" />
-          <p className="text-sm text-blue-300">
-            {isDe
-              ? recoveredIndices.size > 0
-                ? `Pack-Opening fortgesetzt. ${recoveredIndices.size} von ${cards.length} bereits entschieden.`
-                : `Dein letztes Pack-Opening wurde unterbrochen. Deine Karten sind sicher.`
-              : recoveredIndices.size > 0
-                ? `Pack opening resumed. ${recoveredIndices.size} of ${cards.length} already decided.`
-                : `Your last pack opening was interrupted. Your cards are safe.`}
+    <div className="max-w-2xl mx-auto flex flex-col h-[calc(100dvh-4rem)] py-4 px-3 sm:px-4">
+      {/* Header — fixed top */}
+      <div className="shrink-0 space-y-3 pb-3">
+        <div className="text-center space-y-1">
+          <h2 className="text-lg sm:text-xl font-bold text-text-primary">
+            {isDe ? "Deine Karten" : "Your Cards"}
+          </h2>
+          <p className="text-sm text-text-secondary">
+            {boxName} · {cards.length} {isDe ? "Karten" : "cards"}
+            {groups.length < cards.length - recoveredIndices.size && (
+              <span className="text-text-muted">
+                {" "}({groups.length} {isDe ? "einzigartige" : "unique"})
+              </span>
+            )}
           </p>
         </div>
-      )}
 
-      {/* Bulk action buttons */}
-      <div className="flex gap-2">
-        <Button
-          variant="secondary"
-          size="md"
-          className="flex-1"
-          onClick={() => setAllChoices("claim")}
-        >
-          <ShoppingCart className="w-4 h-4 mr-1.5" />
-          {isDe ? "Alle in Warenkorb" : "All to Cart"}
-        </Button>
-        <Button
-          variant="secondary"
-          size="md"
-          className="flex-1"
-          onClick={() => setAllChoices("convert")}
-        >
-          <Coins className="w-4 h-4 mr-1.5" />
-          {isDe ? `Alle umwandeln (${totalValue})` : `Convert all (${totalValue})`}
-        </Button>
+        {/* Recovery banner */}
+        {isRecovery && (
+          <div className="flex items-center gap-2 rounded-xl border border-blue-500/20 bg-blue-500/8 px-4 py-3">
+            <RotateCcw className="h-4 w-4 shrink-0 text-blue-400" />
+            <p className="text-sm text-blue-300">
+              {isDe
+                ? recoveredIndices.size > 0
+                  ? `Pack-Opening fortgesetzt. ${recoveredIndices.size} von ${cards.length} bereits entschieden.`
+                  : `Dein letztes Pack-Opening wurde unterbrochen. Deine Karten sind sicher.`
+                : recoveredIndices.size > 0
+                  ? `Pack opening resumed. ${recoveredIndices.size} of ${cards.length} already decided.`
+                  : `Your last pack opening was interrupted. Your cards are safe.`}
+            </p>
+          </div>
+        )}
+
+        {/* Bulk action buttons */}
+        <div className="flex gap-2">
+          <Button
+            variant="secondary"
+            size="md"
+            className="flex-1"
+            onClick={() => setAllChoices("claim")}
+          >
+            <ShoppingCart className="w-4 h-4 mr-1.5" />
+            {isDe ? "Alle in Warenkorb" : "All to Cart"}
+          </Button>
+          <Button
+            variant="secondary"
+            size="md"
+            className="flex-1"
+            onClick={() => setAllChoices("convert")}
+          >
+            <Coins className="w-4 h-4 mr-1.5" />
+            {isDe ? `Alle umwandeln (${totalValue})` : `Convert all (${totalValue})`}
+          </Button>
+        </div>
       </div>
 
-      {/* Card groups */}
-      <div className="space-y-2">
+      {/* Scrollable card list */}
+      <div className="flex-1 min-h-0 overflow-y-auto space-y-2 py-2 -mx-1 px-1">
         {groups.map((group) => (
           <CardGroupRow
             key={group.card.cardId}
@@ -199,8 +201,9 @@ export function CardReview({
         ))}
       </div>
 
-      {/* Summary */}
-      <div className="bg-white/4 border border-border rounded-xl p-4">
+      {/* Sticky bottom — summary + action */}
+      <div className="shrink-0 space-y-3 pt-3 border-t border-border/50">
+        {/* Summary */}
         <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm">
           {claimedCount > 0 && (
             <span className="flex items-center gap-1.5 text-green-400">
@@ -220,32 +223,32 @@ export function CardReview({
             </span>
           )}
         </div>
-      </div>
 
-      {/* Confirm / show confirmation dialog */}
-      {!confirmOpen ? (
-        <Button
-          variant="primary"
-          size="lg"
-          className="w-full"
-          disabled={!allDecided}
-          onClick={() => setConfirmOpen(true)}
-        >
-          {allDecided
-            ? isDe ? "Weiter" : "Continue"
-            : isDe ? "Bitte alle Karten entscheiden" : "Please decide all cards"}
-        </Button>
-      ) : (
-        <ConfirmDialog
-          claimedCount={claimedCount}
-          convertedCount={convertedCount}
-          coinsBack={coinsBack}
-          isDe={isDe}
-          submitting={submitting}
-          onConfirm={onConfirm}
-          onCancel={() => setConfirmOpen(false)}
-        />
-      )}
+        {/* Confirm / show confirmation dialog */}
+        {!confirmOpen ? (
+          <Button
+            variant="primary"
+            size="lg"
+            className="w-full"
+            disabled={!allDecided}
+            onClick={() => setConfirmOpen(true)}
+          >
+            {allDecided
+              ? isDe ? "Weiter" : "Continue"
+              : isDe ? "Bitte alle Karten entscheiden" : "Please decide all cards"}
+          </Button>
+        ) : (
+          <ConfirmDialog
+            claimedCount={claimedCount}
+            convertedCount={convertedCount}
+            coinsBack={coinsBack}
+            isDe={isDe}
+            submitting={submitting}
+            onConfirm={onConfirm}
+            onCancel={() => setConfirmOpen(false)}
+          />
+        )}
+      </div>
     </div>
   );
 }
