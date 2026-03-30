@@ -132,9 +132,10 @@ export interface DealtHand {
 
 export function dealHands(pool: DealableCard[], playerIds: string[]): DealtHand[] {
   const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  const perPlayer = Math.min(HAND_SIZE, Math.floor(shuffled.length / playerIds.length));
   return playerIds.map((playerId, i) => ({
     player: playerId,
-    dealtCards: shuffled.slice(i * HAND_SIZE, (i + 1) * HAND_SIZE),
+    dealtCards: shuffled.slice(i * perPlayer, (i + 1) * perPlayer),
     selectedIndex: null,
   }));
 }

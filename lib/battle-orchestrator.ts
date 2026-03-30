@@ -248,7 +248,7 @@ export async function runBattle(battleId: string): Promise<void> {
     for (const player of battle.players) {
       const result = drawPacks(
         packCards,
-        box.cardsPerPack,
+        HAND_SIZE,
         battle.packsPerPlayer,
         box.priceInCoins,
       );
