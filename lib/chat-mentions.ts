@@ -89,6 +89,7 @@ export function messageMentionsViewer(
     authorUserId?: string | null;
     body: string;
     mentionTargets?: ChatMentionTargetSummary[] | null;
+    quotedMessageAuthorUsername?: string | null;
   },
   viewerUserId?: string | null,
   viewerUsername?: string | null
@@ -96,9 +97,18 @@ export function messageMentionsViewer(
   if (!viewerUserId) return false;
   if (input.authorUserId === viewerUserId) return false;
 
+  const normalizedViewerUsername = viewerUsername?.trim().toLowerCase() ?? null;
+  const normalizedQuotedUsername = input.quotedMessageAuthorUsername?.trim().toLowerCase() ?? null;
+  const quotedCurrentUser = Boolean(
+    normalizedViewerUsername &&
+      normalizedQuotedUsername &&
+      normalizedViewerUsername === normalizedQuotedUsername
+  );
+
   return (
     (input.mentionTargets ?? []).some((target) => target.userId === viewerUserId) ||
-    bodyMentionsUsername(input.body, viewerUsername)
+    bodyMentionsUsername(input.body, viewerUsername) ||
+    quotedCurrentUser
   );
 }
 

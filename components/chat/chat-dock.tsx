@@ -10,6 +10,7 @@ import {
   ImageIcon,
   MoreHorizontal,
   MessagesSquare,
+  Reply,
   Volume2,
   X,
 } from "lucide-react";
@@ -126,6 +127,19 @@ function canEditOwnAdminMessage(message: ChatMessageSummary, currentUserId: stri
   );
 }
 
+function getQuotePreviewText(
+  message: ChatMessageSummary,
+  quoteGifFallback: string,
+  deletedLabel: string
+) {
+  const source = message.body.trim()
+    ? message.body
+    : message.gif
+      ? quoteGifFallback
+      : deletedLabel;
+  return source.length > 180 ? `${source.slice(0, 180)}...` : source;
+}
+
 function formatTimeoutPreset(minutes: number) {
   if (minutes >= 1440) {
     return `${Math.round(minutes / 60 / 24 * 10) / 10} T`;
@@ -161,6 +175,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const [animateLauncher, setAnimateLauncher] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportTarget, setReportTarget] = useState<ChatMessageSummary | null>(null);
+  const [quoteTarget, setQuoteTarget] = useState<ChatMessageSummary | null>(null);
   const [reportCategory, setReportCategory] = useState("spam");
   const [reportNote, setReportNote] = useState("");
   const [editOpen, setEditOpen] = useState(false);
@@ -241,6 +256,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         authorUserId: message.author?.id ?? null,
         body: message.body,
         mentionTargets: message.mentionTargets,
+        quotedMessageAuthorUsername: message.quotedMessage?.authorUsername ?? null,
       },
       currentUserId,
       username ?? selfUsername
@@ -514,6 +530,18 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   ]);
 
   useEffect(() => {
+    if (!quoteTarget) return;
+    const refreshed = messages.find((message) => message.id === quoteTarget.id);
+    if (!refreshed || refreshed.isDeleted) {
+      setQuoteTarget(null);
+      return;
+    }
+    if (refreshed !== quoteTarget) {
+      setQuoteTarget(refreshed);
+    }
+  }, [messages, quoteTarget]);
+
+  useEffect(() => {
     if (!room?.lastVisibleSeq || room.lastVisibleSeq <= readState.lastReadVisibleSeq) return;
     if (!isPanelOpen || !shouldStickToBottomRef.current) return;
 
@@ -543,7 +571,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   async function submitMessage() {
     if (sending) return;
     const trimmed = body.trim();
-    if (!trimmed && !attachedGif) return;
+    if (!trimmed && !attachedGif && !quoteTarget) return;
 
     shouldRefocusComposerRef.current = true;
     setSending(true);
@@ -554,6 +582,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         body: JSON.stringify({
           body: trimmed,
           gif: attachedGif ?? undefined,
+          quoteMessageId: quoteTarget?.id,
         }),
       });
       const payload = await res.json();
@@ -584,6 +613,10 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           message = copy.composer.rateLimited;
         }
         if (error === "message_blocked") message = copy.composer.blocked;
+        if (error === "invalid_quote_message") {
+          message = copy.quote.invalid;
+          setQuoteTarget(null);
+        }
         toast({ type: "error", title: message });
         return;
       }
@@ -594,6 +627,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
 
       setBody("");
       setAttachedGif(null);
+      setQuoteTarget(null);
     } catch {
       toast({ type: "error", title: copy.states.networkError });
     } finally {
@@ -1016,6 +1050,22 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                     <time title={new Date(message.createdAt).toLocaleString("de-DE")}>
                       {formatTime(message.createdAt)}
                     </time>
+                    {!message.isDeleted ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuoteTarget(message);
+                          window.requestAnimationFrame(() => {
+                            composerRef.current?.focus();
+                          });
+                        }}
+                        className="inline-flex items-center text-text-muted transition-colors hover:text-pa-green"
+                        aria-label={copy.quote.action}
+                        title={copy.quote.action}
+                      >
+                        <Reply className="h-3.5 w-3.5" />
+                      </button>
+                    ) : null}
                     {isStaff ? (
                       <Dropdown
                         align="right"
@@ -1092,6 +1142,11 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                   body={message.body}
                   gif={message.gif}
                   highlightCard={message.highlightCard}
+                  quotedMessage={message.quotedMessage}
+                  quoteLabels={{
+                    replyingTo: copy.quote.replyingTo,
+                    gifFallback: copy.quote.gifFallback,
+                  }}
                   highlightedMentionUsername={mentionedCurrentUser ? selfUsername : null}
                   className="mt-2 space-y-2"
                   gifClassName="max-w-[220px]"
@@ -1143,6 +1198,31 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         {cannotPostMessage ? (
           <div className="mb-3 rounded-[12px] border border-yellow-500/15 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">
             {cannotPostMessage}
+          </div>
+        ) : null}
+
+        {quoteTarget ? (
+          <div className="mb-3 flex items-start justify-between gap-3 rounded-[12px] border border-white/10 bg-white/4 px-3 py-2">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                {copy.quote.replyingTo}{" "}
+                <span className="normal-case text-text-secondary">
+                  {quoteTarget.author?.username ?? quoteTarget.author?.name ?? "System"}
+                </span>
+              </p>
+              <p className="mt-1 whitespace-pre-wrap break-words text-xs text-text-secondary">
+                {getQuotePreviewText(quoteTarget, copy.quote.gifFallback, copy.states.deleted)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setQuoteTarget(null)}
+              className="inline-flex h-6 w-6 items-center justify-center rounded-full text-text-muted transition-colors hover:text-pa-green"
+              title={copy.quote.cancel}
+              aria-label={copy.quote.cancel}
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
           </div>
         ) : null}
 
@@ -1203,7 +1283,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           <Button
             onClick={submitMessage}
             loading={sending}
-            disabled={!permissions.canPost || (!body.trim() && !attachedGif)}
+            disabled={!permissions.canPost || (!body.trim() && !attachedGif && !quoteTarget)}
             className="self-center"
           >
             {sending ? copy.composer.sending : copy.composer.send}

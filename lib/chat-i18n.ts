@@ -33,6 +33,7 @@ export function getChatUiCopy(lang: string, dict: ChatDictionary = {}): ChatUiCo
     reports: mergeSection(base.reports, "reports", dict),
     reactions: mergeSection(base.reactions, "reactions", dict),
     messageEditor: mergeSection(base.messageEditor, "messageEditor", dict),
+    quote: mergeSection(base.quote, "quote", dict),
     states: mergeSection(base.states, "states", dict),
     admin: mergeSection(base.admin, "admin", dict),
     roomModes: mergeSection(base.roomModes, "roomModes", dict),

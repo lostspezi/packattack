@@ -1,4 +1,5 @@
 ﻿import { randomUUID } from "node:crypto";
+import { Types } from "mongoose";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import {
@@ -190,11 +191,69 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "links_not_allowed" }, { status: 400 });
     }
 
+    let quotedMessageSnapshot: {
+      messageId: Types.ObjectId;
+      body: string;
+      authorName: string;
+      authorUsername: string | null;
+      gif: {
+        provider: "giphy";
+        id: string;
+        title: string;
+        rating: string | null;
+        previewUrl: string;
+        displayUrl: string;
+        width: number;
+        height: number;
+      } | null;
+    } | null = null;
+
+    const quoteMessageId = parsed.data.quoteMessageId?.trim();
+    if (quoteMessageId) {
+      if (!Types.ObjectId.isValid(quoteMessageId)) {
+        return NextResponse.json({ error: "invalid_quote_message" }, { status: 400 });
+      }
+
+      const quotedMessageSource = await ChatMessage.findOne({
+        _id: quoteMessageId,
+        roomId: room._id,
+        visibleSeq: { $ne: null },
+        status: { $nin: ["deleted", "redacted"] },
+      }).lean();
+
+      if (!quotedMessageSource) {
+        return NextResponse.json({ error: "invalid_quote_message" }, { status: 400 });
+      }
+
+      quotedMessageSnapshot = {
+        messageId: quotedMessageSource._id,
+        body: quotedMessageSource.bodyDisplay ?? "",
+        authorName:
+          quotedMessageSource.authorSnapshot?.username ??
+          quotedMessageSource.authorSnapshot?.name ??
+          "Nutzer",
+        authorUsername: quotedMessageSource.authorSnapshot?.username ?? null,
+        gif: quotedMessageSource.gif
+          ? {
+              provider: quotedMessageSource.gif.provider,
+              id: quotedMessageSource.gif.id,
+              title: quotedMessageSource.gif.title,
+              rating: quotedMessageSource.gif.rating ?? null,
+              previewUrl: quotedMessageSource.gif.previewUrl,
+              displayUrl: quotedMessageSource.gif.displayUrl,
+              width: quotedMessageSource.gif.width,
+              height: quotedMessageSource.gif.height,
+            }
+          : null,
+      };
+    }
+
     const rateLimit = await assertChatSubmissionAllowed({
       userId,
       normalizedBody: JSON.stringify({
         body: normalizedBody,
         gifId: gif?.id ?? null,
+        quoteMessageId: quotedMessageSnapshot?.messageId.toString() ?? null,
       }),
       trustTier: permissions.trustTier,
       slowModeSeconds: room.mode === "slow_mode" ? room.slowModeSeconds : 0,
@@ -318,6 +377,7 @@ export async function POST(req: NextRequest) {
       bodyNormalized: normalizedBody.toLowerCase(),
       bodyDisplay: moderation.bodyDisplay,
       gif,
+      quotedMessage: quotedMessageSnapshot,
       status,
       clientNonce: randomUUID(),
       mentionTargets,
@@ -344,6 +404,7 @@ export async function POST(req: NextRequest) {
         moderation: message.moderation,
         authorSnapshot: message.authorSnapshot,
         mentionTargets: message.mentionTargets,
+        quotedMessage: quotedMessageSnapshot,
       },
     });
 
@@ -354,7 +415,20 @@ export async function POST(req: NextRequest) {
       ...(shouldBeVisible ? { $inc: { successfulMessageCount: 1 } } : {}),
     });
 
-    const serializedMessage = await serializeChatMessageWithCurrentRelations(message);
+    const serializedBaseMessage = await serializeChatMessageWithCurrentRelations(message);
+    const serializedMessage =
+      quotedMessageSnapshot && !serializedBaseMessage.quotedMessage
+        ? {
+            ...serializedBaseMessage,
+            quotedMessage: {
+              id: quotedMessageSnapshot.messageId.toString(),
+              body: quotedMessageSnapshot.body,
+              authorName: quotedMessageSnapshot.authorName,
+              authorUsername: quotedMessageSnapshot.authorUsername,
+              gif: quotedMessageSnapshot.gif,
+            },
+          }
+        : serializedBaseMessage;
 
     if (shouldBeVisible && message.visibleSeq) {
       await readState.updateOne({

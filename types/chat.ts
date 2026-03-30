@@ -82,6 +82,14 @@ export interface ChatHighlightCardSummary {
   coinValue: number;
 }
 
+export interface ChatQuotedMessageSummary {
+  id: string;
+  body: string;
+  authorName: string;
+  authorUsername: string | null;
+  gif: ChatGifSummary | null;
+}
+
 export interface ChatMessageSummary {
   id: string;
   roomSlug: string;
@@ -90,6 +98,7 @@ export interface ChatMessageSummary {
   body: string;
   gif: ChatGifSummary | null;
   highlightCard: ChatHighlightCardSummary | null;
+  quotedMessage: ChatQuotedMessageSummary | null;
   status: ChatMessageStatus;
   author: ChatAuthorSummary | null;
   mentionTargets: ChatMentionTargetSummary[];

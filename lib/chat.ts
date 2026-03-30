@@ -399,15 +399,35 @@ export function serializeChatMessage(
           coinValue: message.highlightCard.coinValue,
         }
       : null,
+    quotedMessage: message.quotedMessage
+      ? {
+          id: toStringId(message.quotedMessage.messageId),
+          body: message.quotedMessage.body,
+          authorName: message.quotedMessage.authorName,
+          authorUsername: message.quotedMessage.authorUsername ?? null,
+          gif: message.quotedMessage.gif
+            ? {
+                provider: message.quotedMessage.gif.provider,
+                id: message.quotedMessage.gif.id,
+                title: message.quotedMessage.gif.title,
+                rating: message.quotedMessage.gif.rating ?? null,
+                previewUrl: message.quotedMessage.gif.previewUrl,
+                displayUrl: message.quotedMessage.gif.displayUrl,
+                width: message.quotedMessage.gif.width,
+                height: message.quotedMessage.gif.height,
+              }
+            : null,
+        }
+      : null,
     status: message.status,
     author: message.authorSnapshot
       ? {
           id: toStringId(message.authorUserId),
-        name: message.authorSnapshot.name,
-        username: message.authorSnapshot.username,
-        role: message.authorSnapshot.role,
-        roleBadge: message.authorSnapshot.roleBadge,
-        profileBadges,
+          name: message.authorSnapshot.name,
+          username: message.authorSnapshot.username,
+          role: message.authorSnapshot.role,
+          roleBadge: message.authorSnapshot.roleBadge,
+          profileBadges,
           avatarUrl: message.authorSnapshot.avatarUrl,
           identityVerified: message.authorSnapshot.identityVerified,
         }

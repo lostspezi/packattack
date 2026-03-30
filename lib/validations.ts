@@ -182,8 +182,9 @@ export const chatGifSchema = z.object({
 export const createChatMessageSchema = z.object({
   body: z.string().trim().max(500).optional().default(""),
   gif: chatGifSchema.optional(),
-}).refine((value) => value.body.trim().length > 0 || Boolean(value.gif), {
-  message: "Message must contain text or a GIF",
+  quoteMessageId: z.string().trim().min(1).max(64).optional(),
+}).refine((value) => value.body.trim().length > 0 || Boolean(value.gif) || Boolean(value.quoteMessageId), {
+  message: "Message must contain text, a GIF, or a quoted message",
 });
 
 export const updateChatMessageSchema = z.object({

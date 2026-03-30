@@ -50,14 +50,13 @@ export function ChatJackpotCard({ card, className }: ChatJackpotCardProps) {
             JACKPOT • {card.coinValue} Coins
           </p>
           <p className="mt-1 break-words text-sm font-semibold text-text-primary">{card.name}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            {rarity ? (
+          {rarity ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               <span className="rounded-full border border-yellow-300/30 bg-yellow-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-yellow-200">
                 {rarity}
               </span>
-            ) : null}
-            <span className="text-[11px] font-medium text-orange-200/90">Chat explodiert gerade!</span>
-          </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

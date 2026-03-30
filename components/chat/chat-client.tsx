@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Flag, ImageIcon, Pencil, ShieldAlert, Volume2 } from "lucide-react";
+import { Flag, ImageIcon, Pencil, Reply, ShieldAlert, Volume2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChatBadgeDetailModal } from "@/components/chat/chat-badge-detail-modal";
@@ -79,6 +79,19 @@ function canEditOwnAdminMessage(message: ChatMessageSummary, currentUserId: stri
   );
 }
 
+function getQuotePreviewText(
+  message: ChatMessageSummary,
+  quoteGifFallback: string,
+  deletedLabel: string
+) {
+  const source = message.body.trim()
+    ? message.body
+    : message.gif
+      ? quoteGifFallback
+      : deletedLabel;
+  return source.length > 180 ? `${source.slice(0, 180)}...` : source;
+}
+
 export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClientProps) {
   const copy = getChatUiCopy(lang, dict);
   const { toast } = useToast();
@@ -94,6 +107,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
   const [reportCategory, setReportCategory] = useState("spam");
   const [reportNote, setReportNote] = useState("");
   const [reportTarget, setReportTarget] = useState<ChatMessageSummary | null>(null);
+  const [quoteTarget, setQuoteTarget] = useState<ChatMessageSummary | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ChatMessageSummary | null>(null);
   const [editBody, setEditBody] = useState("");
@@ -146,6 +160,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
         authorUserId: message.author?.id ?? null,
         body: message.body,
         mentionTargets: message.mentionTargets,
+        quotedMessageAuthorUsername: message.quotedMessage?.authorUsername ?? null,
       },
       currentUserId,
       initialData.selfUsername
@@ -285,6 +300,18 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
   }, [copy.reports.error, copy.states.deleted, copy.states.soundUnavailable, currentUserId, initialData.selfUsername, isMentionForCurrentUser, readState.soundMode, toast]);
 
   useEffect(() => {
+    if (!quoteTarget) return;
+    const refreshed = messages.find((message) => message.id === quoteTarget.id);
+    if (!refreshed || refreshed.isDeleted) {
+      setQuoteTarget(null);
+      return;
+    }
+    if (refreshed !== quoteTarget) {
+      setQuoteTarget(refreshed);
+    }
+  }, [messages, quoteTarget]);
+
+  useEffect(() => {
     if (!room.lastVisibleSeq || room.lastVisibleSeq <= readState.lastReadVisibleSeq) return;
     if (!shouldStickToBottomRef.current) return;
 
@@ -314,7 +341,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
   async function submitMessage() {
     if (sending) return;
     const trimmed = body.trim();
-    if (!trimmed && !attachedGif) return;
+    if (!trimmed && !attachedGif && !quoteTarget) return;
 
     shouldRefocusComposerRef.current = true;
     setSending(true);
@@ -325,6 +352,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
         body: JSON.stringify({
           body: trimmed,
           gif: attachedGif ?? undefined,
+          quoteMessageId: quoteTarget?.id,
         }),
       });
       const payload = await res.json();
@@ -352,6 +380,10 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
           message = copy.composer.rateLimited;
         }
         if (error === "message_blocked") message = copy.composer.blocked;
+        if (error === "invalid_quote_message") {
+          message = copy.quote.invalid;
+          setQuoteTarget(null);
+        }
         toast({ type: "error", title: message });
         return;
       }
@@ -362,6 +394,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
 
       setBody("");
       setAttachedGif(null);
+      setQuoteTarget(null);
     } catch {
       toast({ type: "error", title: copy.states.networkError });
     } finally {
@@ -606,6 +639,21 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
                       <time title={new Date(message.createdAt).toLocaleString("de-DE")}>
                         {formatTime(message.createdAt)}
                       </time>
+                      {!message.isDeleted ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setQuoteTarget(message);
+                            window.requestAnimationFrame(() => {
+                              composerRef.current?.focus();
+                            });
+                          }}
+                          className="inline-flex items-center gap-1 text-text-muted transition-colors hover:text-pa-green"
+                        >
+                          <Reply className="h-3.5 w-3.5" />
+                          <span className="sr-only">{copy.quote.action}</span>
+                        </button>
+                      ) : null}
                       {canEditOwnAdminMessage(message, currentUserId) ? (
                         <button
                           type="button"
@@ -634,6 +682,11 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
                     body={message.body}
                     gif={message.gif}
                     highlightCard={message.highlightCard}
+                    quotedMessage={message.quotedMessage}
+                    quoteLabels={{
+                      replyingTo: copy.quote.replyingTo,
+                      gifFallback: copy.quote.gifFallback,
+                    }}
                     highlightedMentionUsername={mentionedCurrentUser ? initialData.selfUsername : null}
                     className="mt-2 space-y-2"
                     gifClassName="max-w-[320px]"
@@ -680,6 +733,30 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
               {cannotPostMessage}
             </div>
           )}
+          {quoteTarget ? (
+            <div className="mb-3 flex items-start justify-between gap-3 rounded-[10px] border border-white/10 bg-white/4 px-3 py-2">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+                  {copy.quote.replyingTo}{" "}
+                  <span className="normal-case text-text-secondary">
+                    {quoteTarget.author?.username ?? quoteTarget.author?.name ?? "System"}
+                  </span>
+                </p>
+                <p className="mt-1 whitespace-pre-wrap break-words text-xs text-text-secondary">
+                  {getQuotePreviewText(quoteTarget, copy.quote.gifFallback, copy.states.deleted)}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuoteTarget(null)}
+                className="inline-flex h-6 w-6 items-center justify-center rounded-full text-text-muted transition-colors hover:text-pa-green"
+                title={copy.quote.cancel}
+                aria-label={copy.quote.cancel}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : null}
           {attachedGif ? (
             <ChatGifAttachmentPreview
               gif={attachedGif}
@@ -736,7 +813,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
             <Button
               onClick={submitMessage}
               loading={sending}
-              disabled={!permissions.canPost || (!body.trim() && !attachedGif)}
+              disabled={!permissions.canPost || (!body.trim() && !attachedGif && !quoteTarget)}
               className="self-center"
             >
               {sending ? copy.composer.sending : copy.composer.send}

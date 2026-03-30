@@ -3,12 +3,21 @@
 import { ChatMessageBody } from "@/components/chat/chat-message-body";
 import { ChatMessageGif } from "@/components/chat/chat-message-gif";
 import { ChatJackpotCard } from "@/components/chat/chat-jackpot-card";
-import type { ChatGifSummary, ChatHighlightCardSummary } from "@/types/chat";
+import type {
+  ChatGifSummary,
+  ChatHighlightCardSummary,
+  ChatQuotedMessageSummary,
+} from "@/types/chat";
 
 interface ChatMessageContentProps {
   body: string;
   gif: ChatGifSummary | null;
   highlightCard?: ChatHighlightCardSummary | null;
+  quotedMessage?: ChatQuotedMessageSummary | null;
+  quoteLabels?: {
+    replyingTo: string;
+    gifFallback: string;
+  };
   highlightedMentionUsername?: string | null;
   className?: string;
   bodyClassName?: string;
@@ -20,18 +29,40 @@ export function ChatMessageContent({
   body,
   gif,
   highlightCard,
+  quotedMessage,
+  quoteLabels,
   highlightedMentionUsername,
   className,
   bodyClassName,
   gifClassName,
   gifImageClassName,
 }: ChatMessageContentProps) {
-  if (!gif && !body && !highlightCard) {
+  if (!gif && !body && !highlightCard && !quotedMessage) {
     return null;
   }
 
+  const quoteBody = quotedMessage?.body?.trim() ?? "";
+  const quoteSourceText = quoteBody || quoteLabels?.gifFallback || "GIF";
+  const quotePreview =
+    quoteSourceText.length > 180 ? `${quoteSourceText.slice(0, 180)}...` : quoteSourceText;
+
   return (
     <div className={className}>
+      {quotedMessage ? (
+        <div className="mb-2 rounded-[10px] border border-white/10 bg-white/4 px-3 py-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
+            {quoteLabels?.replyingTo ?? "Replying to"}{" "}
+            <span className="normal-case">
+              {quotedMessage.authorUsername
+                ? `@${quotedMessage.authorUsername}`
+                : quotedMessage.authorName}
+            </span>
+          </p>
+          <p className="mt-1 whitespace-pre-wrap break-words text-xs text-text-secondary">
+            {quotePreview}
+          </p>
+        </div>
+      ) : null}
       {highlightCard ? <ChatJackpotCard card={highlightCard} className="mb-2" /> : null}
       {gif ? (
         <ChatMessageGif

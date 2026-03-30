@@ -55,6 +55,14 @@ interface IChatGif {
   height: number;
 }
 
+interface IChatQuotedMessage {
+  messageId: Types.ObjectId;
+  body: string;
+  authorName: string;
+  authorUsername: string | null;
+  gif: IChatGif | null;
+}
+
 interface IChatHighlightCard {
   name: string;
   image: string | null;
@@ -81,6 +89,7 @@ export interface IChatMessage extends Document {
   bodyDisplay: string;
   gif: IChatGif | null;
   highlightCard: IChatHighlightCard | null;
+  quotedMessage: IChatQuotedMessage | null;
   status: ChatMessageStatus;
   clientNonce: string;
   mentionTargets: IChatMentionTarget[];
@@ -169,6 +178,21 @@ const ChatGifSchema = new Schema<IChatGif>(
   { _id: false }
 );
 
+const ChatQuotedMessageSchema = new Schema<IChatQuotedMessage>(
+  {
+    messageId: {
+      type: Schema.Types.ObjectId,
+      ref: "ChatMessage",
+      required: true,
+    },
+    body: { type: String, default: "", trim: true, maxlength: 500 },
+    authorName: { type: String, required: true, maxlength: 120 },
+    authorUsername: { type: String, default: null, maxlength: 64 },
+    gif: { type: ChatGifSchema, default: null },
+  },
+  { _id: false }
+);
+
 const ChatHighlightCardSchema = new Schema<IChatHighlightCard>(
   {
     name: { type: String, required: true, maxlength: 200 },
@@ -232,6 +256,7 @@ const ChatMessageSchema = new Schema<IChatMessage>(
     bodyDisplay: { type: String, default: "", trim: true, maxlength: 500 },
     gif: { type: ChatGifSchema, default: null },
     highlightCard: { type: ChatHighlightCardSchema, default: null },
+    quotedMessage: { type: ChatQuotedMessageSchema, default: null },
     status: {
       type: String,
       enum: CHAT_MESSAGE_STATUSES,
@@ -271,7 +296,16 @@ ChatMessageSchema.index(
 );
 ChatMessageSchema.index({ roomId: 1, createdAt: -1 });
 
+const existingChatMessageModel = mongoose.models.ChatMessage as Model<IChatMessage> | undefined;
+const cachedSchemaMissingQuotedMessage =
+  existingChatMessageModel && !existingChatMessageModel.schema.path("quotedMessage");
+
+if (cachedSchemaMissingQuotedMessage) {
+  delete mongoose.models.ChatMessage;
+}
+
 const ChatMessage: Model<IChatMessage> =
-  mongoose.models.ChatMessage ?? mongoose.model<IChatMessage>("ChatMessage", ChatMessageSchema);
+  (mongoose.models.ChatMessage as Model<IChatMessage> | undefined) ??
+  mongoose.model<IChatMessage>("ChatMessage", ChatMessageSchema);
 
 export default ChatMessage;

@@ -100,6 +100,13 @@ export interface ChatUiCopy {
     notEditable: string;
     updateError: string;
   };
+  quote: {
+    action: string;
+    replyingTo: string;
+    cancel: string;
+    gifFallback: string;
+    invalid: string;
+  };
   states: {
     networkError: string;
     loadError: string;
@@ -282,6 +289,13 @@ const de: ChatUiCopy = {
     forbidden: "Du kannst nur eigene Admin-Nachrichten bearbeiten.",
     notEditable: "Diese Nachricht kann nicht bearbeitet werden.",
     updateError: "Nachricht konnte nicht aktualisiert werden.",
+  },
+  quote: {
+    action: "Antworten",
+    replyingTo: "Antwort auf",
+    cancel: "Zitat entfernen",
+    gifFallback: "GIF",
+    invalid: "Diese Nachricht kann nicht mehr zitiert werden.",
   },
   states: {
     networkError: "Netzwerkfehler",
@@ -466,6 +480,13 @@ const en: ChatUiCopy = {
     forbidden: "You can only edit your own admin messages.",
     notEditable: "This message cannot be edited.",
     updateError: "Could not update message.",
+  },
+  quote: {
+    action: "Reply",
+    replyingTo: "Replying to",
+    cancel: "Clear quote",
+    gifFallback: "GIF",
+    invalid: "That message can no longer be quoted.",
   },
   states: {
     networkError: "Network error",
