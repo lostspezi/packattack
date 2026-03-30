@@ -1091,6 +1091,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                 <ChatMessageContent
                   body={message.body}
                   gif={message.gif}
+                  highlightCard={message.highlightCard}
                   highlightedMentionUsername={mentionedCurrentUser ? selfUsername : null}
                   className="mt-2 space-y-2"
                   gifClassName="max-w-[220px]"

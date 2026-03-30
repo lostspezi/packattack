@@ -633,6 +633,7 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
                   <ChatMessageContent
                     body={message.body}
                     gif={message.gif}
+                    highlightCard={message.highlightCard}
                     highlightedMentionUsername={mentionedCurrentUser ? initialData.selfUsername : null}
                     className="mt-2 space-y-2"
                     gifClassName="max-w-[320px]"

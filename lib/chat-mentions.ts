@@ -124,6 +124,6 @@ export function toMentionTargetSummary(user: ChatMentionTargetInput) {
   return {
     userId: String(user.userId ?? user._id ?? ""),
     username: user.username ?? null,
-    name: user.name?.trim() || user.username || "Nutzer",
+    name: user.username || "Nutzer",
   };
 }

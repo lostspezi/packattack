@@ -276,7 +276,7 @@ export async function POST(req: NextRequest) {
       .map((target) => ({
         userId: target._id,
         username: target.username,
-        name: target.name?.trim() || target.username,
+        name: target.username,
       }));
     const hasMention = mentionTargets.length > 0;
     const badgeMap = await getUserBadgeSummariesForUsers([normalizedUser._id]);
@@ -296,7 +296,7 @@ export async function POST(req: NextRequest) {
             ? "moderator"
             : "user",
       authorSnapshot: {
-        name: normalizedUser.name,
+        name: normalizedUser.username?.trim() || "Nutzer",
         username: normalizedUser.username ?? null,
         role: normalizedUser.role,
         roleBadge: getChatRoleBadgeLabel(normalizedUser.role),

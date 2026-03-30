@@ -115,7 +115,7 @@ function escapeRegex(value: string) {
 }
 
 function getDisplayName(user: Pick<ChatUserLike, "name" | "username"> | null | undefined) {
-  return user?.name ?? user?.username ?? "Nutzer";
+  return user?.username ?? "Nutzer";
 }
 
 function getChatRestrictionCountsFromStates(states: Array<Pick<IChatUserState, "activeRestriction">>): ChatRestrictionCounts {
@@ -389,6 +389,14 @@ export function serializeChatMessage(
           displayUrl: message.gif.displayUrl,
           width: message.gif.width,
           height: message.gif.height,
+        }
+      : null,
+    highlightCard: message.highlightCard
+      ? {
+          name: message.highlightCard.name,
+          image: message.highlightCard.image ?? null,
+          rarity: message.highlightCard.rarity ?? null,
+          coinValue: message.highlightCard.coinValue,
         }
       : null,
     status: message.status,

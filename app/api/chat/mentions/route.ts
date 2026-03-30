@@ -10,12 +10,11 @@ import type { ChatMentionCandidateSummary, ChatMentionSearchResponse } from "@/t
 export const dynamic = "force-dynamic";
 
 function scoreMentionCandidate(
-  candidate: { username: string; name: string },
+  candidate: { username: string },
   search: string,
   recentOrder: Map<string, number>
 ) {
   const username = candidate.username.toLowerCase();
-  const name = candidate.name.toLowerCase();
   const query = search.toLowerCase();
 
   if (!query) {
@@ -23,10 +22,8 @@ function scoreMentionCandidate(
   }
   if (username === query) return 0;
   if (username.startsWith(query)) return 1;
-  if (name.startsWith(query)) return 2;
-  if (username.includes(query)) return 3;
-  if (name.includes(query)) return 4;
-  return 5;
+  if (username.includes(query)) return 2;
+  return 3;
 }
 
 export async function GET(req: NextRequest) {
@@ -67,7 +64,7 @@ export async function GET(req: NextRequest) {
           _id: { $in: recentIds },
           username: { $ne: null },
         },
-        "name username role"
+        "username role"
       ).lean();
       if (users.length === 0) {
         users = await User.find(
@@ -75,9 +72,9 @@ export async function GET(req: NextRequest) {
             _id: { $ne: userId },
             username: { $ne: null },
           },
-          "name username role"
+          "username role"
         )
-          .sort({ username: 1, name: 1 })
+          .sort({ username: 1 })
           .limit(12)
           .lean();
       }
@@ -86,10 +83,9 @@ export async function GET(req: NextRequest) {
       users = await User.find(
         {
           _id: { $ne: userId },
-          username: { $ne: null },
-          $or: [{ username: regex }, { name: regex }],
+          username: { $ne: null, $regex: regex },
         },
-        "name username role"
+        "username role"
       )
         .limit(20)
         .lean();
@@ -110,12 +106,12 @@ export async function GET(req: NextRequest) {
         .sort((a, b) => {
           const scoreDiff =
             scoreMentionCandidate(
-              { username: a.username, name: a.name ?? a.username },
+              { username: a.username },
               query,
               recentOrder
             ) -
             scoreMentionCandidate(
-              { username: b.username, name: b.name ?? b.username },
+              { username: b.username },
               query,
               recentOrder
             );
@@ -128,7 +124,7 @@ export async function GET(req: NextRequest) {
           (candidate): ChatMentionCandidateSummary => ({
             userId: candidate._id.toString(),
             username: candidate.username,
-            name: candidate.name?.trim() || candidate.username,
+            name: candidate.username,
             role: candidate.role,
             roleBadge: getChatRoleBadgeLabel(candidate.role),
           })

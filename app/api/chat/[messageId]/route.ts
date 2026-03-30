@@ -109,7 +109,7 @@ export async function PATCH(
       .map((target) => ({
         userId: target._id,
         username: target.username,
-        name: target.name?.trim() || target.username,
+        name: target.username,
       }));
 
     message.bodyOriginal = normalizedBody;

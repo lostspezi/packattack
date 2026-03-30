@@ -1,15 +1,126 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import { Types } from "mongoose";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
+import {
+  appendChatArchiveEvent,
+  ensureGlobalChatRoom,
+  publishRoomEvent,
+  serializeChatMessageWithCurrentRelations,
+} from "@/lib/chat";
+import { getChatRoleBadgeLabel } from "@/lib/chat-constants";
 import Box from "@/models/box";
 import Card from "@/models/card";
 import User from "@/models/user";
 import PackPull from "@/models/pack-pull";
 import CoinTransaction from "@/models/coin-transaction";
 import Notification from "@/models/notification";
+import ChatMessage from "@/models/chat-message";
+import ChatRoom from "@/models/chat-room";
 import { drawPacks, type PackCard } from "@/lib/pack-engine";
 import { runSubstitutions } from "@/lib/substitution";
+
+const CHAT_JACKPOT_MIN_VALUE = 90;
+
+async function publishJackpotPullsToChat(input: {
+  userId: string;
+  name?: string | null;
+  username?: string | null;
+  role?: string | null;
+  image?: string | null;
+  identityVerified?: boolean;
+  cards: Array<{
+    name: string;
+    rarity: string;
+    coinValue: number;
+    image: string | null;
+  }>;
+}) {
+  const jackpotCards = input.cards.filter((card) => card.coinValue >= CHAT_JACKPOT_MIN_VALUE);
+  if (jackpotCards.length === 0) return;
+
+  const room = await ensureGlobalChatRoom();
+  if (!Types.ObjectId.isValid(input.userId)) return;
+
+  const authorUserId = new Types.ObjectId(input.userId);
+  const displayName = input.username?.trim() || "Ein Spieler";
+  const authorSnapshot = {
+    name: input.username?.trim() || "Nutzer",
+    username: input.username ?? null,
+    role: input.role ?? "user",
+    roleBadge: getChatRoleBadgeLabel(input.role ?? "user"),
+    profileBadges: [],
+    avatarUrl: input.image ?? null,
+    identityVerified: Boolean(input.identityVerified),
+  };
+
+  for (const card of jackpotCards) {
+    const updatedRoom = await ChatRoom.findOneAndUpdate(
+      { _id: room._id },
+      {
+        $inc: { submissionSeq: 1, visibleSeq: 1 },
+        $set: { lastVisibleMessageAt: new Date() },
+      },
+      { returnDocument: "after" }
+    );
+
+    if (!updatedRoom) continue;
+
+    const bodyOriginal = `JACKPOT! ${displayName} hat ${card.name} (${card.coinValue} Coins) gezogen! 🔥🔥🔥🎆🎉💥`;
+    const message = await ChatMessage.create({
+      roomId: room._id,
+      roomSlug: room.slug,
+      submissionSeq: updatedRoom.submissionSeq,
+      visibleSeq: updatedRoom.visibleSeq,
+      authorUserId,
+      source: "system",
+      authorSnapshot,
+      bodyOriginal,
+      bodyNormalized: bodyOriginal.toLowerCase(),
+      bodyDisplay: bodyOriginal,
+      status: "visible",
+      clientNonce: randomUUID(),
+      mentionTargets: [],
+      hasMention: false,
+      hasLink: false,
+      hasPII: false,
+      highlightCard: {
+        name: card.name,
+        image: card.image,
+        rarity: card.rarity,
+        coinValue: card.coinValue,
+      },
+      moderation: {
+        provider: "local",
+        action: "allow",
+        reasonCodes: [],
+      },
+    });
+
+    await appendChatArchiveEvent({
+      roomId: room._id,
+      roomSlug: room.slug,
+      eventType: "message_visible",
+      messageId: message._id,
+      submissionSeq: message.submissionSeq,
+      actorUserId: authorUserId,
+      payload: {
+        visibleSeq: message.visibleSeq,
+        highlightCard: message.highlightCard,
+        source: "jackpot_pull",
+      },
+    });
+
+    const serializedMessage = await serializeChatMessageWithCurrentRelations(message);
+    await publishRoomEvent(room.slug, {
+      type: "message_created",
+      payload: {
+        message: serializedMessage,
+      },
+    });
+  }
+}
 
 export async function POST(
   req: NextRequest,
@@ -193,6 +304,16 @@ export async function POST(
     if (Object.keys(depletedCards).length > 0) {
       void runSubstitutions({ boxId: realBoxId.toString(), depletedCards });
     }
+
+    void publishJackpotPullsToChat({
+      userId: user._id.toString(),
+      name: user.name,
+      username: user.username ?? null,
+      role: user.role,
+      image: user.image ?? null,
+      identityVerified: Boolean(user.identityVerified),
+      cards: result.drawnCards,
+    });
 
     // 12. Response
     return NextResponse.json({

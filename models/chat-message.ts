@@ -55,6 +55,13 @@ interface IChatGif {
   height: number;
 }
 
+interface IChatHighlightCard {
+  name: string;
+  image: string | null;
+  rarity: string | null;
+  coinValue: number;
+}
+
 interface IChatReaction {
   emoji: ChatReactionEmoji;
   userIds: Types.ObjectId[];
@@ -73,6 +80,7 @@ export interface IChatMessage extends Document {
   bodyNormalized: string;
   bodyDisplay: string;
   gif: IChatGif | null;
+  highlightCard: IChatHighlightCard | null;
   status: ChatMessageStatus;
   clientNonce: string;
   mentionTargets: IChatMentionTarget[];
@@ -161,6 +169,16 @@ const ChatGifSchema = new Schema<IChatGif>(
   { _id: false }
 );
 
+const ChatHighlightCardSchema = new Schema<IChatHighlightCard>(
+  {
+    name: { type: String, required: true, maxlength: 200 },
+    image: { type: String, default: null, maxlength: 500 },
+    rarity: { type: String, default: null, maxlength: 64 },
+    coinValue: { type: Number, required: true, min: 1 },
+  },
+  { _id: false }
+);
+
 const ChatReactionSchema = new Schema<IChatReaction>(
   {
     emoji: {
@@ -213,6 +231,7 @@ const ChatMessageSchema = new Schema<IChatMessage>(
     bodyNormalized: { type: String, default: "", trim: true, maxlength: 500 },
     bodyDisplay: { type: String, default: "", trim: true, maxlength: 500 },
     gif: { type: ChatGifSchema, default: null },
+    highlightCard: { type: ChatHighlightCardSchema, default: null },
     status: {
       type: String,
       enum: CHAT_MESSAGE_STATUSES,

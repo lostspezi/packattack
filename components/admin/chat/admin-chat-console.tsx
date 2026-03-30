@@ -640,6 +640,7 @@ export function AdminChatConsole({
                       <ChatMessageContent
                         body={message.body}
                         gif={message.gif}
+                        highlightCard={message.highlightCard}
                         className="mt-2 space-y-2"
                         gifClassName="max-w-[240px]"
                         gifImageClassName="max-h-[220px]"
@@ -1071,6 +1072,7 @@ export function AdminChatConsole({
                             <ChatMessageContent
                               body={message.body}
                               gif={message.gif}
+                              highlightCard={message.highlightCard}
                               className="mt-2 space-y-2"
                               gifClassName="max-w-[220px]"
                               gifImageClassName="max-h-[200px]"
@@ -1255,6 +1257,7 @@ export function AdminChatConsole({
                     <ChatMessageContent
                       body={message.body}
                       gif={message.gif}
+                      highlightCard={message.highlightCard}
                       className="mt-2 space-y-2"
                       gifClassName="max-w-[220px]"
                       gifImageClassName="max-h-[200px]"

@@ -75,6 +75,13 @@ export interface ChatReactionSummary {
   reactors: ChatReactionUserSummary[];
 }
 
+export interface ChatHighlightCardSummary {
+  name: string;
+  image: string | null;
+  rarity: string | null;
+  coinValue: number;
+}
+
 export interface ChatMessageSummary {
   id: string;
   roomSlug: string;
@@ -82,6 +89,7 @@ export interface ChatMessageSummary {
   visibleSeq: number | null;
   body: string;
   gif: ChatGifSummary | null;
+  highlightCard: ChatHighlightCardSummary | null;
   status: ChatMessageStatus;
   author: ChatAuthorSummary | null;
   mentionTargets: ChatMentionTargetSummary[];
