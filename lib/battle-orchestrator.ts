@@ -275,43 +275,9 @@ export async function runBattle(battleId: string): Promise<void> {
       packCards = packCards.filter((c) => c.stock > 0);
     }
 
-    // Atomically decrement box stock in DB
-    const stockDecrements = new Map<string, number>();
-    for (const pull of allPulls) {
-      stockDecrements.set(
-        pull.cardId,
-        (stockDecrements.get(pull.cardId) ?? 0) + 1,
-      );
-    }
-    for (const [cardId, count] of stockDecrements) {
-      for (let i = 0; i < count; i++) {
-        await Box.updateOne(
-          {
-            _id: box._id,
-            "cards.card": new mongoose.Types.ObjectId(cardId),
-            "cards.stock": { $gte: 1 },
-          },
-          { $inc: { "cards.$.stock": -1 } },
-        );
-      }
-    }
-
-    // Note: CoinTransactions for battle_entry are created at join/create time,
-    // not here — coins are deducted atomically when players join.
-
-    // Save BattlePull records
-    const pullDocs = allPulls.map((p) => ({
-      battle: new mongoose.Types.ObjectId(battleId),
-      user: new mongoose.Types.ObjectId(p.userId),
-      card: new mongoose.Types.ObjectId(p.cardId),
-      rarity: p.rarity,
-      coinValue: p.coinValue,
-      conversionValue: p.conversionValue,
-      roundIndex: p.roundIndex,
-      status: "pending" as const,
-      distributedTo: null,
-    }));
-    await BattlePull.insertMany(pullDocs);
+    // Note: Stock decrement and BattlePull creation happen AFTER the clash phase,
+    // only for actually played cards. Hand cards are virtual — the 4 discarded
+    // cards per round never affect stock or get persisted.
 
     // Build rounds array: group pulls by roundIndex
     const totalRounds = battle.packsPerPlayer;
@@ -609,25 +575,49 @@ export async function runBattle(battleId: string): Promise<void> {
       );
     }
 
-    // Snake-draft distribution — only played cards, not discarded hand cards
-    const battlePulls = await BattlePull.find({ battle: battleId })
-      .sort({ coinValue: -1 })
-      .lean();
-
-    // Match played cards to BattlePull records by cardId + roundIndex
-    const playedPullIds = new Set<string>();
-    for (const ref of playedCardRefs) {
-      const match = battlePulls.find(
-        (bp) =>
-          bp.card.toString() === ref.cardId &&
-          bp.roundIndex === ref.roundIndex &&
-          !playedPullIds.has(bp._id.toString()),
+    // Save BattlePull records for played cards ONLY (hand cards are virtual)
+    const playedPullDocs = playedCardRefs.map((ref) => {
+      const pull = allPulls.find(
+        (p) => p.cardId === ref.cardId && p.roundIndex === ref.roundIndex,
       );
-      if (match) playedPullIds.add(match._id.toString());
+      return {
+        battle: new mongoose.Types.ObjectId(battleId),
+        user: new mongoose.Types.ObjectId(pull?.userId ?? ref.cardId),
+        card: new mongoose.Types.ObjectId(ref.cardId),
+        rarity: pull?.rarity ?? "Common",
+        coinValue: pull?.coinValue ?? 0,
+        conversionValue: pull?.conversionValue ?? 0,
+        roundIndex: ref.roundIndex,
+        status: "pending" as const,
+        distributedTo: null,
+      };
+    });
+    const insertedPulls = await BattlePull.insertMany(playedPullDocs);
+
+    // Decrement box stock only for played cards
+    const stockDecrements = new Map<string, number>();
+    for (const ref of playedCardRefs) {
+      stockDecrements.set(
+        ref.cardId,
+        (stockDecrements.get(ref.cardId) ?? 0) + 1,
+      );
+    }
+    for (const [cardId, count] of stockDecrements) {
+      for (let i = 0; i < count; i++) {
+        await Box.updateOne(
+          {
+            _id: box._id,
+            "cards.card": new mongoose.Types.ObjectId(cardId),
+            "cards.stock": { $gte: 1 },
+          },
+          { $inc: { "cards.$.stock": -1 } },
+        );
+      }
     }
 
-    const distributableCards = battlePulls
-      .filter((bp) => playedPullIds.has(bp._id.toString()))
+    // Snake-draft distribution
+    const distributableCards = insertedPulls
+      .sort((a, b) => b.coinValue - a.coinValue)
       .map((bp) => ({
         id: bp._id.toString(),
         coinValue: bp.coinValue,
@@ -656,18 +646,6 @@ export async function runBattle(battleId: string): Promise<void> {
         });
       }
     }
-    // Mark unplayed pulls as discarded
-    for (const bp of battlePulls) {
-      if (!playedPullIds.has(bp._id.toString())) {
-        bulkOps.push({
-          updateOne: {
-            filter: { _id: bp._id },
-            update: { $set: { status: "discarded" } },
-          },
-        });
-      }
-    }
-
     if (bulkOps.length > 0) {
       await BattlePull.bulkWrite(bulkOps);
     }
@@ -697,7 +675,7 @@ export async function runBattle(battleId: string): Promise<void> {
         type: "distribution",
         targetUserId: userId,
         cards: cards.map((c) => {
-          const pull = battlePulls.find(
+          const pull = insertedPulls.find(
             (bp) => bp._id.toString() === c.id,
           );
           const originalPull = allPulls.find(

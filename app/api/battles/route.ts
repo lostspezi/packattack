@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
       maxPlayers,
       visibility,
       eloRange,
-      totalRounds: packsPerPlayer * box.cardsPerPack,
+      totalRounds: packsPerPlayer,
       seasonId: season?._id ?? null,
       players: [
         {

@@ -100,7 +100,7 @@ async function createMatchedBattle(entries: IBattleQueueEntry[]): Promise<void> 
     maxPlayers: playerCount,
     visibility: "public",
     eloRange: null,
-    totalRounds: packsPerPlayer * box.cardsPerPack,
+    totalRounds: packsPerPlayer,
     seasonId: null,
     players,
     status: "waiting",
