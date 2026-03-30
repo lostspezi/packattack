@@ -7,7 +7,14 @@ import {
   snakeDraftDistribute,
   getRarityBonusMs,
   isCloseMatch,
+  dealHands,
 } from "./battle-engine";
+import {
+  storeSelection,
+  getSelections,
+  allPlayersSelected,
+  clearSelections,
+} from "@/lib/battle-selection";
 import { calculateEloChanges } from "./battle-elo";
 import {
   RARITY_ORDER,
@@ -25,6 +32,13 @@ import {
   ROUND_TRANSITION_MS,
   ELO_FLOOR,
   ELO_DEFAULT,
+  HAND_SIZE,
+  SELECTION_TIMEOUT_MS,
+  HAND_DEAL_MS,
+  HAND_REVEAL_MS,
+  SELECTION_WAIT_DISPLAY_MS,
+  SIMULTANEOUS_REVEAL_MS,
+  COIN_VALUE_EFFECT_THRESHOLDS,
 } from "./battle-constants";
 import Battle from "@/models/battle";
 import BattlePull from "@/models/battle-pull";
@@ -45,6 +59,42 @@ function publish(battleId: string, data: Record<string, unknown>): void {
   redis
     .publish(`battle:${battleId}`, JSON.stringify(data))
     .catch(() => {});
+}
+
+async function waitForSelections(
+  battleId: string,
+  roundIndex: number,
+  playerIds: string[],
+  timeoutMs: number
+): Promise<Record<string, number>> {
+  const pollInterval = 500;
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const allDone = await allPlayersSelected(battleId, roundIndex, playerIds);
+    if (allDone) {
+      return getSelections(battleId, roundIndex);
+    }
+    await sleep(pollInterval);
+  }
+
+  // Timeout — get whatever selections exist, fill missing with random
+  const selections = await getSelections(battleId, roundIndex);
+  for (const playerId of playerIds) {
+    if (!(playerId in selections)) {
+      const randomIndex = Math.floor(Math.random() * HAND_SIZE);
+      selections[playerId] = randomIndex;
+      await storeSelection(battleId, roundIndex, playerId, randomIndex);
+    }
+  }
+  return selections;
+}
+
+function getCoinValueEffectTier(coinValue: number): string {
+  if (coinValue >= COIN_VALUE_EFFECT_THRESHOLDS.extreme) return "extreme";
+  if (coinValue >= COIN_VALUE_EFFECT_THRESHOLDS.high) return "high";
+  if (coinValue >= COIN_VALUE_EFFECT_THRESHOLDS.medium) return "medium";
+  return "low";
 }
 
 /* ------------------------------------------------------------------ */
@@ -210,8 +260,7 @@ export async function runBattle(battleId: string): Promise<void> {
       );
 
       for (const drawn of result.drawnCards) {
-        const roundIndex =
-          drawn.cardIndex + drawn.packIndex * box.cardsPerPack;
+        const roundIndex = drawn.packIndex;
         allPulls.push({
           userId: player.user.toString(),
           cardId: drawn.cardId,
@@ -271,18 +320,13 @@ export async function runBattle(battleId: string): Promise<void> {
     await BattlePull.insertMany(pullDocs);
 
     // Build rounds array: group pulls by roundIndex
-    const totalRounds = box.cardsPerPack * battle.packsPerPlayer;
+    const totalRounds = battle.packsPerPlayer;
     const rounds = [];
     for (let r = 0; r < totalRounds; r++) {
-      const roundPulls = allPulls.filter((p) => p.roundIndex === r);
       rounds.push({
         roundIndex: r,
-        cards: roundPulls.map((p) => ({
-          player: new mongoose.Types.ObjectId(p.userId),
-          card: new mongoose.Types.ObjectId(p.cardId),
-          rarity: p.rarity,
-          coinValue: p.coinValue,
-        })),
+        cards: [],
+        hands: [],
         winnerId: null as mongoose.Types.ObjectId | null,
         revealedAt: null,
       });
@@ -296,139 +340,167 @@ export async function runBattle(battleId: string): Promise<void> {
     publish(battleId, { type: "opening_complete" });
 
     /* ============================================================== */
-    /*  3. CLASH ROUNDS — sequential reveal with tension               */
+    /*  3. CLASH ROUNDS — card selection                               */
     /* ============================================================== */
     await Battle.updateOne({ _id: battleId }, { $set: { status: "clash" } });
 
-    // Track scores locally
-    const scores = new Map<string, number>();
-    for (const player of battle.players) {
-      scores.set(player.user.toString(), 0);
-    }
+    // Re-fetch for fresh state
+    const freshBattle = await Battle.findById(battleId).lean();
+    if (!freshBattle) throw new Error(`Battle ${battleId} not found after opening`);
 
-    const playerIds = battle.players.map((p) => p.user.toString());
+    const scores = new Map<string, number>();
+    const playerIds = freshBattle.players.map(
+      (p: { user: { toString(): string } }) => p.user.toString()
+    );
+    for (const pid of playerIds) scores.set(pid, 0);
 
     for (let r = 0; r < totalRounds; r++) {
-      const round = rounds[r];
-
-      // Load card details for reveal
-      const cardIds = round.cards.map((c) => c.card);
-      const revealCards = await Card.find({ _id: { $in: cardIds } })
-        .select("name image")
-        .lean();
-      const revealMap = new Map(
-        revealCards.map((c) => [c._id.toString(), c]),
-      );
-
-      // Randomize reveal order each round
-      const revealOrder = [...playerIds].sort(() => Math.random() - 0.5);
-
-      // --- Step 1: Round announcement ---
+      // 1. Round announcement
       publish(battleId, {
         type: "round_announce",
         roundIndex: r,
         totalRounds,
-        revealOrder,
       });
       await sleep(ROUND_ANNOUNCE_MS);
 
-      // --- Step 2: Buildup (cards appear face-down) ---
-      await sleep(ROUND_BUILDUP_MS);
+      // 2. Deal hands — pick HAND_SIZE cards per player from the round's card pool
+      const roundPulls = allPulls.filter((p) => p.roundIndex === r);
+      const hands = dealHands(
+        roundPulls.map((p) => ({
+          card: p.cardId,
+          coinValue: p.coinValue,
+          rarity: p.rarity,
+          name: p.name,
+          image: p.image,
+        })),
+        playerIds
+      );
 
-      // --- Step 3: Reveal cards one by one ---
-      for (let i = 0; i < revealOrder.length; i++) {
-        const playerId = revealOrder[i];
-        const cardData = round.cards.find((c) => c.player.toString() === playerId);
-        if (!cardData) continue;
+      // Store hands in DB
+      await Battle.updateOne(
+        { _id: battleId },
+        { $set: { [`rounds.${r}.hands`]: hands.map((h) => ({
+          player: h.player,
+          dealtCards: h.dealtCards,
+          selectedIndex: null,
+        }))}}
+      );
 
-        const doc = revealMap.get(cardData.card.toString());
-        const rarityBonus = getRarityBonusMs(cardData.rarity);
-
+      // 3. Send hand_dealt to each player (player-specific — filtered by events route)
+      for (const hand of hands) {
         publish(battleId, {
-          type: "card_reveal",
+          type: "hand_dealt",
+          targetUserId: hand.player,
           roundIndex: r,
-          playerId,
-          card: {
-            _id: cardData.card.toString(),
-            name: doc?.name ?? "Unknown",
-            image: doc?.image ?? null,
-          },
-          rarity: cardData.rarity,
-          coinValue: cardData.coinValue,
+          cards: hand.dealtCards.map((c, i) => ({
+            index: i,
+            card: c.card,
+            coinValue: c.coinValue,
+            rarity: c.rarity,
+            name: c.name,
+            image: c.image,
+          })),
         });
-
-        // Wait for flip animation + display time + rarity bonus
-        await sleep(CARD_REVEAL_FLIP_MS + CARD_REVEAL_DISPLAY_MS + rarityBonus);
-
-        // Pause between reveals (except after last card)
-        if (i < revealOrder.length - 1) {
-          await sleep(BETWEEN_REVEALS_MS);
-        }
       }
+      await sleep(HAND_DEAL_MS + HAND_REVEAL_MS);
 
-      // --- Step 4: Comparison pause ---
-      await sleep(COMPARISON_PAUSE_MS);
+      // 4. Wait for all players to select (or timeout)
+      const selections = await waitForSelections(
+        battleId,
+        r,
+        playerIds,
+        SELECTION_TIMEOUT_MS
+      );
 
-      // --- Step 5: Determine winner ---
-      const roundCards = round.cards.map((c) => ({
-        playerId: c.player.toString(),
+      await sleep(SELECTION_WAIT_DISPLAY_MS);
+
+      // 5. Build played cards from selections
+      const playedCards = playerIds.map((pid) => {
+        const hand = hands.find((h) => h.player === pid)!;
+        const selectedIdx = selections[pid];
+        const card = hand.dealtCards[selectedIdx];
+        return {
+          player: pid,
+          card: card.card,
+          coinValue: card.coinValue,
+          rarity: card.rarity,
+          name: card.name,
+          image: card.image,
+        };
+      });
+
+      // 6. Simultaneous reveal — send all cards to everyone
+      const maxCoinValue = Math.max(...playedCards.map((c) => c.coinValue));
+      publish(battleId, {
+        type: "cards_reveal",
+        roundIndex: r,
+        cards: playedCards.map((c) => ({
+          playerId: c.player,
+          card: { _id: c.card, name: c.name, image: c.image },
+          coinValue: c.coinValue,
+          rarity: c.rarity,
+          effectTier: getCoinValueEffectTier(c.coinValue),
+        })),
+        highestEffectTier: getCoinValueEffectTier(maxCoinValue),
+      });
+      await sleep(SIMULTANEOUS_REVEAL_MS);
+
+      // 7. Determine winner
+      const roundCards = playedCards.map((c) => ({
+        playerId: c.player,
         coinValue: c.coinValue,
         rarity: c.rarity,
       }));
       const winnerId = determineRoundWinner(roundCards);
-      const closeMatch = isCloseMatch(roundCards);
+      const isClose = isCloseMatch(roundCards);
 
-      // Update local rounds array
-      round.winnerId = winnerId ? new mongoose.Types.ObjectId(winnerId) : null;
-
-      // Update local score (only if there is a winner, not on draw)
-      if (winnerId) {
-        scores.set(winnerId, (scores.get(winnerId) ?? 0) + 1);
-      }
-
-      // Update battle in DB
-      const dbUpdate: Record<string, unknown> = {
-        [`rounds.${r}.winnerId`]: winnerId
-          ? new mongoose.Types.ObjectId(winnerId)
-          : null,
-        [`rounds.${r}.revealedAt`]: new Date(),
-        currentRound: r + 1,
-      };
-      if (winnerId) {
-        dbUpdate[`players.$[p].score`] = scores.get(winnerId);
-      }
-
+      // 8. Update DB: store played cards and winner in round
       await Battle.updateOne(
         { _id: battleId },
-        { $set: dbUpdate },
-        winnerId
-          ? {
-              arrayFilters: [
-                { "p.user": new mongoose.Types.ObjectId(winnerId) },
-              ],
-            }
-          : {},
+        {
+          $set: {
+            [`rounds.${r}.cards`]: playedCards.map((c) => ({
+              player: c.player,
+              card: c.card,
+              rarity: c.rarity,
+              coinValue: c.coinValue,
+            })),
+            [`rounds.${r}.winnerId`]: winnerId,
+            [`rounds.${r}.revealedAt`]: new Date(),
+            currentRound: r,
+          },
+        }
       );
 
-      // --- Step 6: Publish round result ---
+      // Update scores
+      if (winnerId) {
+        scores.set(winnerId, (scores.get(winnerId) || 0) + 1);
+        await Battle.updateOne(
+          { _id: battleId, "players.user": winnerId },
+          { $inc: { "players.$.score": 1 } }
+        );
+      }
+
+      // Update local rounds for achievements
+      rounds[r].winnerId = winnerId ? new mongoose.Types.ObjectId(winnerId) : null;
+
+      // 9. Publish round result
       publish(battleId, {
         type: "round_result",
         roundIndex: r,
         winnerId,
         scores: Object.fromEntries(scores),
-        isClose: closeMatch,
+        isClose,
       });
 
-      // Wait for winner reveal animation
-      const winnerRevealTime = closeMatch
-        ? WINNER_CLOSE_REVEAL_MS
-        : WINNER_REVEAL_MS;
-      await sleep(winnerRevealTime);
-
-      // Score update display
+      // Timing for winner reveal
+      await sleep(isClose ? WINNER_CLOSE_REVEAL_MS : WINNER_REVEAL_MS);
       await sleep(SCORE_UPDATE_MS);
 
-      // Transition to next round (except after last)
+      // Cleanup Redis selections for this round
+      await clearSelections(battleId, r);
+
+      // Round transition (except after last round)
       if (r < totalRounds - 1) {
         await sleep(ROUND_TRANSITION_MS);
       }
