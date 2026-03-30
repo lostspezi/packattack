@@ -34,10 +34,28 @@ interface BattlePlayer {
   ready: boolean;
 }
 
+interface HandCard {
+  index: number;
+  card: string;
+  coinValue: number;
+  rarity: string;
+  name: string;
+  image: string;
+}
+
+interface PlayedCard {
+  playerId: string;
+  card: { _id: string; name: string; image: string };
+  coinValue: number;
+  rarity: string;
+  effectTier: string;
+}
+
 interface Battle {
   _id: string;
   totalRounds: number;
   status: string;
+  players: BattlePlayer[];
 }
 
 interface BattleClashProps {
@@ -49,6 +67,12 @@ interface BattleClashProps {
   revealedCards: Record<string, RoundCard>;
   roundAnnounce: { roundIndex: number; revealOrder: string[] } | null;
   roundResult: { winnerId: string | null; isClose: boolean } | null;
+  handCards: HandCard[] | null;
+  selectedCardIndex: number | null;
+  playersSelected: Set<string>;
+  revealedPlayedCards: PlayedCard[] | null;
+  onSelectCard: (cardIndex: number) => void;
+  isPlayer: boolean;
 }
 
 function getStreakCount(rounds: Round[], playerId: string): number {
@@ -69,6 +93,12 @@ export function BattleClash({
   revealedCards,
   roundAnnounce,
   roundResult,
+  handCards,
+  selectedCardIndex,
+  playersSelected,
+  revealedPlayedCards,
+  onSelectCard,
+  isPlayer,
 }: BattleClashProps) {
   const [showAnnounce, setShowAnnounce] = useState(false);
   const [spotlightIndex, setSpotlightIndex] = useState<number | null>(null);
@@ -233,6 +263,71 @@ export function BattleClash({
           );
         })}
       </div>
+
+      {/* Card Selection Hand */}
+      {isPlayer && handCards && (
+        <div className="mt-6 space-y-3">
+          <p className="text-center text-sm text-text-secondary tracking-widest uppercase">
+            {selectedCardIndex !== null
+              ? `Karte gewählt — Warte auf Gegner... (${playersSelected.size}/${battle.players.length})`
+              : "Wähle eine Karte"}
+          </p>
+          <div className="flex justify-center gap-3">
+            {handCards.map((card) => (
+              <button
+                key={card.index}
+                onClick={() => onSelectCard(card.index)}
+                disabled={selectedCardIndex !== null}
+                className={`
+                  relative w-20 rounded-lg border-2 p-3 text-center transition-all
+                  ${selectedCardIndex === card.index
+                    ? "border-pa-green -translate-y-3 shadow-[0_0_20px_rgba(155,255,0,0.3)]"
+                    : selectedCardIndex !== null
+                      ? "border-white/10 opacity-40"
+                      : "border-white/10 hover:border-pa-green/50 hover:-translate-y-1 cursor-pointer"
+                  }
+                `}
+              >
+                <div className="text-xs text-text-secondary">{card.rarity}</div>
+                <div className="mt-1 text-lg font-bold text-pa-green">
+                  ${card.coinValue.toFixed(2)}
+                </div>
+                <div className="mt-1 truncate text-xs text-text-secondary">{card.name}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Revealed Cards (after all players selected) */}
+      {revealedPlayedCards && (
+        <div className="mt-6 space-y-3">
+          <div className="flex justify-center items-center gap-6">
+            {revealedPlayedCards.map((card, i) => (
+              <div key={i} className="text-center">
+                <div className="text-xs text-text-secondary mb-1">
+                  {battle.players.find(p => p.user._id === card.playerId)?.user.name ?? "Player"}
+                </div>
+                <div className={`
+                  w-20 rounded-lg border-2 p-3
+                  ${card.effectTier === "extreme" ? "border-yellow-400 shadow-[0_0_30px_rgba(255,215,0,0.4)]" :
+                    card.effectTier === "high" ? "border-purple-400 shadow-[0_0_20px_rgba(200,100,255,0.3)]" :
+                    card.effectTier === "medium" ? "border-pa-green shadow-[0_0_15px_rgba(155,255,0,0.2)]" :
+                    "border-white/20"}
+                `}>
+                  <div className="text-lg font-bold" style={{
+                    color: card.effectTier === "extreme" ? "#ffd54f" :
+                           card.effectTier === "high" ? "#c864ff" :
+                           "#9BFF00"
+                  }}>
+                    ${card.coinValue.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
