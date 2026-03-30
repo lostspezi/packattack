@@ -7,9 +7,14 @@ import { useEffect, useRef, useCallback } from "react";
 import { Application } from "pixi.js";
 import { ARENA_COLORS, ARENA_ASPECT_RATIO } from "@/lib/arena-constants";
 import { TweenManager } from "./tween";
-import { BattleBridge, type BattleState } from "./battle-bridge";
+import { BattleBridge } from "./battle-bridge";
 import { BackgroundLayer } from "./layers/background";
 import { ArenaFloorLayer } from "./layers/arena-floor";
+import { PlayerSlotsLayer } from "./layers/player-slots";
+import { BattleCenterLayer } from "./layers/battle-center";
+import { PlayerHandLayer } from "./layers/player-hand";
+import { EffectsLayer } from "./layers/effects";
+import { OverlayLayer } from "./layers/overlay";
 
 interface HandCard {
   index: number;
@@ -52,6 +57,8 @@ export default function ArenaPixi(props: ArenaPixiProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const appRef = useRef<Application | null>(null);
   const bridgeRef = useRef<BattleBridge | null>(null);
+  const onSelectCardRef = useRef(props.onSelectCard);
+  onSelectCardRef.current = props.onSelectCard;
 
   // Initialize PixiJS Application
   const initApp = useCallback(async () => {
@@ -74,20 +81,36 @@ export default function ArenaPixi(props: ArenaPixiProps) {
     container.appendChild(app.canvas);
     appRef.current = app;
 
-    // Build scene tree
+    // Build scene tree (order = draw order, back to front)
     const tweenManager = new TweenManager();
     const background = new BackgroundLayer();
     const arenaFloor = new ArenaFloorLayer();
+    const playerSlots = new PlayerSlotsLayer();
+    const battleCenter = new BattleCenterLayer();
+    const playerHand = new PlayerHandLayer();
+    const effects = new EffectsLayer();
+    const overlay = new OverlayLayer();
 
     app.stage.addChild(background);
     app.stage.addChild(arenaFloor);
+    app.stage.addChild(playerSlots);
+    app.stage.addChild(battleCenter);
+    app.stage.addChild(playerHand);
+    app.stage.addChild(effects);
+    app.stage.addChild(overlay);
 
-    // Create bridge
+    // Screen shake targets the stage
+    effects.setShakeTarget(app.stage);
+
+    // Create bridge with all layers
     const bridge = new BattleBridge(
-      { background, arenaFloor },
+      { background, arenaFloor, playerSlots, battleCenter, playerHand, effects, overlay },
       tweenManager,
     );
     bridgeRef.current = bridge;
+
+    // Wire card selection callback
+    bridge.setOnSelectCard((index: number) => onSelectCardRef.current(index));
 
     // Initial resize
     bridge.resize(width, height);
@@ -137,21 +160,35 @@ export default function ArenaPixi(props: ArenaPixiProps) {
       playerCount: props.battle.players.length,
       isPlayer: props.isPlayer,
       currentUserId: props.currentUserId,
+      players: props.battle.players.map((p) => ({
+        userId: p.user._id,
+        name: p.user.name,
+      })),
     });
-  }, [props.battle.status, props.battle.currentRound, props.battle.totalRounds, props.battle.players.length, props.isPlayer, props.currentUserId]);
+  }, [props.battle, props.isPlayer, props.currentUserId]);
 
   // Forward SSE events to bridge
   useEffect(() => {
     if (props.roundAnnounce) {
-      bridgeRef.current?.onRoundAnnounce(props.roundAnnounce as { roundIndex: number; totalRounds: number });
+      bridgeRef.current?.onRoundAnnounce({
+        roundIndex: props.roundAnnounce.roundIndex,
+        totalRounds: props.roundAnnounce.totalRounds ?? props.battle.totalRounds,
+      });
     }
-  }, [props.roundAnnounce]);
+  }, [props.roundAnnounce]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (props.handCards) {
       bridgeRef.current?.onHandDealt({ cards: props.handCards });
     }
   }, [props.handCards]);
+
+  useEffect(() => {
+    if (props.playersSelected.size > 0) {
+      const latest = Array.from(props.playersSelected).pop();
+      if (latest) bridgeRef.current?.onPlayerSelected({ userId: latest });
+    }
+  }, [props.playersSelected.size]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (props.revealedPlayedCards) {
