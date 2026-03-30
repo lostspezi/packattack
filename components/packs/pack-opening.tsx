@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useCallback } from "react";
+import { Volume2, VolumeX } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import { useToast } from "@/components/ui/toast";
 import { Pack3D } from "./pack-3d";
@@ -53,7 +54,7 @@ type Phase = "idle" | "ripping" | "reveal" | "review";
 export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpen }: PackOpeningProps) {
   const isDe = lang === "de";
   const { toast } = useToast();
-  const { play } = usePackSounds();
+  const { play, masterVolume, setMasterVolume } = usePackSounds();
   const prefersReducedMotion = useReducedMotion();
 
   const isRecovery = result.isRecovery ?? false;
@@ -172,6 +173,10 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
   return (
     <div className={`relative mx-auto flex flex-col items-center py-8 ${phase === "reveal" ? "max-w-4xl" : "max-w-md"}`}>
       <ParticleCanvas ref={particleRef} />
+
+      {/* Volume control — top right corner */}
+      <SoundControl volume={masterVolume} onChange={setMasterVolume} />
+
       {phase === "idle" && (
         <Pack3D
           boxName={boxName}
@@ -198,6 +203,35 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
           onAllRevealed={() => setPhase("review")}
         />
       )}
+    </div>
+  );
+}
+
+// ─── Sound Control ────────────────────────────────────────────────────
+
+function SoundControl({ volume, onChange }: { volume: number; onChange: (v: number) => void }) {
+  const isMuted = volume <= 0;
+
+  return (
+    <div className="absolute top-2 right-2 z-40 flex items-center gap-2 bg-surface/80 backdrop-blur-sm border border-border rounded-lg px-2.5 py-1.5">
+      <button
+        type="button"
+        onClick={() => onChange(isMuted ? 0.5 : 0)}
+        className="text-text-muted hover:text-text-primary transition-colors"
+        aria-label={isMuted ? "Unmute" : "Mute"}
+      >
+        {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+      </button>
+      <input
+        type="range"
+        min={0}
+        max={1}
+        step={0.05}
+        value={volume}
+        onChange={(e) => onChange(parseFloat(e.target.value))}
+        className="w-16 sm:w-20 h-1 accent-pa-green cursor-pointer"
+        aria-label="Sound volume"
+      />
     </div>
   );
 }
