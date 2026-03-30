@@ -10,7 +10,7 @@ import { CardRevealGrid } from "./card-reveal-grid";
 import { CardReview } from "./card-review";
 import { ParticleCanvas, type ParticleCanvasHandle } from "./particle-canvas";
 import { usePackSounds, type SoundKey } from "./use-pack-sounds";
-import { getMaxTierFromCards, TIER_CONFIGS } from "./effect-tiers";
+import { getMaxTierFromCards } from "./effect-tiers";
 
 interface DrawnCard {
   cardId: string;
@@ -179,15 +179,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
 
   // ─── ANIMATION PHASES: fullscreen overlay for ripping + reveal ───
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-auto bg-black/95">
-      {/* Ambient background glow */}
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background: `radial-gradient(ellipse 50% 40% at 50% 45%, ${TIER_CONFIGS[maxTier].glowColor || "rgba(155,255,0,0.08)"} 0%, transparent 70%)`,
-        }}
-      />
-
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-auto bg-[#08070d]">
       {/* Particle canvas — covers entire overlay */}
       <div className="absolute inset-0">
         <ParticleCanvas ref={particleRef} />
@@ -198,22 +190,34 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
 
       {/* Content */}
       <div className={`relative z-10 w-full ${phase === "reveal" ? "max-w-4xl px-3 sm:px-6" : "max-w-md"}`}>
-        {phase === "idle" && (
-          <Pack3D
-            boxName={boxName}
-            onReady={() => setPhase("ripping")}
-          />
-        )}
-        {phase === "ripping" && (
-          <div className="flex flex-col items-center">
-            <PackRipper
-              boxName={boxName}
-              cardCount={cards.length}
-              maxTier={maxTier}
-              particleRef={particleRef}
-              onRipComplete={() => setPhase("reveal")}
-              onPlaySound={handlePlaySound}
+        {(phase === "idle" || phase === "ripping") && (
+          <div className="relative flex flex-col items-center">
+            {/* Focused glow halo behind the pack */}
+            <div
+              className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+              style={{
+                width: 320,
+                height: 420,
+                borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(155,255,0,0.06) 0%, rgba(155,255,0,0.03) 40%, transparent 70%)",
+                filter: "blur(40px)",
+              }}
             />
+            {phase === "idle" ? (
+              <Pack3D
+                boxName={boxName}
+                onReady={() => setPhase("ripping")}
+              />
+            ) : (
+              <PackRipper
+                boxName={boxName}
+                cardCount={cards.length}
+                maxTier={maxTier}
+                particleRef={particleRef}
+                onRipComplete={() => setPhase("reveal")}
+                onPlaySound={handlePlaySound}
+              />
+            )}
           </div>
         )}
         {phase === "reveal" && (
