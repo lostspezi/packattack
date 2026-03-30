@@ -83,6 +83,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
   const [choices, setChoices] = useState<Map<number, CardChoice>>(initialChoices);
   const [phase, setPhase] = useState<Phase>(getInitialPhase);
   const [submitting, setSubmitting] = useState(false);
+  const [flippingBack, setFlippingBack] = useState(false);
 
   const particleRef = useRef<ParticleCanvasHandle>(null);
 
@@ -107,7 +108,12 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
     if (isLast) {
       setPhase("review");
     } else {
-      setCurrentIndex((i) => i + 1);
+      // Flip card back first, then advance after animation
+      setFlippingBack(true);
+      setTimeout(() => {
+        setCurrentIndex((i) => i + 1);
+        setFlippingBack(false);
+      }, 450);
     }
   }
 
@@ -370,6 +376,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
           onNext={advanceCard}
           onPlaySound={handlePlaySound}
           choice={choices.get(currentIndex) ?? null}
+          flippingBack={flippingBack}
         />
       )}
     </div>

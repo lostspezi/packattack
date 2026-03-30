@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { ShoppingCart, Coins, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,47 +27,30 @@ interface CardFlipperProps {
   onNext: () => void;
   onPlaySound: (key: string, volume?: number) => void;
   choice: "claim" | "convert" | null;
+  /** When true, card flips back to card-back (orchestrator is transitioning to next card) */
+  flippingBack: boolean;
 }
+
+const FLIP_BACK_S = 0.4;
 
 export function CardFlipper({
   card, index, total, packIndex, packCount, lang,
-  particleRef, onChoice, onNext, onPlaySound, choice,
+  particleRef, onChoice, onNext, onPlaySound, choice, flippingBack,
 }: CardFlipperProps) {
   const isDe = lang === "de";
   const prefersReducedMotion = useReducedMotion();
   const [flipped, setFlipped] = useState(false);
   const [shaking, setShaking] = useState(false);
-  // displayedCard holds the card shown on the front face — updates only after flip-back
-  const [displayedCard, setDisplayedCard] = useState(card);
-  const [prevCardId, setPrevCardId] = useState(card.cardId);
   const cardRef = useRef<HTMLDivElement>(null);
   const isLast = index >= total - 1;
-  const tier = getEffectTier(displayedCard.coinValue);
+  const tier = getEffectTier(card.coinValue);
   const config = TIER_CONFIGS[tier];
-  const FLIP_BACK_MS = 400;
 
-  // Detect card change during render (no refs in effects)
-  if (card.cardId !== prevCardId) {
-    setPrevCardId(card.cardId);
-    if (flipped) {
-      setFlipped(false);
-    } else {
-      setDisplayedCard(card);
-    }
-  }
-
-  // After flip-back completes, swap the displayed card to the new one
-  useEffect(() => {
-    if (!flipped && displayedCard.cardId !== card.cardId) {
-      const timer = setTimeout(() => {
-        setDisplayedCard(card);
-      }, FLIP_BACK_MS);
-      return () => clearTimeout(timer);
-    }
-  }, [flipped, card, displayedCard.cardId]);
+  // The card shows its back when: not yet flipped by user OR orchestrator is flipping back
+  const showFront = flipped && !flippingBack;
 
   const handleFlip = useCallback(() => {
-    if (flipped) return;
+    if (flipped || flippingBack) return;
     setFlipped(true);
     onPlaySound(config.soundKey, config.volume);
     const delay = config.flipPauseMs + (config.flipDuration * 500);
@@ -93,8 +76,7 @@ export function CardFlipper({
         particleRef.current.emitConfetti(config.colors, 40);
       }
     }, delay);
-  }, [flipped, config, onPlaySound, particleRef]);
-
+  }, [flipped, flippingBack, config, onPlaySound, particleRef]);
 
   if (prefersReducedMotion) {
     return (
@@ -124,12 +106,12 @@ export function CardFlipper({
         >
           <div style={{
             transformStyle: "preserve-3d",
-            transition: `transform ${flipped ? config.flipDuration : FLIP_BACK_MS / 1000}s cubic-bezier(0.4, 0, 0.2, 1)`,
-            transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+            transition: `transform ${showFront ? config.flipDuration : FLIP_BACK_S}s cubic-bezier(0.4, 0, 0.2, 1)`,
+            transform: showFront ? "rotateY(180deg)" : "rotateY(0deg)",
             position: "relative",
             minHeight: "16rem",
           }}>
-            {/* Card Back — visible when not flipped */}
+            {/* Card Back */}
             <div style={{ backfaceVisibility: "hidden", position: "absolute", inset: 0 }}>
               <div className="w-48 h-64 mx-auto rounded-xl overflow-hidden relative flex items-center justify-center border border-pa-green/20">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -137,13 +119,13 @@ export function CardFlipper({
                 <span className="relative text-sm text-pa-green font-medium drop-shadow-lg">{isDe ? "Tippe zum Aufdecken" : "Tap to reveal"}</span>
               </div>
             </div>
-            {/* Card Front — visible when flipped */}
+            {/* Card Front */}
             <div style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }}>
-              <CardFront card={displayedCard} tier={tier} isDe={isDe} />
+              <CardFront card={card} tier={tier} isDe={isDe} />
             </div>
           </div>
         </div>
-        {flipped && config.glowIntensity > 0 && (
+        {showFront && config.glowIntensity > 0 && (
           <motion.div
             className="absolute inset-0 rounded-[14px] pointer-events-none"
             initial={{ opacity: 0 }}
@@ -153,7 +135,7 @@ export function CardFlipper({
           />
         )}
       </div>
-      {flipped && (
+      {showFront && (
         <motion.div initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: 0.2, duration: 0.3 }}>
           <ActionButtons card={card} choice={choice} onChoice={onChoice} onNext={onNext} isLast={isLast} isDe={isDe} />
         </motion.div>
