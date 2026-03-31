@@ -16,6 +16,7 @@ export interface IPackPull extends Document {
   ipAddress: string;
   userAgent: string;
   battleId: Types.ObjectId | null;
+  expiresAt: Date | null;
   createdAt: Date;
 }
 
@@ -40,6 +41,7 @@ const PackPullSchema = new Schema<IPackPull>(
     ipAddress: { type: String, default: "" },
     userAgent: { type: String, default: "" },
     battleId: { type: Schema.Types.ObjectId, ref: "Battle", default: null },
+    expiresAt: { type: Date, default: null },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );
@@ -48,6 +50,7 @@ PackPullSchema.index({ userId: 1, status: 1 });
 PackPullSchema.index({ userId: 1, packGroupId: 1 });
 PackPullSchema.index({ boxId: 1, createdAt: -1 });
 PackPullSchema.index({ packGroupId: 1, cardIndex: 1 }, { unique: true });
+PackPullSchema.index({ status: 1, expiresAt: 1 });
 
 const PackPull: Model<IPackPull> =
   mongoose.models.PackPull ?? mongoose.model<IPackPull>("PackPull", PackPullSchema);

@@ -21,9 +21,10 @@ interface BattleRevealProps {
   players: RevealPlayer[];
   winnerId: string | null;
   lang: string;
+  isSuddenDeath?: boolean;
 }
 
-export function BattleReveal({ roundNumber, totalRounds, players, winnerId, lang }: BattleRevealProps) {
+export function BattleReveal({ roundNumber, totalRounds, players, winnerId, lang, isSuddenDeath }: BattleRevealProps) {
   const isDe = lang === "de";
   const [flipped, setFlipped] = useState(false);
   const [showResult, setShowResult] = useState(false);
@@ -47,9 +48,15 @@ export function BattleReveal({ roundNumber, totalRounds, players, winnerId, lang
       `}</style>
 
       {/* Round label */}
-      <div className="text-[11px] uppercase tracking-widest text-zinc-500">
-        {isDe ? "Runde" : "Round"} {roundNumber}/{totalRounds}
-      </div>
+      {isSuddenDeath ? (
+        <div className="text-xs font-extrabold uppercase tracking-widest text-red-400">
+          Sudden Death
+        </div>
+      ) : (
+        <div className="text-[11px] uppercase tracking-widest text-zinc-500">
+          {isDe ? "Runde" : "Round"} {roundNumber}/{totalRounds}
+        </div>
+      )}
 
       {/* Cards on table */}
       <div className="flex items-center justify-center gap-4 sm:gap-8">

@@ -4,6 +4,7 @@ import connectDB from "@/lib/db";
 import PackPull from "@/models/pack-pull";
 import Box from "@/models/box";
 import Card from "@/models/card";
+import { autoConvertExpiredPulls } from "@/lib/battle-cards";
 
 export async function GET() {
   const session = await auth();
@@ -15,6 +16,9 @@ export async function GET() {
 
   try {
     await connectDB();
+
+    // Auto-convert any expired pending pulls first
+    await autoConvertExpiredPulls(userId);
 
     // Find any pending pulls for this user
     const anyPending = await PackPull.findOne({ userId, status: "pending" })
@@ -44,6 +48,14 @@ export async function GET() {
     const pendingCount = allPulls.filter((p) => p.status === "pending").length;
     const decidedCount = allPulls.length - pendingCount;
 
+    // Find earliest expiresAt among pending pulls
+    const pendingPulls = allPulls.filter((p) => p.status === "pending");
+    const expiresAt = pendingPulls.reduce<Date | null>((earliest, p) => {
+      if (!p.expiresAt) return earliest;
+      if (!earliest) return p.expiresAt;
+      return p.expiresAt < earliest ? p.expiresAt : earliest;
+    }, null);
+
     return NextResponse.json({
       pending: true,
       packGroupId,
@@ -54,6 +66,8 @@ export async function GET() {
       totalCards: allPulls.length,
       pendingCount,
       decidedCount,
+      expiresAt: expiresAt?.toISOString() ?? null,
+      battleId: anyPending.battleId?.toString() ?? null,
       cards: allPulls.map((p) => {
         const card = cardMap.get(p.cardId.toString());
         return {

@@ -7,7 +7,7 @@ import User from "@/models/user";
 import CoinTransaction from "@/models/coin-transaction";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
 import { evaluateRound, evaluateBattle } from "@/lib/battle-engine";
-import { prepareBoxCardsForBattle, drawAndPersistBattleHand, transferCardOwnership } from "@/lib/battle-cards";
+import { prepareBoxCardsForBattle, drawAndPersistBattleHand, transferCardOwnership, activateBattlePullExpiry } from "@/lib/battle-cards";
 import { distributeByMode } from "@/lib/battle-distribution";
 import { calculateEloChanges, type EloPlayer } from "@/lib/battle-elo";
 import { scheduleBattleJob } from "@/lib/battle-jobs";
@@ -363,6 +363,9 @@ async function finishBattle(
     })),
     completedAt: new Date(),
   };
+
+  // Activate 5-min expiry timer on all battle pulls
+  await activateBattlePullExpiry(battleId);
 
   await publishBattleEvent(battleId, "battle_end", { result: battle.result });
 }

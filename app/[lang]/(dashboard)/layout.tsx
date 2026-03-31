@@ -1,6 +1,7 @@
 ﻿import { redirect } from "next/navigation";
 import { ChatDock } from "@/components/chat/chat-dock";
 import { UserHeader } from "@/components/layout/user-header";
+import { PendingPullsGuard } from "@/components/packs/pending-pulls-guard";
 import { auth } from "@/lib/auth";
 import { getActiveLanguages, getDictionary } from "@/lib/i18n";
 
@@ -38,7 +39,9 @@ export default async function DashboardLayout({
         userImage={userImage}
         userRole={userRole}
       />
-      <div className="flex flex-1 flex-col">{children}</div>
+      <PendingPullsGuard>
+        <div className="flex flex-1 flex-col">{children}</div>
+      </PendingPullsGuard>
       <ChatDock
         lang={lang}
         dict={chatDict}
