@@ -21,7 +21,14 @@ export async function GET() {
     await autoConvertExpiredPulls(userId);
 
     // Find any pending pulls for this user
-    const anyPending = await PackPull.findOne({ userId, status: "pending" })
+    // Exclude battle pulls that haven't been activated yet (expiresAt is null
+    // while the battle is still in progress — set by activateBattlePullExpiry
+    // when the battle finishes)
+    const anyPending = await PackPull.findOne({
+      userId,
+      status: "pending",
+      $or: [{ battleId: null }, { expiresAt: { $ne: null } }],
+    })
       .sort({ createdAt: -1 })
       .lean();
 
