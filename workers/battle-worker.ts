@@ -11,6 +11,7 @@ import { distributeByMode } from "@/lib/battle-distribution";
 import { calculateEloChanges, type EloPlayer } from "@/lib/battle-elo";
 import { scheduleBattleJob } from "@/lib/battle-jobs";
 import type { IVirtualCard } from "@/models/battle";
+import mongoose from "mongoose";
 
 // ---------- Auto-Cancel: waiting battles that expired ----------
 
@@ -327,20 +328,20 @@ async function finishBattle(
   }
 
   battle.result = {
-    winner: winnerId ? (winnerId as unknown as import("mongoose").Types.ObjectId) : null,
+    winner: winnerId ? new mongoose.Types.ObjectId(winnerId) : null,
     isDraw: !winnerId,
     finalScores: battle.players.map((p) => ({
-      player: p.user,
+      player: p.user instanceof mongoose.Types.ObjectId ? p.user : new mongoose.Types.ObjectId(String(p.user)),
       roundsWon: p.roundsWon,
     })),
     transfers: transfers.map((t) => ({
-      from: t.from as unknown as import("mongoose").Types.ObjectId,
-      to: t.to as unknown as import("mongoose").Types.ObjectId,
+      from: new mongoose.Types.ObjectId(t.from),
+      to: new mongoose.Types.ObjectId(t.to),
       cards: t.cards,
       mode: t.mode,
     })),
     eloChanges: eloChanges.map((c) => ({
-      player: c.id as unknown as import("mongoose").Types.ObjectId,
+      player: new mongoose.Types.ObjectId(c.id),
       oldElo: c.oldElo,
       newElo: c.newElo,
       change: c.change,

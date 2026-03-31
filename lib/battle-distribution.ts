@@ -1,4 +1,3 @@
-import type { Types } from "mongoose";
 import type { IVirtualCard } from "@/models/battle";
 import type { BattleMode } from "@/models/battle";
 
@@ -36,9 +35,9 @@ export function distributeSnakeDraft(
 
 // ---------- Mode-based distribution ----------
 
-interface TransferResult {
-  from: Types.ObjectId | { toString(): string };
-  to: Types.ObjectId | { toString(): string };
+export interface TransferResult {
+  from: string;
+  to: string;
   cards: IVirtualCard[];
   mode: string;
 }
@@ -87,8 +86,8 @@ export function distributeByMode(
 
     if (transferCards.length > 0) {
       transfers.push({
-        from: { toString: () => playerId } as Types.ObjectId,
-        to: { toString: () => winnerId } as Types.ObjectId,
+        from: playerId,
+        to: winnerId,
         cards: transferCards,
         mode,
       });
@@ -118,8 +117,8 @@ function distributeSnakeDraftMode(
   for (const [playerId, cards] of distribution.entries()) {
     if (cards.length > 0) {
       transfers.push({
-        from: { toString: () => "pool" } as Types.ObjectId,
-        to: { toString: () => playerId } as Types.ObjectId,
+        from: playerId,
+        to: playerId,
         cards,
         mode: "snake_draft",
       });
