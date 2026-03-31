@@ -140,6 +140,44 @@ export async function activateBattlePullExpiry(battleId: string): Promise<void> 
 }
 
 /**
+ * Clean up unselected battle cards after a battle finishes.
+ * Each round draws 5 cards but only 1 is selected — the other 4 must be
+ * returned to stock and marked as converted.
+ *
+ * @param battleId  The battle that just finished
+ * @param selectedPullIds  Set of pullId strings for the cards that were actually played
+ */
+export async function cleanupUnselectedBattlePulls(
+  battleId: string,
+  selectedPullIds: Set<string>,
+): Promise<void> {
+  const battleObjectId = new mongoose.Types.ObjectId(battleId);
+
+  // Find all pending pulls for this battle that were NOT selected
+  const unselected = await PackPull.find({
+    battleId: battleObjectId,
+    status: "pending",
+    _id: { $nin: [...selectedPullIds].map((id) => new mongoose.Types.ObjectId(id)) },
+  }).lean();
+
+  if (unselected.length === 0) return;
+
+  // Return stock for each unselected card
+  for (const pull of unselected) {
+    await Box.updateOne(
+      { _id: pull.boxId, "cards.card": pull.cardId },
+      { $inc: { "cards.$.stock": 1 } },
+    );
+  }
+
+  // Mark all as converted (no coins awarded — they were never played)
+  await PackPull.updateMany(
+    { _id: { $in: unselected.map((p) => p._id) } },
+    { $set: { status: "converted", decidedAt: new Date() } },
+  );
+}
+
+/**
  * Auto-convert all expired pending pulls to coins.
  * Called server-side when checking for pending pulls.
  */

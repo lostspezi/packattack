@@ -5,7 +5,7 @@ import Battle from "@/models/battle";
 import Box from "@/models/box";
 import User from "@/models/user";
 import { evaluateRound, evaluateBattle } from "@/lib/battle-engine";
-import { prepareBoxCardsForBattle, drawAndPersistBattleHand, transferCardOwnership, activateBattlePullExpiry } from "@/lib/battle-cards";
+import { prepareBoxCardsForBattle, drawAndPersistBattleHand, transferCardOwnership, activateBattlePullExpiry, cleanupUnselectedBattlePulls } from "@/lib/battle-cards";
 import { distributeByMode } from "@/lib/battle-distribution";
 import { calculateEloChanges, type EloPlayer } from "@/lib/battle-elo";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
@@ -215,8 +215,9 @@ async function finishBattle(
 ) {
   battle.status = "finished";
 
-  // Collect all played cards per player
+  // Collect all played cards per player + track selected pullIds
   const playerCards = new Map<string, IVirtualCard[]>();
+  const selectedPullIds = new Set<string>();
   for (const p of battle.players) {
     playerCards.set(p.user.toString(), []);
   }
@@ -227,9 +228,13 @@ async function finishBattle(
         const card = hand.cards[hand.selectedCardIndex];
         const existing = playerCards.get(hand.player.toString());
         if (existing) existing.push(card);
+        if (card.pullId) selectedPullIds.add(card.pullId.toString());
       }
     }
   }
+
+  // Clean up unselected cards (return stock, mark converted)
+  await cleanupUnselectedBattlePulls(battleId, selectedPullIds);
 
   // Calculate transfers
   const transfers = winnerId
