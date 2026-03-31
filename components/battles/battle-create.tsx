@@ -9,7 +9,7 @@ interface BoxOption {
   name: { de: string; en: string };
   game: string;
   image: string | null;
-  battleFeePerRound: number;
+  priceInCoins: number;
 }
 
 interface BattleCreateProps {
@@ -38,7 +38,8 @@ export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {
   const [creating, setCreating] = useState(false);
 
   const selectedBoxData = boxes.find((b) => b._id === selectedBox);
-  const entryFee = selectedBoxData ? rounds * selectedBoxData.battleFeePerRound : 0;
+  const CARDS_PER_HAND = 5;
+  const entryFee = selectedBoxData ? rounds * CARDS_PER_HAND * selectedBoxData.priceInCoins : 0;
 
   async function handleCreate() {
     if (!selectedBox) {

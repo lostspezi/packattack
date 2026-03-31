@@ -14,7 +14,7 @@ interface BoxOption {
   name: { de: string; en: string };
   game: string;
   image: string | null;
-  battleFeePerRound: number;
+  priceInCoins: number;
 }
 
 export default function BattlesPage() {
@@ -53,10 +53,7 @@ export default function BattlesPage() {
       }
       if (boxesRes.ok) {
         const data = await boxesRes.json();
-        const battleBoxes = (data.boxes ?? []).filter(
-          (b: BoxOption & { battleFeePerRound?: number }) => b.battleFeePerRound && b.battleFeePerRound > 0,
-        );
-        setBoxes(battleBoxes);
+        setBoxes(data.boxes ?? []);
       }
     } catch {
       // silent
