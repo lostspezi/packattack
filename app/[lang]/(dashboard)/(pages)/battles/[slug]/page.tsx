@@ -158,6 +158,9 @@ export default function BattleDetailPage() {
     players: { userId: string; username: string; card: { name: string; image: string; coinValue: number } }[];
     winnerId: string | null;
   } | null>(null);
+  // Queue next round data so reveal animation can finish
+  const pendingRoundRef = useRef<{ hand: VirtualCard[] | null; deadline: string; roundNumber: number } | null>(null);
+  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Fetch initial battle state
   const fetchBattle = useCallback(async () => {
@@ -226,19 +229,35 @@ export default function BattleDetailPage() {
           setBattle((prev) => (prev ? { ...prev, status: "countdown" } : prev));
           break;
 
-        case "round_start":
-          setRevealData(null);
-          setSelectedCardIndex(null);
-          if (event.data.hand) {
-            setMyHand(event.data.hand as VirtualCard[]);
+        case "round_start": {
+          const applyRoundStart = () => {
+            setRevealData(null);
+            setSelectedCardIndex(null);
+            if (event.data.hand) {
+              setMyHand(event.data.hand as VirtualCard[]);
+            }
+            setSelectDeadline(event.data.selectDeadline as string);
+            setBattle((prev) =>
+              prev
+                ? { ...prev, status: "active", currentRound: event.data.roundNumber as number }
+                : prev,
+            );
+            pendingRoundRef.current = null;
+          };
+
+          // If a reveal is currently showing, delay the round start so the flip animation plays
+          if (revealTimerRef.current) {
+            // A reveal is in progress — queue this round start
+            pendingRoundRef.current = {
+              hand: event.data.hand as VirtualCard[] | null,
+              deadline: event.data.selectDeadline as string,
+              roundNumber: event.data.roundNumber as number,
+            };
+          } else {
+            applyRoundStart();
           }
-          setSelectDeadline(event.data.selectDeadline as string);
-          setBattle((prev) =>
-            prev
-              ? { ...prev, status: "active", currentRound: event.data.roundNumber as number }
-              : prev,
-          );
           break;
+        }
 
         case "round_reveal": {
           const selections = event.data.selections as {
@@ -265,6 +284,24 @@ export default function BattleDetailPage() {
             return prev;
           });
           setMyHand(null);
+
+          // Keep reveal visible for 4s (flip 0.6s + result 0.8s + read time 2.6s)
+          if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+          revealTimerRef.current = setTimeout(() => {
+            revealTimerRef.current = null;
+            // Apply queued round_start if one arrived during the reveal
+            if (pendingRoundRef.current) {
+              const pending = pendingRoundRef.current;
+              setRevealData(null);
+              setSelectedCardIndex(null);
+              if (pending.hand) setMyHand(pending.hand);
+              setSelectDeadline(pending.deadline);
+              setBattle((prev) => prev ? { ...prev, status: "active", currentRound: pending.roundNumber } : prev);
+              pendingRoundRef.current = null;
+            }
+            // If no pending round (e.g., battle ended), leave revealData visible
+          }, 4000);
+
           // Update scores from event or refetch
           if (event.data.scores) {
             const scores = event.data.scores as Record<string, number>;
@@ -279,7 +316,6 @@ export default function BattleDetailPage() {
               };
             });
           } else {
-            // Refetch to get updated scores when not included in event
             fetchBattle();
           }
           break;
@@ -294,6 +330,13 @@ export default function BattleDetailPage() {
   );
 
   useBattleSSE(battle?._id ?? null, handleSSEEvent);
+
+  // Cleanup reveal timer on unmount
+  useEffect(() => {
+    return () => {
+      if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+    };
+  }, []);
 
   // Actions
   async function handleReady() {
