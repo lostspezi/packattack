@@ -9,12 +9,14 @@ import { Clock, AlertTriangle, Volume2, VolumeX } from "lucide-react";
 type CardChoice = "claim" | "convert" | null;
 
 interface PendingCard {
+  pullId: string;
   cardId: string;
   name: string;
   rarity: string;
   coinValue: number;
   conversionValue: number;
   image: string | null;
+  packGroupId: string;
   packIndex: number;
   cardIndex: number;
   status: string;
@@ -58,7 +60,7 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
   const warnSoundRef = useRef<HTMLAudioElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastPackGroupRef = useRef<string | null>(null);
+  const lastSessionRef = useRef<string | null>(null);
   const hadPendingRef = useRef(false);
 
   // Preload sounds
@@ -84,16 +86,17 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
           // Was pending, now cleared — auto-converted by server
           setPendingData(null);
           setChoices(new Map());
-          lastPackGroupRef.current = null;
+          lastSessionRef.current = null;
           hadPendingRef.current = false;
         }
         return;
       }
       const d = data as PendingData;
       hadPendingRef.current = true;
-      // Only reset choices if it's a different pack group
-      if (d.packGroupId !== lastPackGroupRef.current) {
-        lastPackGroupRef.current = d.packGroupId;
+      // Only reset choices if it's a different session (battle or pack group)
+      const sessionKey = d.battleId ?? d.packGroupId;
+      if (sessionKey !== lastSessionRef.current) {
+        lastSessionRef.current = sessionKey;
         setChoices(new Map());
         notifiedRef.current = false;
         warningSoundPlayedRef.current = false;
@@ -131,7 +134,7 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
         // Time's up — refetch to get server-side auto-conversion result
         setPendingData(null);
         setChoices(new Map());
-        lastPackGroupRef.current = null;
+        lastSessionRef.current = null;
         fetchPending();
       }
     }
@@ -215,7 +218,7 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            packGroupId: pendingData.packGroupId,
+            packGroupId: card.packGroupId,
             cardId: card.cardId,
             cardIndex: card.cardIndex,
             packIndex: card.packIndex,
@@ -242,7 +245,7 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
       });
       setPendingData(null);
       setChoices(new Map());
-      lastPackGroupRef.current = null;
+      lastSessionRef.current = null;
     } catch {
       toast({ type: "error", title: "Network error" });
     } finally {

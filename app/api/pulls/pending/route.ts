@@ -36,12 +36,17 @@ export async function GET() {
       return NextResponse.json({ pending: false });
     }
 
-    const packGroupId = anyPending.packGroupId;
+    const isBattle = !!anyPending.battleId;
 
-    // Load ALL pulls for this session (including already decided ones)
-    const allPulls = await PackPull.find({ packGroupId, userId })
-      .sort({ cardIndex: 1 })
-      .lean();
+    // For battle pulls: load ALL pulls for this battle+user (across all rounds)
+    // For pack pulls: load by packGroupId (single opening session)
+    const allPulls = isBattle
+      ? await PackPull.find({ battleId: anyPending.battleId, userId })
+          .sort({ createdAt: 1, cardIndex: 1 })
+          .lean()
+      : await PackPull.find({ packGroupId: anyPending.packGroupId, userId })
+          .sort({ cardIndex: 1 })
+          .lean();
 
     // Load box and card details
     const boxId = anyPending.boxId;
@@ -63,29 +68,35 @@ export async function GET() {
       return p.expiresAt < earliest ? p.expiresAt : earliest;
     }, null);
 
+    // Collect all packGroupIds for battle pulls (needed for decide endpoint)
+    const packGroupIds = [...new Set(allPulls.map((p) => p.packGroupId))];
+
     return NextResponse.json({
       pending: true,
-      packGroupId,
+      packGroupId: anyPending.packGroupId,
+      packGroupIds: isBattle ? packGroupIds : [anyPending.packGroupId],
       boxId: boxId.toString(),
       boxSlug: box?.slug ?? boxId.toString(),
       boxName: box?.name ?? { de: "Box", en: "Box" },
-      packCount: Math.max(...allPulls.map((p) => p.packIndex)) + 1,
+      packCount: isBattle ? allPulls.length : Math.max(...allPulls.map((p) => p.packIndex)) + 1,
       totalCards: allPulls.length,
       pendingCount,
       decidedCount,
       expiresAt: expiresAt?.toISOString() ?? null,
       battleId: anyPending.battleId?.toString() ?? null,
-      cards: allPulls.map((p) => {
+      cards: allPulls.map((p, i) => {
         const card = cardMap.get(p.cardId.toString());
         return {
+          pullId: p._id.toString(),
           cardId: p.cardId.toString(),
           name: card?.name ?? "Unknown",
           rarity: p.rarity,
           coinValue: p.coinValue,
           conversionValue: p.conversionValue,
           image: card?.image ?? null,
+          packGroupId: p.packGroupId,
           packIndex: p.packIndex,
-          cardIndex: p.cardIndex,
+          cardIndex: isBattle ? i : p.cardIndex,
           status: p.status,
         };
       }),
