@@ -500,144 +500,118 @@ function BattleResultView({
 
   return (
     <div className="flex flex-col gap-6">
-      {/* Top: Banner + Scores side by side on desktop */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
-        {/* Victory / Defeat Banner */}
-        <div className="relative flex-1 overflow-hidden rounded-2xl border border-zinc-800 bg-gradient-to-b from-zinc-900 to-zinc-950 px-6 py-8 text-center">
-          <div
-            className={`absolute inset-0 opacity-10 ${
-              isDraw ? "bg-zinc-400" : isWinner ? "bg-yellow-400" : "bg-red-400"
-            }`}
-            style={{ filter: "blur(60px)" }}
-          />
-          <div className="relative">
-            {isDraw ? (
-              <>
-                <div className="mb-1 text-4xl">🤝</div>
-                <h1 className="text-2xl font-extrabold text-zinc-300">
-                  {isDe ? "Unentschieden!" : "Draw!"}
-                </h1>
-              </>
-            ) : isWinner ? (
-              <>
-                <div className="mb-1 text-4xl">🏆</div>
-                <h1 className="bg-gradient-to-r from-yellow-300 to-amber-500 bg-clip-text text-3xl font-extrabold text-transparent">
-                  {isDe ? "Sieg!" : "Victory!"}
-                </h1>
-              </>
-            ) : (
-              <>
-                <div className="mb-1 text-4xl">⚔️</div>
-                <h1 className="text-2xl font-extrabold text-red-400">
-                  {isDe ? "Niederlage" : "Defeat"}
-                </h1>
-              </>
-            )}
-
-            {myEloChange && (
-              <div className="mt-2 flex items-center justify-center gap-2">
-                <span className="text-sm text-zinc-500">ELO</span>
-                <span className="font-bold text-zinc-300">{myEloChange.oldElo}</span>
-                <span className="text-zinc-600">→</span>
-                <span className="font-bold text-zinc-100">{myEloChange.newElo}</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-sm font-bold ${
-                    myEloChange.change >= 0
-                      ? "bg-green-400/10 text-green-400"
-                      : "bg-red-400/10 text-red-400"
-                  }`}
-                >
-                  {myEloChange.change >= 0 ? "+" : ""}
-                  {myEloChange.change}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Player Scores */}
-        <div className="flex gap-3 lg:w-[380px] lg:shrink-0">
-          {result.finalScores
-            .sort((a, b) => b.roundsWon - a.roundsWon)
-            .map((score, i) => {
-              const player = battle.players.find((p) => String(p.user._id) === String(score.player));
-              const isMe = String(score.player) === currentUserId;
-              const eloChange = result.eloChanges.find((e) => String(e.player) === String(score.player));
-              const isFirst = i === 0;
-              return (
-                <div
-                  key={String(score.player)}
-                  className={`flex flex-1 flex-col items-center justify-center rounded-xl border p-4 ${
-                    isFirst
-                      ? "border-yellow-400/30 bg-yellow-400/5"
-                      : "border-zinc-800 bg-zinc-900"
-                  }`}
-                >
-                  <div className="mb-1 text-xl">{isFirst ? "👑" : `#${i + 1}`}</div>
-                  <div className={`text-sm font-bold ${isMe ? "text-yellow-400" : "text-zinc-200"}`}>
-                    {player?.user.username ?? "???"}
-                  </div>
-                  <div className="mt-1 text-2xl font-extrabold text-zinc-100">
-                    {score.roundsWon}
-                  </div>
-                  <div className="text-[10px] uppercase tracking-wider text-zinc-500">
-                    {isDe ? "Siege" : "Wins"}
-                  </div>
-                  {eloChange && (
-                    <div
-                      className={`mt-1 text-xs font-bold ${
-                        eloChange.change >= 0 ? "text-green-400" : "text-red-400"
-                      }`}
-                    >
-                      {eloChange.change >= 0 ? "+" : ""}
-                      {eloChange.change} ELO
-                    </div>
-                  )}
+      {/* Header: Result + Players in one row on desktop */}
+      <div className="rounded-2xl border border-zinc-800 bg-zinc-900/80 p-4 lg:p-6">
+        <div className="flex flex-col items-center gap-4 lg:flex-row lg:gap-8">
+          {/* Result badge — compact */}
+          <div className="flex shrink-0 items-center gap-3">
+            <span className="text-3xl">
+              {isDraw ? "🤝" : isWinner ? "🏆" : "⚔️"}
+            </span>
+            <div>
+              <h1
+                className={`text-xl font-extrabold ${
+                  isDraw
+                    ? "text-zinc-300"
+                    : isWinner
+                      ? "bg-gradient-to-r from-yellow-300 to-amber-500 bg-clip-text text-transparent"
+                      : "text-red-400"
+                }`}
+              >
+                {isDraw
+                  ? isDe ? "Unentschieden!" : "Draw!"
+                  : isWinner
+                    ? isDe ? "Sieg!" : "Victory!"
+                    : isDe ? "Niederlage" : "Defeat"}
+              </h1>
+              {myEloChange && (
+                <div className="flex items-center gap-1.5 text-sm">
+                  <span className="text-zinc-500">ELO</span>
+                  <span className="font-bold text-zinc-400">{myEloChange.oldElo}</span>
+                  <span className="text-zinc-600">→</span>
+                  <span className="font-bold text-zinc-100">{myEloChange.newElo}</span>
+                  <span
+                    className={`rounded-full px-1.5 py-0.5 text-xs font-bold ${
+                      myEloChange.change >= 0
+                        ? "bg-green-400/10 text-green-400"
+                        : "bg-red-400/10 text-red-400"
+                    }`}
+                  >
+                    {myEloChange.change >= 0 ? "+" : ""}
+                    {myEloChange.change}
+                  </span>
                 </div>
-              );
-            })}
+              )}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="hidden h-12 w-px bg-zinc-700 lg:block" />
+
+          {/* Player scores — inline */}
+          <div className="flex flex-1 items-center justify-center gap-6 lg:justify-start">
+            {result.finalScores
+              .sort((a, b) => b.roundsWon - a.roundsWon)
+              .map((score, i) => {
+                const player = battle.players.find((p) => String(p.user._id) === String(score.player));
+                const isMe = String(score.player) === currentUserId;
+                const eloChange = result.eloChanges.find((e) => String(e.player) === String(score.player));
+                const isFirst = i === 0;
+                return (
+                  <div key={String(score.player)} className="flex items-center gap-3">
+                    <div className="text-lg">{isFirst ? "👑" : `#${i + 1}`}</div>
+                    <div>
+                      <div className={`text-sm font-bold ${isMe ? "text-yellow-400" : "text-zinc-200"}`}>
+                        {player?.user.username ?? "???"}
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-lg font-extrabold text-zinc-100">{score.roundsWon}</span>
+                        <span className="text-[10px] uppercase text-zinc-500">{isDe ? "Siege" : "Wins"}</span>
+                        {eloChange && (
+                          <span className={`ml-1 text-[10px] font-bold ${eloChange.change >= 0 ? "text-green-400" : "text-red-400"}`}>
+                            {eloChange.change >= 0 ? "+" : ""}{eloChange.change}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
         </div>
       </div>
 
-      {/* Round History — compact row layout */}
+      {/* Round History — table-like on desktop */}
       {battle.rounds.length > 0 && (
-        <div className="w-full">
+        <div>
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             {isDe ? "Rundenverlauf" : "Round History"}
           </h3>
-          <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 xl:grid-cols-3">
+          <div className="overflow-hidden rounded-xl border border-zinc-800">
             {battle.rounds
               .filter((r) => r.status === "completed" || r.status === "revealing")
-              .map((round) => {
+              .map((round, idx) => {
                 const roundWinnerId = round.winner ? String(round.winner) : null;
                 return (
                   <div
                     key={round.roundNumber}
-                    className="rounded-xl border border-zinc-800 bg-zinc-900 p-3"
+                    className={`flex items-center gap-4 p-3 lg:px-5 ${
+                      idx > 0 ? "border-t border-zinc-800" : ""
+                    } ${roundWinnerId ? "bg-zinc-900/60" : "bg-zinc-900/30"}`}
                   >
-                    {/* Round header */}
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
-                        {isDe ? "Runde" : "R"} {round.roundNumber}
-                        {round.roundNumber > battle.settings.rounds && (
-                          <span className="ml-1 text-yellow-400">SD</span>
-                        )}
-                      </span>
-                      {roundWinnerId && (
-                        <span className="rounded-full bg-yellow-400/10 px-1.5 py-0.5 text-[10px] font-bold text-yellow-400">
-                          👑 {playerNameMap.get(roundWinnerId) ?? "???"}
-                        </span>
-                      )}
-                      {!roundWinnerId && round.status === "completed" && (
-                        <span className="rounded-full bg-zinc-800 px-1.5 py-0.5 text-[10px] font-bold text-zinc-500">
-                          {isDe ? "Gleich" : "Tie"}
-                        </span>
+                    {/* Round label */}
+                    <div className="w-16 shrink-0 text-center">
+                      <div className="text-xs font-bold text-zinc-500">
+                        {isDe ? "R" : "R"}{round.roundNumber}
+                      </div>
+                      {round.roundNumber > battle.settings.rounds && (
+                        <div className="text-[10px] font-bold text-yellow-400">SD</div>
                       )}
                     </div>
 
-                    {/* Player cards in a row */}
-                    <div className="flex gap-2">
-                      {round.hands.map((hand) => {
+                    {/* Player cards */}
+                    <div className="flex flex-1 items-center gap-3 lg:gap-6">
+                      {round.hands.map((hand, hIdx) => {
                         const playerId = String(hand.player);
                         const username = playerNameMap.get(playerId) ?? "???";
                         const isMe = playerId === currentUserId;
@@ -648,47 +622,54 @@ function BattleResultView({
                             : null;
 
                         return (
-                          <div
-                            key={playerId}
-                            className={`flex flex-1 items-center gap-2 rounded-lg border p-2 ${
-                              isRoundWinner
-                                ? "border-yellow-400/30 bg-yellow-400/5"
-                                : "border-zinc-800 bg-zinc-800/30"
-                            }`}
-                          >
+                          <div key={playerId} className="flex flex-1 items-center gap-2 lg:gap-3">
+                            {hIdx > 0 && (
+                              <span className="text-xs font-bold text-zinc-600">vs</span>
+                            )}
                             {selectedCard && selectedCard.cardId ? (
                               <img
                                 src={selectedCard.image}
                                 alt=""
-                                className={`h-14 w-10 shrink-0 rounded border object-cover ${
-                                  isRoundWinner ? "border-yellow-400/50" : "border-zinc-700"
+                                className={`h-12 w-9 shrink-0 rounded border object-cover ${
+                                  isRoundWinner ? "border-yellow-400/60 ring-1 ring-yellow-400/30" : "border-zinc-700"
                                 }`}
                               />
                             ) : (
-                              <div className="flex h-14 w-10 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-800 text-zinc-600">
+                              <div className="flex h-12 w-9 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-800 text-xs text-zinc-600">
                                 ?
                               </div>
                             )}
-                            <div className="min-w-0 flex-1">
-                              <div className={`truncate text-[11px] font-bold ${isMe ? "text-yellow-400" : "text-zinc-400"}`}>
+                            <div className="min-w-0">
+                              <div className={`text-xs font-bold ${isMe ? "text-yellow-400" : "text-zinc-300"}`}>
                                 {username} {isRoundWinner && "👑"}
                               </div>
-                              {selectedCard && selectedCard.cardId ? (
-                                <>
-                                  <div className="truncate text-[10px] text-zinc-500">
+                              {selectedCard && selectedCard.cardId && (
+                                <div className="flex items-center gap-2">
+                                  <span className="max-w-[180px] truncate text-[11px] text-zinc-500">
                                     {selectedCard.name}
-                                  </div>
-                                  <div className="text-[11px] font-bold text-yellow-400">
+                                  </span>
+                                  <span className={`whitespace-nowrap text-xs font-bold ${isRoundWinner ? "text-yellow-400" : "text-zinc-400"}`}>
                                     {selectedCard.coinValue} Coins
-                                  </div>
-                                </>
-                              ) : (
-                                <div className="text-[10px] text-zinc-600">—</div>
+                                  </span>
+                                </div>
                               )}
                             </div>
                           </div>
                         );
                       })}
+                    </div>
+
+                    {/* Round result badge */}
+                    <div className="w-20 shrink-0 text-right">
+                      {roundWinnerId ? (
+                        <span className="text-xs font-bold text-yellow-400">
+                          {playerNameMap.get(roundWinnerId) ?? "???"}
+                        </span>
+                      ) : (
+                        <span className="text-xs font-bold text-zinc-600">
+                          {isDe ? "Gleich" : "Tie"}
+                        </span>
+                      )}
                     </div>
                   </div>
                 );
@@ -699,7 +680,7 @@ function BattleResultView({
 
       {/* Received Cards Summary */}
       {result.transfers.length > 0 && (
-        <div className="w-full">
+        <div>
           <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             {isDe ? "Erhaltene Karten" : "Cards Received"}
           </h3>
@@ -715,11 +696,11 @@ function BattleResultView({
                     isMe ? "border-yellow-400/20 bg-yellow-400/5" : "border-zinc-800 bg-zinc-900"
                   }`}
                 >
-                  <div className="mb-2 flex items-center justify-between">
+                  <div className="mb-3 flex items-center justify-between">
                     <span className={`text-sm font-bold ${isMe ? "text-yellow-400" : "text-zinc-300"}`}>
                       {toPlayer?.user.username ?? "???"}
                     </span>
-                    <span className="text-xs font-bold text-yellow-400">
+                    <span className="text-sm font-bold text-yellow-400">
                       {totalValue} Coins
                     </span>
                   </div>
@@ -729,9 +710,9 @@ function BattleResultView({
                         key={j}
                         className="flex items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-800/80 px-2 py-1.5"
                       >
-                        <img src={card.image} alt="" className="h-9 w-9 rounded object-cover" />
+                        <img src={card.image} alt="" className="h-9 w-7 shrink-0 rounded object-cover" />
                         <div>
-                          <div className="max-w-[120px] truncate text-xs text-zinc-300">{card.name}</div>
+                          <div className="max-w-[160px] truncate text-xs text-zinc-300">{card.name}</div>
                           <div className="text-[10px] font-bold text-yellow-400">{card.coinValue} Coins</div>
                         </div>
                       </div>
