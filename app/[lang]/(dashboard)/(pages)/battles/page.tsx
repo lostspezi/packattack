@@ -71,6 +71,13 @@ export default function BattlesPage() {
     return () => clearInterval(interval);
   }, [fetchLobby]);
 
+  // Request notification permission for ready check alerts
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
   function handleCreated(battle: { slug: string }) {
     router.push(`/${lang}/battles/${battle.slug}`);
   }
