@@ -22,6 +22,7 @@ interface VirtualCard {
   image: string;
   rarity: string;
   coinValue: number;
+  pullId?: string | null;
 }
 
 interface BattlePlayer {
@@ -889,7 +890,7 @@ function BattleResultView({
             <div className="border-b border-zinc-800 px-3 py-2">
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isDe ? "Rundenverlauf" : "Round History"}</h3>
             </div>
-            <RoundRows rounds={battle.rounds} settings={battle.settings} playerNameMap={playerNameMap} currentUserId={currentUserId} isDe={isDe} />
+            <RoundRows rounds={battle.rounds} settings={battle.settings} playerNameMap={playerNameMap} currentUserId={currentUserId} isDe={isDe} transfers={result.transfers} />
           </div>
         )}
 
@@ -977,7 +978,7 @@ function BattleResultView({
               <div className="border-b border-zinc-800 px-4 py-2">
                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isDe ? "Rundenverlauf" : "Round History"}</h3>
               </div>
-              <RoundRows rounds={battle.rounds} settings={battle.settings} playerNameMap={playerNameMap} currentUserId={currentUserId} isDe={isDe} />
+              <RoundRows rounds={battle.rounds} settings={battle.settings} playerNameMap={playerNameMap} currentUserId={currentUserId} isDe={isDe} transfers={result.transfers} />
             </div>
           )}
         </div>
@@ -1054,13 +1055,25 @@ function PodiumBlock({ scores, players, currentUserId, eloChanges, isDe }: {
   );
 }
 
-function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe }: {
+function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe, transfers }: {
   rounds: BattleRound[];
   settings: { rounds: number };
   playerNameMap: Map<string, string>;
   currentUserId: string;
   isDe: boolean;
+  transfers?: BattleResult["transfers"];
 }) {
+  // Build a lookup: pullId → { from, to } for transferred cards
+  const transferMap = new Map<string, { from: string; to: string }>();
+  if (transfers) {
+    for (const t of transfers) {
+      if (t.from === t.to) continue;
+      for (const card of t.cards) {
+        if (card.pullId) transferMap.set(String(card.pullId), { from: t.from, to: t.to });
+      }
+    }
+  }
+
   return (
     <div>
       {rounds
@@ -1088,12 +1101,29 @@ function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe }: {
                   const isMe = pid === currentUserId;
                   const isW = pid === winnerId;
                   const card = hand.selectedCardIndex !== null && hand.selectedCardIndex >= 0 ? hand.cards[hand.selectedCardIndex] : null;
+                  const transfer = card?.pullId ? transferMap.get(String(card.pullId)) : null;
+                  const wasTransferred = transfer && transfer.from !== transfer.to;
+                  const lostCard = wasTransferred && transfer.from === pid;
+                  const gainedCard = wasTransferred && transfer.to === pid;
                   return (
                     <React.Fragment key={pid}>
                       {hIdx > 0 && <span className="hidden text-[10px] font-bold text-zinc-600 md:block">vs</span>}
                       <div className={`flex flex-1 items-center gap-2 rounded-lg border p-1.5 ${isW ? "border-yellow-400/20 bg-yellow-400/5" : "border-zinc-800 bg-zinc-800/20"}`}>
                         {card && card.cardId ? (
-                          <img src={card.image} alt="" className={`h-10 w-7 shrink-0 rounded border object-cover ${isW ? "border-yellow-400/50" : "border-zinc-700"}`} />
+                          <div className="relative shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={card.image} alt="" className={`h-10 w-7 rounded border object-cover ${isW ? "border-yellow-400/50" : "border-zinc-700"}`} />
+                            {lostCard && (
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white" title={isDe ? `Geht an ${playerNameMap.get(transfer.to) ?? "???"}` : `Goes to ${playerNameMap.get(transfer.to) ?? "???"}`}>
+                                ↗
+                              </span>
+                            )}
+                            {gainedCard && (
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-[8px] font-bold text-white" title={isDe ? `Von ${playerNameMap.get(transfer.from) ?? "???"}` : `From ${playerNameMap.get(transfer.from) ?? "???"}`}>
+                                ↙
+                              </span>
+                            )}
+                          </div>
                         ) : (
                           <div className="flex h-10 w-7 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-800 text-[10px] text-zinc-600">?</div>
                         )}
@@ -1104,6 +1134,12 @@ function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe }: {
                               <span className="min-w-0 truncate text-[10px] text-zinc-500">{card.name}</span>
                               <span className={`shrink-0 text-[10px] font-bold ${isW ? "text-yellow-400" : "text-zinc-400"}`}>{card.coinValue}</span>
                             </div>
+                          )}
+                          {lostCard && (
+                            <span className="text-[9px] text-red-400">→ {playerNameMap.get(transfer.to) ?? "???"}</span>
+                          )}
+                          {gainedCard && (
+                            <span className="text-[9px] text-green-400">← {playerNameMap.get(transfer.from) ?? "???"}</span>
                           )}
                         </div>
                       </div>
