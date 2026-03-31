@@ -8,6 +8,7 @@ import { Pack3D } from "./pack-3d";
 import { PackRipper } from "./pack-ripper";
 import { CardRevealGrid } from "./card-reveal-grid";
 import { CardReview } from "./card-review";
+import { suppressPendingGuard } from "./pending-pulls-guard";
 import { ParticleCanvas, type ParticleCanvasHandle } from "./particle-canvas";
 import { usePackSounds, type SoundKey } from "./use-pack-sounds";
 import { getMaxTierFromCards } from "./effect-tiers";
@@ -56,6 +57,12 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
   const { toast } = useToast();
   const { play, masterVolume, setMasterVolume } = usePackSounds();
   const prefersReducedMotion = useReducedMotion();
+
+  // Suppress the global PendingPullsGuard while this component is mounted
+  useEffect(() => {
+    suppressPendingGuard(true);
+    return () => suppressPendingGuard(false);
+  }, []);
 
   const isRecovery = result.isRecovery ?? false;
 

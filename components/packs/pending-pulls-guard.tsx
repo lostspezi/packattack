@@ -50,6 +50,19 @@ export function notifyPendingPulls() {
   }
 }
 
+/**
+ * Suppress / unsuppress the guard overlay.
+ * While suppressed, the guard still polls but won't render the blocking overlay.
+ * Use this when another component (e.g. PackOpening) handles card review itself.
+ */
+let _suppressed = false;
+export function suppressPendingGuard(value: boolean) {
+  _suppressed = value;
+}
+export function isPendingGuardSuppressed() {
+  return _suppressed;
+}
+
 export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang ?? "de";
@@ -276,8 +289,8 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
 
   const hasPending = pendingData && pendingData.pendingCount > 0;
 
-  // If no pending or user is on battle page and review is handled there, skip
-  if (!hasPending) return <>{children}</>;
+  // If no pending, or another component is handling the review (e.g. PackOpening), skip
+  if (!hasPending || isPendingGuardSuppressed()) return <>{children}</>;
 
   const recoveredIndices = new Set(
     pendingData.cards
