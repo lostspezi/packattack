@@ -4,12 +4,14 @@ import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
 import Box from "@/models/box";
 import User from "@/models/user";
-import { generateBattleHand, evaluateRound, evaluateBattle, type BoxCardForBattle } from "@/lib/battle-engine";
+import { evaluateRound, evaluateBattle } from "@/lib/battle-engine";
+import { prepareBoxCardsForBattle, drawAndPersistBattleHand, transferCardOwnership } from "@/lib/battle-cards";
 import { distributeByMode } from "@/lib/battle-distribution";
 import { calculateEloChanges, type EloPlayer } from "@/lib/battle-elo";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
 import { scheduleBattleJob } from "@/lib/battle-jobs";
 import type { IVirtualCard } from "@/models/battle";
+import PackPull from "@/models/pack-pull";
 import mongoose from "mongoose";
 
 const SELECT_DEADLINE_MS = 30 * 1000;
@@ -170,36 +172,19 @@ async function startNewRound(
 
   if (!box) return;
 
-  const boxCards: BoxCardForBattle[] = (box.cards ?? [])
-    .filter((c) => c.card)
-    .map((c) => {
-      const card = c.card as unknown as {
-        _id: { toString(): string };
-        name: string;
-        image: string;
-        internalPrice?: number;
-        marketPrice?: number;
-      };
-      return {
-        cardId: card._id as unknown as import("mongoose").Types.ObjectId,
-        name: card.name,
-        image: card.image ?? "",
-        rarity: c.rarity,
-        coinValue: Math.max(1, Math.floor(card.internalPrice ?? card.marketPrice ?? 1)),
-        weight: c.weight,
-      };
-    });
+  const boxCards = prepareBoxCardsForBattle(box);
 
   const nextRoundNumber = battle.rounds.length + 1;
   battle.currentRound = nextRoundNumber;
 
   const selectDeadline = new Date(Date.now() + SELECT_DEADLINE_MS);
-  const hands = battle.players.map((p) => ({
-    player: p.user,
-    cards: generateBattleHand(boxCards),
-    selectedCardIndex: null,
-    selectedAt: null,
-  }));
+  const hands = [];
+  for (const p of battle.players) {
+    const cards = await drawAndPersistBattleHand(
+      battle.box.toString(), boxCards, p.user.toString(), battleId,
+    );
+    hands.push({ player: p.user, cards, selectedCardIndex: null, selectedAt: null });
+  }
 
   battle.rounds.push({
     roundNumber: nextRoundNumber,
@@ -219,8 +204,8 @@ async function startNewRound(
     });
   }
 
-  // Schedule auto-select for this round
-  await scheduleBattleJob("auto-select", { battleId, roundNumber: nextRoundNumber }, SELECT_DEADLINE_MS + 2000);
+  // TODO: re-enable auto-select timer
+  // await scheduleBattleJob("auto-select", { battleId, roundNumber: nextRoundNumber }, SELECT_DEADLINE_MS + 2000);
 }
 
 async function finishBattle(
@@ -250,6 +235,16 @@ async function finishBattle(
   const transfers = winnerId
     ? distributeByMode(battle.settings.mode, winnerId, playerCards)
     : [];
+
+  // Transfer PackPull ownership for redistributed cards
+  for (const transfer of transfers) {
+    if (transfer.from === transfer.to) continue;
+    for (const card of transfer.cards) {
+      if (card.pullId) {
+        await transferCardOwnership(card.pullId.toString(), transfer.to);
+      }
+    }
+  }
 
   // Calculate ELO changes
   const playerIds = battle.players.map((p) => p.user.toString());

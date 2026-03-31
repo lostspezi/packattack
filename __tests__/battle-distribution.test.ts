@@ -15,6 +15,8 @@ function makeVCard(coinValue: number, name?: string): IVirtualCard {
     image: `/images/card.jpg`,
     rarity: "Common",
     coinValue,
+    conversionValue: 0,
+    pullId: null,
   };
 }
 

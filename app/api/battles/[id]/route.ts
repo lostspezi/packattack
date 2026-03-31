@@ -48,6 +48,8 @@ export async function GET(
                 image: "/images/card-back.jpg",
                 rarity: "???",
                 coinValue: 0,
+                conversionValue: 0,
+                pullId: null,
               }));
               hand.selectedCardIndex = hand.selectedCardIndex !== null ? -1 : null; // Show they selected but not which
             }

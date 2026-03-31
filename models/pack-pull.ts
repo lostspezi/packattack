@@ -15,6 +15,7 @@ export interface IPackPull extends Document {
   cardIndex: number;
   ipAddress: string;
   userAgent: string;
+  battleId: Types.ObjectId | null;
   createdAt: Date;
 }
 
@@ -38,6 +39,7 @@ const PackPullSchema = new Schema<IPackPull>(
     cardIndex: { type: Number, required: true },
     ipAddress: { type: String, default: "" },
     userAgent: { type: String, default: "" },
+    battleId: { type: Schema.Types.ObjectId, ref: "Battle", default: null },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );

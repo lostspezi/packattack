@@ -1,15 +1,17 @@
 import type { Types } from "mongoose";
 import type { IVirtualCard } from "@/models/battle";
+import { drawPacks, type PackCard } from "@/lib/pack-engine";
 
 // ---------- Types ----------
 
 export interface BoxCardForBattle {
-  cardId: Types.ObjectId;
+  cardId: string;
   name: string;
   image: string;
   rarity: string;
   coinValue: number;
   weight: number;
+  stock: number;
 }
 
 interface RoundSelection {
@@ -27,89 +29,65 @@ interface BattleResult {
   tiedPlayers: string[];
 }
 
-// ---------- Tier configuration ----------
-
-interface TierConfig {
-  min: number;
-  max: number;
-  count: number;
+export interface DrawnBattleCard {
+  cardId: string;
+  name: string;
+  image: string;
+  rarity: string;
+  coinValue: number;
+  conversionValue: number;
 }
-
-const HAND_TIERS: TierConfig[] = [
-  { min: 1, max: 10, count: 2 },
-  { min: 11, max: 50, count: 1 },
-  { min: 51, max: 200, count: 1 },
-  { min: 201, max: Infinity, count: 1 },
-];
 
 const HAND_SIZE = 5;
 
-// ---------- Hand generation ----------
+// ---------- Hand generation (real cards, stock-aware) ----------
 
 /**
- * Generate a battle hand of 5 cards using tier-based stratified drawing.
- * Guarantees value diversity: 2 low, 1 medium, 1 high, 1 premium.
- * Falls back to adjacent tiers when a tier has insufficient cards.
+ * Draw a battle hand of 5 real cards using the same weighted engine
+ * as pack opening. Cards are drawn respecting stock — callers must
+ * persist PackPull entries and decrement stock in the database.
+ *
+ * Returns the drawn cards + a stock delta map (cardId → count drawn).
  */
-export function generateBattleHand(boxCards: BoxCardForBattle[]): IVirtualCard[] {
-  if (boxCards.length < HAND_SIZE) {
-    throw new Error(`Box must have at least ${HAND_SIZE} cards for battle`);
+export function drawBattleHand(boxCards: BoxCardForBattle[]): {
+  cards: DrawnBattleCard[];
+  stockDeltas: Record<string, number>;
+} {
+  const packCards: PackCard[] = boxCards
+    .filter((c) => c.stock > 0)
+    .map((c) => ({
+      cardId: c.cardId,
+      name: c.name,
+      rarity: c.rarity,
+      weight: c.weight,
+      stock: c.stock,
+      coinValue: c.coinValue,
+      image: c.image,
+    }));
+
+  if (packCards.length === 0) {
+    throw new Error("No cards with stock available for battle hand");
   }
 
-  // Group cards by tier
-  const tierBuckets: BoxCardForBattle[][] = HAND_TIERS.map((tier) =>
-    boxCards.filter((c) => c.coinValue >= tier.min && c.coinValue <= tier.max),
-  );
+  // Draw 1 "pack" of 5 cards using the pack engine
+  const result = drawPacks(packCards, HAND_SIZE, 1, 0);
 
-  const hand: IVirtualCard[] = [];
+  const cards: DrawnBattleCard[] = result.drawnCards.map((d) => ({
+    cardId: d.cardId,
+    name: d.name,
+    image: d.image ?? "",
+    rarity: d.rarity,
+    coinValue: d.coinValue,
+    conversionValue: d.conversionValue,
+  }));
 
-  for (let i = 0; i < HAND_TIERS.length; i++) {
-    const needed = HAND_TIERS[i].count;
-    let bucket = tierBuckets[i];
-
-    // Fallback: if tier is empty, try adjacent tiers (prefer higher, then lower)
-    if (bucket.length === 0) {
-      for (let offset = 1; offset < HAND_TIERS.length; offset++) {
-        if (i + offset < HAND_TIERS.length && tierBuckets[i + offset].length > 0) {
-          bucket = tierBuckets[i + offset];
-          break;
-        }
-        if (i - offset >= 0 && tierBuckets[i - offset].length > 0) {
-          bucket = tierBuckets[i - offset];
-          break;
-        }
-      }
-    }
-
-    for (let j = 0; j < needed; j++) {
-      const card = weightedRandomPick(bucket);
-      hand.push({
-        cardId: card.cardId,
-        name: card.name,
-        image: card.image,
-        rarity: card.rarity,
-        coinValue: card.coinValue,
-      });
-    }
+  // Build stock delta map
+  const stockDeltas: Record<string, number> = {};
+  for (const d of result.drawnCards) {
+    stockDeltas[d.cardId] = (stockDeltas[d.cardId] ?? 0) + 1;
   }
 
-  return hand;
-}
-
-/**
- * Pick a random card from bucket using weights.
- */
-function weightedRandomPick(bucket: BoxCardForBattle[]): BoxCardForBattle {
-  const totalWeight = bucket.reduce((sum, c) => sum + c.weight, 0);
-  let rand = Math.random() * totalWeight;
-
-  for (const card of bucket) {
-    rand -= card.weight;
-    if (rand <= 0) return card;
-  }
-
-  // Fallback (shouldn't happen)
-  return bucket[bucket.length - 1];
+  return { cards, stockDeltas };
 }
 
 // ---------- Round evaluation ----------

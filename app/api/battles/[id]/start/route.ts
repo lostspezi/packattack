@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
 import Box from "@/models/box";
-import { generateBattleHand, type BoxCardForBattle } from "@/lib/battle-engine";
+import { prepareBoxCardsForBattle, drawAndPersistBattleHand } from "@/lib/battle-cards";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
 import { scheduleBattleJob, removeBattleJob } from "@/lib/battle-jobs";
 
@@ -46,38 +46,20 @@ export async function POST(
         return NextResponse.json({ error: "box_not_found" }, { status: 500 });
       }
 
-      // Prepare box cards for battle engine
-      const boxCards: BoxCardForBattle[] = (box.cards ?? [])
-        .filter((c) => c.card)
-        .map((c) => {
-          const card = c.card as unknown as {
-            _id: { toString(): string };
-            name: string;
-            image: string;
-            internalPrice?: number;
-            marketPrice?: number;
-          };
-          return {
-            cardId: card._id as unknown as import("mongoose").Types.ObjectId,
-            name: card.name,
-            image: card.image ?? "",
-            rarity: c.rarity,
-            coinValue: Math.max(1, Math.floor(card.internalPrice ?? card.marketPrice ?? 1)),
-            weight: c.weight,
-          };
-        });
+      const boxCards = prepareBoxCardsForBattle(box);
 
-      // Generate hands for round 1
+      // Generate hands for round 1 (real cards with stock decrement)
       battle.status = "active";
       battle.currentRound = 1;
 
       const selectDeadline = new Date(Date.now() + SELECT_DEADLINE_MS);
-      const hands = battle.players.map((p) => ({
-        player: p.user,
-        cards: generateBattleHand(boxCards),
-        selectedCardIndex: null,
-        selectedAt: null,
-      }));
+      const hands = [];
+      for (const p of battle.players) {
+        const cards = await drawAndPersistBattleHand(
+          battle.box.toString(), boxCards, p.user.toString(), id,
+        );
+        hands.push({ player: p.user, cards, selectedCardIndex: null, selectedAt: null });
+      }
 
       battle.rounds.push({
         roundNumber: 1,
@@ -107,7 +89,8 @@ export async function POST(
       }
 
       // Schedule auto-select for round 1
-      await scheduleBattleJob("auto-select", { battleId: id, roundNumber: 1 }, SELECT_DEADLINE_MS + 2000);
+      // TODO: re-enable auto-select timer
+      // await scheduleBattleJob("auto-select", { battleId: id, roundNumber: 1 }, SELECT_DEADLINE_MS + 2000);
 
       return NextResponse.json({ started: true, status: battle.status });
     });

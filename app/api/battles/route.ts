@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
     }
 
     const battles = await Battle.find(query)
-      .populate("box", "name slug game image battleFeePerRound")
+      .populate("box", "name slug game image priceInCoins")
       .populate("creator", "username")
       .populate("players.user", "username")
       .sort({ createdAt: -1 })
@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "box_not_available" }, { status: 400 });
     }
 
-    if (!box.battleFeePerRound || box.battleFeePerRound <= 0) {
+    if (!box.priceInCoins || box.priceInCoins <= 0) {
       return NextResponse.json({ error: "box_not_battle_enabled" }, { status: 400 });
     }
 
@@ -109,8 +109,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "already_in_battle" }, { status: 409 });
     }
 
-    // Calculate entry fee
-    const entryFee = rounds * box.battleFeePerRound;
+    // Calculate entry fee: 5 cards per round × rounds × pack price
+    const CARDS_PER_HAND = 5;
+    const entryFee = rounds * CARDS_PER_HAND * box.priceInCoins;
 
     // Reserve coins atomically
     const user = await User.findOneAndUpdate(
@@ -128,7 +129,7 @@ export async function POST(req: NextRequest) {
       userId: session.user.id,
       amount: -entryFee,
       type: "battle_entry",
-      reason: `Battle entry fee (${rounds} rounds × ${box.battleFeePerRound} coins)`,
+      reason: `Battle entry fee (${rounds} rounds × ${CARDS_PER_HAND} cards × ${box.priceInCoins} coins)`,
       relatedBattleId: null, // Will be updated after battle creation
     });
 

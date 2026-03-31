@@ -8,6 +8,8 @@ export interface IVirtualCard {
   image: string;
   rarity: string;
   coinValue: number;
+  conversionValue: number;
+  pullId: Types.ObjectId | null;
 }
 
 export interface IBattleHand {
@@ -96,6 +98,8 @@ const VirtualCardSchema = new Schema<IVirtualCard>(
     image: { type: String, required: true },
     rarity: { type: String, required: true },
     coinValue: { type: Number, required: true },
+    conversionValue: { type: Number, default: 0 },
+    pullId: { type: Schema.Types.ObjectId, ref: "PackPull", default: null },
   },
   { _id: false },
 );
