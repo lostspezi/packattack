@@ -217,7 +217,7 @@ export default function PackDetailPage() {
 
   // Map live events to the format LiveEvents expects
   const initialEvents = box.liveEvents.map((e) => ({
-    userName: (e.user as { name?: string })?.name ?? (e.user as { username?: string })?.username ?? "User",
+    userName: (e.user as { username?: string })?.username ?? "Anonymous",
     userImage: (e.user as { image?: string | null })?.image ?? null,
     cardName: (e.card as { name?: string })?.name ?? "Unknown",
     cardImage: (e.card as { image?: string | null })?.image ?? null,
@@ -265,7 +265,7 @@ export default function PackDetailPage() {
       )}
 
       {/* ═══ HERO: PACK OPENING ═══ */}
-      <div className="bg-surface border border-border rounded-[16px] p-5 md:p-7 relative overflow-hidden">
+      <div className="bg-surface border border-border rounded-2xl p-5 md:p-7 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-gradient-radial from-pa-green/5 to-transparent pointer-events-none" />
 
         <div className="flex flex-col lg:flex-row gap-5 relative">
@@ -287,7 +287,7 @@ export default function PackDetailPage() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={box.image} alt={name} className="w-full rounded-xl" />
                   ) : (
-                    <div className="w-full aspect-[63/88] bg-white/4 rounded-xl flex items-center justify-center">
+                    <div className="w-full aspect-63/88 bg-white/4 rounded-xl flex items-center justify-center">
                       <Package className="w-8 h-8 text-text-muted" />
                     </div>
                   )}
@@ -390,7 +390,7 @@ export default function PackDetailPage() {
           </div>
 
           {/* Right: Description + Condition + Rarities */}
-          <div className="lg:w-[680px] shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div className="lg:w-170 shrink-0 grid grid-cols-1 sm:grid-cols-3 gap-3">
             {/* Description */}
             <div className="bg-white/4 rounded-xl p-3.5">
               <p className="text-[10px] text-text-muted uppercase tracking-wider mb-1.5">
@@ -419,7 +419,7 @@ export default function PackDetailPage() {
               <div className="space-y-2">
                 {(box.conditionInfo ?? []).map((c) => (
                   <div key={c.condition} className="flex items-center gap-2">
-                    <span className="text-[9px] text-text-secondary min-w-[50px] truncate">{c.condition}</span>
+                    <span className="text-[9px] text-text-secondary min-w-12.5 truncate">{c.condition}</span>
                     <div className="flex-1 h-1.5 bg-white/6 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full bg-pa-green/60"
@@ -442,7 +442,7 @@ export default function PackDetailPage() {
               <div className="space-y-2">
                 {box.rarityInfo.map((r) => (
                   <div key={r.rarity} className="flex items-center gap-2">
-                    <Badge variant="info" className="text-[9px] min-w-[50px] justify-center">{r.rarity}</Badge>
+                    <Badge variant="info" className="text-[9px] min-w-12.5 justify-center">{r.rarity}</Badge>
                     <div className="flex-1 h-1.5 bg-white/6 rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full transition-all"
@@ -504,7 +504,7 @@ export default function PackDetailPage() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={card.image} alt="" className="w-20 mx-auto rounded-lg mb-2" loading="lazy" />
                     ) : (
-                      <div className="w-20 aspect-[63/88] bg-white/4 rounded-lg mx-auto mb-2" />
+                      <div className="w-20 aspect-63/88 bg-white/4 rounded-lg mx-auto mb-2" />
                     )}
                     <p className="text-sm font-bold text-text-primary">{card.name}</p>
                     <Badge variant="info" className="mt-1">{card.rarity}</Badge>
@@ -528,7 +528,7 @@ export default function PackDetailPage() {
             <div className="space-y-2">
               {box.rarityInfo.map((r) => (
                 <div key={r.rarity} className="flex items-center gap-3">
-                  <Badge variant="info" className="min-w-[80px] justify-center">{r.rarity}</Badge>
+                  <Badge variant="info" className="min-w-20 justify-center">{r.rarity}</Badge>
                   <div className="flex-1 h-2 bg-white/6 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"
@@ -548,7 +548,7 @@ export default function PackDetailPage() {
           <Button
             variant="primary"
             size="lg"
-            className="w-full shadow-[0_0_24px_theme(colors.pa-green/0.2)]"
+            className="w-full shadow-[0_0_24px_--theme(--color-pa-green/0.2)]"
             disabled={!canAfford || box.availableCards === 0}
             onClick={() => { setShowBoxInfo(false); setConfirmOpen("normal"); }}
           >
