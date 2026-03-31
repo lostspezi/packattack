@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Swords } from "lucide-react";
+import { Swords, Clock } from "lucide-react";
 import type { ChatBattleInviteSummary } from "@/types/chat";
 
 /* ------------------------------------------------------------------ */
@@ -20,6 +20,7 @@ type BattleStatus =
 interface BattleState {
   status: BattleStatus;
   playerCount: number;
+  lobbyExpiresAt: string | null;
 }
 
 type Listener = (state: BattleState) => void;
@@ -49,7 +50,7 @@ function getOrCreateEntry(slug: string): CacheEntry {
   let entry = cache.get(slug);
   if (!entry) {
     entry = {
-      state: { status: "waiting", playerCount: 1 },
+      state: { status: "waiting", playerCount: 1, lobbyExpiresAt: null },
       listeners: new Set(),
       es: null,
       fetched: false,
@@ -73,6 +74,10 @@ function updateState(entry: CacheEntry, partial: Partial<BattleState>) {
   }
   if (partial.playerCount !== undefined && partial.playerCount !== entry.state.playerCount) {
     entry.state.playerCount = partial.playerCount;
+    changed = true;
+  }
+  if (partial.lobbyExpiresAt !== undefined && partial.lobbyExpiresAt !== entry.state.lobbyExpiresAt) {
+    entry.state.lobbyExpiresAt = partial.lobbyExpiresAt;
     changed = true;
   }
   if (changed) notify(entry);
@@ -117,11 +122,12 @@ function ensureFetched(slug: string, sseId: string): CacheEntry {
         if (res.status === 404) updateState(entry, { status: "cancelled" });
         return;
       }
-      return res.json().then((data: { battle?: { status?: string; players?: unknown[] } }) => {
+      return res.json().then((data: { battle?: { status?: string; players?: unknown[]; lobbyExpiresAt?: string } }) => {
         const battle = data?.battle;
         const partial: Partial<BattleState> = {};
         if (battle?.status) partial.status = battle.status as BattleStatus;
         if (Array.isArray(battle?.players)) partial.playerCount = battle.players.length;
+        if (battle?.lobbyExpiresAt) partial.lobbyExpiresAt = battle.lobbyExpiresAt;
         if (Object.keys(partial).length > 0) updateState(entry, partial);
 
         if (!TERMINAL.includes(entry.state.status)) {
@@ -162,7 +168,7 @@ function subscribe(slug: string, sseId: string, listener: Listener): () => void 
 function useBattleStatus(invite: ChatBattleInviteSummary): BattleState {
   const [state, setState] = useState<BattleState>(() => {
     const entry = cache.get(invite.battleSlug);
-    return entry ? { ...entry.state } : { status: "waiting", playerCount: 1 };
+    return entry ? { ...entry.state } : { status: "waiting", playerCount: 1, lobbyExpiresAt: null };
   });
 
   useEffect(() => {
@@ -242,8 +248,27 @@ function CardFan({ images }: { images: string[] }) {
   );
 }
 
+function calcLobbyRemaining(lobbyExpiresAt: string | null) {
+  if (!lobbyExpiresAt) return 0;
+  return Math.max(0, new Date(lobbyExpiresAt).getTime() - Date.now());
+}
+
+function useLobbyCountdown(lobbyExpiresAt: string | null, isActive: boolean) {
+  const [remaining, setRemaining] = useState(() => calcLobbyRemaining(lobbyExpiresAt));
+
+  useEffect(() => {
+    if (!isActive || !lobbyExpiresAt) return;
+    const interval = setInterval(() => setRemaining(calcLobbyRemaining(lobbyExpiresAt)), 1000);
+    return () => clearInterval(interval);
+  }, [isActive, lobbyExpiresAt]);
+
+  const minutes = Math.floor(remaining / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+  return { remaining, minutes, seconds };
+}
+
 export function ChatBattleInvite({ invite, lang, className }: ChatBattleInviteProps) {
-  const { status, playerCount: currentPlayers } = useBattleStatus(invite);
+  const { status, playerCount: currentPlayers, lobbyExpiresAt } = useBattleStatus(invite);
   const modeLabel = MODE_LABELS[invite.mode]?.[lang] ?? invite.mode;
   const ctaLabel = lang === "de" ? "Zum Battle" : "Join Battle";
   const hasPreviewCards = invite.previewCards.length > 0;
@@ -252,6 +277,7 @@ export function ChatBattleInvite({ invite, lang, className }: ChatBattleInvitePr
   const isFull = currentPlayers >= invite.playerCount;
   const showCta = status === "waiting";
   const isEnded = status === "cancelled" || status === "finished";
+  const { remaining, minutes, seconds } = useLobbyCountdown(lobbyExpiresAt, showCta);
 
   return (
     <div
@@ -308,6 +334,12 @@ export function ChatBattleInvite({ invite, lang, className }: ChatBattleInvitePr
               {modeLabel}
             </span>
           </div>
+          {showCta && remaining > 0 && lobbyExpiresAt && (
+            <div className="mt-1.5 flex items-center gap-1 text-[10px] text-indigo-200/60">
+              <Clock className="h-3 w-3" />
+              <span>{minutes}:{seconds.toString().padStart(2, "0")} {lang === "de" ? "verbleibend" : "remaining"}</span>
+            </div>
+          )}
           {showCta ? (
             isFull ? (
               <span className="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-white/10 px-3 py-1.5 text-xs font-bold text-text-muted cursor-not-allowed">
