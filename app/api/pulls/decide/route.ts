@@ -98,7 +98,7 @@ async function publishJackpotPullsAfterCompletion(input: {
     const card = cardMap.get(pull.cardId.toString());
     const cardName = card?.name ?? "Unbekannte Karte";
     const cardImage = card?.image ?? null;
-    const bodyOriginal = `JACKPOT! ${displayName} hat ${cardName} (${pull.coinValue} Coins) gezogen! 🔥🔥🔥🎆🎉💥`;
+    const bodyOriginal = `${displayName} hat ${cardName} (${pull.coinValue} Coins) gezogen! 🔥🔥🔥🎆🎉💥`;
 
     const message = await ChatMessage.create({
       roomId: room._id,

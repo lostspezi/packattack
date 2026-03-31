@@ -47,7 +47,7 @@ export function ChatJackpotCard({ card, className }: ChatJackpotCardProps) {
 
         <div className="min-w-0">
           <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-yellow-200">
-            JACKPOT • {card.coinValue} Coins
+            {card.coinValue} Coins
           </p>
           <p className="mt-1 break-words text-sm font-semibold text-text-primary">{card.name}</p>
           {rarity ? (
