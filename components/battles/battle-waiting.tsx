@@ -202,7 +202,7 @@ export function BattleWaiting({
           >
             {joining
               ? isDe ? "Trete bei..." : "Joining..."
-              : isDe ? "Beitreten" : "Join Battle"}
+              : isDe ? `Beitreten (${battle.entryFee} Coins)` : `Join Battle (${battle.entryFee} Coins)`}
           </button>
         )}
 

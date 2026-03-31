@@ -7,7 +7,7 @@ import User from "@/models/user";
 import { evaluateRound, evaluateBattle } from "@/lib/battle-engine";
 import { prepareBoxCardsForBattle, drawAndPersistBattleHand, transferCardOwnership, activateBattlePullExpiry, cleanupUnselectedBattlePulls } from "@/lib/battle-cards";
 import { distributeByMode } from "@/lib/battle-distribution";
-import { calculateEloChanges, type EloPlayer } from "@/lib/battle-elo";
+import { calculateEloChanges, DEFAULT_ELO, type EloPlayer } from "@/lib/battle-elo";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
 import { scheduleBattleJob } from "@/lib/battle-jobs";
 import type { IVirtualCard } from "@/models/battle";
@@ -257,7 +257,7 @@ async function finishBattle(
 
   const eloPlayers: EloPlayer[] = users.map((u) => ({
     id: u._id.toString(),
-    elo: u.elo ?? 1000,
+    elo: u.elo ?? DEFAULT_ELO,
     totalBattles: u.battleStats?.totalBattles ?? 0,
   }));
 

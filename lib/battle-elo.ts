@@ -17,6 +17,7 @@ export type Rank = "Bronze" | "Silver" | "Gold" | "Diamond" | "Champion";
 
 // ---------- Constants ----------
 
+export const DEFAULT_ELO = 1000;
 const K_NEW = 40; // K-factor for players with < 30 battles
 const K_EXPERIENCED = 20;
 const NEW_PLAYER_THRESHOLD = 30;
