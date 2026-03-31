@@ -117,7 +117,7 @@ async function resolveRound(
     if (winnerPlayer) winnerPlayer.roundsWon++;
   }
 
-  // Publish round result
+  // Publish round result (include scores so the client can update inline)
   await publishBattleEvent(battleId, "round_reveal", {
     roundNumber: currentRound.roundNumber,
     selections: selections.map((s) => ({
@@ -125,6 +125,7 @@ async function resolveRound(
       card: s.card,
     })),
     winner: roundResult.winner?.toString() ?? null,
+    scores: Object.fromEntries(battle.players.map((p) => [p.user.toString(), p.roundsWon])),
   });
 
   // Check if battle is over

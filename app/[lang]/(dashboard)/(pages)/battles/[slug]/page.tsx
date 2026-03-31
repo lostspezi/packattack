@@ -4,12 +4,12 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Loader2, ArrowLeft } from "lucide-react";
-import { GiTrophyCup, GiCrossedSwords, GiScales, GiLaurelCrown, GiPodiumWinner, GiPodiumSecond, GiPodiumThird } from "react-icons/gi";
+import { GiTrophyCup, GiCrossedSwords, GiScales, GiLaurelCrown, GiPodiumWinner, GiPodiumSecond, GiPodiumThird, GiSandsOfTime, GiScrollUnfurled, GiRoundStar } from "react-icons/gi";
 
 import { BattleWaiting } from "@/components/battles/battle-waiting";
 import { BattleHand } from "@/components/battles/battle-hand";
 import { BattleReveal } from "@/components/battles/battle-reveal";
-import { BattleScoreboard } from "@/components/battles/battle-scoreboard";
+// BattleScoreboard inlined into the 3-column layout
 import { useToast } from "@/components/ui/toast";
 
 /* ------------------------------------------------------------------ */
@@ -158,6 +158,12 @@ export default function BattleDetailPage() {
     players: { userId: string; username: string; card: { name: string; image: string; coinValue: number } }[];
     winnerId: string | null;
   } | null>(null);
+  // Round history for in-game display
+  const [roundHistory, setRoundHistory] = useState<{
+    roundNumber: number;
+    players: { userId: string; username: string; card: { name: string; image: string; coinValue: number } }[];
+    winnerId: string | null;
+  }[]>([]);
   // Queue next round data so reveal animation can finish
   const pendingRoundRef = useRef<{ hand: VirtualCard[] | null; deadline: string; roundNumber: number } | null>(null);
   const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -311,6 +317,12 @@ export default function BattleDetailPage() {
           // Apply reveal data outside the setBattle callback
           if (revealPayloadRef.current) {
             setRevealData(revealPayloadRef.current);
+            // Add to round history
+            setRoundHistory((prev) => {
+              const exists = prev.some((r) => r.roundNumber === revealPayloadRef.current!.roundNumber);
+              if (exists) return prev;
+              return [...prev, revealPayloadRef.current!];
+            });
             revealPayloadRef.current = null;
           }
           setMyHand(null);
@@ -335,8 +347,21 @@ export default function BattleDetailPage() {
           break;
         }
 
+        case "battle_end":
         case "battle_finished":
-          fetchBattle();
+          // Wait for reveal animation to finish before fetching final state
+          if (revealTimerRef.current) {
+            // A reveal is playing — wait for it, then fetch
+            const existingTimer = revealTimerRef.current;
+            clearTimeout(existingTimer);
+            revealTimerRef.current = setTimeout(() => {
+              revealTimerRef.current = null;
+              pendingRoundRef.current = null;
+              fetchBattle();
+            }, 4000);
+          } else {
+            fetchBattle();
+          }
           break;
       }
     },
@@ -431,7 +456,7 @@ export default function BattleDetailPage() {
   const isFinished = battle.status === "finished" || battle.status === "cancelled";
 
   return (
-    <div className={`mx-auto w-full px-4 py-6 ${isFinished ? "max-w-[1600px]" : "max-w-5xl"}`}>
+    <div className={`mx-auto w-full px-4 py-6 ${isFinished ? "max-w-[1600px]" : isActive ? "max-w-[1400px]" : "max-w-5xl"}`}>
       {/* Back Link */}
       <button
         onClick={() => router.push(`/${lang}/battles`)}
@@ -454,10 +479,83 @@ export default function BattleDetailPage() {
         />
       )}
 
-      {/* Active Game — Table Layout */}
+      {/* Active Game — 3-Column Table Layout */}
       {isActive && (
-        <div className="flex flex-col gap-3">
-          {/* ===== THE TABLE ===== */}
+        <div className="grid grid-cols-1 gap-3 lg:grid-cols-[220px_1fr_220px] xl:grid-cols-[260px_1fr_260px]">
+
+          {/* ===== LEFT SIDEBAR: Score + Round History (desktop) ===== */}
+          <div className="hidden flex-col gap-3 lg:flex">
+            {/* Scoreboard */}
+            <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/70">
+              <div className="flex items-center gap-1.5 border-b border-zinc-800/60 px-4 py-2.5">
+                <GiCrossedSwords className="h-3.5 w-3.5 text-zinc-500" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                  {isDe ? "Punkte" : "Score"}
+                </span>
+              </div>
+              <div className="p-2">
+                {[...battle.players].sort((a, b) => b.roundsWon - a.roundsWon).map((player, i) => {
+                  const isMe = player.user._id === currentUserId;
+                  return (
+                    <div key={player.user._id} className={`flex items-center justify-between rounded-lg px-3 py-1.5 ${isMe ? "bg-yellow-400/10" : ""}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="w-4 text-center text-[10px] font-bold text-zinc-600">{i + 1}</span>
+                        <span className={`text-sm ${isMe ? "font-bold text-yellow-400" : "text-zinc-300"}`}>{player.user.username}</span>
+                      </div>
+                      <span className={`text-sm font-bold tabular-nums ${isMe ? "text-yellow-400" : "text-zinc-400"}`}>{player.roundsWon}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Round History */}
+            {roundHistory.length > 0 && (
+              <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/70">
+                <div className="flex items-center gap-1.5 border-b border-zinc-800/60 px-4 py-2.5">
+                  <GiScrollUnfurled className="h-3.5 w-3.5 text-zinc-500" />
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                    {isDe ? "Verlauf" : "History"}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1 p-2">
+                  {roundHistory.map((round) => {
+                    const winnerP = round.players.find((p) => p.userId === round.winnerId);
+                    const isTie = !round.winnerId;
+                    return (
+                      <div key={round.roundNumber} className="rounded-lg bg-zinc-800/40 px-3 py-2">
+                        <div className="mb-1 flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-zinc-500">
+                            {isDe ? "Runde" : "R"}{round.roundNumber}
+                          </span>
+                          {isTie ? (
+                            <span className="text-[10px] font-bold text-zinc-500">{isDe ? "Gleich" : "Tie"}</span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-yellow-400">{winnerP?.username}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {round.players.map((rp) => {
+                            const isWin = rp.userId === round.winnerId;
+                            return (
+                              <div key={rp.userId} className="flex items-center gap-1">
+                                <div className={`overflow-hidden rounded border ${isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "28px", aspectRatio: "2/3" }}>
+                                  <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
+                                </div>
+                                <span className={`text-[10px] font-bold tabular-nums ${isWin ? "text-yellow-400" : "text-zinc-500"}`}>{rp.card.coinValue}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ===== CENTER: The Table ===== */}
           <div
             className="relative overflow-hidden rounded-2xl border border-zinc-800/80"
             style={{
@@ -472,14 +570,23 @@ export default function BattleDetailPage() {
               <img
                 src="/images/logo.svg"
                 alt=""
-                className="w-32 opacity-[0.06] sm:w-44 lg:w-56"
+                className="w-24 opacity-[0.06] sm:w-36 lg:w-48"
                 draggable={false}
               />
             </div>
 
             <div className="relative flex flex-col items-center px-3 py-4 sm:px-6 sm:py-6">
+              {/* Round indicator — top center */}
+              <div className="mb-2 flex items-center gap-2">
+                <GiRoundStar className="h-3 w-3 text-yellow-400/40" />
+                <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
+                  {isDe ? "Runde" : "Round"} {battle.currentRound}/{battle.settings.rounds}
+                </span>
+                <GiRoundStar className="h-3 w-3 text-yellow-400/40" />
+              </div>
+
               {/* Opponent zone — top of table */}
-              <div className="mb-4 flex flex-col items-center gap-1">
+              <div className="mb-3 flex flex-wrap items-start justify-center gap-4">
                 {battle.players
                   .filter((p) => p.user._id !== currentUserId)
                   .map((opponent) => {
@@ -487,7 +594,6 @@ export default function BattleDetailPage() {
                     return (
                       <div key={opponent.user._id} className="flex flex-col items-center gap-1.5">
                         <span className="text-[11px] font-bold text-zinc-400">{opponent.user.username}</span>
-                        {/* Opponent's face-down card or waiting */}
                         <div className="flex items-center gap-2">
                           {hasOpponentSelected ? (
                             <div className="overflow-hidden rounded-lg border border-zinc-700/60 shadow-lg shadow-black/30" style={{ width: "clamp(50px, 12vw, 70px)", aspectRatio: "2/3" }}>
@@ -521,10 +627,9 @@ export default function BattleDetailPage() {
                     <p className="text-[11px] text-zinc-600">{isDe ? "Nächste Runde..." : "Next round..."}</p>
                   </div>
                 ) : (
-                  /* Empty table center — cards will be placed here after selection */
                   <div className="flex flex-col items-center gap-1">
-                    <div className="text-[10px] uppercase tracking-widest text-zinc-600">
-                      {isDe ? "Runde" : "Round"} {battle.currentRound}/{battle.settings.rounds}
+                    <div className="text-[10px] uppercase tracking-widest text-zinc-600/40">
+                      {isDe ? "Wähle deine Karte" : "Pick your card"}
                     </div>
                   </div>
                 )}
@@ -545,18 +650,107 @@ export default function BattleDetailPage() {
             </div>
           </div>
 
-          {/* Scoreboard — below table */}
-          <BattleScoreboard
-            players={battle.players.map((p) => ({
-              userId: p.user._id,
-              username: p.user.username,
-              roundsWon: p.roundsWon,
-            }))}
-            currentRound={battle.currentRound}
-            totalRounds={battle.settings.rounds}
-            currentUserId={currentUserId}
-            lang={lang}
-          />
+          {/* ===== RIGHT SIDEBAR: Round info + mobile score (desktop) ===== */}
+          <div className="hidden flex-col gap-3 lg:flex">
+            {/* Current player status */}
+            <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/70 p-4">
+              <div className="mb-3 flex items-center gap-1.5">
+                <GiSandsOfTime className="h-3.5 w-3.5 text-zinc-500" />
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                  {isDe ? "Status" : "Status"}
+                </span>
+              </div>
+              {battle.players.map((player) => {
+                const isMe = player.user._id === currentUserId;
+                const hasSelected = isMe ? selectedCardIndex !== null : false;
+                return (
+                  <div key={player.user._id} className={`flex items-center justify-between rounded-lg px-3 py-1.5 ${isMe ? "bg-yellow-400/5" : ""}`}>
+                    <span className={`text-xs ${isMe ? "font-bold text-yellow-400" : "text-zinc-400"}`}>
+                      {player.user.username}
+                    </span>
+                    {hasSelected ? (
+                      <span className="text-[10px] font-bold text-emerald-400">{isDe ? "Bereit" : "Ready"}</span>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-400/60" />
+                        <span className="text-[10px] text-zinc-500">{isDe ? "Wählt..." : "Picking..."}</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Battle info */}
+            <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/70 p-4">
+              <div className="space-y-2 text-[11px]">
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500">{isDe ? "Modus" : "Mode"}</span>
+                  <span className="font-bold text-zinc-300">{battle.settings.mode === "winner_takes_highest" ? (isDe ? "Höchste" : "Highest") : battle.settings.mode === "winner_takes_lowest" ? (isDe ? "Niedrigste" : "Lowest") : battle.settings.mode === "winner_takes_all" ? "All" : "Classic"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500">{isDe ? "Einsatz" : "Entry"}</span>
+                  <span className="font-bold text-yellow-400">{battle.entryFee} Coins</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-zinc-500">{isDe ? "Spieler" : "Players"}</span>
+                  <span className="font-bold text-zinc-300">{battle.players.length}/{battle.settings.playerCount}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ===== MOBILE: Score strip + Round History (below table) ===== */}
+          <div className="flex flex-col gap-2 lg:hidden">
+            {/* Compact score row */}
+            <div className="flex items-center justify-between rounded-xl border border-zinc-800/80 bg-zinc-900/70 px-3 py-2">
+              <div className="flex items-center gap-1.5">
+                <GiCrossedSwords className="h-3 w-3 text-zinc-500" />
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">{isDe ? "Punkte" : "Score"}</span>
+              </div>
+              <div className="flex items-center gap-3">
+                {battle.players.map((player) => {
+                  const isMe = player.user._id === currentUserId;
+                  return (
+                    <div key={player.user._id} className="flex items-center gap-1.5">
+                      <span className={`text-xs ${isMe ? "font-bold text-yellow-400" : "text-zinc-400"}`}>{player.user.username}</span>
+                      <span className={`text-sm font-bold tabular-nums ${isMe ? "text-yellow-400" : "text-zinc-400"}`}>{player.roundsWon}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Mobile round history — horizontal scroll */}
+            {roundHistory.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {roundHistory.map((round) => {
+                  const winnerP = round.players.find((p) => p.userId === round.winnerId);
+                  const isTie = !round.winnerId;
+                  return (
+                    <div key={round.roundNumber} className="flex shrink-0 items-center gap-2 rounded-lg border border-zinc-800/60 bg-zinc-900/70 px-2.5 py-1.5">
+                      <span className="text-[10px] font-bold text-zinc-500">R{round.roundNumber}</span>
+                      <div className="flex items-center gap-1.5">
+                        {round.players.map((rp) => {
+                          const isWin = rp.userId === round.winnerId;
+                          return (
+                            <div key={rp.userId} className={`overflow-hidden rounded border ${isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "22px", aspectRatio: "2/3" }}>
+                              <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {isTie ? (
+                        <GiScales className="h-3 w-3 text-zinc-500" />
+                      ) : (
+                        <span className="max-w-[60px] truncate text-[10px] font-bold text-yellow-400">{winnerP?.username}</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
