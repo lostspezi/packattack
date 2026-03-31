@@ -29,6 +29,7 @@ export interface IBox extends Document {
   coinConversionRate: number;
   rarityWeights: Array<{ rarity: string; weight: number }>;
   cards: IBoxCard[];
+  battleFeePerRound: number;
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -81,6 +82,7 @@ const BoxSchema = new Schema<IBox>(
         originalCard: { type: Schema.Types.ObjectId, ref: "Card", default: null },
       },
     ],
+    battleFeePerRound: { type: Number, default: 0, min: 0 },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }
