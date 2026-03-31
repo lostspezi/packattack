@@ -59,7 +59,7 @@ export interface IBattleResult {
   completedAt: Date;
 }
 
-export type BattleMode = "lowest_card" | "highest_card" | "all_cards" | "snake_draft";
+export type BattleMode = "lowest_card" | "highest_card" | "all_cards";
 export type BattleStatus = "waiting" | "ready_check" | "countdown" | "active" | "sudden_death" | "finished" | "cancelled";
 
 export interface IBattleSettings {
@@ -190,7 +190,7 @@ const BattleSchema = new Schema<IBattle>(
       rounds: { type: Number, enum: [3, 5, 7], required: true },
       mode: {
         type: String,
-        enum: ["lowest_card", "highest_card", "all_cards", "snake_draft"],
+        enum: ["lowest_card", "highest_card", "all_cards"],
         required: true,
       },
       isPrivate: { type: Boolean, default: false },

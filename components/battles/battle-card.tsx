@@ -42,7 +42,6 @@ interface BattleCardProps {
 }
 
 const MODE_LABELS: Record<string, { de: string; en: string; icon: string }> = {
-  snake_draft: { de: "Snake Draft", en: "Snake Draft", icon: "🐍" },
   lowest_card: { de: "Niedrigste Karte", en: "Lowest Card", icon: "⬇" },
   highest_card: { de: "Höchste Karte", en: "Highest Card", icon: "⬆" },
   all_cards: { de: "Alle Karten", en: "All Cards", icon: "🔥" },
@@ -77,7 +76,7 @@ function TimeRemaining({ expiresAt, lang }: { expiresAt: string; lang: string })
 
 export function BattleCard({ battle, lang, currentUserId, onJoin, joining }: BattleCardProps) {
   const isDe = lang === "de";
-  const modeInfo = MODE_LABELS[battle.settings.mode] ?? MODE_LABELS.snake_draft;
+  const modeInfo = MODE_LABELS[battle.settings.mode] ?? MODE_LABELS.lowest_card;
   const isInBattle = battle.players.some((p) => String(p.user._id) === currentUserId);
   const isFull = battle.players.length >= battle.settings.playerCount;
 

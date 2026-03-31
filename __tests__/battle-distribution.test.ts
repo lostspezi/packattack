@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import {
-  distributeSnakeDraft,
   distributeByMode,
 } from "@/lib/battle-distribution";
 import type { IVirtualCard } from "@/models/battle";
@@ -23,64 +22,6 @@ function makeVCard(coinValue: number, name?: string): IVirtualCard {
 const p1 = new Types.ObjectId();
 const p2 = new Types.ObjectId();
 const p3 = new Types.ObjectId();
-const p4 = new Types.ObjectId();
-
-// ---------- Snake Draft ----------
-
-describe("distributeSnakeDraft", () => {
-  it("distributes cards in snake order for 2 players", () => {
-    const cards = [100, 80, 60, 40, 20, 10].map((v) => makeVCard(v));
-    const ranking = [p1.toString(), p2.toString()]; // p1 won
-
-    const result = distributeSnakeDraft(cards, ranking);
-
-    // Snake: P1, P2, P2, P1, P1, P2
-    expect(result.get(p1.toString())!.map((c) => c.coinValue)).toEqual([100, 40, 20]);
-    expect(result.get(p2.toString())!.map((c) => c.coinValue)).toEqual([80, 60, 10]);
-  });
-
-  it("distributes cards in snake order for 3 players", () => {
-    const cards = [100, 80, 60, 40, 20, 10].map((v) => makeVCard(v));
-    const ranking = [p1.toString(), p2.toString(), p3.toString()];
-
-    const result = distributeSnakeDraft(cards, ranking);
-
-    // Snake: P1, P2, P3, P3, P2, P1
-    expect(result.get(p1.toString())!.map((c) => c.coinValue)).toEqual([100, 10]);
-    expect(result.get(p2.toString())!.map((c) => c.coinValue)).toEqual([80, 20]);
-    expect(result.get(p3.toString())!.map((c) => c.coinValue)).toEqual([60, 40]);
-  });
-
-  it("distributes cards in snake order for 4 players", () => {
-    const cards = [100, 80, 60, 40, 20, 10, 8, 5].map((v) => makeVCard(v));
-    const ranking = [p1.toString(), p2.toString(), p3.toString(), p4.toString()];
-
-    const result = distributeSnakeDraft(cards, ranking);
-
-    // Snake: P1, P2, P3, P4, P4, P3, P2, P1
-    expect(result.get(p1.toString())!.map((c) => c.coinValue)).toEqual([100, 5]);
-    expect(result.get(p2.toString())!.map((c) => c.coinValue)).toEqual([80, 8]);
-    expect(result.get(p3.toString())!.map((c) => c.coinValue)).toEqual([60, 10]);
-    expect(result.get(p4.toString())!.map((c) => c.coinValue)).toEqual([40, 20]);
-  });
-
-  it("sorts cards by coinValue descending before distributing", () => {
-    const cards = [10, 100, 40, 80].map((v) => makeVCard(v));
-    const ranking = [p1.toString(), p2.toString()];
-
-    const result = distributeSnakeDraft(cards, ranking);
-
-    // Snake: P1, P2, P2, P1 → P1 gets 100+10, P2 gets 80+40
-    expect(result.get(p1.toString())!.map((c) => c.coinValue)).toEqual([100, 10]);
-    expect(result.get(p2.toString())!.map((c) => c.coinValue)).toEqual([80, 40]);
-  });
-
-  it("handles empty card list", () => {
-    const result = distributeSnakeDraft([], [p1.toString(), p2.toString()]);
-    expect(result.get(p1.toString())).toEqual([]);
-    expect(result.get(p2.toString())).toEqual([]);
-  });
-});
 
 // ---------- Mode Distribution ----------
 
@@ -152,16 +93,4 @@ describe("distributeByMode", () => {
     });
   });
 
-  describe("snake_draft", () => {
-    it("delegates to snake draft distribution", () => {
-      const playerCards = new Map<string, IVirtualCard[]>();
-      playerCards.set(p1.toString(), [makeVCard(100), makeVCard(50)]);
-      playerCards.set(p2.toString(), [makeVCard(80), makeVCard(10)]);
-
-      const result = distributeByMode("snake_draft", p1.toString(), playerCards);
-
-      // In snake_draft mode, transfers represent the final allocation
-      expect(result.length).toBeGreaterThan(0);
-    });
-  });
 });

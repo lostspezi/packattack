@@ -299,7 +299,7 @@ async function finishBattle(
 
   // Transfer PackPull ownership for redistributed cards
   for (const transfer of transfers) {
-    if (transfer.from === transfer.to) continue; // No transfer needed (snake_draft self-assignment)
+    if (transfer.from === transfer.to) continue;
     for (const card of transfer.cards) {
       if (card.pullId) {
         await transferCardOwnership(card.pullId.toString(), transfer.to);

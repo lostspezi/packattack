@@ -35,7 +35,6 @@ interface BattleWaitingProps {
 }
 
 const MODE_LABELS: Record<string, { de: string; en: string }> = {
-  snake_draft: { de: "Snake Draft", en: "Snake Draft" },
   lowest_card: { de: "Niedrigste Karte", en: "Lowest Card" },
   highest_card: { de: "Höchste Karte", en: "Highest Card" },
   all_cards: { de: "Alle Karten", en: "All Cards" },

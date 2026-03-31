@@ -21,7 +21,6 @@ interface BattleCreateProps {
 const PLAYER_COUNTS = [2, 3, 4] as const;
 const ROUND_OPTIONS = [3, 5, 7] as const;
 const MODES = [
-  { value: "snake_draft", label: { de: "Snake Draft", en: "Snake Draft" }, icon: "🐍", desc: { de: "Karten fair verteilt nach Platzierung", en: "Cards distributed fairly by placement" } },
   { value: "lowest_card", label: { de: "Niedrigste Karte", en: "Lowest Card" }, icon: "⬇", desc: { de: "Gewinner erhält niedrigste Karte des Verlierers", en: "Winner gets loser's lowest card" } },
   { value: "highest_card", label: { de: "Höchste Karte", en: "Highest Card" }, icon: "⬆", desc: { de: "Gewinner erhält höchste Karte des Verlierers", en: "Winner gets loser's highest card" } },
   { value: "all_cards", label: { de: "Alle Karten", en: "All Cards" }, icon: "🔥", desc: { de: "Gewinner erhält alle Karten des Verlierers", en: "Winner gets all loser's cards" } },
@@ -34,7 +33,7 @@ export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {
   const [selectedBox, setSelectedBox] = useState<string>("");
   const [playerCount, setPlayerCount] = useState<2 | 3 | 4>(2);
   const [rounds, setRounds] = useState<3 | 5 | 7>(3);
-  const [mode, setMode] = useState<string>("snake_draft");
+  const [mode, setMode] = useState<string>("lowest_card");
   const [isPrivate, setIsPrivate] = useState(false);
   const [creating, setCreating] = useState(false);
 
