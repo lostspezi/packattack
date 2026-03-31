@@ -314,18 +314,12 @@ async function finishBattle(
     );
 
     if (isWinner) {
+      const userData = await User.findById(change.id).select("battleStats").lean();
+      const newStreak = (userData?.battleStats?.streak ?? 0) + 1;
+      const bestStreak = Math.max(userData?.battleStats?.bestStreak ?? 0, newStreak);
       await User.updateOne(
         { _id: change.id },
-        [
-          {
-            $set: {
-              "battleStats.streak": { $add: ["$battleStats.streak", 1] },
-              "battleStats.bestStreak": {
-                $max: ["$battleStats.bestStreak", { $add: ["$battleStats.streak", 1] }],
-              },
-            },
-          },
-        ],
+        { $set: { "battleStats.streak": newStreak, "battleStats.bestStreak": bestStreak } },
       );
     } else {
       await User.updateOne({ _id: change.id }, { $set: { "battleStats.streak": 0 } });
