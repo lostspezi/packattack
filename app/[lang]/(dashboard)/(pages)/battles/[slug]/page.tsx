@@ -9,7 +9,7 @@ import { GiTrophyCup, GiCrossedSwords, GiScales, GiLaurelCrown, GiPodiumWinner, 
 import { BattleWaiting } from "@/components/battles/battle-waiting";
 import { BattleHand } from "@/components/battles/battle-hand";
 import { BattleReveal } from "@/components/battles/battle-reveal";
-// BattleScoreboard inlined into the 3-column layout
+import { CardReview } from "@/components/packs/card-review";
 import { useToast } from "@/components/ui/toast";
 
 /* ------------------------------------------------------------------ */
@@ -148,6 +148,29 @@ export default function BattleDetailPage() {
   const [battle, setBattle] = useState<BattleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [readying, setReadying] = useState(false);
+
+  // Post-battle card review
+  type CardChoice = "claim" | "convert" | null;
+  interface BattlePull {
+    _id: string;
+    cardId: string;
+    name: string;
+    image: string | null;
+    rarity: string;
+    coinValue: number;
+    conversionValue: number;
+    status: string;
+    packGroupId: string;
+    cardIndex: number;
+    packIndex: number;
+  }
+  const [battlePulls, setBattlePulls] = useState<BattlePull[] | null>(null);
+  const [reviewChoices, setReviewChoices] = useState<Map<number, CardChoice>>(new Map());
+  const [reviewDone, setReviewDone] = useState(false);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const reviewRecoveredIndices = new Set(
+    (battlePulls ?? []).map((p, i) => (p.status !== "pending" ? i : -1)).filter((i) => i >= 0),
+  );
 
   // Current round state from SSE
   const [myHand, setMyHand] = useState<VirtualCard[] | null>(null);
@@ -315,14 +338,9 @@ export default function BattleDetailPage() {
           });
 
           // Apply reveal data outside the setBattle callback
-          if (revealPayloadRef.current) {
-            setRevealData(revealPayloadRef.current);
-            // Add to round history
-            setRoundHistory((prev) => {
-              const exists = prev.some((r) => r.roundNumber === revealPayloadRef.current!.roundNumber);
-              if (exists) return prev;
-              return [...prev, revealPayloadRef.current!];
-            });
+          const revealSnapshot = revealPayloadRef.current;
+          if (revealSnapshot) {
+            setRevealData(revealSnapshot);
             revealPayloadRef.current = null;
           }
           setMyHand(null);
@@ -330,9 +348,17 @@ export default function BattleDetailPage() {
           // Cancel any existing timer (e.g. short fallback from round_start above)
           if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
 
-          // Keep reveal visible for 4s, then apply pending round_start
+          // Keep reveal visible for 4s, then add to history + apply pending round_start
           revealTimerRef.current = setTimeout(() => {
             revealTimerRef.current = null;
+            // Add to round history AFTER the flip animation
+            if (revealSnapshot) {
+              setRoundHistory((prev) => {
+                const exists = prev.some((r) => r.roundNumber === revealSnapshot.roundNumber);
+                if (exists) return prev;
+                return [...prev, revealSnapshot];
+              });
+            }
             const pending = pendingRoundRef.current;
             if (pending) {
               setRevealData(null);
@@ -376,6 +402,85 @@ export default function BattleDetailPage() {
       if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
     };
   }, []);
+
+  // Fetch battle pulls when battle finishes (for claim/convert review)
+  useEffect(() => {
+    if (!battle || battle.status !== "finished" || reviewDone || battlePulls) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/battles/${battle._id}/pulls`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const pulls = data.pulls as BattlePull[];
+        if (!pulls || pulls.length === 0) {
+          setReviewDone(true);
+          return;
+        }
+        // If all already decided, skip review
+        const allDecided = pulls.every((p) => p.status !== "pending");
+        if (allDecided) {
+          setReviewDone(true);
+          return;
+        }
+        setBattlePulls(pulls);
+        // Pre-populate choices for already-decided pulls
+        const initialChoices = new Map<number, CardChoice>();
+        pulls.forEach((p, i) => {
+          if (p.status === "reserved" || p.status === "claimed") initialChoices.set(i, "claim");
+          else if (p.status === "converted") initialChoices.set(i, "convert");
+        });
+        setReviewChoices(initialChoices);
+      } catch {
+        setReviewDone(true);
+      }
+    })();
+  }, [battle, reviewDone, battlePulls]);
+
+  // Handle confirm for battle card review
+  async function handleReviewConfirm() {
+    if (!battle || !battlePulls) return;
+    setReviewSubmitting(true);
+    try {
+      for (let i = 0; i < battlePulls.length; i++) {
+        if (reviewRecoveredIndices.has(i)) continue;
+        const pull = battlePulls[i];
+        const decision = reviewChoices.get(i);
+        if (!decision) continue;
+
+        const res = await fetch("/api/pulls/decide", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            packGroupId: pull.packGroupId,
+            cardId: pull.cardId,
+            cardIndex: pull.cardIndex,
+            packIndex: pull.packIndex,
+            rarity: pull.rarity,
+            coinValue: pull.coinValue,
+            conversionValue: pull.conversionValue,
+            decision,
+            boxId: typeof battle.box === "string" ? battle.box : (battle.box as { _id: string })._id,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          toast({ type: "error", title: data.error ?? `Failed on card ${i + 1}` });
+          setReviewSubmitting(false);
+          return;
+        }
+      }
+      toast({
+        type: "success",
+        title: isDe ? "Karten verarbeitet!" : "Cards processed!",
+      });
+      setReviewDone(true);
+      setBattlePulls(null);
+    } catch {
+      toast({ type: "error", title: "Network error" });
+    } finally {
+      setReviewSubmitting(false);
+    }
+  }
 
   // Actions
   async function handleReady() {
@@ -577,13 +682,28 @@ export default function BattleDetailPage() {
 
             <div className="relative flex flex-col items-center px-3 py-4 sm:px-6 sm:py-6">
               {/* Round indicator — top center */}
-              <div className="mb-2 flex items-center gap-2">
-                <GiRoundStar className="h-3 w-3 text-yellow-400/40" />
-                <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
-                  {isDe ? "Runde" : "Round"} {battle.currentRound}/{battle.settings.rounds}
-                </span>
-                <GiRoundStar className="h-3 w-3 text-yellow-400/40" />
-              </div>
+              {battle.status === "sudden_death" ? (
+                <div className="mb-3 flex flex-col items-center gap-1">
+                  <div className="flex items-center gap-2 rounded-full border border-red-500/30 bg-red-500/10 px-4 py-1.5">
+                    <GiCrossedSwords className="h-4 w-4 text-red-400" />
+                    <span className="text-xs font-extrabold uppercase tracking-widest text-red-400">
+                      Sudden Death
+                    </span>
+                    <GiCrossedSwords className="h-4 w-4 text-red-400" />
+                  </div>
+                  <span className="text-[10px] text-red-400/60">
+                    {isDe ? "Gleichstand — eine letzte Runde entscheidet!" : "Tied — one final round decides it all!"}
+                  </span>
+                </div>
+              ) : (
+                <div className="mb-2 flex items-center gap-2">
+                  <GiRoundStar className="h-3 w-3 text-yellow-400/40" />
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
+                    {isDe ? "Runde" : "Round"} {battle.currentRound}/{battle.settings.rounds}
+                  </span>
+                  <GiRoundStar className="h-3 w-3 text-yellow-400/40" />
+                </div>
+              )}
 
               {/* Opponent zone — top of table */}
               <div className="mb-3 flex flex-wrap items-start justify-center gap-4">
@@ -620,6 +740,7 @@ export default function BattleDetailPage() {
                     players={revealData.players}
                     winnerId={revealData.winnerId}
                     lang={lang}
+                    isSuddenDeath={battle.status === "sudden_death"}
                   />
                 ) : !myHand ? (
                   <div className="flex flex-col items-center gap-2">
@@ -754,8 +875,40 @@ export default function BattleDetailPage() {
         </div>
       )}
 
-      {/* Finished / Cancelled */}
-      {isFinished && battle.result && (
+      {/* Finished — Card Review (before result screen) */}
+      {isFinished && battle.result && !reviewDone && battlePulls && (
+        <CardReview
+          cards={battlePulls.map((p) => ({
+            cardId: p.cardId,
+            name: p.name,
+            rarity: p.rarity,
+            coinValue: p.coinValue,
+            conversionValue: p.conversionValue,
+            image: p.image,
+            packIndex: p.packIndex,
+            cardIndex: p.cardIndex,
+            status: p.status,
+          }))}
+          boxName={isDe ? "Battle-Karten" : "Battle Cards"}
+          lang={lang}
+          isRecovery={reviewRecoveredIndices.size > 0}
+          recoveredIndices={reviewRecoveredIndices}
+          choices={reviewChoices}
+          onSetChoice={(idx, choice) => setReviewChoices((prev) => new Map(prev).set(idx, choice))}
+          onConfirm={() => void handleReviewConfirm()}
+          submitting={reviewSubmitting}
+        />
+      )}
+
+      {/* Finished — Loading pulls */}
+      {isFinished && battle.result && !reviewDone && !battlePulls && (
+        <div className="flex min-h-[40vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-yellow-400" />
+        </div>
+      )}
+
+      {/* Finished — Result Screen (after card review) */}
+      {isFinished && battle.result && reviewDone && (
         <BattleResultView
           battle={battle}
           currentUserId={currentUserId}
@@ -969,11 +1122,15 @@ function PodiumBlock({ scores, players, currentUserId, eloChanges, isDe }: {
   eloChanges: { player: string; change: number }[];
   isDe: boolean;
 }) {
+  // Detect ties — players with the same roundsWon share a rank
+  const topScore = scores[0]?.roundsWon ?? 0;
+  const isTiedTop = scores.length >= 2 && scores[0].roundsWon === scores[1].roundsWon;
+
   const podiumOrder = scores.length <= 2
     ? scores
     : [scores[1], scores[0], scores[2], ...scores.slice(3)];
   const heights = scores.length <= 2
-    ? ["h-20 md:h-24", "h-14 md:h-16"]
+    ? (isTiedTop ? ["h-20 md:h-24", "h-20 md:h-24"] : ["h-20 md:h-24", "h-14 md:h-16"])
     : ["h-14 md:h-18", "h-20 md:h-24", "h-10 md:h-14"];
   const medalIcons = [
     <GiPodiumWinner key="1st" className="h-5 w-5 text-yellow-400 md:h-6 md:w-6" />,
@@ -988,10 +1145,12 @@ function PodiumBlock({ scores, players, currentUserId, eloChanges, isDe }: {
         const player = players.find((p) => String(p.user._id) === String(score.player));
         const isMe = String(score.player) === currentUserId;
         const elo = eloChanges.find((e) => String(e.player) === String(score.player));
-        const isChamp = rank === 0;
+        // Only crown as champion if they're rank 0 AND not tied
+        const isChamp = rank === 0 && !isTiedTop;
+        const isTied = score.roundsWon === topScore && isTiedTop;
         const h = heights[podIdx] ?? "h-10";
-        const borderColor = isChamp ? "border-yellow-400/40" : rank === 1 ? "border-zinc-500/40" : "border-amber-700/40";
-        const gradFrom = isChamp ? "from-yellow-400/25" : rank === 1 ? "from-zinc-500/20" : "from-amber-700/20";
+        const borderColor = isTied ? "border-zinc-400/40" : isChamp ? "border-yellow-400/40" : rank === 1 ? "border-zinc-500/40" : "border-amber-700/40";
+        const gradFrom = isTied ? "from-zinc-400/15" : isChamp ? "from-yellow-400/25" : rank === 1 ? "from-zinc-500/20" : "from-amber-700/20";
 
         return (
           <div key={String(score.player)} className="flex min-w-0 flex-1 flex-col items-center gap-0.5">
@@ -1008,7 +1167,12 @@ function PodiumBlock({ scores, players, currentUserId, eloChanges, isDe }: {
               </span>
             )}
             <div className={`flex w-full max-w-[80px] items-start justify-center rounded-t-lg border border-b-0 bg-gradient-to-t ${gradFrom} to-transparent md:max-w-[100px] ${borderColor} ${h}`}>
-              <span className="mt-1.5 md:mt-2">{medalIcons[rank] ?? <span className="text-xs font-bold text-zinc-500">#{rank + 1}</span>}</span>
+              <span className="mt-1.5 md:mt-2">
+                {isTied
+                  ? <GiScales className="h-5 w-5 text-zinc-400 md:h-6 md:w-6" />
+                  : (medalIcons[rank] ?? <span className="text-xs font-bold text-zinc-500">#{rank + 1}</span>)
+                }
+              </span>
             </div>
           </div>
         );
