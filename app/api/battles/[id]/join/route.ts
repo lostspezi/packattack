@@ -46,10 +46,16 @@ export async function POST(
       }
 
       // Check user is not in another active battle
+      // Exclude waiting battles whose lobby has expired (auto-cancel may not have run yet)
+      const now = new Date();
       const activeBattle = await Battle.findOne({
         _id: { $ne: battle._id },
         "players.user": session.user!.id,
         status: { $in: ["waiting", "ready_check", "countdown", "active", "sudden_death"] },
+        $or: [
+          { status: { $ne: "waiting" } },
+          { lobbyExpiresAt: { $gt: now } },
+        ],
       }).lean();
 
       if (activeBattle) {

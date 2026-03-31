@@ -94,10 +94,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "box_not_battle_enabled" }, { status: 400 });
     }
 
-    // Check user is not in an active battle
+    // Check user is not in an active battle (ignore expired lobbies)
+    const now = new Date();
     const activeBattle = await Battle.findOne({
       "players.user": session.user.id,
       status: { $in: ["waiting", "ready_check", "countdown", "active", "sudden_death"] },
+      $or: [
+        { status: { $ne: "waiting" } },
+        { lobbyExpiresAt: { $gt: now } },
+      ],
     }).lean();
 
     if (activeBattle) {
