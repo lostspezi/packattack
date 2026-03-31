@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { GiTrophyCup, GiCrossedSwords, GiScales, GiLaurelCrown, GiPodiumWinner, GiPodiumSecond, GiPodiumThird } from "react-icons/gi";
 
 import { BattleWaiting } from "@/components/battles/battle-waiting";
 import { BattleHand } from "@/components/battles/battle-hand";
@@ -522,7 +523,7 @@ function BattleResultView({
         <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/70 relative overflow-hidden px-4 py-5 text-center" style={{animation: "battleFadeUp 0.5s ease-out 0ms both"}}>
           <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at center, ${glowColor}, transparent 70%)` }} />
           <div className="relative">
-            <div className="text-3xl">{isDraw ? "🤝" : isWinner ? "🏆" : "⚔️"}</div>
+            <div className="flex justify-center">{isDraw ? <GiScales className="h-8 w-8 text-zinc-400" /> : isWinner ? <GiTrophyCup className="h-8 w-8 text-yellow-400" /> : <GiCrossedSwords className="h-8 w-8 text-red-400" />}</div>
             <h1 className={`mt-1 text-xl font-extrabold tracking-tight ${
               accentColor === "yellow" ? "bg-gradient-to-r from-yellow-300 to-amber-500 bg-clip-text text-transparent"
               : accentColor === "red" ? "text-red-400" : "text-zinc-300"
@@ -602,7 +603,7 @@ function BattleResultView({
           <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/70 relative overflow-hidden p-5 text-center md:col-span-1" style={{animation: "battleFadeUp 0.5s ease-out 0ms both"}}>
             <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at center, ${glowColor}, transparent 70%)` }} />
             <div className="relative flex h-full flex-col items-center justify-center">
-              <div className="text-4xl">{isDraw ? "🤝" : isWinner ? "🏆" : "⚔️"}</div>
+              <div className="flex justify-center">{isDraw ? <GiScales className="h-10 w-10 text-zinc-400" /> : isWinner ? <GiTrophyCup className="h-10 w-10 text-yellow-400" /> : <GiCrossedSwords className="h-10 w-10 text-red-400" />}</div>
               <h1 className={`mt-2 text-2xl font-extrabold tracking-tight lg:text-3xl ${
                 accentColor === "yellow" ? "bg-gradient-to-r from-yellow-300 to-amber-500 bg-clip-text text-transparent"
                 : accentColor === "red" ? "text-red-400" : "text-zinc-300"
@@ -676,7 +677,11 @@ function PodiumBlock({ scores, players, currentUserId, eloChanges, isDe }: {
   const heights = scores.length <= 2
     ? ["h-20 md:h-24", "h-14 md:h-16"]
     : ["h-14 md:h-18", "h-20 md:h-24", "h-10 md:h-14"];
-  const medals = ["🥇", "🥈", "🥉"];
+  const medalIcons = [
+    <GiPodiumWinner key="1st" className="h-5 w-5 text-yellow-400 md:h-6 md:w-6" />,
+    <GiPodiumSecond key="2nd" className="h-5 w-5 text-zinc-400 md:h-6 md:w-6" />,
+    <GiPodiumThird key="3rd" className="h-5 w-5 text-amber-600 md:h-6 md:w-6" />,
+  ];
 
   return (
     <div className="flex items-end justify-center gap-2">
@@ -705,7 +710,7 @@ function PodiumBlock({ scores, players, currentUserId, eloChanges, isDe }: {
               </span>
             )}
             <div className={`flex w-full max-w-[80px] items-start justify-center rounded-t-lg border border-b-0 bg-gradient-to-t ${gradFrom} to-transparent md:max-w-[100px] ${borderColor} ${h}`}>
-              <span className="mt-1 text-sm md:mt-1.5 md:text-base">{medals[rank] ?? `#${rank + 1}`}</span>
+              <span className="mt-1.5 md:mt-2">{medalIcons[rank] ?? <span className="text-xs font-bold text-zinc-500">#{rank + 1}</span>}</span>
             </div>
           </div>
         );
@@ -738,7 +743,7 @@ function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe }: {
                   {round.roundNumber > settings.rounds && <span className="ml-1 text-yellow-400">SD</span>}
                 </span>
                 <span className={`text-[11px] font-bold ${winnerId ? "text-yellow-400" : "text-zinc-600"}`}>
-                  {winnerId ? `👑 ${playerNameMap.get(winnerId) ?? "???"}` : (isDe ? "Gleich" : "Tie")}
+                  {winnerId ? <><GiLaurelCrown className="mr-0.5 inline h-3 w-3" /> {playerNameMap.get(winnerId) ?? "???"}</> : (isDe ? "Gleich" : "Tie")}
                 </span>
               </div>
               <div className="flex flex-col gap-1.5 md:flex-row md:items-center md:gap-3">
@@ -758,7 +763,7 @@ function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe }: {
                           <div className="flex h-10 w-7 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-800 text-[10px] text-zinc-600">?</div>
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className={`truncate text-[11px] font-bold ${isMe ? "text-yellow-400" : "text-zinc-300"}`}>{name} {isW && "👑"}</div>
+                          <div className={`flex items-center gap-0.5 text-[11px] font-bold ${isMe ? "text-yellow-400" : "text-zinc-300"}`}><span className="truncate">{name}</span> {isW && <GiLaurelCrown className="h-3 w-3 shrink-0 text-yellow-400" />}</div>
                           {card && card.cardId && (
                             <div className="flex items-baseline justify-between gap-1">
                               <span className="min-w-0 truncate text-[10px] text-zinc-500">{card.name}</span>
