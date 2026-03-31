@@ -3,12 +3,10 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { Volume2, VolumeX, SkipForward } from "lucide-react";
 import { useReducedMotion } from "motion/react";
-import { useToast } from "@/components/ui/toast";
 import { Pack3D } from "./pack-3d";
 import { PackRipper } from "./pack-ripper";
 import { CardRevealGrid } from "./card-reveal-grid";
-import { CardReview } from "./card-review";
-import { suppressPendingGuard } from "./pending-pulls-guard";
+import { suppressPendingGuard, notifyPendingPulls } from "./pending-pulls-guard";
 import { ParticleCanvas, type ParticleCanvasHandle } from "./particle-canvas";
 import { usePackSounds, type SoundKey } from "./use-pack-sounds";
 import { getMaxTierFromCards } from "./effect-tiers";
@@ -45,16 +43,13 @@ interface PackOpeningProps {
   box: BoxInfo;
   lang: string;
   onDone: () => void;
-  onCoinsChange: (coins: number) => void;
   quickOpen?: boolean;
 }
 
-type CardChoice = "claim" | "convert" | null;
-type Phase = "idle" | "ripping" | "reveal" | "review";
+type Phase = "idle" | "ripping" | "reveal";
 
-export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpen }: PackOpeningProps) {
+export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpeningProps) {
   const isDe = lang === "de";
-  const { toast } = useToast();
   const { play, masterVolume, setMasterVolume } = usePackSounds();
   const prefersReducedMotion = useReducedMotion();
 
@@ -66,123 +61,53 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
 
   const isRecovery = result.isRecovery ?? false;
 
-  // Pre-populate choices from recovery data (already decided cards)
-  const initialChoices = (() => {
-    const map = new Map<number, CardChoice>();
-    if (isRecovery) {
-      result.cards.forEach((c, i) => {
-        if (c.status === "reserved") map.set(i, "claim");
-        if (c.status === "converted") map.set(i, "convert");
-      });
-    }
-    return map;
-  })();
+  // Recovery / quickOpen / reduced motion → skip animation, hand off to guard immediately
+  const skipAnimation = isRecovery || quickOpen || prefersReducedMotion;
 
-  const getInitialPhase = (): Phase => {
-    if (isRecovery) return "review";
-    if (quickOpen) return "review";
-    if (prefersReducedMotion) return "reveal";
+  const getInitialPhase = (): Phase | null => {
+    if (skipAnimation) return null; // will finish immediately
     return "ripping";
   };
 
-  const [choices, setChoices] = useState<Map<number, CardChoice>>(initialChoices);
-  const [phase, setPhase] = useState<Phase>(getInitialPhase);
-  const [submitting, setSubmitting] = useState(false);
+  const [phase, setPhase] = useState<Phase | null>(getInitialPhase);
 
   const particleRef = useRef<ParticleCanvasHandle>(null);
 
-  // Lock body scroll during animation overlay
-  const isOverlay = phase !== "review";
+  // When there's no animation phase, finish immediately and let the guard take over
   useEffect(() => {
-    if (!isOverlay) return;
+    if (skipAnimation) {
+      // Unsuppress before onDone unmounts us, so the guard can show immediately
+      suppressPendingGuard(false);
+      notifyPendingPulls();
+      onDone();
+    }
+  }, [skipAnimation, onDone]);
+
+  // Lock body scroll during animation overlay
+  useEffect(() => {
+    if (phase === null) return;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
-  }, [isOverlay]);
+  }, [phase]);
 
   const cards = result.cards;
   const boxName = isDe ? (box.name.de || box.name.en) : (box.name.en || box.name.de);
   const maxTier = getMaxTierFromCards(cards);
 
-  // Cards already decided before recovery (not changeable)
-  const recoveredIndices = new Set(
-    isRecovery
-      ? cards.map((c, i) => (c.status === "reserved" || c.status === "converted") ? i : -1).filter((i) => i >= 0)
-      : []
-  );
-
-  function setChoice(idx: number, choice: CardChoice) {
-    setChoices((prev) => new Map(prev).set(idx, choice));
-  }
-
   const handlePlaySound = useCallback((key: string, volume?: number) => {
     play(key as SoundKey, volume);
   }, [play]);
 
-  async function handleConfirm() {
-    setSubmitting(true);
-    try {
-      // Send decisions only for cards not already decided (recovered)
-      for (let i = 0; i < cards.length; i++) {
-        if (recoveredIndices.has(i)) continue;
+  /** Called when the reveal grid finishes — hand off to PendingPullsGuard */
+  const handleAnimationDone = useCallback(() => {
+    // Unsuppress before onDone unmounts us, so the guard can show immediately
+    suppressPendingGuard(false);
+    notifyPendingPulls();
+    onDone();
+  }, [onDone]);
 
-        const card = cards[i];
-        const decision = choices.get(i);
-        if (!decision) continue;
-
-        const res = await fetch("/api/pulls/decide", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            packGroupId: result.packGroupId,
-            cardId: card.cardId,
-            cardIndex: i,
-            packIndex: card.packIndex,
-            rarity: card.rarity,
-            coinValue: card.coinValue,
-            conversionValue: card.conversionValue,
-            decision,
-            boxId: box._id,
-          }),
-        });
-        const data = (await res.json()) as { newBalance?: number; error?: string };
-        if (!res.ok) {
-          toast({ type: "error", title: data.error ?? `Failed on card ${i + 1}` });
-          setSubmitting(false);
-          return;
-        }
-        if (data.newBalance !== undefined) onCoinsChange(data.newBalance);
-      }
-
-      toast({
-        type: "success",
-        title: isDe
-          ? "Pack-Opening abgeschlossen! Karten im Warenkorb."
-          : "Pack opening complete! Cards in cart.",
-      });
-      onDone();
-    } catch {
-      toast({ type: "error", title: "Network error" });
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  // ─── REVIEW PHASE ───
-  if (phase === "review") {
-    return (
-      <CardReview
-        cards={cards}
-        boxName={boxName}
-        lang={lang}
-        isRecovery={isRecovery}
-        recoveredIndices={recoveredIndices}
-        choices={choices}
-        onSetChoice={setChoice}
-        onConfirm={() => void handleConfirm()}
-        submitting={submitting}
-      />
-    );
-  }
+  // If no animation phase (recovery/quickOpen/reduced-motion), render nothing
+  if (phase === null) return null;
 
   // ─── ANIMATION PHASES: fullscreen overlay for ripping + reveal ───
   return (
@@ -197,7 +122,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
         <SoundControl volume={masterVolume} onChange={setMasterVolume} />
         <button
           type="button"
-          onClick={() => setPhase("review")}
+          onClick={handleAnimationDone}
           className="flex items-center gap-1.5 bg-surface/80 backdrop-blur-sm border border-border rounded-lg px-2.5 py-1.5 text-xs text-text-muted hover:text-text-primary transition-colors"
           aria-label={isDe ? "Überspringen" : "Skip"}
         >
@@ -246,7 +171,7 @@ export function PackOpening({ result, box, lang, onDone, onCoinsChange, quickOpe
             lang={lang}
             particleRef={particleRef}
             onPlaySound={handlePlaySound}
-            onAllRevealed={() => setPhase("review")}
+            onAllRevealed={handleAnimationDone}
           />
         )}
       </div>

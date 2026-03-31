@@ -139,38 +139,8 @@ export default function PackDetailPage() {
           typedPending.boxId === typedBox?._id;
 
         if (isSameBox) {
-          // Same box — resume opening (works even if box detail API failed)
-          if (!typedBox && typedPending.boxName) {
-            // Box detail API failed but we have pending data — create minimal box
-            setBox({
-              _id: typedPending.boxId!,
-              slug: typedPending.boxSlug ?? id,
-              name: typedPending.boxName as { de: string; en: string },
-              description: null,
-              game: "",
-              image: null,
-              priceInCoins: 0,
-              cardsPerPack: 0,
-              totalCards: 0,
-              availableCards: 0,
-              packsOpened: 0,
-              rarityInfo: [],
-              conditionInfo: [],
-              cardPool: [],
-              topHits: [],
-              recentPulls: [],
-              myPullCounts: {},
-              liveEvents: [],
-            } as BoxDetail);
-          }
-          setOpenResult({
-            packGroupId: typedPending.packGroupId!,
-            packCount: typedPending.packCount ?? 1,
-            totalCost: 0,
-            newBalance: typedProfile?.coins ?? 0,
-            isRecovery: true,
-            cards: typedPending.cards,
-          });
+          // Same box — the PendingPullsGuard will handle the review overlay
+          // (no need to route through PackOpening for recovery)
         } else {
           // Different box — show banner
           const name = isDe
@@ -236,7 +206,6 @@ export default function PackDetailPage() {
           setOpenResult(null);
           fetch(`/api/packs/${id}`).then((r) => r.ok ? r.json() : null).then((d) => { if (d) setBox(d as BoxDetail); }).catch(() => {});
         }}
-        onCoinsChange={(coins) => setUserCoins(coins)}
       />
     );
   }
