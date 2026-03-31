@@ -16,6 +16,7 @@ export interface BoxFormData {
   priceInCoins: number;
   cardsPerPack: number;
   totalPacks: number | null;
+  battleFeePerRound: number;
   rarityWeights: RarityWeight[];
 }
 
@@ -47,6 +48,9 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
     initialData?.totalPacks !== null && initialData?.totalPacks !== undefined
       ? String(initialData.totalPacks)
       : ""
+  );
+  const [battleFeePerRound, setBattleFeePerRound] = useState<string>(
+    initialData?.battleFeePerRound !== undefined ? String(initialData.battleFeePerRound) : "0"
   );
   const [rarityWeights, setRarityWeights] = useState<RarityWeight[]>(
     initialData?.rarityWeights ?? []
@@ -105,6 +109,7 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
       priceInCoins: parseInt(priceInCoins, 10),
       cardsPerPack: parseInt(cardsPerPack, 10),
       totalPacks: totalPacksParsed !== null && !isNaN(totalPacksParsed) ? totalPacksParsed : null,
+      battleFeePerRound: parseInt(battleFeePerRound, 10) || 0,
       rarityWeights,
     });
   }
@@ -196,6 +201,13 @@ export function BoxForm({ lang, dict, initialData, onSave, loading }: BoxFormPro
               {isDe ? "Gesamte Packs" : "Total Packs"}
             </label>
             <Input type="number" min={1} value={totalPacksStr} onChange={(e) => setTotalPacksStr(e.target.value)} placeholder={isDe ? "Unbegrenzt" : "Unlimited"} className="py-1.5 text-sm" />
+          </div>
+
+          <div className="space-y-1">
+            <label className="block text-xs font-medium text-text-muted">
+              {isDe ? "Battle-Gebühr/Runde" : "Battle Fee/Round"}
+            </label>
+            <Input type="number" min={0} value={battleFeePerRound} onChange={(e) => setBattleFeePerRound(e.target.value)} placeholder="0" className="py-1.5 text-sm" />
           </div>
 
         </div>

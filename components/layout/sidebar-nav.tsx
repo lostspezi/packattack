@@ -4,12 +4,15 @@
   href: string;
   icon: string;
   adminOnly?: boolean;
+  /** Show a "Soon" badge. If true, non-admins cannot click the link. */
   soon?: boolean;
 };
 
 export const mainNavItems: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: "LayoutGrid" },
   { key: "packs", label: "Packs", href: "/packs", icon: "Package" },
+  { key: "battles", label: "Battles", href: "/battles", icon: "Swords", soon: true },
+  { key: "leaderboard", label: "Bestenliste", href: "/leaderboard", icon: "Trophy", soon: true },
 
   { key: "cart", label: "Warenkorb", href: "/cart", icon: "ShoppingCart" },
   { key: "orders", label: "Bestellungen", href: "/orders", icon: "Package" },

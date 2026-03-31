@@ -71,6 +71,7 @@ export async function PATCH(
     priceInCoins?: number;
     cardsPerPack?: number;
     totalPacks?: number | null;
+    battleFeePerRound?: number;
     rarityWeights?: Array<{ rarity: string; weight?: number }>;
     status?: string;
     image?: string | null;
@@ -160,6 +161,7 @@ export async function PATCH(
       "priceInCoins",
       "cardsPerPack",
       "totalPacks",
+      "battleFeePerRound",
       "rarityWeights",
       "status",
       "image",

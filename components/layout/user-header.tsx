@@ -6,7 +6,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   LayoutGrid,
   Package,
-
+  Swords,
+  Trophy,
   ShoppingBag,
   ShoppingCart,
   ChevronDown,
@@ -109,6 +110,7 @@ export function UserHeader({
     return "text-text-muted"; // > 1h
   }
 
+  const isAdmin = userRole === "admin" || userRole === "super_admin";
   const dashboardHref = `/${lang}/dashboard`;
   const isDashboardActive = pathname === dashboardHref;
   const levelLabel = dict["level"] ?? "Level";
@@ -157,6 +159,62 @@ export function UserHeader({
               <Package className="h-4 w-4 shrink-0" />
               <span>{dict["packs"] ?? "Packs"}</span>
             </Link>
+
+            {isAdmin ? (
+              <Link
+                href={`/${lang}/battles`}
+                className={[
+                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  pathname.includes("/battles")
+                    ? "bg-white/6 text-pa-green"
+                    : "text-text-secondary hover:bg-white/4 hover:text-text-primary",
+                ].join(" ")}
+              >
+                <Swords className="h-4 w-4 shrink-0" />
+                <span>{dict["battles"] ?? "Battles"}</span>
+                <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
+                  Soon
+                </span>
+              </Link>
+            ) : (
+              <span className="select-none rounded-lg px-3 py-2 text-sm font-medium text-text-muted opacity-35">
+                <span className="flex items-center gap-2">
+                  <Swords className="h-4 w-4 shrink-0" />
+                  <span>{dict["battles"] ?? "Battles"}</span>
+                  <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
+                    Soon
+                  </span>
+                </span>
+              </span>
+            )}
+
+            {isAdmin ? (
+              <Link
+                href={`/${lang}/leaderboard`}
+                className={[
+                  "flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  pathname.includes("/leaderboard")
+                    ? "bg-white/6 text-pa-green"
+                    : "text-text-secondary hover:bg-white/4 hover:text-text-primary",
+                ].join(" ")}
+              >
+                <Trophy className="h-4 w-4 shrink-0" />
+                <span>{dict["leaderboard"] ?? "Bestenliste"}</span>
+                <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
+                  Soon
+                </span>
+              </Link>
+            ) : (
+              <span className="select-none rounded-lg px-3 py-2 text-sm font-medium text-text-muted opacity-35">
+                <span className="flex items-center gap-2">
+                  <Trophy className="h-4 w-4 shrink-0" />
+                  <span>{dict["leaderboard"] ?? "Bestenliste"}</span>
+                  <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
+                    Soon
+                  </span>
+                </span>
+              </span>
+            )}
 
             <Link
               href={`/${lang}/cart`}
@@ -293,6 +351,60 @@ export function UserHeader({
               <Package className="h-5 w-5 shrink-0" />
               <span>{dict["packs"] ?? "Packs"}</span>
             </Link>
+
+            {isAdmin ? (
+              <Link
+                href={`/${lang}/battles`}
+                onClick={() => setMobileMenuOpen(false)}
+                className={[
+                  "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
+                  pathname.includes("/battles")
+                    ? "bg-pa-green/6 text-pa-green"
+                    : "text-text-muted hover:text-text-primary",
+                ].join(" ")}
+              >
+                <Swords className="h-5 w-5 shrink-0" />
+                <span className="flex-1">{dict["battles"] ?? "Battles"}</span>
+                <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
+                  Soon
+                </span>
+              </Link>
+            ) : (
+              <span className="flex select-none items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-text-muted opacity-35">
+                <Swords className="h-5 w-5 shrink-0" />
+                <span className="flex-1">{dict["battles"] ?? "Battles"}</span>
+                <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
+                  Soon
+                </span>
+              </span>
+            )}
+
+            {isAdmin ? (
+              <Link
+                href={`/${lang}/leaderboard`}
+                onClick={() => setMobileMenuOpen(false)}
+                className={[
+                  "flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
+                  pathname.includes("/leaderboard")
+                    ? "bg-pa-green/6 text-pa-green"
+                    : "text-text-muted hover:text-text-primary",
+                ].join(" ")}
+              >
+                <Trophy className="h-5 w-5 shrink-0" />
+                <span className="flex-1">{dict["leaderboard"] ?? "Bestenliste"}</span>
+                <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
+                  Soon
+                </span>
+              </Link>
+            ) : (
+              <span className="flex select-none items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-text-muted opacity-35">
+                <Trophy className="h-5 w-5 shrink-0" />
+                <span className="flex-1">{dict["leaderboard"] ?? "Bestenliste"}</span>
+                <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
+                  Soon
+                </span>
+              </span>
+            )}
 
             <Link
               href={`/${lang}/cart`}

@@ -128,6 +128,7 @@ export async function POST(
 
     // 6. Create PackPull records with status "pending" — crash-safe
     const packGroupId = randomUUID();
+    const pullExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
     const pullDocs = result.drawnCards.map((d, i) => ({
       userId,
       boxId: realBoxId,
@@ -142,6 +143,7 @@ export async function POST(
       cardIndex: i,
       ipAddress: ip,
       userAgent: ua,
+      expiresAt: pullExpiresAt,
     }));
     await PackPull.insertMany(pullDocs);
 

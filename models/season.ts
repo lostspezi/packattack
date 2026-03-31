@@ -14,6 +14,7 @@ export interface ISeason extends Document {
   startsAt: Date;
   endsAt: Date;
   status: "upcoming" | "active" | "ended";
+  eloResetBaseline: number;
   rewards: ISeasonReward[];
   createdAt: Date;
   updatedAt: Date;
@@ -45,6 +46,7 @@ const SeasonSchema = new Schema<ISeason>(
       default: "upcoming",
       required: true,
     },
+    eloResetBaseline: { type: Number, default: 1000 },
     rewards: { type: [SeasonRewardSchema], default: [] },
   },
   { timestamps: true }

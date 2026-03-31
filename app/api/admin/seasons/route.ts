@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
       startsAt: new Date(b.startsAt as string),
       endsAt: new Date(b.endsAt as string),
       status: b.status as "upcoming" | "active" | "ended",
+      eloResetBaseline: typeof b.eloResetBaseline === "number" ? b.eloResetBaseline : 1000,
       rewards: (b.rewards as ISeasonReward[]) ?? [],
     });
     await doc.save();

@@ -14,7 +14,7 @@ export async function GET() {
     await connectDB();
 
     const boxes = await Box.find({ status: "published" })
-      .select("_id slug name description game image priceInCoins cardsPerPack totalPacks packsOpened cards rarityWeights")
+      .select("_id slug name description game image priceInCoins cardsPerPack totalPacks packsOpened cards rarityWeights battleFeePerRound")
       .populate("cards.card", "image marketPrice internalPrice variants name")
       .sort({ createdAt: -1 })
       .lean();
@@ -59,6 +59,7 @@ export async function GET() {
           totalCards: cardEntries.length,
           availableCards,
           packsOpened: b.packsOpened ?? 0,
+          battleFeePerRound: b.battleFeePerRound ?? 0,
           rarities,
           previewCards,
         };

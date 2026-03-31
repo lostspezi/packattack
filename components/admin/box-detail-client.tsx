@@ -27,6 +27,7 @@ interface BoxData {
   priceInCoins: number;
   cardsPerPack: number;
   totalPacks: number | null;
+  battleFeePerRound: number;
   rarityWeights: RarityWeight[];
   packsOpened: number;
   cardsCount: number;
@@ -122,6 +123,7 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
         priceInCoins: updated.priceInCoins ?? box.priceInCoins,
         cardsPerPack: updated.cardsPerPack ?? box.cardsPerPack,
         totalPacks: updated.totalPacks ?? box.totalPacks,
+        battleFeePerRound: updated.battleFeePerRound ?? box.battleFeePerRound ?? 0,
         rarityWeights: updated.rarityWeights ?? box.rarityWeights,
       });
       toast({ type: "success", title: isDe ? "Box gespeichert!" : "Box saved!" });
@@ -421,6 +423,7 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
                 priceInCoins: box.priceInCoins,
                 cardsPerPack: box.cardsPerPack,
                 totalPacks: box.totalPacks,
+                battleFeePerRound: box.battleFeePerRound ?? 0,
                 rarityWeights: box.rarityWeights,
               }}
               onSave={(data) => void handleSave(data)}
