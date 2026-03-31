@@ -66,7 +66,7 @@ export async function POST(
       const user = await User.findOneAndUpdate(
         { _id: session.user!.id, coins: { $gte: battle.entryFee } },
         { $inc: { coins: -battle.entryFee } },
-        { new: true },
+        { returnDocument: "after" },
       );
 
       if (!user) {
@@ -118,6 +118,7 @@ export async function POST(
         joined: true,
         newBalance: user.coins,
         status: battle.status,
+        battle: { slug: battle.slug },
       });
     });
   } catch (err) {
