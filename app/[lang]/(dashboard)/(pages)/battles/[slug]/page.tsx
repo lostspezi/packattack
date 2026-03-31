@@ -9,7 +9,7 @@ import { GiTrophyCup, GiCrossedSwords, GiScales, GiLaurelCrown, GiPodiumWinner, 
 import { BattleWaiting } from "@/components/battles/battle-waiting";
 import { BattleHand } from "@/components/battles/battle-hand";
 import { BattleReveal } from "@/components/battles/battle-reveal";
-import { CardReview } from "@/components/packs/card-review";
+import { notifyPendingPulls } from "@/components/packs/pending-pulls-guard";
 import { useToast } from "@/components/ui/toast";
 
 /* ------------------------------------------------------------------ */
@@ -148,29 +148,6 @@ export default function BattleDetailPage() {
   const [battle, setBattle] = useState<BattleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [readying, setReadying] = useState(false);
-
-  // Post-battle card review
-  type CardChoice = "claim" | "convert" | null;
-  interface BattlePull {
-    _id: string;
-    cardId: string;
-    name: string;
-    image: string | null;
-    rarity: string;
-    coinValue: number;
-    conversionValue: number;
-    status: string;
-    packGroupId: string;
-    cardIndex: number;
-    packIndex: number;
-  }
-  const [battlePulls, setBattlePulls] = useState<BattlePull[] | null>(null);
-  const [reviewChoices, setReviewChoices] = useState<Map<number, CardChoice>>(new Map());
-  const [reviewDone, setReviewDone] = useState(false);
-  const [reviewSubmitting, setReviewSubmitting] = useState(false);
-  const reviewRecoveredIndices = new Set(
-    (battlePulls ?? []).map((p, i) => (p.status !== "pending" ? i : -1)).filter((i) => i >= 0),
-  );
 
   // Current round state from SSE
   const [myHand, setMyHand] = useState<VirtualCard[] | null>(null);
@@ -403,84 +380,12 @@ export default function BattleDetailPage() {
     };
   }, []);
 
-  // Fetch battle pulls when battle finishes (for claim/convert review)
+  // Notify the global PendingPullsGuard when battle finishes
   useEffect(() => {
-    if (!battle || battle.status !== "finished" || reviewDone || battlePulls) return;
-    (async () => {
-      try {
-        const res = await fetch(`/api/battles/${battle._id}/pulls`);
-        if (!res.ok) return;
-        const data = await res.json();
-        const pulls = data.pulls as BattlePull[];
-        if (!pulls || pulls.length === 0) {
-          setReviewDone(true);
-          return;
-        }
-        // If all already decided, skip review
-        const allDecided = pulls.every((p) => p.status !== "pending");
-        if (allDecided) {
-          setReviewDone(true);
-          return;
-        }
-        setBattlePulls(pulls);
-        // Pre-populate choices for already-decided pulls
-        const initialChoices = new Map<number, CardChoice>();
-        pulls.forEach((p, i) => {
-          if (p.status === "reserved" || p.status === "claimed") initialChoices.set(i, "claim");
-          else if (p.status === "converted") initialChoices.set(i, "convert");
-        });
-        setReviewChoices(initialChoices);
-      } catch {
-        setReviewDone(true);
-      }
-    })();
-  }, [battle, reviewDone, battlePulls]);
-
-  // Handle confirm for battle card review
-  async function handleReviewConfirm() {
-    if (!battle || !battlePulls) return;
-    setReviewSubmitting(true);
-    try {
-      for (let i = 0; i < battlePulls.length; i++) {
-        if (reviewRecoveredIndices.has(i)) continue;
-        const pull = battlePulls[i];
-        const decision = reviewChoices.get(i);
-        if (!decision) continue;
-
-        const res = await fetch("/api/pulls/decide", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            packGroupId: pull.packGroupId,
-            cardId: pull.cardId,
-            cardIndex: pull.cardIndex,
-            packIndex: pull.packIndex,
-            rarity: pull.rarity,
-            coinValue: pull.coinValue,
-            conversionValue: pull.conversionValue,
-            decision,
-            boxId: typeof battle.box === "string" ? battle.box : (battle.box as { _id: string })._id,
-          }),
-        });
-        if (!res.ok) {
-          const data = await res.json();
-          toast({ type: "error", title: data.error ?? `Failed on card ${i + 1}` });
-          setReviewSubmitting(false);
-          return;
-        }
-      }
-      toast({
-        type: "success",
-        title: isDe ? "Karten verarbeitet!" : "Cards processed!",
-      });
-      setReviewDone(true);
-      setBattlePulls(null);
-    } catch {
-      toast({ type: "error", title: "Network error" });
-    } finally {
-      setReviewSubmitting(false);
+    if (battle?.status === "finished") {
+      notifyPendingPulls();
     }
-  }
+  }, [battle?.status]);
 
   // Actions
   async function handleReady() {
@@ -875,40 +780,8 @@ export default function BattleDetailPage() {
         </div>
       )}
 
-      {/* Finished — Card Review (before result screen) */}
-      {isFinished && battle.result && !reviewDone && battlePulls && (
-        <CardReview
-          cards={battlePulls.map((p) => ({
-            cardId: p.cardId,
-            name: p.name,
-            rarity: p.rarity,
-            coinValue: p.coinValue,
-            conversionValue: p.conversionValue,
-            image: p.image,
-            packIndex: p.packIndex,
-            cardIndex: p.cardIndex,
-            status: p.status,
-          }))}
-          boxName={isDe ? "Battle-Karten" : "Battle Cards"}
-          lang={lang}
-          isRecovery={reviewRecoveredIndices.size > 0}
-          recoveredIndices={reviewRecoveredIndices}
-          choices={reviewChoices}
-          onSetChoice={(idx, choice) => setReviewChoices((prev) => new Map(prev).set(idx, choice))}
-          onConfirm={() => void handleReviewConfirm()}
-          submitting={reviewSubmitting}
-        />
-      )}
-
-      {/* Finished — Loading pulls */}
-      {isFinished && battle.result && !reviewDone && !battlePulls && (
-        <div className="flex min-h-[40vh] items-center justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-yellow-400" />
-        </div>
-      )}
-
-      {/* Finished — Result Screen (after card review) */}
-      {isFinished && battle.result && reviewDone && (
+      {/* Finished — Result Screen */}
+      {isFinished && battle.result && (
         <BattleResultView
           battle={battle}
           currentUserId={currentUserId}

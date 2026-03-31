@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { Modal } from "@/components/ui/modal";
 import { PackOpening } from "@/components/packs/pack-opening";
+import { notifyPendingPulls } from "@/components/packs/pending-pulls-guard";
 import { TopHits } from "@/components/packs/top-hits";
 import { LiveEvents } from "@/components/packs/live-events";
 import { MyPulls } from "@/components/packs/my-pulls";
@@ -202,6 +203,7 @@ export default function PackDetailPage() {
       }
       setOpenResult(data);
       setUserCoins(data.newBalance);
+      notifyPendingPulls();
     } catch {
       toast({ type: "error", title: "Network error" });
     } finally {

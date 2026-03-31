@@ -41,6 +41,14 @@ const POLL_INTERVAL = 8_000;
 const WARNING_THRESHOLD = 60; // seconds — play warning sound
 const CRITICAL_THRESHOLD = 30; // seconds — urgent UI
 const NOTIFY_THRESHOLD = 90; // seconds — send browser notification
+const PENDING_PULLS_EVENT = "pending-pulls-changed";
+
+/** Dispatch from anywhere to make the guard refetch immediately. */
+export function notifyPendingPulls() {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(PENDING_PULLS_EVENT));
+  }
+}
 
 export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
   const params = useParams<{ lang: string }>();
@@ -107,12 +115,14 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Poll on mount and periodically
+  // Poll on mount, periodically, and on custom event
   useEffect(() => {
     fetchPending();
     pollRef.current = setInterval(fetchPending, POLL_INTERVAL);
+    window.addEventListener(PENDING_PULLS_EVENT, fetchPending);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
+      window.removeEventListener(PENDING_PULLS_EVENT, fetchPending);
     };
   }, [fetchPending]);
 
