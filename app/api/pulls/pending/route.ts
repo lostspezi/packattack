@@ -84,7 +84,7 @@ export async function GET() {
       decidedCount,
       expiresAt: expiresAt?.toISOString() ?? null,
       battleId: anyPending.battleId?.toString() ?? null,
-      cards: allPulls.map((p, i) => {
+      cards: allPulls.map((p) => {
         const card = cardMap.get(p.cardId.toString());
         return {
           pullId: p._id.toString(),
@@ -96,7 +96,7 @@ export async function GET() {
           image: card?.image ?? null,
           packGroupId: p.packGroupId,
           packIndex: p.packIndex,
-          cardIndex: isBattle ? i : p.cardIndex,
+          cardIndex: p.cardIndex,
           status: p.status,
         };
       }),

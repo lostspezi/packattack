@@ -218,6 +218,7 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            pullId: card.pullId,
             packGroupId: card.packGroupId,
             cardId: card.cardId,
             cardIndex: card.cardIndex,

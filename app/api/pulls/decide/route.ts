@@ -169,7 +169,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { packGroupId, cardId, cardIndex, rarity, coinValue, decision, boxId } = body as {
+  const { pullId, packGroupId, cardId, cardIndex, rarity, coinValue, decision, boxId } = body as {
+    pullId?: string;
     packGroupId?: string;
     cardId?: string;
     cardIndex?: number;
@@ -179,7 +180,7 @@ export async function POST(req: NextRequest) {
     boxId?: string;
   };
 
-  if (!packGroupId || !cardId || cardIndex === undefined || !decision || !boxId) {
+  if ((!pullId && (!packGroupId || !cardId || cardIndex === undefined)) || !decision || !boxId) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
@@ -191,8 +192,12 @@ export async function POST(req: NextRequest) {
     await connectDB();
 
     // Update the pending PackPull record to the user's decision
+    // Use pullId (direct _id lookup) when available, fall back to packGroupId+cardIndex
+    const query = pullId
+      ? { _id: pullId, userId, status: "pending" }
+      : { packGroupId, cardIndex, userId, status: "pending" };
     const pull = await PackPull.findOneAndUpdate(
-      { packGroupId, cardIndex, userId, status: "pending" },
+      query,
       {
         $set: {
           status: decision === "claim" ? "reserved" : "converted",
@@ -235,7 +240,7 @@ export async function POST(req: NextRequest) {
       // Publish SSE live event
       void publishLiveEvent(boxId, userDoc, cardDoc, rarity ?? "", coinValue ?? 0, decision);
 
-      await publishJackpotPullsAfterCompletion({ packGroupId, userId });
+      await publishJackpotPullsAfterCompletion({ packGroupId: pull.packGroupId, userId });
 
       return NextResponse.json({
         success: true,
@@ -268,7 +273,7 @@ export async function POST(req: NextRequest) {
       // Publish SSE live event
       void publishLiveEvent(boxId, userDoc, cardDoc, pull.rarity, pull.coinValue, decision);
 
-      await publishJackpotPullsAfterCompletion({ packGroupId, userId });
+      await publishJackpotPullsAfterCompletion({ packGroupId: pull.packGroupId, userId });
 
       return NextResponse.json({ success: true, decision: "converted", newBalance: user?.coins ?? 0 });
     }
