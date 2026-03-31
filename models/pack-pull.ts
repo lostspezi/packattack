@@ -51,6 +51,7 @@ PackPullSchema.index({ userId: 1, packGroupId: 1 });
 PackPullSchema.index({ boxId: 1, createdAt: -1 });
 PackPullSchema.index({ packGroupId: 1, cardIndex: 1 }, { unique: true });
 PackPullSchema.index({ status: 1, expiresAt: 1 });
+PackPullSchema.index({ battleId: 1, status: 1 });
 
 const PackPull: Model<IPackPull> =
   mongoose.models.PackPull ?? mongoose.model<IPackPull>("PackPull", PackPullSchema);

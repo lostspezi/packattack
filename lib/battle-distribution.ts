@@ -22,21 +22,21 @@ export function distributeByMode(
   const transfers: TransferResult[] = [];
 
   for (const [playerId, cards] of playerCards.entries()) {
-    if (playerId === winnerId) continue;
+    if (playerId === winnerId || cards.length === 0) continue;
 
     let transferCards: IVirtualCard[];
 
     switch (mode) {
       case "lowest_card": {
         const minValue = Math.min(...cards.map((c) => c.coinValue));
-        const lowest = cards.find((c) => c.coinValue === minValue)!;
-        transferCards = [lowest];
+        const lowest = cards.find((c) => c.coinValue === minValue);
+        transferCards = lowest ? [lowest] : [];
         break;
       }
       case "highest_card": {
         const maxValue = Math.max(...cards.map((c) => c.coinValue));
-        const highest = cards.find((c) => c.coinValue === maxValue)!;
-        transferCards = [highest];
+        const highest = cards.find((c) => c.coinValue === maxValue);
+        transferCards = highest ? [highest] : [];
         break;
       }
       case "all_cards": {

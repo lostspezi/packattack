@@ -60,6 +60,7 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
   const [choices, setChoices] = useState<Map<number, CardChoice>>(new Map());
   const [submitting, setSubmitting] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
+  const [totalSeconds, setTotalSeconds] = useState(300);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
   const notifiedRef = useRef(false);
@@ -135,6 +136,8 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
     }
 
     const expiresMs = new Date(expiresAtStr).getTime();
+    const total = Math.max(1, Math.ceil((expiresMs - Date.now()) / 1000));
+    setTotalSeconds(total);
 
     function tick() {
       const remaining = Math.max(0, Math.ceil((expiresMs - Date.now()) / 1000));
@@ -361,7 +364,7 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
                 isCritical ? "bg-red-500" : isWarning ? "bg-yellow-500" : "bg-pa-green",
               ].join(" ")}
               style={{
-                width: `${Math.max(0, (secondsLeft / 300) * 100)}%`,
+                width: `${Math.max(0, (secondsLeft / totalSeconds) * 100)}%`,
               }}
             />
           </div>

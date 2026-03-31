@@ -9,9 +9,9 @@ import { prepareBoxCardsForBattle, drawAndPersistBattleHand, transferCardOwnersh
 import { distributeByMode } from "@/lib/battle-distribution";
 import { calculateEloChanges, type EloPlayer } from "@/lib/battle-elo";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
-import { scheduleBattleJob } from "@/lib/battle-jobs";
+// TODO: re-enable when auto-select timer is active
+// import { scheduleBattleJob } from "@/lib/battle-jobs";
 import type { IVirtualCard } from "@/models/battle";
-import PackPull from "@/models/pack-pull";
 import mongoose from "mongoose";
 
 const SELECT_DEADLINE_MS = 30 * 1000;
@@ -170,7 +170,7 @@ async function startNewRound(
     .populate("cards.card", "name image rarity internalPrice marketPrice")
     .lean();
 
-  if (!box) return;
+  if (!box) throw new Error(`Box ${battle.box} not found for battle ${battleId}`);
 
   const boxCards = prepareBoxCardsForBattle(box);
 

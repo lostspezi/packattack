@@ -42,7 +42,7 @@ export async function scheduleBattleJob(
  */
 export async function removeBattleJob(name: BattleJobName, battleId: string, roundNumber?: number) {
   const queue = getQueue(BATTLE_QUEUE);
-  const jobId = `${name}:${battleId}${roundNumber ? `:r${roundNumber}` : ""}`;
+  const jobId = `${name}--${battleId}${roundNumber ? `--r${roundNumber}` : ""}`;
   const job = await queue.getJob(jobId);
   if (job) {
     await job.remove().catch(() => {});

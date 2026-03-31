@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Users, Clock, Swords, LogIn } from "lucide-react";
+import { Users, Clock, Swords, LogIn, ArrowDownToLine, ArrowUpToLine, Flame } from "lucide-react";
 
 interface BattleCardPlayer {
   user: { _id: string; username: string };
@@ -41,10 +41,10 @@ interface BattleCardProps {
   joining?: boolean;
 }
 
-const MODE_LABELS: Record<string, { de: string; en: string; icon: string }> = {
-  lowest_card: { de: "Niedrigste Karte", en: "Lowest Card", icon: "⬇" },
-  highest_card: { de: "Höchste Karte", en: "Highest Card", icon: "⬆" },
-  all_cards: { de: "Alle Karten", en: "All Cards", icon: "🔥" },
+const MODE_LABELS: Record<string, { de: string; en: string; icon: React.ReactNode }> = {
+  lowest_card: { de: "Niedrigste Karte", en: "Lowest Card", icon: <ArrowDownToLine className="inline h-3.5 w-3.5 text-blue-400" /> },
+  highest_card: { de: "Höchste Karte", en: "Highest Card", icon: <ArrowUpToLine className="inline h-3.5 w-3.5 text-orange-400" /> },
+  all_cards: { de: "Alle Karten", en: "All Cards", icon: <Flame className="inline h-3.5 w-3.5 text-red-400" /> },
 };
 
 function TimeRemaining({ expiresAt, lang }: { expiresAt: string; lang: string }) {
@@ -97,7 +97,7 @@ export function BattleCard({ battle, lang, currentUserId, onJoin, joining }: Bat
         {battle.box.image && (
           <img
             src={battle.box.image}
-            alt=""
+            alt={isDe ? battle.box.name.de : battle.box.name.en}
             className="h-10 w-10 rounded-lg object-cover"
           />
         )}

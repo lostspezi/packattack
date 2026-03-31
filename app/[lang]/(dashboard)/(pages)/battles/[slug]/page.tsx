@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { GiTrophyCup, GiCrossedSwords, GiScales, GiLaurelCrown, GiPodiumWinner, GiPodiumSecond, GiPodiumThird, GiSandsOfTime, GiScrollUnfurled, GiRoundStar } from "react-icons/gi";
 
 import { BattleWaiting } from "@/components/battles/battle-waiting";
@@ -98,7 +98,7 @@ type RoundHistoryEntry = {
 /**
  * For each player, compute which of their played cards is currently the
  * transfer candidate based on the battle mode.
- * Returns a Set of "{roundNumber}-{userId}" keys where that card is "at risk".
+ * Returns a Map of "{roundNumber}-{userId}" → leaderId (who would receive the card).
  *
  * - all_cards: every card from every non-leading player → all are at risk
  * - lowest_card: the single lowest-value card per non-leading player
@@ -108,17 +108,22 @@ function computeTransferPreviews(
   history: RoundHistoryEntry[],
   mode: string,
   scores: Map<string, number>,
-): Set<string> {
-  const atRisk = new Set<string>();
+): Map<string, string> {
+  const atRisk = new Map<string, string>();
   if (history.length === 0) return atRisk;
 
   // Find leading player(s)
   let maxScore = 0;
   for (const s of scores.values()) if (s > maxScore) maxScore = s;
   const leaders = new Set<string>();
-  for (const [id, s] of scores.entries()) if (s === maxScore) leaders.add(id);
+  let leaderId = "";
+  for (const [id, s] of scores.entries()) {
+    if (s === maxScore) { leaders.add(id); leaderId = id; }
+  }
   // If everyone is tied, no transfers yet
   if (leaders.size === scores.size) return atRisk;
+  // If multiple leaders tied, pick first one for display
+  if (leaders.size > 1) leaderId = [...leaders][0];
 
   // Collect played cards per player with round reference
   const playerCards = new Map<string, { roundNumber: number; coinValue: number }[]>();
@@ -133,15 +138,15 @@ function computeTransferPreviews(
     if (leaders.has(userId)) continue; // leaders don't lose cards
 
     if (mode === "all_cards") {
-      for (const c of cards) atRisk.add(`${c.roundNumber}-${userId}`);
+      for (const c of cards) atRisk.set(`${c.roundNumber}-${userId}`, leaderId);
     } else if (mode === "lowest_card") {
       const min = Math.min(...cards.map((c) => c.coinValue));
       const target = cards.find((c) => c.coinValue === min);
-      if (target) atRisk.add(`${target.roundNumber}-${userId}`);
+      if (target) atRisk.set(`${target.roundNumber}-${userId}`, leaderId);
     } else if (mode === "highest_card") {
       const max = Math.max(...cards.map((c) => c.coinValue));
       const target = cards.find((c) => c.coinValue === max);
-      if (target) atRisk.add(`${target.roundNumber}-${userId}`);
+      if (target) atRisk.set(`${target.roundNumber}-${userId}`, leaderId);
     }
   }
 
@@ -615,19 +620,28 @@ export default function BattleDetailPage() {
                         <div className="flex items-center gap-2">
                           {round.players.map((rp) => {
                             const isWin = rp.userId === round.winnerId;
-                            const isAtRisk = atRiskCards.has(`${round.roundNumber}-${rp.userId}`);
+                            const atRiskTo = atRiskCards.get(`${round.roundNumber}-${rp.userId}`);
+                            const isAtRisk = !!atRiskTo;
+                            const leaderName = atRiskTo ? battle.players.find((p) => String(p.user._id) === atRiskTo)?.user.username : null;
                             return (
-                              <div key={rp.userId} className="flex items-center gap-1">
-                                <div className="relative">
-                                  <div className={`overflow-hidden rounded border ${isAtRisk ? "border-red-500/60 ring-1 ring-red-500/30" : isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "28px", aspectRatio: "2/3" }}>
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
+                              <div key={rp.userId} className="flex flex-col items-center gap-0.5">
+                                <div className="flex items-center gap-1">
+                                  <div className="relative">
+                                    <div className={`overflow-hidden rounded border ${isAtRisk ? "border-red-500/60 ring-1 ring-red-500/30" : isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "28px", aspectRatio: "2/3" }}>
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
+                                    </div>
+                                    {isAtRisk && (
+                                      <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-white">
+                                        <ArrowUpRight className="h-2.5 w-2.5" />
+                                      </span>
+                                    )}
                                   </div>
-                                  {isAtRisk && (
-                                    <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[7px] font-bold text-white">↗</span>
-                                  )}
+                                  <span className={`text-[10px] font-bold tabular-nums ${isAtRisk ? "text-red-400" : isWin ? "text-yellow-400" : "text-zinc-500"}`}>{rp.card.coinValue}</span>
                                 </div>
-                                <span className={`text-[10px] font-bold tabular-nums ${isAtRisk ? "text-red-400" : isWin ? "text-yellow-400" : "text-zinc-500"}`}>{rp.card.coinValue}</span>
+                                {isAtRisk && leaderName && (
+                                  <span className="max-w-[60px] truncate text-[8px] text-red-400/80">{isDe ? "an" : "to"} {leaderName}</span>
+                                )}
                               </div>
                             );
                           })}
@@ -690,12 +704,12 @@ export default function BattleDetailPage() {
                 {battle.players
                   .filter((p) => p.user._id !== currentUserId)
                   .map((opponent) => {
-                    const hasOpponentSelected = selectedCardIndex !== null;
+                    const hasLocalUserSelected = selectedCardIndex !== null;
                     return (
                       <div key={opponent.user._id} className="flex flex-col items-center gap-1.5">
                         <span className="text-[11px] font-bold text-zinc-400">{opponent.user.username}</span>
                         <div className="flex items-center gap-2">
-                          {hasOpponentSelected ? (
+                          {hasLocalUserSelected ? (
                             <div className="overflow-hidden rounded-lg border border-zinc-700/60 shadow-lg shadow-black/30" style={{ width: "clamp(50px, 12vw, 70px)", aspectRatio: "2/3" }}>
                               <img src="/images/card-back.jpg" alt="" className="h-full w-full object-cover" draggable={false} />
                             </div>
@@ -787,7 +801,7 @@ export default function BattleDetailPage() {
               <div className="space-y-2 text-[11px]">
                 <div className="flex items-center justify-between">
                   <span className="text-zinc-500">{isDe ? "Modus" : "Mode"}</span>
-                  <span className="font-bold text-zinc-300">{battle.settings.mode === "winner_takes_highest" ? (isDe ? "Höchste" : "Highest") : battle.settings.mode === "winner_takes_lowest" ? (isDe ? "Niedrigste" : "Lowest") : battle.settings.mode === "winner_takes_all" ? "All" : "Classic"}</span>
+                  <span className="font-bold text-zinc-300">{battle.settings.mode === "highest_card" ? (isDe ? "Höchste Karte" : "Highest Card") : battle.settings.mode === "lowest_card" ? (isDe ? "Niedrigste Karte" : "Lowest Card") : battle.settings.mode === "all_cards" ? (isDe ? "Alle Karten" : "All Cards") : battle.settings.mode}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-zinc-500">{isDe ? "Einsatz" : "Entry"}</span>
@@ -834,7 +848,8 @@ export default function BattleDetailPage() {
                       <div className="flex items-center gap-1.5">
                         {round.players.map((rp) => {
                           const isWin = rp.userId === round.winnerId;
-                          const isAtRisk = atRiskCards.has(`${round.roundNumber}-${rp.userId}`);
+                          const atRiskTo = atRiskCards.get(`${round.roundNumber}-${rp.userId}`);
+                          const isAtRisk = !!atRiskTo;
                           return (
                             <div key={rp.userId} className="relative">
                               <div className={`overflow-hidden rounded border ${isAtRisk ? "border-red-500/60" : isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "22px", aspectRatio: "2/3" }}>
@@ -842,7 +857,9 @@ export default function BattleDetailPage() {
                                 <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
                               </div>
                               {isAtRisk && (
-                                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 text-[6px] font-bold text-white">↗</span>
+                                <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-white">
+                                  <ArrowUpRight className="h-2 w-2" />
+                                </span>
                               )}
                             </div>
                           );
@@ -940,7 +957,7 @@ function BattleResultView({
               <div className="mt-1.5 flex flex-wrap items-center justify-center gap-1 text-xs">
                 <span className="text-zinc-500">ELO</span>
                 <span className="font-bold text-zinc-400">{myEloChange.oldElo}</span>
-                <span className="text-zinc-600">→</span>
+                <ArrowRight className="h-3 w-3 text-zinc-600" />
                 <span className="font-bold text-zinc-100">{myEloChange.newElo}</span>
                 <span className={`rounded-full px-1.5 py-0.5 text-xs font-bold ${myEloChange.change >= 0 ? "bg-green-400/10 text-green-400" : "bg-red-400/10 text-red-400"}`}>
                   {myEloChange.change >= 0 ? "+" : ""}{myEloChange.change}
@@ -1020,7 +1037,7 @@ function BattleResultView({
                 <div className="mt-2 flex items-center gap-1.5 text-sm">
                   <span className="text-zinc-500">ELO</span>
                   <span className="font-bold text-zinc-400">{myEloChange.oldElo}</span>
-                  <span className="text-zinc-600">→</span>
+                  <ArrowRight className="h-3 w-3 text-zinc-600" />
                   <span className="font-bold text-zinc-100">{myEloChange.newElo}</span>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${myEloChange.change >= 0 ? "bg-green-400/10 text-green-400" : "bg-red-400/10 text-red-400"}`}>
                     {myEloChange.change >= 0 ? "+" : ""}{myEloChange.change}
@@ -1195,13 +1212,13 @@ function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe, trans
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={card.image} alt="" className={`h-10 w-7 rounded border object-cover ${isW ? "border-yellow-400/50" : "border-zinc-700"}`} />
                             {lostCard && (
-                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[8px] font-bold text-white" title={isDe ? `Geht an ${playerNameMap.get(transfer.to) ?? "???"}` : `Goes to ${playerNameMap.get(transfer.to) ?? "???"}`}>
-                                ↗
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white" title={isDe ? `Geht an ${playerNameMap.get(transfer.to) ?? "???"}` : `Goes to ${playerNameMap.get(transfer.to) ?? "???"}`}>
+                                <ArrowUpRight className="h-2.5 w-2.5" />
                               </span>
                             )}
                             {gainedCard && (
-                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-[8px] font-bold text-white" title={isDe ? `Von ${playerNameMap.get(transfer.from) ?? "???"}` : `From ${playerNameMap.get(transfer.from) ?? "???"}`}>
-                                ↙
+                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-white" title={isDe ? `Von ${playerNameMap.get(transfer.from) ?? "???"}` : `From ${playerNameMap.get(transfer.from) ?? "???"}`}>
+                                <ArrowDownLeft className="h-2.5 w-2.5" />
                               </span>
                             )}
                           </div>
@@ -1217,10 +1234,14 @@ function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe, trans
                             </div>
                           )}
                           {lostCard && (
-                            <span className="text-[9px] text-red-400">→ {playerNameMap.get(transfer.to) ?? "???"}</span>
+                            <span className="flex items-center gap-0.5 text-[9px] text-red-400">
+                              <ArrowUpRight className="h-2.5 w-2.5" /> {playerNameMap.get(transfer.to) ?? "???"}
+                            </span>
                           )}
                           {gainedCard && (
-                            <span className="text-[9px] text-green-400">← {playerNameMap.get(transfer.from) ?? "???"}</span>
+                            <span className="flex items-center gap-0.5 text-[9px] text-green-400">
+                              <ArrowDownLeft className="h-2.5 w-2.5" /> {playerNameMap.get(transfer.from) ?? "???"}
+                            </span>
                           )}
                         </div>
                       </div>

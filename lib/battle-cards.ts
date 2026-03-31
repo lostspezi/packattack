@@ -87,12 +87,10 @@ export async function drawAndPersistBattleHand(
   // Decrement stock atomically
   for (const [cardId, count] of Object.entries(stockDeltas)) {
     const cardObjectId = new mongoose.Types.ObjectId(cardId);
-    for (let i = 0; i < count; i++) {
-      await Box.updateOne(
-        { _id: boxId, "cards.card": cardObjectId, "cards.stock": { $gte: 1 } },
-        { $inc: { "cards.$.stock": -1 } },
-      );
-    }
+    await Box.updateOne(
+      { _id: boxId, "cards.card": cardObjectId, "cards.stock": { $gte: count } },
+      { $inc: { "cards.$.stock": -count } },
+    );
   }
 
   // Update local boxCards stock so subsequent draws for other players are accurate
@@ -183,17 +181,25 @@ export async function cleanupUnselectedBattlePulls(
  */
 export async function autoConvertExpiredPulls(userId: string): Promise<number> {
   const now = new Date();
-  const expired = await PackPull.find({
-    userId,
-    status: "pending",
-    expiresAt: { $ne: null, $lte: now },
-  }).lean();
 
-  if (expired.length === 0) return 0;
+  // Atomically claim expired pulls one-by-one to prevent double-processing
+  const converted: { conversionValue: number; boxId: mongoose.Types.ObjectId; cardId: mongoose.Types.ObjectId }[] = [];
 
-  let totalCoins = 0;
-  for (const pull of expired) {
-    totalCoins += pull.conversionValue;
+   
+  while (true) {
+    const pull = await PackPull.findOneAndUpdate(
+      { userId, status: "pending", expiresAt: { $ne: null, $lte: now } },
+      { $set: { status: "converted", decidedAt: now } },
+      { returnDocument: "before" },
+    ).lean();
+
+    if (!pull) break;
+
+    converted.push({
+      conversionValue: pull.conversionValue,
+      boxId: pull.boxId,
+      cardId: pull.cardId,
+    });
 
     // Return card to box stock
     await Box.updateOne(
@@ -202,11 +208,9 @@ export async function autoConvertExpiredPulls(userId: string): Promise<number> {
     );
   }
 
-  // Batch update pulls to converted
-  await PackPull.updateMany(
-    { _id: { $in: expired.map((p) => p._id) } },
-    { $set: { status: "converted", decidedAt: now } },
-  );
+  if (converted.length === 0) return 0;
+
+  const totalCoins = converted.reduce((sum, p) => sum + p.conversionValue, 0);
 
   // Add coins to user
   if (totalCoins > 0) {
@@ -218,9 +222,9 @@ export async function autoConvertExpiredPulls(userId: string): Promise<number> {
       userId,
       amount: totalCoins,
       type: "card_conversion",
-      reason: `Auto-converted ${expired.length} expired cards`,
+      reason: `Auto-converted ${converted.length} expired cards`,
     });
   }
 
-  return expired.length;
+  return converted.length;
 }
