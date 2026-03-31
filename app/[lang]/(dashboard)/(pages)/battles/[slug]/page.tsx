@@ -161,6 +161,11 @@ export default function BattleDetailPage() {
   // Queue next round data so reveal animation can finish
   const pendingRoundRef = useRef<{ hand: VirtualCard[] | null; deadline: string; roundNumber: number } | null>(null);
   const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealPayloadRef = useRef<{
+    roundNumber: number;
+    players: { userId: string; username: string; card: { name: string; image: string; coinValue: number } }[];
+    winnerId: string | null;
+  } | null>(null);
 
   // Fetch initial battle state
   const fetchBattle = useCallback(async () => {
@@ -229,35 +234,28 @@ export default function BattleDetailPage() {
           setBattle((prev) => (prev ? { ...prev, status: "countdown" } : prev));
           break;
 
-        case "round_start": {
-          const applyRoundStart = () => {
-            setRevealData(null);
-            setSelectedCardIndex(null);
-            if (event.data.hand) {
-              setMyHand(event.data.hand as VirtualCard[]);
-            }
-            setSelectDeadline(event.data.selectDeadline as string);
-            setBattle((prev) =>
-              prev
-                ? { ...prev, status: "active", currentRound: event.data.roundNumber as number }
-                : prev,
-            );
-            pendingRoundRef.current = null;
+        case "round_start":
+          // ALWAYS queue — the reveal timer (or a fallback) will apply it
+          pendingRoundRef.current = {
+            hand: event.data.hand as VirtualCard[] | null,
+            deadline: event.data.selectDeadline as string,
+            roundNumber: event.data.roundNumber as number,
           };
-
-          // If a reveal is currently showing, delay the round start so the flip animation plays
-          if (revealTimerRef.current) {
-            // A reveal is in progress — queue this round start
-            pendingRoundRef.current = {
-              hand: event.data.hand as VirtualCard[] | null,
-              deadline: event.data.selectDeadline as string,
-              roundNumber: event.data.roundNumber as number,
-            };
-          } else {
-            applyRoundStart();
+          // If no reveal is playing, apply after a short delay (lets React batch)
+          if (!revealTimerRef.current) {
+            revealTimerRef.current = setTimeout(() => {
+              revealTimerRef.current = null;
+              const pending = pendingRoundRef.current;
+              if (!pending) return;
+              setRevealData(null);
+              setSelectedCardIndex(null);
+              if (pending.hand) setMyHand(pending.hand);
+              setSelectDeadline(pending.deadline);
+              setBattle((prev) => prev ? { ...prev, status: "active", currentRound: pending.roundNumber } : prev);
+              pendingRoundRef.current = null;
+            }, 100);
           }
           break;
-        }
 
         case "round_reveal": {
           const selections = event.data.selections as {
@@ -266,10 +264,13 @@ export default function BattleDetailPage() {
             username?: string;
             card: { name: string; image: string; coinValue: number };
           }[];
+
+          // Build reveal data using current battle state for player names
           setBattle((prev) => {
             if (!prev) return prev;
             const playerNameMap = new Map(prev.players.map((p) => [String(p.user._id), p.user.username]));
-            setRevealData({
+            // Store reveal data in ref first, then set state outside this callback
+            revealPayloadRef.current = {
               roundNumber: event.data.roundNumber as number,
               players: selections.map((s) => {
                 const id = s.playerId ?? s.player;
@@ -280,33 +281,11 @@ export default function BattleDetailPage() {
                 };
               }),
               winnerId: ((event.data.winner ?? event.data.roundWinner) as string) ?? null,
-            });
-            return prev;
-          });
-          setMyHand(null);
+            };
 
-          // Keep reveal visible for 4s (flip 0.6s + result 0.8s + read time 2.6s)
-          if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
-          revealTimerRef.current = setTimeout(() => {
-            revealTimerRef.current = null;
-            // Apply queued round_start if one arrived during the reveal
-            if (pendingRoundRef.current) {
-              const pending = pendingRoundRef.current;
-              setRevealData(null);
-              setSelectedCardIndex(null);
-              if (pending.hand) setMyHand(pending.hand);
-              setSelectDeadline(pending.deadline);
-              setBattle((prev) => prev ? { ...prev, status: "active", currentRound: pending.roundNumber } : prev);
-              pendingRoundRef.current = null;
-            }
-            // If no pending round (e.g., battle ended), leave revealData visible
-          }, 4000);
-
-          // Update scores from event or refetch
-          if (event.data.scores) {
-            const scores = event.data.scores as Record<string, number>;
-            setBattle((prev) => {
-              if (!prev) return prev;
+            // Update scores inline
+            if (event.data.scores) {
+              const scores = event.data.scores as Record<string, number>;
               return {
                 ...prev,
                 players: prev.players.map((p) => ({
@@ -314,10 +293,34 @@ export default function BattleDetailPage() {
                   roundsWon: scores[String(p.user._id)] ?? p.roundsWon,
                 })),
               };
-            });
-          } else {
-            fetchBattle();
+            }
+            return prev;
+          });
+
+          // Apply reveal data outside the setBattle callback
+          if (revealPayloadRef.current) {
+            setRevealData(revealPayloadRef.current);
+            revealPayloadRef.current = null;
           }
+          setMyHand(null);
+
+          // Cancel any existing timer (e.g. short fallback from round_start above)
+          if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+
+          // Keep reveal visible for 4s, then apply pending round_start
+          revealTimerRef.current = setTimeout(() => {
+            revealTimerRef.current = null;
+            const pending = pendingRoundRef.current;
+            if (pending) {
+              setRevealData(null);
+              setSelectedCardIndex(null);
+              if (pending.hand) setMyHand(pending.hand);
+              setSelectDeadline(pending.deadline);
+              setBattle((prev) => prev ? { ...prev, status: "active", currentRound: pending.roundNumber } : prev);
+              pendingRoundRef.current = null;
+            }
+          }, 4000);
+
           break;
         }
 
