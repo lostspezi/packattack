@@ -19,7 +19,7 @@ export async function scheduleBattleJob(
   delayMs: number,
 ) {
   const queue = getQueue(BATTLE_QUEUE);
-  const jobId = `${name}:${data.battleId}${data.roundNumber ? `:r${data.roundNumber}` : ""}`;
+  const jobId = `${name}--${data.battleId}${data.roundNumber ? `--r${data.roundNumber}` : ""}`;
 
   // Remove existing job with same ID if present
   const existing = await queue.getJob(jobId);

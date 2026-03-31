@@ -229,7 +229,7 @@ export default function BattleDetailPage() {
           setRevealData(null);
           setSelectedCardIndex(null);
           if (event.data.hand) {
-            setMyHand((event.data.hand as { cards: VirtualCard[] }).cards);
+            setMyHand(event.data.hand as VirtualCard[]);
           }
           setSelectDeadline(event.data.selectDeadline as string);
           setBattle((prev) =>
@@ -241,21 +241,30 @@ export default function BattleDetailPage() {
 
         case "round_reveal": {
           const selections = event.data.selections as {
-            playerId: string;
-            username: string;
+            player: string;
+            playerId?: string;
+            username?: string;
             card: { name: string; image: string; coinValue: number };
           }[];
-          setRevealData({
-            roundNumber: event.data.roundNumber as number,
-            players: selections.map((s) => ({
-              userId: s.playerId,
-              username: s.username,
-              card: s.card,
-            })),
-            winnerId: (event.data.roundWinner as string) ?? null,
+          setBattle((prev) => {
+            if (!prev) return prev;
+            const playerNameMap = new Map(prev.players.map((p) => [String(p.user._id), p.user.username]));
+            setRevealData({
+              roundNumber: event.data.roundNumber as number,
+              players: selections.map((s) => {
+                const id = s.playerId ?? s.player;
+                return {
+                  userId: id,
+                  username: s.username ?? playerNameMap.get(id) ?? "???",
+                  card: s.card,
+                };
+              }),
+              winnerId: ((event.data.winner ?? event.data.roundWinner) as string) ?? null,
+            });
+            return prev;
           });
           setMyHand(null);
-          // Update scores
+          // Update scores from event or refetch
           if (event.data.scores) {
             const scores = event.data.scores as Record<string, number>;
             setBattle((prev) => {
@@ -264,10 +273,13 @@ export default function BattleDetailPage() {
                 ...prev,
                 players: prev.players.map((p) => ({
                   ...p,
-                  roundsWon: scores[p.user._id] ?? p.roundsWon,
+                  roundsWon: scores[String(p.user._id)] ?? p.roundsWon,
                 })),
               };
             });
+          } else {
+            // Refetch to get updated scores when not included in event
+            fetchBattle();
           }
           break;
         }
