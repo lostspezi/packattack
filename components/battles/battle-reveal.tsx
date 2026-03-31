@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Trophy, Minus } from "lucide-react";
+import { GiLaurelCrown } from "react-icons/gi";
 
 interface RevealCard {
   name: string;
@@ -26,98 +26,108 @@ interface BattleRevealProps {
 export function BattleReveal({ roundNumber, totalRounds, players, winnerId, lang }: BattleRevealProps) {
   const isDe = lang === "de";
   const [flipped, setFlipped] = useState(false);
+  const [showResult, setShowResult] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setFlipped(true), 500);
-    return () => clearTimeout(timer);
+    const flipTimer = setTimeout(() => setFlipped(true), 600);
+    const resultTimer = setTimeout(() => setShowResult(true), 1400);
+    return () => { clearTimeout(flipTimer); clearTimeout(resultTimer); };
   }, []);
 
   const isTie = winnerId === null;
 
   return (
-    <div className="flex flex-col items-center gap-6">
-      {/* Round Header */}
-      <div className="text-center">
-        <div className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          {isDe ? "Runde" : "Round"} {roundNumber}/{totalRounds}
-        </div>
-        {isTie ? (
-          <div className="mt-1 flex items-center gap-1 text-sm font-bold text-zinc-400">
-            <Minus className="h-4 w-4" />
-            {isDe ? "Gleichstand!" : "Tie!"}
-          </div>
-        ) : (
-          <div className="mt-1 flex items-center gap-1 text-sm font-bold text-yellow-400">
-            <Trophy className="h-4 w-4" />
-            {players.find((p) => p.userId === winnerId)?.username} {isDe ? "gewinnt!" : "wins!"}
-          </div>
-        )}
+    <div className="flex flex-col items-center gap-4">
+      <style>{`
+        @keyframes revealSlam {
+          0% { transform: rotateY(180deg) scale(1); }
+          60% { transform: rotateY(180deg) scale(1.08); }
+          100% { transform: rotateY(180deg) scale(1); }
+        }
+      `}</style>
+
+      {/* Round label */}
+      <div className="text-[11px] uppercase tracking-widest text-zinc-500">
+        {isDe ? "Runde" : "Round"} {roundNumber}/{totalRounds}
       </div>
 
-      {/* Cards Reveal */}
-      <div className="flex flex-wrap justify-center gap-4">
+      {/* Cards on table */}
+      <div className="flex items-center justify-center gap-4 sm:gap-8">
         {players.map((player) => {
           const isWinner = player.userId === winnerId;
           return (
             <div key={player.userId} className="flex flex-col items-center gap-2">
-              <div className={`text-xs font-bold ${isWinner ? "text-yellow-400" : "text-zinc-400"}`}>
+              {/* Player name */}
+              <span className={`text-xs font-bold ${isWinner && showResult ? "text-yellow-400" : "text-zinc-400"}`}>
                 {player.username}
-              </div>
+                {isWinner && showResult && <GiLaurelCrown className="ml-1 inline h-3 w-3 text-yellow-400" />}
+              </span>
 
-              {/* Card with flip animation */}
+              {/* Flip card */}
               <div
-                className="relative h-[210px] w-[140px] sm:h-[240px] sm:w-[160px]"
-                style={{ perspective: "600px" }}
+                className="relative"
+                style={{
+                  perspective: "800px",
+                  width: "clamp(100px, 22vw, 160px)",
+                  aspectRatio: "2/3",
+                }}
               >
                 <div
-                  className="relative h-full w-full transition-transform duration-700"
+                  className="relative h-full w-full"
                   style={{
                     transformStyle: "preserve-3d",
+                    transition: "transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)",
                     transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+                    animation: flipped ? "revealSlam 0.4s ease-out 0.7s" : undefined,
                   }}
                 >
-                  {/* Card Back */}
+                  {/* Back */}
                   <div
-                    className="absolute inset-0 rounded-xl border-2 border-zinc-700 overflow-hidden"
+                    className="absolute inset-0 overflow-hidden rounded-lg border-2 border-zinc-700"
                     style={{ backfaceVisibility: "hidden" }}
                   >
-                    <img
-                      src="/images/card-back.jpg"
-                      alt="Card Back"
-                      className="h-full w-full object-cover"
-                    />
+                    <img src="/images/card-back.jpg" alt="" className="h-full w-full object-cover" draggable={false} />
                   </div>
 
-                  {/* Card Front */}
+                  {/* Front */}
                   <div
-                    className={`absolute inset-0 rounded-xl border-2 overflow-hidden ${
-                      isWinner ? "border-yellow-400 shadow-lg shadow-yellow-400/20" : "border-zinc-600"
+                    className={`absolute inset-0 overflow-hidden rounded-lg border-2 ${
+                      isWinner && showResult
+                        ? "border-yellow-400 shadow-[0_0_24px_rgba(250,204,21,0.35)]"
+                        : "border-zinc-600"
                     }`}
                     style={{
                       backfaceVisibility: "hidden",
                       transform: "rotateY(180deg)",
                     }}
                   >
-                    <img
-                      src={player.card.image}
-                      alt={player.card.name}
-                      className="h-full w-full object-cover"
-                    />
+                    <img src={player.card.image} alt={player.card.name} className="h-full w-full object-cover" draggable={false} />
                   </div>
                 </div>
               </div>
 
-              {/* Card Value (shown after flip) */}
+              {/* Coin value */}
               <div
-                className={`text-sm font-bold transition-opacity duration-500 ${
-                  flipped ? "opacity-100" : "opacity-0"
-                } ${isWinner ? "text-yellow-400" : "text-zinc-400"}`}
+                className={`text-sm font-bold transition-all duration-500 ${
+                  showResult ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"
+                } ${isWinner ? "text-yellow-400" : "text-zinc-500"}`}
               >
                 {player.card.coinValue} Coins
               </div>
             </div>
           );
         })}
+      </div>
+
+      {/* Result announcement */}
+      <div className={`transition-all duration-500 ${showResult ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}>
+        {isTie ? (
+          <span className="text-sm font-bold text-zinc-500">{isDe ? "Gleichstand" : "Tie"}</span>
+        ) : (
+          <span className="text-sm font-bold text-yellow-400">
+            {players.find((p) => p.userId === winnerId)?.username} {isDe ? "gewinnt die Runde!" : "wins the round!"}
+          </span>
+        )}
       </div>
     </div>
   );

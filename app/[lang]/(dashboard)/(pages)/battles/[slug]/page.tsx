@@ -397,62 +397,109 @@ export default function BattleDetailPage() {
         />
       )}
 
-      {/* Active Game */}
+      {/* Active Game — Table Layout */}
       {isActive && (
-        <div className="flex flex-col gap-6 lg:flex-row">
-          {/* Main Area */}
-          <div className="min-w-0 flex-1">
-            {/* Round Reveal */}
-            {revealData && (
-              <div className="mb-6 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-                <BattleReveal
-                  roundNumber={revealData.roundNumber}
-                  totalRounds={battle.settings.rounds}
-                  players={revealData.players}
-                  winnerId={revealData.winnerId}
-                  lang={lang}
-                />
-              </div>
-            )}
+        <div className="flex flex-col gap-3">
+          {/* ===== THE TABLE ===== */}
+          <div
+            className="relative overflow-hidden rounded-2xl border border-zinc-800/80"
+            style={{
+              background: "radial-gradient(ellipse at 50% 40%, rgba(20,60,30,0.6) 0%, rgba(15,15,20,0.95) 70%)",
+            }}
+          >
+            {/* Subtle felt texture via noise */}
+            <div className="pointer-events-none absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")", backgroundSize: "128px" }} />
 
-            {/* Hand Selection */}
-            {myHand && (
-              <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-                <BattleHand
-                  cards={myHand}
-                  selectDeadline={selectDeadline}
-                  onSelect={handleSelect}
-                  lang={lang}
-                  selectedIndex={selectedCardIndex}
-                />
-              </div>
-            )}
+            {/* Table center logo watermark */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <img
+                src="/images/logo.svg"
+                alt=""
+                className="w-32 opacity-[0.06] sm:w-44 lg:w-56"
+                draggable={false}
+              />
+            </div>
 
-            {/* Waiting for other players after selecting */}
-            {!myHand && !revealData && (
-              <div className="flex flex-col items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 py-16">
-                <Loader2 className="mb-3 h-8 w-8 animate-spin text-yellow-400" />
-                <p className="text-sm text-zinc-500">
-                  {isDe ? "Warte auf andere Spieler..." : "Waiting for other players..."}
-                </p>
+            <div className="relative flex flex-col items-center px-3 py-4 sm:px-6 sm:py-6">
+              {/* Opponent zone — top of table */}
+              <div className="mb-4 flex flex-col items-center gap-1">
+                {battle.players
+                  .filter((p) => p.user._id !== currentUserId)
+                  .map((opponent) => {
+                    const hasOpponentSelected = selectedCardIndex !== null;
+                    return (
+                      <div key={opponent.user._id} className="flex flex-col items-center gap-1.5">
+                        <span className="text-[11px] font-bold text-zinc-400">{opponent.user.username}</span>
+                        {/* Opponent's face-down card or waiting */}
+                        <div className="flex items-center gap-2">
+                          {hasOpponentSelected ? (
+                            <div className="overflow-hidden rounded-lg border border-zinc-700/60 shadow-lg shadow-black/30" style={{ width: "clamp(50px, 12vw, 70px)", aspectRatio: "2/3" }}>
+                              <img src="/images/card-back.jpg" alt="" className="h-full w-full object-cover" draggable={false} />
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 rounded-full bg-zinc-800/60 px-3 py-1">
+                              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-yellow-400/60" />
+                              <span className="text-[10px] text-zinc-500">{isDe ? "Wählt..." : "Choosing..."}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
               </div>
-            )}
+
+              {/* ===== TABLE CENTER: Reveal / Waiting ===== */}
+              <div className="my-2 flex min-h-[180px] items-center justify-center sm:min-h-[220px]">
+                {revealData ? (
+                  <BattleReveal
+                    roundNumber={revealData.roundNumber}
+                    totalRounds={battle.settings.rounds}
+                    players={revealData.players}
+                    winnerId={revealData.winnerId}
+                    lang={lang}
+                  />
+                ) : !myHand ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="h-6 w-6 animate-spin text-yellow-400/60" />
+                    <p className="text-[11px] text-zinc-600">{isDe ? "Nächste Runde..." : "Next round..."}</p>
+                  </div>
+                ) : (
+                  /* Empty table center — cards will be placed here after selection */
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="text-[10px] uppercase tracking-widest text-zinc-600">
+                      {isDe ? "Runde" : "Round"} {battle.currentRound}/{battle.settings.rounds}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* ===== MY HAND — bottom of table ===== */}
+              {myHand && (
+                <div className="mt-2 w-full">
+                  <BattleHand
+                    cards={myHand}
+                    selectDeadline={selectDeadline}
+                    onSelect={handleSelect}
+                    lang={lang}
+                    selectedIndex={selectedCardIndex}
+                  />
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Sidebar: Scoreboard */}
-          <div className="w-full shrink-0 lg:w-[280px]">
-            <BattleScoreboard
-              players={battle.players.map((p) => ({
-                userId: p.user._id,
-                username: p.user.username,
-                roundsWon: p.roundsWon,
-              }))}
-              currentRound={battle.currentRound}
-              totalRounds={battle.settings.rounds}
-              currentUserId={currentUserId}
-              lang={lang}
-            />
-          </div>
+          {/* Scoreboard — below table */}
+          <BattleScoreboard
+            players={battle.players.map((p) => ({
+              userId: p.user._id,
+              username: p.user.username,
+              roundsWon: p.roundsWon,
+            }))}
+            currentRound={battle.currentRound}
+            totalRounds={battle.settings.rounds}
+            currentUserId={currentUserId}
+            lang={lang}
+          />
         </div>
       )}
 
