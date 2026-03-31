@@ -1,10 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
+import { Types } from "mongoose";
 import { auth } from "@/lib/auth";
+import {
+  appendChatArchiveEvent,
+  ensureGlobalChatRoom,
+  publishRoomEvent,
+  serializeChatMessageWithCurrentRelations,
+} from "@/lib/chat";
+import { getChatRoleBadgeLabel } from "@/lib/chat-constants";
 import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
 import Box from "@/models/box";
 import User from "@/models/user";
 import CoinTransaction from "@/models/coin-transaction";
+import ChatMessage from "@/models/chat-message";
+import ChatRoom from "@/models/chat-room";
+import Card from "@/models/card";
 import Season from "@/models/season";
 import { scheduleBattleJob } from "@/lib/battle-jobs";
 
@@ -13,6 +25,117 @@ const VALID_PLAYER_COUNTS = [2, 3, 4] as const;
 const VALID_ROUNDS = [3, 5, 7] as const;
 const VALID_MODES = ["lowest_card", "highest_card", "all_cards"] as const;
 const LOBBY_DURATION_MS = 5 * 60 * 1000; // 5 minutes
+
+// ---------- Announce battle in global chat ----------
+
+async function publishBattleCreatedChatMessage(input: {
+  userId: string;
+  battleId: string;
+  battleSlug: string;
+  boxName: string;
+  boxImage: string | null;
+  boxGame: string;
+  entryFee: number;
+  rounds: number;
+  playerCount: number;
+  mode: string;
+  previewCards: string[];
+}) {
+  try {
+    if (!Types.ObjectId.isValid(input.userId)) return;
+
+    const [room, userDoc] = await Promise.all([
+      ensureGlobalChatRoom(),
+      User.findById(input.userId).select("username role image identityVerified").lean(),
+    ]);
+
+    if (!userDoc) return;
+
+    const displayName = userDoc.username?.trim() || "Ein Spieler";
+    const authorSnapshot = {
+      name: userDoc.username?.trim() || "Nutzer",
+      username: userDoc.username ?? null,
+      role: userDoc.role ?? "user",
+      roleBadge: getChatRoleBadgeLabel(userDoc.role ?? "user"),
+      profileBadges: [],
+      avatarUrl: userDoc.image ?? null,
+      identityVerified: Boolean(userDoc.identityVerified),
+    };
+
+    const authorUserId = new Types.ObjectId(input.userId);
+
+    const bodyOriginal = `${displayName} hat ein Battle erstellt! ⚔️`;
+
+    const updatedRoom = await ChatRoom.findOneAndUpdate(
+      { _id: room._id },
+      {
+        $inc: { submissionSeq: 1, visibleSeq: 1 },
+        $set: { lastVisibleMessageAt: new Date() },
+      },
+      { returnDocument: "after" }
+    );
+
+    if (!updatedRoom) return;
+
+    const message = await ChatMessage.create({
+      roomId: room._id,
+      roomSlug: room.slug,
+      submissionSeq: updatedRoom.submissionSeq,
+      visibleSeq: updatedRoom.visibleSeq,
+      authorUserId,
+      source: "system",
+      authorSnapshot,
+      bodyOriginal,
+      bodyNormalized: bodyOriginal.toLowerCase(),
+      bodyDisplay: bodyOriginal,
+      status: "visible",
+      clientNonce: randomUUID(),
+      mentionTargets: [],
+      hasMention: false,
+      hasLink: false,
+      hasPII: false,
+      battleInvite: {
+        battleId: input.battleId,
+        battleSlug: input.battleSlug,
+        boxName: input.boxName,
+        boxImage: input.boxImage,
+        boxGame: input.boxGame,
+        entryFee: input.entryFee,
+        rounds: input.rounds,
+        playerCount: input.playerCount,
+        mode: input.mode,
+        previewCards: input.previewCards,
+      },
+      moderation: {
+        provider: "local",
+        action: "allow",
+        reasonCodes: [],
+      },
+    });
+
+    await appendChatArchiveEvent({
+      roomId: room._id,
+      roomSlug: room.slug,
+      eventType: "message_visible",
+      messageId: message._id,
+      submissionSeq: message.submissionSeq,
+      actorUserId: authorUserId,
+      payload: {
+        visibleSeq: message.visibleSeq,
+        battleInvite: message.battleInvite,
+        source: "battle_created",
+      },
+    });
+
+    const serializedMessage = await serializeChatMessageWithCurrentRelations(message);
+    await publishRoomEvent(room.slug, {
+      type: "message_created",
+      payload: { message: serializedMessage },
+    });
+  } catch (err) {
+    console.error("[battles] chat announcement error:", err);
+  }
+}
 
 // ---------- GET: List battles (lobby) ----------
 
@@ -85,7 +208,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Check box exists and is published
-    const box = await Box.findById(boxId).lean();
+    void Card; // ensure Card model is registered for populate
+    const box = await Box.findById(boxId)
+      .populate("cards.card", "image internalPrice marketPrice variants")
+      .lean();
     if (!box || box.status !== "published") {
       return NextResponse.json({ error: "box_not_available" }, { status: 400 });
     }
@@ -176,6 +302,39 @@ export async function POST(req: NextRequest) {
 
     // Schedule auto-cancel when lobby expires
     await scheduleBattleJob("auto-cancel", { battleId: battle._id.toString() }, LOBBY_DURATION_MS + 5000);
+
+    // Announce public battles in global chat (fire-and-forget)
+    if (!isPrivate) {
+      // Extract top 3 card images for the preview fan from already-populated box
+      const cardEntries = (box.cards ?? []) as Array<{
+        card?: { image?: string; internalPrice?: number; marketPrice?: number; variants?: Array<{ price: number }> } | Types.ObjectId;
+      }>;
+      const validCards = cardEntries
+        .map((c) => c.card)
+        .filter((c): c is { image: string; internalPrice?: number; marketPrice?: number; variants?: Array<{ price: number }> } =>
+          !!c && typeof c === "object" && "image" in c && !!c.image
+        );
+      validCards.sort((a, b) => {
+        const priceA = a.internalPrice ?? a.marketPrice ?? Math.max(0, ...(a.variants?.map((v) => v.price) || [0]));
+        const priceB = b.internalPrice ?? b.marketPrice ?? Math.max(0, ...(b.variants?.map((v) => v.price) || [0]));
+        return priceB - priceA;
+      });
+      const previewCards = validCards.slice(0, 3).map((c) => c.image);
+
+      publishBattleCreatedChatMessage({
+        userId: session.user.id!,
+        battleId: battle._id.toString(),
+        battleSlug: battle.slug,
+        boxName: box.name?.de || box.name?.en || "Box",
+        boxImage: box.image ?? null,
+        boxGame: box.game ?? "",
+        entryFee,
+        rounds,
+        playerCount,
+        mode,
+        previewCards,
+      }).catch((err) => console.error("[battles] chat announcement error:", err));
+    }
 
     return NextResponse.json({
       battle: {

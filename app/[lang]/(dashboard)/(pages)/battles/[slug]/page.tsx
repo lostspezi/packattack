@@ -219,6 +219,7 @@ export default function BattleDetailPage() {
   const [battle, setBattle] = useState<BattleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [readying, setReadying] = useState(false);
+  const [joining, setJoining] = useState(false);
 
   // Current round state from SSE
   const [myHand, setMyHand] = useState<VirtualCard[] | null>(null);
@@ -503,6 +504,24 @@ export default function BattleDetailPage() {
     }
   }
 
+  async function handleJoin() {
+    if (!battle) return;
+    setJoining(true);
+    try {
+      const res = await fetch(`/api/battles/${battle._id}/join`, { method: "POST" });
+      if (res.ok) {
+        await fetchBattle();
+      } else {
+        const data = await res.json();
+        toast({ title: data.error || "Error", type: "error" });
+      }
+    } catch {
+      toast({ title: isDe ? "Fehler" : "Error", type: "error" });
+    } finally {
+      setJoining(false);
+    }
+  }
+
   async function handleSelect(cardIndex: number) {
     if (!battle || selectedCardIndex !== null) return;
     setSelectedCardIndex(cardIndex);
@@ -577,7 +596,9 @@ export default function BattleDetailPage() {
           onReady={handleReady}
           onLeave={handleLeave}
           onStart={handleStart}
+          onJoin={handleJoin}
           readying={readying}
+          joining={joining}
         />
       )}
 

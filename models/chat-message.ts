@@ -70,6 +70,19 @@ interface IChatHighlightCard {
   coinValue: number;
 }
 
+interface IChatBattleInvite {
+  battleId: string;
+  battleSlug: string;
+  boxName: string;
+  boxImage: string | null;
+  boxGame: string;
+  entryFee: number;
+  rounds: number;
+  playerCount: number;
+  mode: string;
+  previewCards: string[];
+}
+
 interface IChatReaction {
   emoji: ChatReactionEmoji;
   userIds: Types.ObjectId[];
@@ -89,6 +102,7 @@ export interface IChatMessage extends Document {
   bodyDisplay: string;
   gif: IChatGif | null;
   highlightCard: IChatHighlightCard | null;
+  battleInvite: IChatBattleInvite | null;
   quotedMessage: IChatQuotedMessage | null;
   status: ChatMessageStatus;
   clientNonce: string;
@@ -203,6 +217,22 @@ const ChatHighlightCardSchema = new Schema<IChatHighlightCard>(
   { _id: false }
 );
 
+const ChatBattleInviteSchema = new Schema<IChatBattleInvite>(
+  {
+    battleId: { type: String, required: true, maxlength: 32 },
+    battleSlug: { type: String, required: true, maxlength: 32 },
+    boxName: { type: String, required: true, maxlength: 200 },
+    boxImage: { type: String, default: null, maxlength: 500 },
+    boxGame: { type: String, required: true, maxlength: 64 },
+    entryFee: { type: Number, required: true, min: 0 },
+    rounds: { type: Number, required: true },
+    playerCount: { type: Number, required: true },
+    mode: { type: String, required: true, maxlength: 32 },
+    previewCards: { type: [String], default: [] },
+  },
+  { _id: false }
+);
+
 const ChatReactionSchema = new Schema<IChatReaction>(
   {
     emoji: {
@@ -256,6 +286,7 @@ const ChatMessageSchema = new Schema<IChatMessage>(
     bodyDisplay: { type: String, default: "", trim: true, maxlength: 500 },
     gif: { type: ChatGifSchema, default: null },
     highlightCard: { type: ChatHighlightCardSchema, default: null },
+    battleInvite: { type: ChatBattleInviteSchema, default: null },
     quotedMessage: { type: ChatQuotedMessageSchema, default: null },
     status: {
       type: String,

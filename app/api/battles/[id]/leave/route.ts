@@ -5,7 +5,7 @@ import Battle from "@/models/battle";
 import User from "@/models/user";
 import CoinTransaction from "@/models/coin-transaction";
 import { publishBattleEvent } from "@/lib/battle-events";
-import { removeBattleJob } from "@/lib/battle-jobs";
+import { removeBattleJob, scheduleBattleJob } from "@/lib/battle-jobs";
 
 export async function POST(
   _req: NextRequest,
@@ -68,6 +68,8 @@ export async function POST(
     }
 
     // Regular player leaves — refund and remove
+    const wasReadyCheckOrCountdown = ["ready_check", "countdown"].includes(battle.status);
+
     battle.players.splice(playerIndex, 1);
 
     await User.updateOne(
@@ -82,11 +84,36 @@ export async function POST(
       relatedBattleId: battle._id,
     });
 
+    // If a player leaves during ready_check or countdown, revert to waiting
+    if (wasReadyCheckOrCountdown) {
+      battle.status = "waiting";
+      battle.readyCheckExpiresAt = null;
+      battle.startCountdownAt = null;
+      for (const p of battle.players) {
+        p.isReady = false;
+        p.readyAt = null;
+      }
+
+      // Cancel ready-check / countdown timers, restart lobby timer
+      await removeBattleJob("auto-cancel", id);
+      await removeBattleJob("auto-start", id);
+      const remainingLobby = Math.max(0, battle.lobbyExpiresAt.getTime() - Date.now());
+      if (remainingLobby > 0) {
+        await scheduleBattleJob("auto-cancel", { battleId: id }, remainingLobby + 5000);
+      } else {
+        // Lobby already expired — give a fresh window
+        const LOBBY_EXTENSION_MS = 3 * 60 * 1000;
+        battle.lobbyExpiresAt = new Date(Date.now() + LOBBY_EXTENSION_MS);
+        await scheduleBattleJob("auto-cancel", { battleId: id }, LOBBY_EXTENSION_MS + 5000);
+      }
+    }
+
     await battle.save();
 
     await publishBattleEvent(id, "player_left", {
       player: session.user.id,
       playerCount: battle.players.length,
+      status: battle.status,
     });
 
     return NextResponse.json({ left: true, cancelled: false });

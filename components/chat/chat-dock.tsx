@@ -1142,12 +1142,14 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                   body={message.body}
                   gif={message.gif}
                   highlightCard={message.highlightCard}
+                  battleInvite={message.battleInvite}
                   quotedMessage={message.quotedMessage}
                   quoteLabels={{
                     replyingTo: copy.quote.replyingTo,
                     gifFallback: copy.quote.gifFallback,
                   }}
                   highlightedMentionUsername={mentionedCurrentUser ? selfUsername : null}
+                  lang={lang}
                   className="mt-2 space-y-2"
                   gifClassName="max-w-[220px]"
                   gifImageClassName="max-h-[220px]"

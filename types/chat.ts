@@ -82,6 +82,19 @@ export interface ChatHighlightCardSummary {
   coinValue: number;
 }
 
+export interface ChatBattleInviteSummary {
+  battleId: string;
+  battleSlug: string;
+  boxName: string;
+  boxImage: string | null;
+  boxGame: string;
+  entryFee: number;
+  rounds: number;
+  playerCount: number;
+  mode: string;
+  previewCards: string[];
+}
+
 export interface ChatQuotedMessageSummary {
   id: string;
   body: string;
@@ -98,6 +111,7 @@ export interface ChatMessageSummary {
   body: string;
   gif: ChatGifSummary | null;
   highlightCard: ChatHighlightCardSummary | null;
+  battleInvite: ChatBattleInviteSummary | null;
   quotedMessage: ChatQuotedMessageSummary | null;
   status: ChatMessageStatus;
   author: ChatAuthorSummary | null;

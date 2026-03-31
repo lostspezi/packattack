@@ -37,6 +37,10 @@ export async function POST(
         return NextResponse.json({ error: "only_creator_can_start" }, { status: 403 });
       }
 
+      if (battle.players.length < battle.settings.playerCount) {
+        return NextResponse.json({ error: "not_enough_players" }, { status: 400 });
+      }
+
       // Load box with cards for hand generation
       const box = await Box.findById(battle.box)
         .populate("cards.card", "name image rarity internalPrice marketPrice")

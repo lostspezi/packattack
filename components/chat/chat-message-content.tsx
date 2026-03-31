@@ -3,7 +3,9 @@
 import { ChatMessageBody } from "@/components/chat/chat-message-body";
 import { ChatMessageGif } from "@/components/chat/chat-message-gif";
 import { ChatJackpotCard } from "@/components/chat/chat-jackpot-card";
+import { ChatBattleInvite } from "@/components/chat/chat-battle-invite";
 import type {
+  ChatBattleInviteSummary,
   ChatGifSummary,
   ChatHighlightCardSummary,
   ChatQuotedMessageSummary,
@@ -13,12 +15,14 @@ interface ChatMessageContentProps {
   body: string;
   gif: ChatGifSummary | null;
   highlightCard?: ChatHighlightCardSummary | null;
+  battleInvite?: ChatBattleInviteSummary | null;
   quotedMessage?: ChatQuotedMessageSummary | null;
   quoteLabels?: {
     replyingTo: string;
     gifFallback: string;
   };
   highlightedMentionUsername?: string | null;
+  lang?: string;
   className?: string;
   bodyClassName?: string;
   gifClassName?: string;
@@ -29,15 +33,17 @@ export function ChatMessageContent({
   body,
   gif,
   highlightCard,
+  battleInvite,
   quotedMessage,
   quoteLabels,
   highlightedMentionUsername,
+  lang,
   className,
   bodyClassName,
   gifClassName,
   gifImageClassName,
 }: ChatMessageContentProps) {
-  if (!gif && !body && !highlightCard && !quotedMessage) {
+  if (!gif && !body && !highlightCard && !battleInvite && !quotedMessage) {
     return null;
   }
 
@@ -64,6 +70,7 @@ export function ChatMessageContent({
         </div>
       ) : null}
       {highlightCard ? <ChatJackpotCard card={highlightCard} className="mb-2" /> : null}
+      {battleInvite ? <ChatBattleInvite invite={battleInvite} lang={lang ?? "de"} className="mb-2" /> : null}
       {gif ? (
         <ChatMessageGif
           gif={gif}

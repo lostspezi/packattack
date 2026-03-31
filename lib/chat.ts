@@ -399,6 +399,20 @@ export function serializeChatMessage(
           coinValue: message.highlightCard.coinValue,
         }
       : null,
+    battleInvite: message.battleInvite
+      ? {
+          battleId: message.battleInvite.battleId,
+          battleSlug: message.battleInvite.battleSlug,
+          boxName: message.battleInvite.boxName,
+          boxImage: message.battleInvite.boxImage ?? null,
+          boxGame: message.battleInvite.boxGame,
+          entryFee: message.battleInvite.entryFee,
+          rounds: message.battleInvite.rounds,
+          playerCount: message.battleInvite.playerCount,
+          mode: message.battleInvite.mode,
+          previewCards: message.battleInvite.previewCards ?? [],
+        }
+      : null,
     quotedMessage: message.quotedMessage
       ? {
           id: toStringId(message.quotedMessage.messageId),

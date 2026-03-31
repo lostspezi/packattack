@@ -682,12 +682,14 @@ export function ChatClient({ lang, dict, initialData, currentUserId }: ChatClien
                     body={message.body}
                     gif={message.gif}
                     highlightCard={message.highlightCard}
+                    battleInvite={message.battleInvite}
                     quotedMessage={message.quotedMessage}
                     quoteLabels={{
                       replyingTo: copy.quote.replyingTo,
                       gifFallback: copy.quote.gifFallback,
                     }}
                     highlightedMentionUsername={mentionedCurrentUser ? initialData.selfUsername : null}
+                    lang={lang}
                     className="mt-2 space-y-2"
                     gifClassName="max-w-[320px]"
                     gifImageClassName="max-h-[320px]"

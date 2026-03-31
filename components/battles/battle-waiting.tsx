@@ -31,7 +31,9 @@ interface BattleWaitingProps {
   onReady: () => void;
   onLeave: () => void;
   onStart: () => void;
+  onJoin?: () => void;
   readying?: boolean;
+  joining?: boolean;
 }
 
 const MODE_LABELS: Record<string, { de: string; en: string }> = {
@@ -47,7 +49,9 @@ export function BattleWaiting({
   onReady,
   onLeave,
   onStart,
+  onJoin,
   readying,
+  joining,
 }: BattleWaitingProps) {
   const isDe = lang === "de";
   const isCreator = battle.creator._id === currentUserId;
@@ -189,6 +193,19 @@ export function BattleWaiting({
 
       {/* Action Buttons */}
       <div className="flex flex-wrap gap-3">
+        {/* Join button for non-participants */}
+        {!myPlayer && battle.status === "waiting" && battle.players.length < battle.settings.playerCount && onJoin && (
+          <button
+            onClick={onJoin}
+            disabled={joining}
+            className="rounded-xl bg-yellow-400 px-8 py-3 font-bold text-black transition-all hover:bg-yellow-300 disabled:opacity-50"
+          >
+            {joining
+              ? isDe ? "Trete bei..." : "Joining..."
+              : isDe ? "Beitreten" : "Join Battle"}
+          </button>
+        )}
+
         {battle.status === "ready_check" && myPlayer && !myPlayer.isReady && (
           <button
             onClick={onReady}
@@ -208,7 +225,7 @@ export function BattleWaiting({
           </button>
         )}
 
-        {(battle.status === "waiting" || battle.status === "ready_check" || battle.status === "countdown") && (
+        {myPlayer && (battle.status === "waiting" || battle.status === "ready_check" || battle.status === "countdown") && (
           <button
             onClick={onLeave}
             className="rounded-xl border border-red-500/30 bg-red-500/10 px-6 py-3 text-sm font-bold text-red-400 transition-all hover:border-red-500/50 hover:bg-red-500/20"

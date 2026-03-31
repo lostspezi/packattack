@@ -32,7 +32,10 @@ export function calculateEloChanges(
   players: EloPlayer[],
   winnerId: string,
 ): EloChange[] {
+  if (players.length < 2) return [];
+
   const changes: EloChange[] = [];
+  const opponents = players.length - 1;
 
   for (const player of players) {
     const k = player.totalBattles < NEW_PLAYER_THRESHOLD ? K_NEW : K_EXPERIENCED;
@@ -55,7 +58,7 @@ export function calculateEloChanges(
     }
 
     // Normalize by number of opponents to keep changes reasonable
-    totalChange = totalChange / (players.length - 1);
+    totalChange = totalChange / opponents;
 
     const newElo = Math.max(0, Math.round(player.elo + totalChange));
 

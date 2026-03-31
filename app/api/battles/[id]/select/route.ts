@@ -257,7 +257,7 @@ async function finishBattle(
 
   const eloPlayers: EloPlayer[] = users.map((u) => ({
     id: u._id.toString(),
-    elo: u.elo,
+    elo: u.elo ?? 1000,
     totalBattles: u.battleStats?.totalBattles ?? 0,
   }));
 

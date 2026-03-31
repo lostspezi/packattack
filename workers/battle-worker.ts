@@ -60,8 +60,9 @@ async function processAutoStart(battleId: string) {
     const battle = await Battle.findById(battleId);
     if (!battle) return;
 
-    // Only auto-start if still in countdown
+    // Only auto-start if still in countdown with enough players
     if (battle.status !== "countdown") return;
+    if (battle.players.length < battle.settings.playerCount) return;
 
     // Load box with cards
     const box = await Box.findById(battle.box)
@@ -311,7 +312,7 @@ async function finishBattle(
 
   const eloPlayers: EloPlayer[] = users.map((u) => ({
     id: u._id.toString(),
-    elo: u.elo,
+    elo: u.elo ?? 1000,
     totalBattles: u.battleStats?.totalBattles ?? 0,
   }));
 

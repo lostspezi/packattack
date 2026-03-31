@@ -18,12 +18,15 @@ export async function GET(
   await connectDB();
   const { id } = await params;
 
-  const battle = await Battle.findById(id).select("_id players").lean();
+  const isObjectId = /^[a-f\d]{24}$/i.test(id);
+  const query = isObjectId ? { $or: [{ _id: id }, { slug: id }] } : { slug: id };
+  const battle = await Battle.findOne(query).select("_id players").lean();
   if (!battle) {
     return new Response("Battle not found", { status: 404 });
   }
 
   const userId = session.user.id;
+  const battleId = battle._id.toString();
 
   const stream = new ReadableStream({
     start(controller) {
@@ -38,10 +41,10 @@ export async function GET(
       }
 
       // Send initial connection event
-      send(JSON.stringify({ type: "connected", battleId: id }));
+      send(JSON.stringify({ type: "connected", battleId }));
 
       // Subscribe to battle events
-      const { unsubscribe } = subscribeToBattle(id, (event: BattleEvent) => {
+      const { unsubscribe } = subscribeToBattle(battleId, (event: BattleEvent) => {
         // Filter round_start events — only send the player's own hand
         if (event.type === "round_start") {
           const eventPlayerId = event.data.playerId as string;
