@@ -30,14 +30,31 @@ function NavLink({
   lang,
   dict,
   isActive,
+  isAdmin,
+  soonLabel,
   onClick,
 }: {
   item: NavItem;
   lang: string;
   dict: Record<string, string>;
   isActive: boolean;
+  isAdmin?: boolean;
+  soonLabel?: string;
   onClick?: () => void;
 }) {
+  // "Soon" items: admins get a clickable link with badge, others get a disabled span
+  if (item.soon && !isAdmin) {
+    return (
+      <span className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-text-muted/50 cursor-default select-none">
+        <NavIcon name={item.icon} className="w-4 h-4 shrink-0" />
+        <span className="flex-1">{dict[item.key] ?? item.label}</span>
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
+          {soonLabel ?? "Soon"}
+        </span>
+      </span>
+    );
+  }
+
   return (
     <Link
       href={`/${lang}${item.href}`}
@@ -50,7 +67,12 @@ function NavLink({
       ].join(" ")}
     >
       <NavIcon name={item.icon} className="w-4 h-4 shrink-0" />
-      <span>{dict[item.key] ?? item.label}</span>
+      <span className="flex-1">{dict[item.key] ?? item.label}</span>
+      {item.soon && (
+        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
+          {soonLabel ?? "Soon"}
+        </span>
+      )}
     </Link>
   );
 }
@@ -190,6 +212,8 @@ function SidebarContent({
                   lang={lang}
                   dict={dict}
                   isActive={isActiveItem(item)}
+                  isAdmin={isAdmin}
+                  soonLabel={comingSoonLabel}
                   onClick={onNavClick}
                 />
               </li>
@@ -227,13 +251,15 @@ function SidebarContent({
           <ul className="space-y-1">
             {soonNavItems.map((item) => (
               <li key={item.key}>
-                <span className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-text-muted/50 cursor-default select-none">
-                  <NavIcon name={item.icon} className="w-4 h-4 shrink-0" />
-                  <span className="flex-1">{dict[item.key] ?? item.label}</span>
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
-                    {comingSoonLabel}
-                  </span>
-                </span>
+                <NavLink
+                  item={item}
+                  lang={lang}
+                  dict={dict}
+                  isActive={isActiveItem(item)}
+                  isAdmin={isAdmin}
+                  soonLabel={comingSoonLabel}
+                  onClick={onNavClick}
+                />
               </li>
             ))}
           </ul>

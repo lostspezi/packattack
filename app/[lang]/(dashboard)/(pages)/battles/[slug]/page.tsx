@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Loader2, ArrowLeft, ArrowRight, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, ArrowUpRight, ArrowDownLeft, Swords } from "lucide-react";
 import { GiTrophyCup, GiCrossedSwords, GiScales, GiLaurelCrown, GiPodiumWinner, GiPodiumSecond, GiPodiumThird, GiSandsOfTime, GiScrollUnfurled, GiRoundStar } from "react-icons/gi";
 
 import { BattleWaiting } from "@/components/battles/battle-waiting";
@@ -213,6 +213,8 @@ export default function BattleDetailPage() {
 
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? "";
+  const userRole = (session?.user as { role?: string } | undefined)?.role ?? "user";
+  const isAdmin = userRole === "admin" || userRole === "super_admin";
 
   const [battle, setBattle] = useState<BattleData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -519,6 +521,23 @@ export default function BattleDetailPage() {
       setSelectedCardIndex(null);
       toast({ title: isDe ? "Fehler" : "Error", type: "error" });
     }
+  }
+
+  // Non-admin guard
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
+        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900">
+          <Swords className="h-10 w-10 text-yellow-400/80" />
+        </div>
+        <h1 className="mb-2 text-xl font-bold text-zinc-100">
+          {isDe ? "Battles kommen bald!" : "Battles Coming Soon!"}
+        </h1>
+        <p className="mb-4 text-sm text-zinc-500">
+          {isDe ? "Dieses Feature ist noch nicht verfügbar." : "This feature is not available yet."}
+        </p>
+      </div>
+    );
   }
 
   // Loading

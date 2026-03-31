@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Swords, Loader2, RefreshCw } from "lucide-react";
+import { Swords, Loader2, RefreshCw, Lock } from "lucide-react";
 
 import { BattleCreate } from "@/components/battles/battle-create";
 import { BattleCard, type BattleCardData } from "@/components/battles/battle-card";
@@ -26,6 +26,8 @@ export default function BattlesPage() {
 
   const { data: session } = useSession();
   const currentUserId = session?.user?.id ?? "";
+  const userRole = (session?.user as { role?: string } | undefined)?.role ?? "user";
+  const isAdmin = userRole === "admin" || userRole === "super_admin";
 
   const [boxes, setBoxes] = useState<BoxOption[]>([]);
   const [battles, setBattles] = useState<BattleCardData[]>([]);
@@ -106,6 +108,33 @@ export default function BattlesPage() {
     } finally {
       setJoiningId(null);
     }
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
+        <div className="relative mb-6">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 shadow-lg shadow-yellow-400/5">
+            <Swords className="h-10 w-10 text-yellow-400/80" />
+          </div>
+          <div className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800">
+            <Lock className="h-3.5 w-3.5 text-zinc-400" />
+          </div>
+        </div>
+        <h1 className="mb-2 text-2xl font-bold text-zinc-100">
+          {isDe ? "Battles kommen bald!" : "Battles Coming Soon!"}
+        </h1>
+        <p className="mb-4 max-w-md text-sm leading-relaxed text-zinc-500">
+          {isDe
+            ? "Tritt in strategischen Kartenbattles gegen andere Spieler an. Wähle deine Karten weise, sammle Siege und erklimme die Bestenliste."
+            : "Compete in strategic card battles against other players. Choose your cards wisely, collect victories and climb the leaderboard."}
+        </p>
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-4 py-1.5 text-sm font-semibold text-yellow-400">
+          <Swords className="h-4 w-4" />
+          Coming Soon
+        </span>
+      </div>
+    );
   }
 
   if (loading) {

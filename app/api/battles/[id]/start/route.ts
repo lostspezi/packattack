@@ -89,8 +89,7 @@ export async function POST(
       }
 
       // Schedule auto-select for round 1
-      // TODO: re-enable auto-select timer
-      // await scheduleBattleJob("auto-select", { battleId: id, roundNumber: 1 }, SELECT_DEADLINE_MS + 2000);
+      await scheduleBattleJob("auto-select", { battleId: id, roundNumber: 1 }, SELECT_DEADLINE_MS + 2000);
 
       return NextResponse.json({ started: true, status: battle.status });
     });

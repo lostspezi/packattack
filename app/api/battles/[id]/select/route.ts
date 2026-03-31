@@ -9,8 +9,7 @@ import { prepareBoxCardsForBattle, drawAndPersistBattleHand, transferCardOwnersh
 import { distributeByMode } from "@/lib/battle-distribution";
 import { calculateEloChanges, type EloPlayer } from "@/lib/battle-elo";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
-// TODO: re-enable when auto-select timer is active
-// import { scheduleBattleJob } from "@/lib/battle-jobs";
+import { scheduleBattleJob } from "@/lib/battle-jobs";
 import type { IVirtualCard } from "@/models/battle";
 import mongoose from "mongoose";
 
@@ -204,8 +203,7 @@ async function startNewRound(
     });
   }
 
-  // TODO: re-enable auto-select timer
-  // await scheduleBattleJob("auto-select", { battleId, roundNumber: nextRoundNumber }, SELECT_DEADLINE_MS + 2000);
+  await scheduleBattleJob("auto-select", { battleId, roundNumber: nextRoundNumber }, SELECT_DEADLINE_MS + 2000);
 }
 
 async function finishBattle(

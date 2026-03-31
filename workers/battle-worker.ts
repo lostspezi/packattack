@@ -10,8 +10,7 @@ import { evaluateRound, evaluateBattle } from "@/lib/battle-engine";
 import { prepareBoxCardsForBattle, drawAndPersistBattleHand, transferCardOwnership, activateBattlePullExpiry, cleanupUnselectedBattlePulls } from "@/lib/battle-cards";
 import { distributeByMode } from "@/lib/battle-distribution";
 import { calculateEloChanges, type EloPlayer } from "@/lib/battle-elo";
-// TODO: re-enable when auto-select timer is active
-// import { scheduleBattleJob } from "@/lib/battle-jobs";
+import { scheduleBattleJob } from "@/lib/battle-jobs";
 import type { IVirtualCard } from "@/models/battle";
 import mongoose from "mongoose";
 
@@ -110,8 +109,7 @@ async function processAutoStart(battleId: string) {
       });
     }
 
-    // TODO: re-enable auto-select timer
-    // await scheduleBattleJob("auto-select", { battleId, roundNumber: 1 }, 30_000 + 2000);
+    await scheduleBattleJob("auto-select", { battleId, roundNumber: 1 }, 30_000 + 2000);
 
     console.log(`[battle-worker] Auto-started battle ${battleId}`);
   });
@@ -262,8 +260,7 @@ async function startNewRound(
   }
 
   // Schedule auto-select for this round
-  // TODO: re-enable auto-select timer
-  // await scheduleBattleJob("auto-select", { battleId, roundNumber: nextRoundNumber }, 30_000 + 2000);
+  await scheduleBattleJob("auto-select", { battleId, roundNumber: nextRoundNumber }, 30_000 + 2000);
 }
 
 async function finishBattle(
