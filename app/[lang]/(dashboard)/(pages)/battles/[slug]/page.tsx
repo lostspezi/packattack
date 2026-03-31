@@ -234,14 +234,24 @@ export default function BattleDetailPage() {
           setBattle((prev) => (prev ? { ...prev, status: "countdown" } : prev));
           break;
 
-        case "round_start":
-          // ALWAYS queue — the reveal timer (or a fallback) will apply it
-          pendingRoundRef.current = {
-            hand: event.data.hand as VirtualCard[] | null,
-            deadline: event.data.selectDeadline as string,
-            roundNumber: event.data.roundNumber as number,
-          };
-          // If no reveal is playing, apply after a short delay (lets React batch)
+        case "round_start": {
+          // Server sends one round_start per player:
+          // - own event has hand[] (cards to pick from)
+          // - opponent events have no hand (just round notification)
+          // Only update pending if this event has hand data, OR if nothing is pending yet
+          const incomingHand = event.data.hand as VirtualCard[] | null;
+          const existing = pendingRoundRef.current;
+
+          if (incomingHand || !existing || existing.roundNumber !== (event.data.roundNumber as number)) {
+            pendingRoundRef.current = {
+              hand: incomingHand ?? existing?.hand ?? null,
+              deadline: event.data.selectDeadline as string,
+              roundNumber: event.data.roundNumber as number,
+            };
+          }
+
+          // If no reveal is playing, apply after a short delay
+          // (500ms gives time for both per-player round_start events to arrive)
           if (!revealTimerRef.current) {
             revealTimerRef.current = setTimeout(() => {
               revealTimerRef.current = null;
@@ -253,9 +263,10 @@ export default function BattleDetailPage() {
               setSelectDeadline(pending.deadline);
               setBattle((prev) => prev ? { ...prev, status: "active", currentRound: pending.roundNumber } : prev);
               pendingRoundRef.current = null;
-            }, 100);
+            }, 500);
           }
           break;
+        }
 
         case "round_reveal": {
           const selections = event.data.selections as {
