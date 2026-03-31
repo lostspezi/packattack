@@ -78,8 +78,18 @@ function TimeRemaining({ expiresAt, lang }: { expiresAt: string; lang: string })
 export function BattleCard({ battle, lang, currentUserId, onJoin, joining }: BattleCardProps) {
   const isDe = lang === "de";
   const modeInfo = MODE_LABELS[battle.settings.mode] ?? MODE_LABELS.snake_draft;
-  const isInBattle = battle.players.some((p) => p.user._id === currentUserId);
+  const isInBattle = battle.players.some((p) => String(p.user._id) === currentUserId);
   const isFull = battle.players.length >= battle.settings.playerCount;
+
+  const [isExpired, setIsExpired] = useState(
+    () => new Date(battle.lobbyExpiresAt).getTime() <= Date.now(),
+  );
+  useEffect(() => {
+    if (isExpired) return;
+    const ms = Math.max(0, new Date(battle.lobbyExpiresAt).getTime() - Date.now());
+    const timer = setTimeout(() => setIsExpired(true), ms);
+    return () => clearTimeout(timer);
+  }, [battle.lobbyExpiresAt, isExpired]);
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-zinc-800 bg-zinc-900 p-4 transition-all hover:border-zinc-700">
@@ -137,6 +147,10 @@ export function BattleCard({ battle, lang, currentUserId, onJoin, joining }: Bat
             <Swords className="h-4 w-4" />
             {isDe ? "Zurückkehren" : "Return"}
           </button>
+        ) : isExpired ? (
+          <span className="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-500">
+            {isDe ? "Abgelaufen" : "Expired"}
+          </span>
         ) : isFull ? (
           <span className="rounded-lg bg-zinc-800 px-4 py-2 text-sm font-bold text-zinc-500">
             {isDe ? "Voll" : "Full"}
