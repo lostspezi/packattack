@@ -93,6 +93,7 @@ export function BattleReveal({ roundNumber, totalRounds, players, winnerId, lang
                     className="absolute inset-0 overflow-hidden rounded-lg border-2 border-zinc-700"
                     style={{ backfaceVisibility: "hidden" }}
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src="/images/card-back.jpg" alt="" className="h-full w-full object-cover" draggable={false} />
                   </div>
 
@@ -108,6 +109,7 @@ export function BattleReveal({ roundNumber, totalRounds, players, winnerId, lang
                       transform: "rotateY(180deg)",
                     }}
                   >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={player.card.image} alt={player.card.name} className="h-full w-full object-cover" draggable={false} />
                   </div>
                 </div>

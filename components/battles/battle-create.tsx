@@ -93,6 +93,7 @@ export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {
               }`}
             >
               {box.image && (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={box.image} alt="" className="h-8 w-8 rounded object-cover" />
               )}
               <span>{isDe ? box.name.de : box.name.en}</span>

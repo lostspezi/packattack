@@ -103,6 +103,7 @@ export function BattleHand({
                 }`}
                 style={{ width: "clamp(80px, 18vw, 130px)", aspectRatio: "2/3" }}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={card.image}
                   alt={card.name}

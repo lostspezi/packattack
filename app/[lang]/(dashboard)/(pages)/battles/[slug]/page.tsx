@@ -706,6 +706,7 @@ export default function BattleDetailPage() {
 
             {/* Table center logo watermark */}
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="/images/logo.svg"
                 alt=""
@@ -751,6 +752,7 @@ export default function BattleDetailPage() {
                         <div className="flex items-center gap-2">
                           {hasLocalUserSelected ? (
                             <div className="overflow-hidden rounded-lg border border-zinc-700/60 shadow-lg shadow-black/30" style={{ width: "clamp(50px, 12vw, 70px)", aspectRatio: "2/3" }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src="/images/card-back.jpg" alt="" className="h-full w-full object-cover" draggable={false} />
                             </div>
                           ) : (
@@ -1316,6 +1318,7 @@ function TransfersList({ transfers, players, currentUserId }: {
             <div className="flex flex-col gap-1">
               {transfer.cards.map((card, j) => (
                 <div key={j} className="flex items-center gap-2 rounded-lg border border-zinc-700/50 bg-zinc-800/50 p-1.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={card.image} alt="" className="h-8 w-6 shrink-0 rounded object-cover" />
                   <div className="min-w-0 flex-1 truncate text-[11px] text-zinc-300">{card.name}</div>
                   <div className="shrink-0 text-[10px] font-bold text-yellow-400">{card.coinValue}</div>

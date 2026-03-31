@@ -95,6 +95,7 @@ export function BattleCard({ battle, lang, currentUserId, onJoin, joining }: Bat
       {/* Header: Box + Creator */}
       <div className="flex items-center gap-3">
         {battle.box.image && (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={battle.box.image}
             alt={isDe ? battle.box.name.de : battle.box.name.en}
