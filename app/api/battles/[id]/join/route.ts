@@ -5,6 +5,7 @@ import Battle from "@/models/battle";
 import User from "@/models/user";
 import CoinTransaction from "@/models/coin-transaction";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
+import { scheduleBattleJob, removeBattleJob } from "@/lib/battle-jobs";
 
 const READY_CHECK_DURATION_MS = 30 * 1000; // 30 seconds
 
@@ -98,6 +99,10 @@ export async function POST(
       });
 
       if (battle.status === "ready_check") {
+        // Cancel the auto-cancel lobby timer, schedule ready-check timeout instead
+        await removeBattleJob("auto-cancel", id);
+        await scheduleBattleJob("auto-cancel", { battleId: id }, READY_CHECK_DURATION_MS + 5000);
+
         await publishBattleEvent(id, "ready_check", {
           expiresAt: battle.readyCheckExpiresAt?.toISOString(),
         });

@@ -10,5 +10,7 @@ export async function register() {
     const { startReservationWorker } = await import("@/workers/reservation-worker");
     startReservationWorker();
 
+    const { startBattleWorker } = await import("@/workers/battle-worker");
+    startBattleWorker();
   }
 }

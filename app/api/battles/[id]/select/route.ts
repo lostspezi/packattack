@@ -8,6 +8,7 @@ import { generateBattleHand, evaluateRound, evaluateBattle, type BoxCardForBattl
 import { distributeByMode } from "@/lib/battle-distribution";
 import { calculateEloChanges, type EloPlayer } from "@/lib/battle-elo";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
+import { scheduleBattleJob } from "@/lib/battle-jobs";
 import type { IVirtualCard } from "@/models/battle";
 
 const SELECT_DEADLINE_MS = 30 * 1000;
@@ -215,6 +216,9 @@ async function startNewRound(
       selectDeadline: selectDeadline.toISOString(),
     });
   }
+
+  // Schedule auto-select for this round
+  await scheduleBattleJob("auto-select", { battleId, roundNumber: nextRoundNumber }, SELECT_DEADLINE_MS + 2000);
 }
 
 async function finishBattle(

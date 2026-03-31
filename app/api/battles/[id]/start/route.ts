@@ -5,6 +5,7 @@ import Battle from "@/models/battle";
 import Box from "@/models/box";
 import { generateBattleHand, type BoxCardForBattle } from "@/lib/battle-engine";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
+import { scheduleBattleJob, removeBattleJob } from "@/lib/battle-jobs";
 
 const SELECT_DEADLINE_MS = 30 * 1000; // 30 seconds
 
@@ -89,6 +90,9 @@ export async function POST(
 
       await battle.save();
 
+      // Cancel auto-start job since creator started manually
+      await removeBattleJob("auto-start", id);
+
       // Send round_start to each player via SSE (they'll filter their own hand)
       await publishBattleEvent(id, "battle_start", { isCountdown: false });
 
@@ -101,6 +105,9 @@ export async function POST(
           selectDeadline: selectDeadline.toISOString(),
         });
       }
+
+      // Schedule auto-select for round 1
+      await scheduleBattleJob("auto-select", { battleId: id, roundNumber: 1 }, SELECT_DEADLINE_MS + 2000);
 
       return NextResponse.json({ started: true, status: battle.status });
     });

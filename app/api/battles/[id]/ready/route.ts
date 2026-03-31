@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
 import { publishBattleEvent } from "@/lib/battle-events";
+import { scheduleBattleJob, removeBattleJob } from "@/lib/battle-jobs";
 
 const COUNTDOWN_DURATION_MS = 3 * 60 * 1000; // 3 minutes
 
@@ -57,6 +58,10 @@ export async function POST(
     });
 
     if (allReady) {
+      // Cancel ready-check timeout, schedule auto-start after countdown
+      await removeBattleJob("auto-cancel", id);
+      await scheduleBattleJob("auto-start", { battleId: id }, COUNTDOWN_DURATION_MS + 2000);
+
       await publishBattleEvent(id, "battle_start", {
         countdownEndsAt: battle.startCountdownAt?.toISOString(),
         isCountdown: true,

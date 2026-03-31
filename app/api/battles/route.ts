@@ -6,6 +6,7 @@ import Box from "@/models/box";
 import User from "@/models/user";
 import CoinTransaction from "@/models/coin-transaction";
 import Season from "@/models/season";
+import { scheduleBattleJob } from "@/lib/battle-jobs";
 
 
 const VALID_PLAYER_COUNTS = [2, 3, 4] as const;
@@ -166,6 +167,9 @@ export async function POST(req: NextRequest) {
       { userId: session.user.id, type: "battle_entry", relatedBattleId: null },
       { $set: { relatedBattleId: battle._id } },
     );
+
+    // Schedule auto-cancel when lobby expires
+    await scheduleBattleJob("auto-cancel", { battleId: battle._id.toString() }, LOBBY_DURATION_MS + 5000);
 
     return NextResponse.json({
       battle: {
