@@ -209,12 +209,14 @@ export function BattleWaiting({
           </button>
         )}
 
-        {(battle.status === "waiting" || (battle.status === "ready_check" && !myPlayer?.isReady)) && (
+        {(battle.status === "waiting" || battle.status === "ready_check" || battle.status === "countdown") && (
           <button
             onClick={onLeave}
-            className="rounded-xl border border-zinc-700 bg-zinc-800 px-6 py-3 text-sm font-medium text-zinc-400 transition-all hover:border-red-500/50 hover:text-red-400"
+            className="rounded-xl border border-red-500/30 bg-red-500/10 px-6 py-3 text-sm font-bold text-red-400 transition-all hover:border-red-500/50 hover:bg-red-500/20"
           >
-            {isDe ? "Verlassen" : "Leave"}
+            {isCreator
+              ? isDe ? "Battle abbrechen" : "Cancel Battle"
+              : isDe ? "Verlassen" : "Leave"}
           </button>
         )}
       </div>

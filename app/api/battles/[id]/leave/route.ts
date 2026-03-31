@@ -5,6 +5,7 @@ import Battle from "@/models/battle";
 import User from "@/models/user";
 import CoinTransaction from "@/models/coin-transaction";
 import { publishBattleEvent } from "@/lib/battle-events";
+import { removeBattleJob } from "@/lib/battle-jobs";
 
 export async function POST(
   _req: NextRequest,
@@ -24,8 +25,8 @@ export async function POST(
       return NextResponse.json({ error: "battle_not_found" }, { status: 404 });
     }
 
-    // Can only leave during waiting phase
-    if (battle.status !== "waiting") {
+    // Can leave during pre-game phases
+    if (!["waiting", "ready_check", "countdown"].includes(battle.status)) {
       return NextResponse.json({ error: "cannot_leave" }, { status: 400 });
     }
 
@@ -56,6 +57,11 @@ export async function POST(
       }
 
       await battle.save();
+
+      // Clean up any pending timer jobs
+      await removeBattleJob("auto-cancel", id);
+      await removeBattleJob("auto-start", id);
+
       await publishBattleEvent(id, "battle_cancelled", { reason: "creator_left" });
 
       return NextResponse.json({ left: true, cancelled: true });
