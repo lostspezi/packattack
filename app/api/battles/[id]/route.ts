@@ -18,7 +18,9 @@ export async function GET(
     await connectDB();
     const { id } = await params;
 
-    const battle = await Battle.findOne({ $or: [{ _id: id }, { slug: id }] })
+    const isObjectId = /^[a-f\d]{24}$/i.test(id);
+    const query = isObjectId ? { $or: [{ _id: id }, { slug: id }] } : { slug: id };
+    const battle = await Battle.findOne(query)
       .populate("box", "name slug game image battleFeePerRound cards")
       .populate("creator", "username")
       .populate("players.user", "username elo")

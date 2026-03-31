@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Swords, Loader2, RefreshCw } from "lucide-react";
 
 import { BattleCreate } from "@/components/battles/battle-create";
@@ -23,20 +24,21 @@ export default function BattlesPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id ?? "";
+
   const [boxes, setBoxes] = useState<BoxOption[]>([]);
   const [battles, setBattles] = useState<BattleCardData[]>([]);
   const [myBattles, setMyBattles] = useState<BattleCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState<string | null>(null);
-  const [currentUserId, setCurrentUserId] = useState("");
 
   const fetchLobby = useCallback(async () => {
     try {
-      const [battlesRes, myRes, boxesRes, meRes] = await Promise.all([
+      const [battlesRes, myRes, boxesRes] = await Promise.all([
         fetch("/api/battles?status=waiting"),
         fetch("/api/battles?status=mine"),
         fetch("/api/packs"),
-        fetch("/api/user/me"),
       ]);
 
       if (battlesRes.ok) {
@@ -53,10 +55,6 @@ export default function BattlesPage() {
           (b: BoxOption & { battleFeePerRound?: number }) => b.battleFeePerRound && b.battleFeePerRound > 0,
         );
         setBoxes(battleBoxes);
-      }
-      if (meRes.ok) {
-        const data = await meRes.json();
-        setCurrentUserId(data.user?._id ?? data.user?.id ?? "");
       }
     } catch {
       // silent

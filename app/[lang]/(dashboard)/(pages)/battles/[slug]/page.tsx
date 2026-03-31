@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Loader2, ArrowLeft } from "lucide-react";
 
 import { BattleWaiting } from "@/components/battles/battle-waiting";
@@ -140,9 +141,11 @@ export default function BattleDetailPage() {
   const router = useRouter();
   const { toast } = useToast();
 
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id ?? "";
+
   const [battle, setBattle] = useState<BattleData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [currentUserId, setCurrentUserId] = useState("");
   const [readying, setReadying] = useState(false);
 
   // Current round state from SSE
@@ -158,10 +161,7 @@ export default function BattleDetailPage() {
   // Fetch initial battle state
   const fetchBattle = useCallback(async () => {
     try {
-      const [battleRes, meRes] = await Promise.all([
-        fetch(`/api/battles/${slug}`),
-        fetch("/api/user/me"),
-      ]);
+      const battleRes = await fetch(`/api/battles/${slug}`);
 
       if (!battleRes.ok) {
         router.push(`/${lang}/battles`);
@@ -171,19 +171,12 @@ export default function BattleDetailPage() {
       const battleData = await battleRes.json();
       setBattle(battleData.battle);
 
-      let meUserId = "";
-      if (meRes.ok) {
-        const meData = await meRes.json();
-        meUserId = meData.user?._id ?? meData.user?.id ?? "";
-        setCurrentUserId(meUserId);
-      }
-
       // Restore hand from current round if reconnecting
       const b = battleData.battle as BattleData;
       if ((b.status === "active" || b.status === "sudden_death") && b.rounds.length > 0) {
         const lastRound = b.rounds[b.rounds.length - 1];
-        if (lastRound.status === "selecting") {
-          const myHandData = lastRound.hands.find((h: BattleHand_) => h.player === meUserId);
+        if (lastRound.status === "selecting" && currentUserId) {
+          const myHandData = lastRound.hands.find((h: BattleHand_) => h.player === currentUserId);
           if (myHandData) {
             setMyHand(myHandData.cards);
             setSelectDeadline(lastRound.selectDeadline);
@@ -197,8 +190,7 @@ export default function BattleDetailPage() {
     } finally {
       setLoading(false);
     }
-   
-  }, [slug, lang, router]);
+  }, [slug, lang, router, currentUserId]);
 
   useEffect(() => {
     fetchBattle();
