@@ -86,6 +86,69 @@ interface BattleData {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Transfer preview helper                                            */
+/* ------------------------------------------------------------------ */
+
+type RoundHistoryEntry = {
+  roundNumber: number;
+  players: { userId: string; username: string; card: { name: string; image: string; coinValue: number } }[];
+  winnerId: string | null;
+};
+
+/**
+ * For each player, compute which of their played cards is currently the
+ * transfer candidate based on the battle mode.
+ * Returns a Set of "{roundNumber}-{userId}" keys where that card is "at risk".
+ *
+ * - all_cards: every card from every non-leading player → all are at risk
+ * - lowest_card: the single lowest-value card per non-leading player
+ * - highest_card: the single highest-value card per non-leading player
+ */
+function computeTransferPreviews(
+  history: RoundHistoryEntry[],
+  mode: string,
+  scores: Map<string, number>,
+): Set<string> {
+  const atRisk = new Set<string>();
+  if (history.length === 0) return atRisk;
+
+  // Find leading player(s)
+  let maxScore = 0;
+  for (const s of scores.values()) if (s > maxScore) maxScore = s;
+  const leaders = new Set<string>();
+  for (const [id, s] of scores.entries()) if (s === maxScore) leaders.add(id);
+  // If everyone is tied, no transfers yet
+  if (leaders.size === scores.size) return atRisk;
+
+  // Collect played cards per player with round reference
+  const playerCards = new Map<string, { roundNumber: number; coinValue: number }[]>();
+  for (const round of history) {
+    for (const p of round.players) {
+      if (!playerCards.has(p.userId)) playerCards.set(p.userId, []);
+      playerCards.get(p.userId)!.push({ roundNumber: round.roundNumber, coinValue: p.card.coinValue });
+    }
+  }
+
+  for (const [userId, cards] of playerCards.entries()) {
+    if (leaders.has(userId)) continue; // leaders don't lose cards
+
+    if (mode === "all_cards") {
+      for (const c of cards) atRisk.add(`${c.roundNumber}-${userId}`);
+    } else if (mode === "lowest_card") {
+      const min = Math.min(...cards.map((c) => c.coinValue));
+      const target = cards.find((c) => c.coinValue === min);
+      if (target) atRisk.add(`${target.roundNumber}-${userId}`);
+    } else if (mode === "highest_card") {
+      const max = Math.max(...cards.map((c) => c.coinValue));
+      const target = cards.find((c) => c.coinValue === max);
+      if (target) atRisk.add(`${target.roundNumber}-${userId}`);
+    }
+  }
+
+  return atRisk;
+}
+
+/* ------------------------------------------------------------------ */
 /*  SSE Hook                                                           */
 /* ------------------------------------------------------------------ */
 
@@ -466,6 +529,10 @@ export default function BattleDetailPage() {
   const isActive = battle.status === "active" || battle.status === "sudden_death";
   const isFinished = battle.status === "finished" || battle.status === "cancelled";
 
+  // Compute transfer preview for in-game round history
+  const scoreMap = new Map(battle.players.map((p) => [String(p.user._id), p.roundsWon]));
+  const atRiskCards = computeTransferPreviews(roundHistory, battle.settings.mode, scoreMap);
+
   return (
     <div className={`mx-auto w-full px-4 py-6 ${isFinished ? "max-w-[1600px]" : isActive ? "max-w-[1400px]" : "max-w-5xl"}`}>
       {/* Back Link */}
@@ -548,12 +615,19 @@ export default function BattleDetailPage() {
                         <div className="flex items-center gap-2">
                           {round.players.map((rp) => {
                             const isWin = rp.userId === round.winnerId;
+                            const isAtRisk = atRiskCards.has(`${round.roundNumber}-${rp.userId}`);
                             return (
                               <div key={rp.userId} className="flex items-center gap-1">
-                                <div className={`overflow-hidden rounded border ${isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "28px", aspectRatio: "2/3" }}>
-                                  <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
+                                <div className="relative">
+                                  <div className={`overflow-hidden rounded border ${isAtRisk ? "border-red-500/60 ring-1 ring-red-500/30" : isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "28px", aspectRatio: "2/3" }}>
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
+                                  </div>
+                                  {isAtRisk && (
+                                    <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-[7px] font-bold text-white">↗</span>
+                                  )}
                                 </div>
-                                <span className={`text-[10px] font-bold tabular-nums ${isWin ? "text-yellow-400" : "text-zinc-500"}`}>{rp.card.coinValue}</span>
+                                <span className={`text-[10px] font-bold tabular-nums ${isAtRisk ? "text-red-400" : isWin ? "text-yellow-400" : "text-zinc-500"}`}>{rp.card.coinValue}</span>
                               </div>
                             );
                           })}
@@ -760,9 +834,16 @@ export default function BattleDetailPage() {
                       <div className="flex items-center gap-1.5">
                         {round.players.map((rp) => {
                           const isWin = rp.userId === round.winnerId;
+                          const isAtRisk = atRiskCards.has(`${round.roundNumber}-${rp.userId}`);
                           return (
-                            <div key={rp.userId} className={`overflow-hidden rounded border ${isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "22px", aspectRatio: "2/3" }}>
-                              <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
+                            <div key={rp.userId} className="relative">
+                              <div className={`overflow-hidden rounded border ${isAtRisk ? "border-red-500/60" : isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "22px", aspectRatio: "2/3" }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
+                              </div>
+                              {isAtRisk && (
+                                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-red-500 text-[6px] font-bold text-white">↗</span>
+                              )}
                             </div>
                           );
                         })}
