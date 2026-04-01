@@ -47,20 +47,13 @@ export async function publishBattleEvent(
 /**
  * Create a dedicated Redis subscriber for a battle channel.
  * Returns subscriber client and cleanup function.
- * IMPORTANT: Must create a new Redis client for subscribing (ioredis requirement).
+ * Uses getRedis().duplicate() so the subscriber inherits the singleton's config.
  */
 export function subscribeToBattle(
   battleId: string,
   onMessage: (event: BattleEvent) => void,
 ): { subscriber: Redis; unsubscribe: () => void } {
-  const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
-  const subscriber = new Redis(REDIS_URL, {
-    maxRetriesPerRequest: 1,
-    retryStrategy(times) {
-      if (times > 2) return null;
-      return Math.min(times * 200, 1000);
-    },
-  });
+  const subscriber = getRedis().duplicate();
 
   const channel = channelKey(battleId);
 
