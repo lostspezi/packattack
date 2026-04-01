@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ChatOnlineUserSummary, ChatOnlineUsersResponse } from "@/types/chat";
 
 export function useChatOnlineUsers(
@@ -11,6 +11,9 @@ export function useChatOnlineUsers(
   const [users, setUsers] = useState<ChatOnlineUserSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const loadErrorTextRef = useRef(loadErrorText);
+  loadErrorTextRef.current = loadErrorText;
 
   const refreshOnlineUsers = useCallback(async () => {
     setLoading(true);
@@ -25,16 +28,17 @@ export function useChatOnlineUsers(
       const payload = (await response.json()) as ChatOnlineUsersResponse;
       setUsers(payload.users);
     } catch {
-      setError(loadErrorText);
+      setError(loadErrorTextRef.current);
     } finally {
       setLoading(false);
     }
-  }, [loadErrorText]);
+  }, []);
 
   useEffect(() => {
     if (!open) return;
     void refreshOnlineUsers();
-  }, [open, onlineCount, refreshOnlineUsers]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   return {
     error,
