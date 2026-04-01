@@ -21,8 +21,11 @@ export async function GET() {
       return NextResponse.json({ error: "user_not_found" }, { status: 404 });
     }
 
-    // Calculate rank position
-    const playersAbove = await User.countDocuments({ elo: { $gt: user.elo } });
+    // Calculate rank position (only among players who have played at least 1 battle)
+    const playersAbove = await User.countDocuments({
+      "battleStats.totalBattles": { $gt: 0 },
+      elo: { $gt: user.elo },
+    });
     const rank = playersAbove + 1;
 
     return NextResponse.json({
