@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { useSession } from "next-auth/react";
-import { Trophy, Medal, ChevronDown, Loader2, Flame, TrendingUp, Lock } from "lucide-react";
+import { Trophy, Medal, ChevronDown, Loader2, Flame, TrendingUp } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -67,10 +66,6 @@ export default function LeaderboardPage() {
   const params = useParams<{ lang: string }>();
   const lang = params.lang ?? "en";
   const isDe = lang === "de";
-  const { data: session } = useSession();
-  const userRole = (session?.user as { role?: string } | undefined)?.role ?? "user";
-  const isAdmin = userRole === "admin" || userRole === "super_admin";
-
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [myStats, setMyStats] = useState<MyStats | null>(null);
   const [seasons, setSeasons] = useState<Season[]>([]);
@@ -124,33 +119,6 @@ export default function LeaderboardPage() {
   }, [fetchLeaderboard]);
 
   const activeSeason = seasons.find((s) => s.status === "active");
-
-  if (!isAdmin) {
-    return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center px-4 text-center">
-        <div className="relative mb-6">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-zinc-800 bg-zinc-900 shadow-lg shadow-yellow-400/5">
-            <Trophy className="h-10 w-10 text-yellow-400/80" />
-          </div>
-          <div className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800">
-            <Lock className="h-3.5 w-3.5 text-zinc-400" />
-          </div>
-        </div>
-        <h1 className="mb-2 text-2xl font-bold text-zinc-100">
-          {isDe ? "Bestenliste kommt bald!" : "Leaderboard Coming Soon!"}
-        </h1>
-        <p className="mb-4 max-w-md text-sm leading-relaxed text-zinc-500">
-          {isDe
-            ? "Vergleiche dich mit anderen Spielern, steige in den Rängen auf und werde Champion der Season."
-            : "Compare yourself with other players, rise through the ranks and become the season champion."}
-        </p>
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-yellow-400/20 bg-yellow-400/10 px-4 py-1.5 text-sm font-semibold text-yellow-400">
-          <Trophy className="h-4 w-4" />
-          Coming Soon
-        </span>
-      </div>
-    );
-  }
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-6">
