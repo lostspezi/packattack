@@ -54,8 +54,12 @@ function TimeRemaining({ expiresAt, lang }: { expiresAt: string; lang: string })
   );
 
   useEffect(() => {
+    const diff = new Date(expiresAt).getTime() - Date.now();
+    if (diff <= 0) return;
     const interval = setInterval(() => {
-      setRemaining(Math.max(0, new Date(expiresAt).getTime() - Date.now()));
+      const left = Math.max(0, new Date(expiresAt).getTime() - Date.now());
+      setRemaining(left);
+      if (left <= 0) clearInterval(interval);
     }, 1000);
     return () => clearInterval(interval);
   }, [expiresAt]);

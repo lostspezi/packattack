@@ -36,7 +36,7 @@ export function BattleHand({
     const interval = setInterval(() => {
       const left = Math.max(0, Math.ceil((new Date(selectDeadline).getTime() - Date.now()) / 1000));
       setTimeLeft(left);
-    }, 200);
+    }, 1000);
     return () => clearInterval(interval);
   }, [selectDeadline]);
 
