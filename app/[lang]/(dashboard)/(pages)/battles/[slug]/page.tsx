@@ -160,15 +160,19 @@ function computeTransferPreviews(
 function useBattleSSE(
   battleId: string | null,
   onEvent: (event: { type: string; data: Record<string, unknown>; timestamp: string }) => void,
+  onReconnect?: () => void,
 ) {
   const onEventRef = useRef(onEvent);
   onEventRef.current = onEvent;
+  const onReconnectRef = useRef(onReconnect);
+  onReconnectRef.current = onReconnect;
 
   useEffect(() => {
     if (!battleId) return;
 
     let eventSource: EventSource | null = null;
     let retryCount = 0;
+    let hasConnectedOnce = false;
 
     function connect() {
       eventSource = new EventSource(`/api/battles/${battleId}/events`);
@@ -176,6 +180,11 @@ function useBattleSSE(
       eventSource.onmessage = (e) => {
         try {
           const event = JSON.parse(e.data);
+          // Refetch battle state on reconnect to recover missed events
+          if (event.type === "connected" && hasConnectedOnce) {
+            onReconnectRef.current?.();
+          }
+          hasConnectedOnce = true;
           retryCount = 0;
           onEventRef.current(event);
         } catch {
@@ -241,6 +250,8 @@ export default function BattleDetailPage() {
     players: { userId: string; username: string; card: { name: string; image: string; coinValue: number } }[];
     winnerId: string | null;
   } | null>(null);
+  // Track the currently displayed reveal so it can be flushed to history if a new reveal arrives early
+  const activeRevealRef = useRef<RoundHistoryEntry | null>(null);
 
   // Fetch initial battle state
   const fetchBattle = useCallback(async () => {
@@ -255,9 +266,33 @@ export default function BattleDetailPage() {
       const battleData = await battleRes.json();
       setBattle(battleData.battle);
 
-      // Restore hand from current round if reconnecting
+      // Rebuild round history from completed rounds (handles reconnect / missed SSE events)
       const b = battleData.battle as BattleData;
-      if ((b.status === "active" || b.status === "sudden_death") && b.rounds.length > 0) {
+      if ((b.status === "active" || b.status === "sudden_death" || b.status === "finished") && b.rounds.length > 0) {
+        const completedHistory: RoundHistoryEntry[] = [];
+        const playerNameMap = new Map(
+          b.players.map((p) => [String(p.user._id), p.user.username]),
+        );
+
+        for (const round of b.rounds) {
+          if (round.status !== "completed") continue;
+          const players = round.hands
+            .filter((h) => h.selectedCardIndex !== null)
+            .map((h) => ({
+              userId: String(h.player),
+              username: playerNameMap.get(String(h.player)) ?? "???",
+              card: h.cards[h.selectedCardIndex!],
+            }));
+          completedHistory.push({
+            roundNumber: round.roundNumber,
+            players,
+            winnerId: round.winner ? String(round.winner) : null,
+          });
+        }
+
+        setRoundHistory(completedHistory);
+
+        // Restore hand from current round if reconnecting
         const lastRound = b.rounds[b.rounds.length - 1];
         if (lastRound.status === "selecting" && currentUserId) {
           const myHandData = lastRound.hands.find((h: BattleHand_) => h.player === currentUserId);
@@ -391,12 +426,26 @@ export default function BattleDetailPage() {
           }
           setMyHand(null);
 
-          // Cancel any existing timer (e.g. short fallback from round_start above)
-          if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+          // If a previous reveal timer is still active, flush its data to history NOW
+          if (revealTimerRef.current) {
+            clearTimeout(revealTimerRef.current);
+            const previousReveal = activeRevealRef.current;
+            if (previousReveal) {
+              setRoundHistory((prev) => {
+                const exists = prev.some((r) => r.roundNumber === previousReveal.roundNumber);
+                if (exists) return prev;
+                return [...prev, previousReveal];
+              });
+            }
+          }
+
+          // Track current reveal so it can be flushed if the next reveal arrives early
+          activeRevealRef.current = revealSnapshot;
 
           // Keep reveal visible for 4s, then add to history + apply pending round_start
           revealTimerRef.current = setTimeout(() => {
             revealTimerRef.current = null;
+            activeRevealRef.current = null;
             // Add to round history AFTER the flip animation
             if (revealSnapshot) {
               setRoundHistory((prev) => {
@@ -440,7 +489,7 @@ export default function BattleDetailPage() {
     [fetchBattle, isDe],
   );
 
-  useBattleSSE(battle?._id ?? null, handleSSEEvent);
+  useBattleSSE(battle?._id ?? null, handleSSEEvent, fetchBattle);
 
   // Cleanup reveal timer on unmount
   useEffect(() => {
