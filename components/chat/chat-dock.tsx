@@ -365,6 +365,9 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     return () => window.cancelAnimationFrame(frame);
   }, [permissions.canPost, sending]);
 
+  const copyLoadErrorRef = useRef(copy.states.loadError);
+  copyLoadErrorRef.current = copy.states.loadError;
+
   const loadOverview = useCallback(async () => {
     try {
       setLoadError(null);
@@ -382,15 +385,16 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         payload.messages.filter(
           (message) =>
             (message.visibleSeq ?? 0) > payload.readState.lastReadVisibleSeq &&
-            isMentionForCurrentUser(message, payload.selfUsername ?? undefined)
+            isMentionForCurrentUserRef.current(message, payload.selfUsername ?? undefined)
         ).length
       );
     } catch {
-      setLoadError(copy.states.loadError);
+      setLoadError(copyLoadErrorRef.current);
     } finally {
       setLoading(false);
     }
-  }, [copy.states.loadError, isMentionForCurrentUser]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     void loadOverview();
@@ -411,6 +415,25 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     });
   }
 
+  // Refs for values used inside the SSE onmessage handler.
+  // This avoids re-creating the EventSource when these change.
+  const isMentionForCurrentUserRef = useRef(isMentionForCurrentUser);
+  isMentionForCurrentUserRef.current = isMentionForCurrentUser;
+  const isPanelOpenRef = useRef(isPanelOpen);
+  isPanelOpenRef.current = isPanelOpen;
+  const isStaffRef = useRef(isStaff);
+  isStaffRef.current = isStaff;
+  const readStateSoundModeRef = useRef(readState.soundMode);
+  readStateSoundModeRef.current = readState.soundMode;
+  const roomModeRef = useRef(room?.mode);
+  roomModeRef.current = room?.mode;
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
+  const copySoundUnavailableRef = useRef(copy.states.soundUnavailable);
+  copySoundUnavailableRef.current = copy.states.soundUnavailable;
+  const copyReportsErrorRef = useRef(copy.reports.error);
+  copyReportsErrorRef.current = copy.reports.error;
+
   useEffect(() => {
     const source = new EventSource("/api/chat/events");
 
@@ -430,34 +453,36 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
               : current
           );
 
-          const mentionsCurrentUser = isMentionForCurrentUser(nextMessage);
+          const mentionsCurrentUser = isMentionForCurrentUserRef.current(nextMessage);
           const isStaffMessage =
             nextMessage.author?.role === "admin" ||
             nextMessage.author?.role === "super_admin" ||
             nextMessage.author?.role === "moderator";
 
-          if (readState.soundMode !== "off") {
+          const soundMode = readStateSoundModeRef.current;
+          if (soundMode !== "off") {
             if (
-              (readState.soundMode === "all" && nextMessage.author?.id !== currentUserId) ||
+              (soundMode === "all" && nextMessage.author?.id !== currentUserId) ||
               mentionsCurrentUser ||
-              (readState.soundMode === "mentions_and_staff" && isStaffMessage)
+              (soundMode === "mentions_and_staff" && isStaffMessage)
             ) {
               try {
                 playNotificationTone(mentionsCurrentUser ? "mention" : "staff");
               } catch {
-                toast({ type: "warning", title: copy.states.soundUnavailable });
+                toastRef.current({ type: "warning", title: copySoundUnavailableRef.current });
               }
             }
           }
 
-          if (isSelfMessage || (isPanelOpen && shouldStickToBottomRef.current)) {
+          const panelOpen = isPanelOpenRef.current;
+          if (isSelfMessage || (panelOpen && shouldStickToBottomRef.current)) {
             pendingScrollToBottomRef.current = true;
           } else {
             setPendingNewCount((count) => count + 1);
-            if (!isPanelOpen) {
+            if (!panelOpen) {
               triggerLauncherAnimation();
             }
-            if (mentionsCurrentUser && !isPanelOpen) {
+            if (mentionsCurrentUser && !panelOpen) {
               setPendingMentionCount((count) => count + 1);
             }
           }
@@ -484,7 +509,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
             expiresAt?: string | null;
           };
           if (notice.kind === "message_rejected") {
-            toast({ type: "warning", title: notice.reason ?? copy.reports.error });
+            toastRef.current({ type: "warning", title: notice.reason ?? copyReportsErrorRef.current });
           }
           if (notice.kind === "timeout_user") {
             setPermissions((current) => ({
@@ -504,8 +529,8 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
               timeoutUntil: null,
               canPost:
                 current.moderationReady &&
-                room?.mode !== "read_only" &&
-                !(room?.mode === "announcement_only" && !isStaff),
+                roomModeRef.current !== "read_only" &&
+                !(roomModeRef.current === "announcement_only" && !isStaffRef.current),
             }));
           }
         }
@@ -515,19 +540,8 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     };
 
     return () => source.close();
-  }, [
-    copy.reports.error,
-    copy.states.deleted,
-    copy.states.soundUnavailable,
-    currentUserId,
-    isMentionForCurrentUser,
-    isPanelOpen,
-    isStaff,
-    readState.soundMode,
-    room?.mode,
-    selfUsername,
-    toast,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserId]);
 
   useEffect(() => {
     if (!quoteTarget) return;
