@@ -15,7 +15,22 @@ export function CoinBalance() {
   const floatTimeout = useRef<ReturnType<typeof setTimeout>>(null);
   const glowTimeout = useRef<ReturnType<typeof setTimeout>>(null);
 
+  const fetchDebounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+
   useEffect(() => {
+    function fetchBalance() {
+      if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
+      fetchDebounceRef.current = setTimeout(() => {
+        fetch("/api/profile")
+          .then((r) => r.json())
+          .then((data) => {
+            if (data?.coins !== undefined) setCoins(data.coins);
+          })
+          .catch(() => {});
+      }, 300);
+    }
+
+    // Initial fetch (no debounce)
     fetch("/api/profile")
       .then(async (res) => {
         if (!res.ok) return;
@@ -25,23 +40,14 @@ export function CoinBalance() {
       .catch(() => {});
 
     function handleRefresh() {
-      fetch("/api/profile")
-        .then((r) => r.json())
-        .then((data) => {
-          if (data?.coins !== undefined) setCoins(data.coins);
-        });
+      fetchBalance();
     }
 
     function handleChange(e: Event) {
       const detail = (e as CustomEvent<{ delta: number }>).detail;
       const delta = detail?.delta;
 
-      // Refresh balance
-      fetch("/api/profile")
-        .then((r) => r.json())
-        .then((data) => {
-          if (data?.coins !== undefined) setCoins(data.coins);
-        });
+      fetchBalance();
 
       // Show float text
       if (delta && delta !== 0) {
@@ -66,6 +72,7 @@ export function CoinBalance() {
     return () => {
       window.removeEventListener("coin-balance-refresh", handleRefresh);
       window.removeEventListener("coin-balance-change", handleChange);
+      if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
     };
   }, []);
 

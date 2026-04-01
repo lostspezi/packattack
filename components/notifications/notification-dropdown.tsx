@@ -59,13 +59,20 @@ export function NotificationDropdown({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  // Keep the open dropdown list in sync with realtime unread updates.
+  // Keep the open dropdown list in sync with realtime unread updates (debounced).
+  const refetchTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
   useEffect(() => {
     if (!open || typeof unreadCount !== "number") return;
     if (lastLoadedUnreadRef.current === null) return;
     if (unreadCount !== lastLoadedUnreadRef.current) {
-      void fetchNotifications();
+      if (refetchTimeoutRef.current) clearTimeout(refetchTimeoutRef.current);
+      refetchTimeoutRef.current = setTimeout(() => {
+        void fetchNotifications();
+      }, 500);
     }
+    return () => {
+      if (refetchTimeoutRef.current) clearTimeout(refetchTimeoutRef.current);
+    };
   }, [open, unreadCount, fetchNotifications]);
 
   async function handleMarkRead(id: string) {

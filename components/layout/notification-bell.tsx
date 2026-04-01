@@ -38,8 +38,14 @@ export function NotificationBell() {
     void fetchUnreadCount();
   }, [fetchUnreadCount]);
 
+  const sseConnectedRef = useRef(false);
+
   useEffect(() => {
     const es = new EventSource("/api/notifications/events");
+
+    es.onopen = () => {
+      sseConnectedRef.current = true;
+    };
 
     es.onmessage = (e) => {
       try {
@@ -52,12 +58,22 @@ export function NotificationBell() {
       }
     };
 
-    return () => es.close();
+    es.onerror = () => {
+      sseConnectedRef.current = false;
+    };
+
+    return () => {
+      sseConnectedRef.current = false;
+      es.close();
+    };
   }, []);
 
   useEffect(() => {
     function onFocus() {
-      void fetchUnreadCount();
+      // Only fetch on focus if SSE is disconnected (avoids redundant calls)
+      if (!sseConnectedRef.current) {
+        void fetchUnreadCount();
+      }
     }
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
