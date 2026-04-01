@@ -8,6 +8,7 @@ import { Swords, Loader2, RefreshCw } from "lucide-react";
 import { BattleCreate } from "@/components/battles/battle-create";
 import { BattleCard, type BattleCardData } from "@/components/battles/battle-card";
 import { BattleJoinConfirmModal } from "@/components/battles/battle-join-confirm-modal";
+import { BattleHandbook } from "@/components/battles/battle-handbook";
 import { useToast } from "@/components/ui/toast";
 
 interface BoxOption {
@@ -147,8 +148,9 @@ export default function BattlesPage() {
       {/* Main Layout: Sidebar + Battle List */}
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* Left: Create Panel */}
-        <div className="w-full shrink-0 lg:w-[380px]">
+        <div className="flex w-full shrink-0 flex-col gap-4 lg:w-[380px]">
           <BattleCreate boxes={boxes} lang={lang} onCreated={handleCreated} />
+          <BattleHandbook lang={lang} />
         </div>
 
         {/* Right: Battle Lists */}
