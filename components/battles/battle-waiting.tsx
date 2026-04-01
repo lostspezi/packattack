@@ -66,7 +66,7 @@ export function BattleWaiting({
     const interval = setInterval(() => {
       const left = Math.max(0, new Date(battle.readyCheckExpiresAt!).getTime() - Date.now());
       setReadyTimeLeft(left);
-    }, 200);
+    }, 1000);
     return () => clearInterval(interval);
   }, [battle.status, battle.readyCheckExpiresAt]);
 
