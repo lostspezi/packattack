@@ -181,10 +181,12 @@ function useBattleSSE(
         try {
           const event = JSON.parse(e.data);
           // Refetch battle state on reconnect to recover missed events
-          if (event.type === "connected" && hasConnectedOnce) {
-            onReconnectRef.current?.();
+          if (event.type === "connected") {
+            if (hasConnectedOnce) onReconnectRef.current?.();
+            hasConnectedOnce = true;
+            retryCount = 0;
+            return; // Don't forward "connected" to event handler
           }
-          hasConnectedOnce = true;
           retryCount = 0;
           onEventRef.current(event);
         } catch {
@@ -252,62 +254,87 @@ export default function BattleDetailPage() {
   } | null>(null);
   // Track the currently displayed reveal so it can be flushed to history if a new reveal arrives early
   const activeRevealRef = useRef<RoundHistoryEntry | null>(null);
+  // Guard against concurrent fetchBattle calls
+  const fetchingRef = useRef(false);
 
-  // Fetch initial battle state
-  const fetchBattle = useCallback(async () => {
+  // Helper: rebuild round history from battle data
+  function buildRoundHistory(b: BattleData): RoundHistoryEntry[] {
+    const playerNameMap = new Map(
+      b.players.map((p) => [String(p.user._id), p.user.username]),
+    );
+    const history: RoundHistoryEntry[] = [];
+    for (const round of b.rounds) {
+      if (round.status !== "completed") continue;
+      const players = round.hands
+        .filter((h) => h.selectedCardIndex !== null)
+        .map((h) => ({
+          userId: String(h.player),
+          username: playerNameMap.get(String(h.player)) ?? "???",
+          card: h.cards[h.selectedCardIndex!],
+        }));
+      history.push({
+        roundNumber: round.roundNumber,
+        players,
+        winnerId: round.winner ? String(round.winner) : null,
+      });
+    }
+    return history;
+  }
+
+  // Fetch battle state — isRecovery=true suppresses redirects on error
+  const fetchBattle = useCallback(async (isRecovery = false) => {
+    if (fetchingRef.current) return;
+    fetchingRef.current = true;
     try {
       const battleRes = await fetch(`/api/battles/${slug}`);
 
       if (!battleRes.ok) {
-        router.push(`/${lang}/battles`);
+        if (!isRecovery) router.push(`/${lang}/battles`);
         return;
       }
 
       const battleData = await battleRes.json();
-      setBattle(battleData.battle);
-
-      // Rebuild round history from completed rounds (handles reconnect / missed SSE events)
       const b = battleData.battle as BattleData;
-      if ((b.status === "active" || b.status === "sudden_death" || b.status === "finished") && b.rounds.length > 0) {
-        const completedHistory: RoundHistoryEntry[] = [];
-        const playerNameMap = new Map(
-          b.players.map((p) => [String(p.user._id), p.user.username]),
-        );
+      setBattle(b);
 
-        for (const round of b.rounds) {
-          if (round.status !== "completed") continue;
-          const players = round.hands
-            .filter((h) => h.selectedCardIndex !== null)
-            .map((h) => ({
-              userId: String(h.player),
-              username: playerNameMap.get(String(h.player)) ?? "???",
-              card: h.cards[h.selectedCardIndex!],
-            }));
-          completedHistory.push({
-            roundNumber: round.roundNumber,
-            players,
-            winnerId: round.winner ? String(round.winner) : null,
-          });
-        }
+      // Rebuild round history from completed rounds
+      if (b.rounds.length > 0) {
+        setRoundHistory(buildRoundHistory(b));
+      }
 
-        setRoundHistory(completedHistory);
-
-        // Restore hand from current round if reconnecting
+      // Restore current round state for active battles
+      if ((b.status === "active" || b.status === "sudden_death") && b.rounds.length > 0) {
         const lastRound = b.rounds[b.rounds.length - 1];
+
         if (lastRound.status === "selecting" && currentUserId) {
+          // Round in progress — restore hand
           const myHandData = lastRound.hands.find((h: BattleHand_) => h.player === currentUserId);
           if (myHandData) {
             setMyHand(myHandData.cards);
             setSelectDeadline(lastRound.selectDeadline);
             setSelectedCardIndex(myHandData.selectedCardIndex);
             setRevealData(null);
+            // Clear any stale timers/pending data
+            if (revealTimerRef.current) { clearTimeout(revealTimerRef.current); revealTimerRef.current = null; }
+            pendingRoundRef.current = null;
+            activeRevealRef.current = null;
           }
+        } else if (lastRound.status === "completed") {
+          // Last round just completed (missed the reveal) — clear stale state
+          // SSE will deliver the next round_start, or the stuck-state recovery will refetch
+          setMyHand(null);
+          setRevealData(null);
+          setSelectedCardIndex(null);
+          if (revealTimerRef.current) { clearTimeout(revealTimerRef.current); revealTimerRef.current = null; }
+          pendingRoundRef.current = null;
+          activeRevealRef.current = null;
         }
       }
     } catch {
-      router.push(`/${lang}/battles`);
+      if (!isRecovery) router.push(`/${lang}/battles`);
     } finally {
       setLoading(false);
+      fetchingRef.current = false;
     }
   }, [slug, lang, router, currentUserId]);
 
@@ -489,7 +516,9 @@ export default function BattleDetailPage() {
     [fetchBattle, isDe],
   );
 
-  useBattleSSE(battle?._id ?? null, handleSSEEvent, fetchBattle);
+  // SSE reconnect triggers a recovery fetch (won't redirect on error)
+  const handleReconnect = useCallback(() => fetchBattle(true), [fetchBattle]);
+  useBattleSSE(battle?._id ?? null, handleSSEEvent, handleReconnect);
 
   // Cleanup reveal timer on unmount
   useEffect(() => {
@@ -497,6 +526,19 @@ export default function BattleDetailPage() {
       if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
     };
   }, []);
+
+  // Stuck-state recovery: if active battle shows loading spinner for 5+ seconds, refetch
+  useEffect(() => {
+    if (!battle) return;
+    const isActive = battle.status === "active" || battle.status === "sudden_death";
+    if (!isActive || revealData || myHand) return;
+
+    const timer = setTimeout(() => {
+      fetchBattle(true);
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [battle, battle?.status, revealData, myHand, fetchBattle]);
 
   // Notify the global PendingPullsGuard when battle finishes
   useEffect(() => {

@@ -28,6 +28,8 @@ export async function GET(
   const userId = session.user.id;
   const battleId = battle._id.toString();
 
+  let cleanup: (() => void) | null = null;
+
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
@@ -75,16 +77,26 @@ export async function GET(
         }
       }, 15000);
 
-      // Cleanup on close
-      _req.signal.addEventListener("abort", () => {
+      // Store cleanup so cancel() can also call it
+      cleanup = () => {
         clearInterval(heartbeat);
         unsubscribe();
+      };
+
+      // Cleanup on close
+      _req.signal.addEventListener("abort", () => {
+        cleanup?.();
+        cleanup = null;
         try {
           controller.close();
         } catch {
           // Already closed
         }
       });
+    },
+    cancel() {
+      cleanup?.();
+      cleanup = null;
     },
   });
 
@@ -93,6 +105,7 @@ export async function GET(
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
     },
   });
 }
