@@ -173,8 +173,11 @@ function useBattleSSE(
     let eventSource: EventSource | null = null;
     let retryCount = 0;
     let hasConnectedOnce = false;
+    let cancelled = false;
+    let retryTimeout: ReturnType<typeof setTimeout> | null = null;
 
     function connect() {
+      if (cancelled) return;
       eventSource = new EventSource(`/api/battles/${battleId}/events`);
 
       eventSource.onmessage = (e) => {
@@ -196,15 +199,18 @@ function useBattleSSE(
 
       eventSource.onerror = () => {
         eventSource?.close();
+        if (cancelled) return;
         if (retryCount < 10) {
           retryCount++;
-          setTimeout(connect, Math.min(1000 * retryCount, 10000));
+          retryTimeout = setTimeout(connect, Math.min(1000 * retryCount, 10000));
         }
       };
     }
 
     connect();
     return () => {
+      cancelled = true;
+      if (retryTimeout) clearTimeout(retryTimeout);
       eventSource?.close();
     };
   }, [battleId]);
