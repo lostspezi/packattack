@@ -44,11 +44,47 @@ const EVENT_TO_STATUS: Partial<Record<string, BattleStatus>> = {
   player_left: "waiting",
 };
 
+const MAX_CACHE_SIZE = 50;
+const TERMINAL_CLEANUP_DELAY_MS = 30_000;
+
 const cache = new Map<string, CacheEntry>();
+
+function evictOldest() {
+  if (cache.size <= MAX_CACHE_SIZE) return;
+  for (const [slug, entry] of cache) {
+    if (cache.size <= MAX_CACHE_SIZE) break;
+    if (entry.listeners.size > 0) continue;
+    if (entry.es) {
+      entry.es.close();
+      entry.es = null;
+    }
+    cache.delete(slug);
+  }
+}
+
+function removeEntry(slug: string) {
+  const entry = cache.get(slug);
+  if (!entry) return;
+  if (entry.es) {
+    entry.es.close();
+    entry.es = null;
+  }
+  cache.delete(slug);
+}
+
+function scheduleTerminalCleanup(slug: string) {
+  setTimeout(() => {
+    const entry = cache.get(slug);
+    if (!entry) return;
+    if (entry.listeners.size > 0) return;
+    removeEntry(slug);
+  }, TERMINAL_CLEANUP_DELAY_MS);
+}
 
 function getOrCreateEntry(slug: string): CacheEntry {
   let entry = cache.get(slug);
   if (!entry) {
+    evictOldest();
     entry = {
       state: { status: "waiting", playerCount: 1, lobbyExpiresAt: null },
       listeners: new Set(),
@@ -83,7 +119,7 @@ function updateState(entry: CacheEntry, partial: Partial<BattleState>) {
   if (changed) notify(entry);
 }
 
-function openSSE(entry: CacheEntry, sseId: string) {
+function openSSE(entry: CacheEntry, sseId: string, slug: string) {
   if (entry.es) return; // already open
   if (TERMINAL.includes(entry.state.status)) return;
 
@@ -102,6 +138,7 @@ function openSSE(entry: CacheEntry, sseId: string) {
       if (mapped && TERMINAL.includes(mapped)) {
         es.close();
         entry.es = null;
+        scheduleTerminalCleanup(slug);
       }
     } catch { /* ignore */ }
   };
@@ -119,7 +156,10 @@ function ensureFetched(slug: string, sseId: string): CacheEntry {
   entry.fetchPromise = fetch(`/api/battles/${slug}`)
     .then((res) => {
       if (!res.ok) {
-        if (res.status === 404) updateState(entry, { status: "cancelled" });
+        if (res.status === 404) {
+          updateState(entry, { status: "cancelled" });
+          scheduleTerminalCleanup(slug);
+        }
         return;
       }
       return res.json().then((data: { battle?: { status?: string; players?: unknown[]; lobbyExpiresAt?: string } }) => {
@@ -131,7 +171,7 @@ function ensureFetched(slug: string, sseId: string): CacheEntry {
         if (Object.keys(partial).length > 0) updateState(entry, partial);
 
         if (!TERMINAL.includes(entry.state.status)) {
-          openSSE(entry, sseId);
+          openSSE(entry, sseId, slug);
         }
       });
     })
@@ -153,10 +193,15 @@ function subscribe(slug: string, sseId: string, listener: Listener): () => void 
 
   return () => {
     entry.listeners.delete(listener);
-    // Close SSE when no more listeners for this battle
-    if (entry.listeners.size === 0 && entry.es) {
-      entry.es.close();
-      entry.es = null;
+    if (entry.listeners.size === 0) {
+      if (entry.es) {
+        entry.es.close();
+        entry.es = null;
+      }
+      // Immediately remove terminal entries with no listeners
+      if (TERMINAL.includes(entry.state.status)) {
+        cache.delete(slug);
+      }
     }
   };
 }
