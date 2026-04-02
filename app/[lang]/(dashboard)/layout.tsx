@@ -1,6 +1,6 @@
 ﻿import { redirect } from "next/navigation";
 import { ChatDock } from "@/components/chat/chat-dock";
-import { UserHeader } from "@/components/layout/user-header";
+import { UserHeader } from "@/components/layout/header/user-header";
 import { PendingPullsGuard } from "@/components/packs/pending-pulls-guard";
 import { auth } from "@/lib/auth";
 import { getActiveLanguages, getDictionary } from "@/lib/i18n";

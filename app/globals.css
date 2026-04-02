@@ -1,5 +1,14 @@
 @import "tailwindcss";
 
+@keyframes navIndicatorGlow {
+  0%, 100% { box-shadow: 0 0 4px rgba(155, 255, 0, 0.3); }
+  50% { box-shadow: 0 0 8px rgba(155, 255, 0, 0.5); }
+}
+
+.animate-nav-indicator-glow {
+  animation: navIndicatorGlow 2s ease-in-out infinite;
+}
+
 @keyframes goldPulse {
   0%, 100% { box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.12); }
   50% { box-shadow: 0 0 12px 4px rgba(234, 179, 8, 0.08); }
