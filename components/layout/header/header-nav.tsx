@@ -18,7 +18,7 @@ interface HeaderNavProps {
   dict: Record<string, string>;
   cartState: CartState;
   megaMenuSection: MegaMenuSection;
-  onOpenSection: (section: MegaMenuSection, leftPx: number) => void;
+  onOpenSection: (section: MegaMenuSection, triggerEl: HTMLElement) => void;
 }
 
 export function HeaderNav({
@@ -33,8 +33,7 @@ export function HeaderNav({
   const isDashboardActive = pathname === dashboardHref;
 
   function handleOpen(section: MegaMenuSection, e: React.MouseEvent<HTMLDivElement> | React.FocusEvent<HTMLDivElement>) {
-    const rect = e.currentTarget.getBoundingClientRect();
-    onOpenSection(section, rect.left);
+    onOpenSection(section, e.currentTarget);
   }
 
   return (

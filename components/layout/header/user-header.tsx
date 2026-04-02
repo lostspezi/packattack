@@ -43,13 +43,15 @@ export function UserHeader({
   const [megaMenuSection, setMegaMenuSection] = useState<MegaMenuSection>(null);
   const [megaMenuLeft, setMegaMenuLeft] = useState(24);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const activeTriggerElRef = useRef<HTMLElement | null>(null);
 
-  const openSection = useCallback((section: MegaMenuSection, leftPx: number) => {
+  const openSection = useCallback((section: MegaMenuSection, triggerEl: HTMLElement) => {
     if (closeTimerRef.current) {
       clearTimeout(closeTimerRef.current);
       closeTimerRef.current = null;
     }
-    setMegaMenuLeft(Math.max(leftPx, 24));
+    activeTriggerElRef.current = triggerEl;
+    setMegaMenuLeft(Math.max(triggerEl.getBoundingClientRect().left, 24));
     setMegaMenuSection(section);
   }, []);
 
@@ -57,14 +59,26 @@ export function UserHeader({
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     closeTimerRef.current = setTimeout(() => {
       setMegaMenuSection(null);
+      activeTriggerElRef.current = null;
     }, 200);
   }, []);
-
 
   const closeNow = useCallback(() => {
     if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
     setMegaMenuSection(null);
+    activeTriggerElRef.current = null;
   }, []);
+
+  // Update mega-menu left position on window resize
+  useEffect(() => {
+    if (!megaMenuSection) return;
+    function handleResize() {
+      const el = activeTriggerElRef.current;
+      if (el) setMegaMenuLeft(Math.max(el.getBoundingClientRect().left, 24));
+    }
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [megaMenuSection]);
 
 
   useEffect(() => {
@@ -105,6 +119,10 @@ export function UserHeader({
       <div
         className="relative z-40 shrink-0"
         onMouseLeave={startClose}
+        onBlur={(e) => {
+          // Close mega-menu when focus leaves the entire header zone
+          if (!e.currentTarget.contains(e.relatedTarget)) closeNow();
+        }}
       >
         <header
           className="flex h-16 items-center justify-between border-b border-white/8 px-4 md:h-[72px] md:px-6"

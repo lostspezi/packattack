@@ -79,6 +79,7 @@ export function MobileDrawer({
       className="fixed inset-0 z-70 flex md:hidden"
       role="dialog"
       aria-modal={open}
+      aria-hidden={!open}
       aria-label="Navigation"
       style={{
         visibility: open ? "visible" : "hidden",

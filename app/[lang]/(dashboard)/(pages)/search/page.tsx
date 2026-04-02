@@ -9,7 +9,8 @@ export default async function SearchPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { lang } = await params;
-  const { q } = await searchParams;
+  const { q: rawQ } = await searchParams;
+  const q = rawQ?.slice(0, 200);
   const dict = await getDictionary(lang, "common");
 
   return (

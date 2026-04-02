@@ -27,9 +27,13 @@ function timerColor(seconds: number) {
 export function useCartState(): CartState {
   const [cartCount, setCartCount] = useState(0);
   const [cartTimer, setCartTimer] = useState(0);
+
   const refreshCart = useCallback(() => {
     fetch("/api/cart")
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         setCartCount(data.totalItems ?? 0);
         setCartTimer(data.cartExpiresInSeconds ?? 0);
@@ -41,9 +45,11 @@ export function useCartState(): CartState {
     refreshCart();
   }, [refreshCart]);
 
-  // Single interval that ticks while cartTimer > 0.
-  // Uses a ref gate so the effect only depends on refreshCart (stable).
+  // Only run the countdown interval while there are items in the cart.
+  // cartCount is the gate: interval is created once when items appear,
+  // torn down when cart empties. The setter reads prev to avoid drift.
   useEffect(() => {
+    if (cartCount <= 0) return;
     const interval = setInterval(() => {
       setCartTimer((prev) => {
         if (prev <= 0) return 0;
@@ -53,7 +59,7 @@ export function useCartState(): CartState {
       });
     }, 1000);
     return () => clearInterval(interval);
-  }, [refreshCart]);
+  }, [cartCount, refreshCart]);
 
   return { cartCount, cartTimer, formatTimer, timerColor, refreshCart };
 }
