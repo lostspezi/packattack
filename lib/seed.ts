@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 import { translationSeedData } from "@/seed/translations";
 import { emailTemplateSeedData } from "@/seed/email-templates";
 import { invalidateTranslationCache, invalidateLanguageCache } from "@/lib/i18n";
+import { op12BoxConfig, op12Cards, op12RarityWeights } from "@/seed/op12-box";
 
 async function runInitialSeed() {
   const userCount = await User.countDocuments();
@@ -208,6 +209,102 @@ async function migrateBoxSlugs() {
   console.log(`[seed]   OK Generated slugs for ${boxes.length} existing box(es)`);
 }
 
+async function seedOP12Box() {
+  const Box = (await import("@/models/box")).default;
+  const Card = (await import("@/models/card")).default;
+  const Rarity = (await import("@/models/rarity")).default;
+
+  const existing = await Box.findOne({ slug: "op12-legacy-of-the-master" }).select("_id").lean();
+  if (existing) {
+    console.log("[seed]   OK OP12 box already exists, skipping");
+    return;
+  }
+
+  const admin = await User.findOne({ role: "super_admin" }).select("_id").lean();
+  if (!admin) {
+    console.log("[seed]   SKIP OP12 box - no admin user found");
+    return;
+  }
+
+  console.log("[seed]   Creating OP12 Legacy of the Master box...");
+
+  // Upsert all cards and collect refs
+  const cardRefs: Array<{
+    card: typeof admin._id;
+    weight: number;
+    rarity: string;
+    stock: number;
+    minStock: number;
+    conditions: string[];
+    isSubstitute: boolean;
+    originalCard: null;
+  }> = [];
+
+  const rarities = new Set<string>();
+
+  for (const seed of op12Cards) {
+    const image = seed.tcgplayerId
+      ? `https://tcgplayer-cdn.tcgplayer.com/product/${seed.tcgplayerId}_200w.jpg`
+      : null;
+
+    const card = await Card.findOneAndUpdate(
+      { justTcgId: seed.justTcgId },
+      {
+        $setOnInsert: {
+          justTcgId: seed.justTcgId,
+          name: seed.name,
+          game: seed.game,
+          set: seed.set,
+          setName: seed.setName,
+          rarity: seed.rarity,
+          tcgplayerId: seed.tcgplayerId,
+          image,
+          marketPrice: seed.marketPrice,
+          internalPrice: seed.marketPrice,
+          lastPriceUpdate: new Date(),
+          variants: [],
+        },
+      },
+      { upsert: true, returnDocument: "after" }
+    );
+
+    rarities.add(seed.rarity);
+
+    cardRefs.push({
+      card: card._id,
+      weight: seed.weight,
+      rarity: seed.rarity,
+      stock: 9999,
+      minStock: 5,
+      conditions: ["Near Mint"],
+      isSubstitute: false,
+      originalCard: null,
+    });
+  }
+
+  // Upsert rarities
+  for (const rarity of rarities) {
+    await Rarity.updateOne(
+      { game: op12BoxConfig.game, name: rarity },
+      { $setOnInsert: { game: op12BoxConfig.game, name: rarity } },
+      { upsert: true }
+    );
+  }
+
+  // Create box
+  const box = new Box({
+    ...op12BoxConfig,
+    slug: "op12-legacy-of-the-master",
+    rarityWeights: op12RarityWeights,
+    cards: cardRefs,
+    createdBy: admin._id,
+  });
+
+  await box.save();
+
+  console.log(`[seed]   OK OP12 box created with ${cardRefs.length} cards (slug: op12-legacy-of-the-master)`);
+}
+
 let seedPromise: Promise<void> | null = null;
 
 export function runSeed() {
@@ -227,6 +324,7 @@ async function doRunSeed() {
   await syncTranslations();
   await syncEmailTemplates();
   await migrateBoxSlugs();
+  await seedOP12Box();
 
   const duration = (performance.now() - start).toFixed(0);
   console.log(`[seed] Seed complete in ${duration}ms.`);
