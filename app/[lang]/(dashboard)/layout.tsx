@@ -30,7 +30,7 @@ export default async function DashboardLayout({
   const userImage = session.user.image ?? null;
 
   return (
-    <div className="flex flex-1 flex-col bg-bg">
+    <div className="flex flex-1 flex-col" style={{ background: "linear-gradient(135deg, var(--color-pa-lila) 30%, var(--color-pa-blue) 80%)" }}>
       <UserHeader
         lang={lang}
         dict={commonDict}

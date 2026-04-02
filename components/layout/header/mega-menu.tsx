@@ -42,7 +42,7 @@ export function MegaMenu({
         <motion.div
           key="mega-menu-panel"
           className="absolute left-0 right-0 top-full z-50 border-b border-white/8"
-          style={{ background: "linear-gradient(150deg, #000724 10%, #18033F 50%)" }}
+          style={{ background: "linear-gradient(150deg, var(--color-pa-blue) 10%, var(--color-pa-lila) 50%)" }}
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}

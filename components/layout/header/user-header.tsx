@@ -126,7 +126,7 @@ export function UserHeader({
       >
         <header
           className="flex h-16 items-center justify-between border-b border-white/8 px-4 md:h-[72px] md:px-6"
-          style={{ background: "linear-gradient(150deg, #000724 10%, #18033F 50%)" }}
+          style={{ background: "linear-gradient(150deg, var(--color-pa-blue) 10%, var(--color-pa-lila) 50%)" }}
         >
           <div className="flex items-center gap-3 md:gap-6">
             <button
