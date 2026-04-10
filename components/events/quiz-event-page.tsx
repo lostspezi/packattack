@@ -127,6 +127,7 @@ export function QuizEventPage() {
   const [question, setQuestion] = useState<QuestionData | null>(null);
   const [countdown, setCountdown] = useState("");
   const [joining, setJoining] = useState(false);
+  const [leaving, setLeaving] = useState(false);
   const [starting, setStarting] = useState(false);
   const [answering, setAnswering] = useState(false);
   const [error, setError] = useState("");
@@ -305,6 +306,26 @@ export function QuizEventPage() {
       setError("Fehler beim Anmelden");
     } finally {
       setJoining(false);
+    }
+  };
+
+  const handleLeave = async () => {
+    setLeaving(true);
+    setError("");
+    try {
+      const res = await fetch("/api/events/current/leave", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.message || "Fehler beim Abmelden");
+        return;
+      }
+      setParticipant(null);
+      setPhase("join");
+      fetchParticipants();
+    } catch {
+      setError("Fehler beim Abmelden");
+    } finally {
+      setLeaving(false);
     }
   };
 
@@ -752,8 +773,8 @@ export function QuizEventPage() {
               </p>
             )}
 
-            {/* Admin: force-start for testing */}
-            {isAdmin && (
+            {/* Admin: force-start for testing (draft only) */}
+            {isAdmin && event?.status === "draft" && (
               <button
                 onClick={handleStart}
                 disabled={starting}
@@ -766,6 +787,15 @@ export function QuizEventPage() {
                 )}
               </button>
             )}
+
+            {/* Leave waitlist */}
+            <button
+              onClick={handleLeave}
+              disabled={leaving}
+              className="mt-3 text-sm text-text-muted transition-colors hover:text-red-400"
+            >
+              {leaving ? "Wird abgemeldet…" : "Abmelden"}
+            </button>
           </div>
 
           {/* Waiting room */}
