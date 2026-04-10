@@ -13,7 +13,7 @@ export const mainNavItems: NavItem[] = [
   { key: "packs", label: "Packs", href: "/packs", icon: "Package" },
   { key: "battles", label: "Battles", href: "/battles", icon: "Swords" },
   { key: "leaderboard", label: "Bestenliste", href: "/leaderboard", icon: "Trophy" },
-  { key: "events", label: "Events", href: "/events", icon: "Zap", adminOnly: true },
+  { key: "events", label: "Events", href: "/events", icon: "Zap" },
 
   { key: "cart", label: "Warenkorb", href: "/cart", icon: "ShoppingCart" },
   { key: "orders", label: "Bestellungen", href: "/orders", icon: "Package" },

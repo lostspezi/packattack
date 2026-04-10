@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { LanguageSwitcher } from "../language-switcher";
 import type { CartState } from "./use-cart-state";
+import { EventCountdownBadge } from "@/components/events/event-countdown-badge";
 
 interface MobileDrawerProps {
   open: boolean;
@@ -218,12 +219,11 @@ export function MobileDrawer({
             </AnimatePresence>
           </div>
 
-          {isAdmin && (
-            <Link href={`/${lang}/events`} onClick={onClose} className={linkClass(pathname.startsWith(`/${lang}/events`))}>
-              <Zap className="h-5 w-5 shrink-0" />
-              <span className="flex-1">{dict["events"] ?? "Events"}</span>
-            </Link>
-          )}
+          <Link href={`/${lang}/events`} onClick={onClose} className={linkClass(pathname.startsWith(`/${lang}/events`))}>
+            <Zap className="h-5 w-5 shrink-0" />
+            <span className="flex-1">{dict["events"] ?? "Events"}</span>
+            <EventCountdownBadge />
+          </Link>
 
           <Link href={`/${lang}/cart`} onClick={onClose} className={linkClass(pathname.startsWith(`/${lang}/cart`))}>
             <ShoppingCart className="h-5 w-5 shrink-0" />

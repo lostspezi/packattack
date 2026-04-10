@@ -13,6 +13,7 @@ import {
 import { HeaderNavItem, HeaderNavGroup } from "./header-nav-item";
 import type { MegaMenuSection } from "./mega-menu";
 import type { CartState } from "./use-cart-state";
+import { EventCountdownBadge } from "@/components/events/event-countdown-badge";
 
 interface HeaderNavProps {
   lang: string;
@@ -87,14 +88,14 @@ export function HeaderNav({
         label={dict["leaderboard"] ?? "Bestenliste"}
       />
 
-      {isAdmin && (
-        <HeaderNavItem
-          href={`/${lang}/events`}
-          active={pathname.startsWith(`/${lang}/events`)}
-          icon={<Zap className="h-4 w-4 shrink-0" />}
-          label={dict["events"] ?? "Events"}
-        />
-      )}
+      <HeaderNavItem
+        href={`/${lang}/events`}
+        active={pathname.startsWith(`/${lang}/events`)}
+        icon={<Zap className="h-4 w-4 shrink-0" />}
+        label={dict["events"] ?? "Events"}
+      >
+        <EventCountdownBadge />
+      </HeaderNavItem>
 
       <div
         onMouseEnter={(e) => handleOpen("cart", e)}

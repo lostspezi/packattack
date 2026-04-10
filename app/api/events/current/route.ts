@@ -20,8 +20,8 @@ export async function GET() {
     const user = await User.findById(session.user.id).select("role").lean();
     const isAdmin = user?.role === "admin" || user?.role === "super_admin";
     const statusFilter = isAdmin
-      ? ["active", "upcoming", "draft"]
-      : ["active", "upcoming"];
+      ? ["active", "upcoming", "draft", "ended"]
+      : ["active", "upcoming", "ended"];
 
     // Find the most relevant event: active first, then upcoming, then draft
     const event = await QuizEvent.findOne({
@@ -46,6 +46,19 @@ export async function GET() {
         { $set: { status: "active" } },
       );
       effectiveStatus = "active";
+    }
+
+    // Auto-transition: active → ended when endsAt has passed
+    if (
+      (effectiveStatus === "active" || event.status === "active") &&
+      event.endsAt &&
+      new Date(event.endsAt) <= new Date()
+    ) {
+      await QuizEvent.updateOne(
+        { _id: event._id, status: "active" },
+        { $set: { status: "ended" } },
+      );
+      effectiveStatus = "ended";
     }
 
     const [participant, participantCount, questionCount] = await Promise.all([

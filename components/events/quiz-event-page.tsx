@@ -78,6 +78,7 @@ interface LeaderboardEntry {
   totalQuestions: number;
   percentage: number;
   totalTimeMs: number;
+  completedAt: string | null;
   placement: number | null;
   isMe: boolean;
 }
@@ -85,6 +86,7 @@ interface LeaderboardEntry {
 type Phase =
   | "loading"
   | "no-event"
+  | "ended"
   | "join"
   | "waitlist"
   | "ready"
@@ -100,6 +102,16 @@ function formatTime(ms: number) {
   const min = Math.floor(totalSec / 60);
   const sec = totalSec % 60;
   return `${min}:${String(sec).padStart(2, "0")}`;
+}
+
+function formatUhrzeit(dateStr: string | null) {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr);
+  return d.toLocaleTimeString("de-DE", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 function placementLabel(p: number | null) {
@@ -144,6 +156,7 @@ export function QuizEventPage() {
 
   const questionStartTime = useRef<number>(0);
   const countdownInterval = useRef<ReturnType<typeof setInterval> | null>(null);
+  const transitionPoll = useRef<ReturnType<typeof setInterval> | null>(null);
   const pollInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   /* ---- Fetch current event ---- */
@@ -161,6 +174,12 @@ export function QuizEventPage() {
       setEvent(data.event);
       const p = data.participant as ParticipantData | null;
       setParticipant(p);
+
+      // Event is over
+      if (data.event.status === "ended") {
+        setPhase(p?.status === "completed" ? "completed" : "ended");
+        return;
+      }
 
       if (!p) {
         setPhase("join");
@@ -243,17 +262,28 @@ export function QuizEventPage() {
   }, [phase, fetchParticipants]);
 
   /* ---- Countdown timer ---- */
+  /* ---- Countdown timer ---- */
   useEffect(() => {
     if (!event?.startsAt) return;
-    if (phase !== "waitlist" && phase !== "join") return;
+    if (phase !== "waitlist" && phase !== "join") {
+      setCountdown("");
+      return;
+    }
+
+    const start = new Date(event.startsAt).getTime();
+
+    // If already past start time, trigger a single fetch and stop
+    if (start <= Date.now()) {
+      setCountdown("");
+      fetchEvent();
+      return;
+    }
 
     function tick() {
-      const now = Date.now();
-      const start = new Date(event!.startsAt).getTime();
-      const diff = start - now;
+      const diff = start - Date.now();
 
       if (diff <= 0) {
-        setCountdown("Jetzt!");
+        setCountdown("");
         if (countdownInterval.current) {
           clearInterval(countdownInterval.current);
           countdownInterval.current = null;
@@ -279,7 +309,34 @@ export function QuizEventPage() {
     tick();
     countdownInterval.current = setInterval(tick, 1000);
     return () => {
-      if (countdownInterval.current) clearInterval(countdownInterval.current);
+      if (countdownInterval.current) {
+        clearInterval(countdownInterval.current);
+        countdownInterval.current = null;
+      }
+    };
+  }, [event, phase, fetchEvent]);
+
+  /* ---- Transition poll: re-fetch every 3s while waiting for event to go active ---- */
+  useEffect(() => {
+    // Only poll if we're on waitlist/join and the start time has passed
+    if (phase !== "waitlist" && phase !== "join") {
+      if (transitionPoll.current) {
+        clearInterval(transitionPoll.current);
+        transitionPoll.current = null;
+      }
+      return;
+    }
+
+    if (!event?.startsAt) return;
+    if (new Date(event.startsAt).getTime() > Date.now()) return;
+
+    // Start time passed but we're still on waitlist/join — poll until phase changes
+    transitionPoll.current = setInterval(fetchEvent, 3000);
+    return () => {
+      if (transitionPoll.current) {
+        clearInterval(transitionPoll.current);
+        transitionPoll.current = null;
+      }
     };
   }, [event, phase, fetchEvent]);
 
@@ -293,8 +350,7 @@ export function QuizEventPage() {
       if (!res.ok) {
         if (data.error === "badge_required") {
           setError(
-            data.message ||
-              "Du benötigst das Beta-Tester Badge, um teilzunehmen.",
+            "Du benötigst das Beta-Tester Badge, um teilzunehmen. Du kannst es über das Feedback-Formular erhalten.",
           );
         } else {
           setError(data.message || "Fehler beim Anmelden");
@@ -362,7 +418,6 @@ export function QuizEventPage() {
   const handleAnswer = async (selectedIndex: number) => {
     if (answering) return;
     setAnswering(true);
-    setSelectedAnswer(selectedIndex);
 
     const timeSpentMs = Date.now() - questionStartTime.current;
 
@@ -630,6 +685,30 @@ export function QuizEventPage() {
     );
   }
 
+  if (phase === "ended") {
+    return (
+      <div className="mx-auto w-full max-w-3xl space-y-5 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-6">
+        <div className="rounded-2xl border border-border bg-surface p-5 text-center sm:p-8">
+          <Trophy className="mx-auto mb-3 h-12 w-12 text-text-muted sm:mb-4 sm:h-14 sm:w-14" />
+          <h1 className="text-xl font-bold text-text-primary sm:text-2xl">
+            {title}
+          </h1>
+          <p className="mt-2 text-sm text-text-muted sm:text-base">
+            Dieses Event ist beendet. Vielen Dank an alle Teilnehmer!
+          </p>
+          <a
+            href={`/${lang}/dashboard`}
+            className="mt-5 inline-block rounded-xl border border-border px-6 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-white/5 hover:text-text-primary sm:mt-6"
+          >
+            Zurück zum Dashboard
+          </a>
+        </div>
+
+        <LiveLeaderboard />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-5 px-3 py-4 sm:space-y-6 sm:px-4 sm:py-6">
       {error && (
@@ -698,6 +777,18 @@ export function QuizEventPage() {
                 <li className="flex items-start gap-2.5">
                   <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-pa-green" />
                   <span>Die 3 besten Spieler gewinnen Preise!</span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-yellow-400" />
+                  <span className="text-yellow-400/90">
+                    Die schnellste Zeit gewinnt — wer die meisten Fragen richtig beantwortet und am schnellsten ist, gewinnt!
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-text-muted" />
+                  <span className="text-text-muted">
+                    Du hast 2 Stunden Zeit, um das Quiz abzuschließen.
+                  </span>
                 </li>
                 <li className="flex items-start gap-2.5">
                   <Lock className="mt-0.5 h-3.5 w-3.5 shrink-0 text-text-muted" />
@@ -815,11 +906,11 @@ export function QuizEventPage() {
             </h1>
             <p className="mx-auto mt-2 max-w-md text-base text-text-secondary sm:text-lg">
               Klicke auf Start, wenn du bereit bist. Die Zeit läuft ab dem
-              Moment, in dem du startest.
+              Moment, in dem du startest — sei schnell!
             </p>
-            <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-text-muted">
-              <Lock className="h-3.5 w-3.5 shrink-0" />
-              Du hast nur einen Versuch!
+            <p className="mt-2 flex items-center justify-center gap-1.5 text-sm text-yellow-400/90">
+              <Clock className="h-3.5 w-3.5 shrink-0" />
+              Jede Sekunde zählt!
             </p>
 
             <button
@@ -907,7 +998,7 @@ export function QuizEventPage() {
                   }
                 } else if (selectedAnswer === idx) {
                   btnClass +=
-                    "border-pa-green bg-pa-green/10 text-pa-green scale-[0.98]";
+                    "border-pa-green bg-pa-green/10 text-pa-green";
                 } else {
                   btnClass +=
                     "border-border bg-surface-alt text-text-primary hover:border-pa-green/50 hover:bg-pa-green/5 active:scale-[0.98]";
@@ -916,7 +1007,7 @@ export function QuizEventPage() {
                 return (
                   <button
                     key={idx}
-                    onClick={() => handleAnswer(idx)}
+                    onClick={() => !answering && !lastResult && setSelectedAnswer(idx)}
                     disabled={answering}
                     className={btnClass}
                   >
@@ -925,6 +1016,9 @@ export function QuizEventPage() {
                     </span>
                     {answer}
 
+                    {!lastResult && selectedAnswer === idx && (
+                      <CheckCircle2 className="ml-auto inline h-5 w-5 text-pa-green" />
+                    )}
                     {lastResult && idx === lastResult.correctIndex && (
                       <CheckCircle2 className="ml-auto inline h-5 w-5 text-green-400" />
                     )}
@@ -937,6 +1031,21 @@ export function QuizEventPage() {
                 );
               })}
             </div>
+
+            {/* Confirm button — only shows after selecting an answer */}
+            {selectedAnswer !== null && !lastResult && (
+              <button
+                onClick={() => handleAnswer(selectedAnswer)}
+                disabled={answering}
+                className="mt-4 w-full rounded-xl bg-pa-green py-3.5 text-base font-bold text-black transition-all hover:bg-pa-green/80 active:scale-[0.98] disabled:opacity-50 sm:mt-6"
+              >
+                {answering ? (
+                  <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+                ) : (
+                  "Bestätigen"
+                )}
+              </button>
+            )}
           </div>
 
           {/* Show leaderboard below quiz */}
