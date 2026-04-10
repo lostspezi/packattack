@@ -146,6 +146,7 @@ export function UserHeader({
             <HeaderNav
               lang={lang}
               dict={dict}
+              userRole={userRole}
               cartState={cartState}
               megaMenuSection={megaMenuSection}
               onOpenSection={openSection}
@@ -221,6 +222,7 @@ export function UserHeader({
         userName={userName}
         avatarUrl={avatarUrl}
         levelLabel={levelLabel}
+        userRole={userRole}
       />
     </>
   );

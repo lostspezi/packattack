@@ -205,7 +205,9 @@ function SidebarContent({
             {mainLabel}
           </p>
           <ul className="space-y-1">
-            {mainNavItems.map((item) => (
+            {mainNavItems
+              .filter((item) => !item.adminOnly || isAdmin)
+              .map((item) => (
               <li key={item.key}>
                 <NavLink
                   item={item}

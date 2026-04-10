@@ -1,0 +1,1367 @@
+[
+  {
+    "number": 1,
+    "id": "star-wars-welche-farbe-hat-mace-windus-lichtschwert",
+    "category": "Star Wars",
+    "question": "Welche Farbe hat Mace Windus Lichtschwert?",
+    "answers": [
+      "Lila",
+      "Grün",
+      "Blau"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Lila"
+  },
+  {
+    "number": 2,
+    "id": "star-wars-wie-hei-t-der-planet-auf-dem-luke-skywalker-aufw",
+    "category": "Star Wars",
+    "question": "Wie heißt der Planet, auf dem Luke Skywalker aufwächst?",
+    "answers": [
+      "Tatooine",
+      "Naboo",
+      "Hoth"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Tatooine"
+  },
+  {
+    "number": 3,
+    "id": "star-wars-wer-ist-anakin-skywalkers-padawan",
+    "category": "Star Wars",
+    "question": "Wer ist Anakin Skywalkers Padawan?",
+    "answers": [
+      "Ahsoka Tano",
+      "Barriss Offee",
+      "Luminara Unduli"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Ahsoka Tano"
+  },
+  {
+    "number": 4,
+    "id": "star-wars-welche-spezies-ist-chewbacca",
+    "category": "Star Wars",
+    "question": "Welche Spezies ist Chewbacca?",
+    "answers": [
+      "Wookiee",
+      "Ewok",
+      "Trandoshaner"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Wookiee"
+  },
+  {
+    "number": 5,
+    "id": "star-wars-wie-hei-t-han-solos-schiff",
+    "category": "Star Wars",
+    "question": "Wie heißt Han Solos Schiff?",
+    "answers": [
+      "Millennium Falke",
+      "Slave I",
+      "X-Wing"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Millennium Falke"
+  },
+  {
+    "number": 6,
+    "id": "star-wars-wer-hat-die-klonarmee-fur-die-republik-in-auftra",
+    "category": "Star Wars",
+    "question": "Wer hat die Klonarmee für die Republik in Auftrag gegeben?",
+    "answers": [
+      "Sifo-Dyas",
+      "Dooku",
+      "Palpatine"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Sifo-Dyas"
+  },
+  {
+    "number": 7,
+    "id": "star-wars-welchen-rang-hat-thrawn-im-imperium",
+    "category": "Star Wars",
+    "question": "Welchen Rang hat Thrawn im Imperium?",
+    "answers": [
+      "Großadmiral",
+      "Moff",
+      "General"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Großadmiral"
+  },
+  {
+    "number": 8,
+    "id": "star-wars-wie-hei-t-kylo-rens-richtiger-name",
+    "category": "Star Wars",
+    "question": "Wie heißt Kylo Rens richtiger Name?",
+    "answers": [
+      "Ben Solo",
+      "Jacen Solo",
+      "Anakin Solo"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Ben Solo"
+  },
+  {
+    "number": 9,
+    "id": "star-wars-auf-welchem-planeten-befindet-sich-die-jedi-akad",
+    "category": "Star Wars",
+    "question": "Auf welchem Planeten befindet sich die Jedi-Akademie im alten Kanon?",
+    "answers": [
+      "Yavin IV",
+      "Coruscant",
+      "Dagobah"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Yavin IV"
+  },
+  {
+    "number": 10,
+    "id": "star-wars-wie-hei-t-der-anfuhrer-der-separatisten-armee",
+    "category": "Star Wars",
+    "question": "Wie heißt der Anführer der Separatisten-Armee?",
+    "answers": [
+      "General Grievous",
+      "Nute Gunray",
+      "Wat Tambor"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "General Grievous"
+  },
+  {
+    "number": 11,
+    "id": "dragon-ball-wie-hei-t-son-gokus-vater",
+    "category": "Dragon Ball",
+    "question": "Wie heißt Son Gokus Vater?",
+    "answers": [
+      "Bardock",
+      "Raditz",
+      "Turles"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Bardock"
+  },
+  {
+    "number": 12,
+    "id": "dragon-ball-welche-technik-benutzt-krillin-die-wie-eine-sche",
+    "category": "Dragon Ball",
+    "question": "Welche Technik benutzt Krillin, die wie eine Scheibe aussieht?",
+    "answers": [
+      "Kienzan",
+      "Kamehameha",
+      "Masenko"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Kienzan"
+  },
+  {
+    "number": 13,
+    "id": "dragon-ball-wie-viele-dragon-balls-braucht-man-um-shenlong-z",
+    "category": "Dragon Ball",
+    "question": "Wie viele Dragon Balls braucht man, um Shenlong zu rufen?",
+    "answers": [
+      "7",
+      "5",
+      "9"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "7"
+  },
+  {
+    "number": 14,
+    "id": "dragon-ball-welche-transformation-erreicht-goku-zuerst-auf-n",
+    "category": "Dragon Ball",
+    "question": "Welche Transformation erreicht Goku zuerst auf Namek?",
+    "answers": [
+      "Super-Saiyajin",
+      "Super-Saiyajin 2",
+      "Ultra Instinct"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Super-Saiyajin"
+  },
+  {
+    "number": 15,
+    "id": "dragon-ball-wer-totet-freezer-auf-namek-endgultig",
+    "category": "Dragon Ball",
+    "question": "Wer tötet Freezer auf Namek endgültig?",
+    "answers": [
+      "Trunks",
+      "Goku",
+      "Vegeta"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Trunks"
+  },
+  {
+    "number": 16,
+    "id": "dragon-ball-wie-hei-t-die-fusion-von-goku-und-vegeta-mit-den",
+    "category": "Dragon Ball",
+    "question": "Wie heißt die Fusion von Goku und Vegeta mit den Potara-Ohrringen?",
+    "answers": [
+      "Vegetto",
+      "Gogeta",
+      "Gotenks"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Vegetto"
+  },
+  {
+    "number": 17,
+    "id": "dragon-ball-welchen-beruf-ubt-gohan-als-erwachsener-aus",
+    "category": "Dragon Ball",
+    "question": "Welchen Beruf übt Gohan als Erwachsener aus?",
+    "answers": [
+      "Gelehrter / Professor",
+      "Kampfsportlehrer",
+      "Farmer"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Gelehrter / Professor"
+  },
+  {
+    "number": 18,
+    "id": "dragon-ball-wie-hei-t-der-gott-der-zerstorung-in-universe-7",
+    "category": "Dragon Ball",
+    "question": "Wie heißt der Gott der Zerstörung in Universe 7?",
+    "answers": [
+      "Beerus",
+      "Champa",
+      "Whis"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Beerus"
+  },
+  {
+    "number": 19,
+    "id": "dragon-ball-was-ist-vegetas-beruhmter-ausruf-uber-seine-kamp",
+    "category": "Dragon Ball",
+    "question": "Was ist Vegetas berühmter Ausruf über seine Kampfkraft?",
+    "answers": [
+      "Es ist über 9000!",
+      "Ich bin der Prinz!",
+      "Kakarot!"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Es ist über 9000!"
+  },
+  {
+    "number": 20,
+    "id": "dragon-ball-wer-trainiert-goku-auf-dem-jenseits-planeten",
+    "category": "Dragon Ball",
+    "question": "Wer trainiert Goku auf dem Jenseits-Planeten?",
+    "answers": [
+      "King Kai",
+      "Meister Roshi",
+      "Kami"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "King Kai"
+  },
+  {
+    "number": 21,
+    "id": "one-piece-wie-hei-t-ruffys-teufelsfrucht",
+    "category": "One Piece",
+    "question": "Wie heißt Ruffys Teufelsfrucht?",
+    "answers": [
+      "Gum-Gum-Frucht",
+      "Feuer-Frucht",
+      "Donner-Frucht"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Gum-Gum-Frucht"
+  },
+  {
+    "number": 22,
+    "id": "one-piece-wer-ist-der-schiffskoch-der-strohhutbande",
+    "category": "One Piece",
+    "question": "Wer ist der Schiffskoch der Strohhutbande?",
+    "answers": [
+      "Sanji",
+      "Zorro",
+      "Lysop"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Sanji"
+  },
+  {
+    "number": 23,
+    "id": "one-piece-wie-hei-t-das-schiff-der-strohhute-nach-der-wate",
+    "category": "One Piece",
+    "question": "Wie heißt das Schiff der Strohhüte nach der Water-7-Saga?",
+    "answers": [
+      "Thousand Sunny",
+      "Going Merry",
+      "Red Force"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Thousand Sunny"
+  },
+  {
+    "number": 24,
+    "id": "one-piece-welchen-traum-verfolgt-zorro",
+    "category": "One Piece",
+    "question": "Welchen Traum verfolgt Zorro?",
+    "answers": [
+      "Bester Schwertkämpfer der Welt",
+      "König der Piraten",
+      "All Blue finden"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Bester Schwertkämpfer der Welt"
+  },
+  {
+    "number": 25,
+    "id": "one-piece-wie-hoch-ist-das-erste-kopfgeld-von-ruffy",
+    "category": "One Piece",
+    "question": "Wie hoch ist das erste Kopfgeld von Ruffy?",
+    "answers": [
+      "30 Millionen Berry",
+      "100 Millionen Berry",
+      "10 Millionen Berry"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "30 Millionen Berry"
+  },
+  {
+    "number": 26,
+    "id": "one-piece-wer-ist-ruffys-bruder-der-in-marineford-stirbt",
+    "category": "One Piece",
+    "question": "Wer ist Ruffys Bruder, der in Marineford stirbt?",
+    "answers": [
+      "Ace",
+      "Sabo",
+      "Shanks"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Ace"
+  },
+  {
+    "number": 27,
+    "id": "one-piece-wie-hei-t-die-insel-auf-der-das-one-piece-liegen",
+    "category": "One Piece",
+    "question": "Wie heißt die Insel, auf der das One Piece liegen soll?",
+    "answers": [
+      "Laugh Tale",
+      "Raftel",
+      "Skypiea"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Laugh Tale"
+  },
+  {
+    "number": 28,
+    "id": "one-piece-welche-haki-art-kann-ruffy-als-erster-der-crew-n",
+    "category": "One Piece",
+    "question": "Welche Haki-Art kann Ruffy als Erster der Crew nutzen?",
+    "answers": [
+      "Königshaki",
+      "Observationshaki",
+      "Rüstungshaki"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Königshaki"
+  },
+  {
+    "number": 29,
+    "id": "one-piece-wie-hei-t-der-admiral-der-ace-exekutiert",
+    "category": "One Piece",
+    "question": "Wie heißt der Admiral, der Ace exekutiert?",
+    "answers": [
+      "Akainu",
+      "Aokiji",
+      "Kizaru"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Akainu"
+  },
+  {
+    "number": 30,
+    "id": "one-piece-was-ist-das-ziel-von-nami",
+    "category": "One Piece",
+    "question": "Was ist das Ziel von Nami?",
+    "answers": [
+      "Weltkarte zeichnen",
+      "Beste Navigatorin werden",
+      "Reich werden"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Weltkarte zeichnen"
+  },
+  {
+    "number": 31,
+    "id": "pokemon-welches-pokemon-ist-001-im-pokedex",
+    "category": "Pokémon",
+    "question": "Welches Pokémon ist #001 im Pokédex?",
+    "answers": [
+      "Bisasam",
+      "Glumanda",
+      "Schiggy"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Bisasam"
+  },
+  {
+    "number": 32,
+    "id": "pokemon-zu-welchem-typ-entwickelt-sich-evoli-mit-einem-w",
+    "category": "Pokémon",
+    "question": "Zu welchem Typ entwickelt sich Evoli mit einem Wasserstein?",
+    "answers": [
+      "Aquana",
+      "Flamara",
+      "Blitza"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Aquana"
+  },
+  {
+    "number": 33,
+    "id": "pokemon-wie-hei-t-der-erste-arenaleiter-in-kanto",
+    "category": "Pokémon",
+    "question": "Wie heißt der erste Arenaleiter in Kanto?",
+    "answers": [
+      "Rocko",
+      "Misty",
+      "Major Bob"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Rocko"
+  },
+  {
+    "number": 34,
+    "id": "pokemon-welches-legendare-pokemon-ist-auf-dem-cover-von-",
+    "category": "Pokémon",
+    "question": "Welches legendäre Pokémon ist auf dem Cover von Pokémon Rot?",
+    "answers": [
+      "Glurak",
+      "Turtok",
+      "Mewtu"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Glurak"
+  },
+  {
+    "number": 35,
+    "id": "pokemon-welchen-typ-hat-gengar",
+    "category": "Pokémon",
+    "question": "Welchen Typ hat Gengar?",
+    "answers": [
+      "Geist / Gift",
+      "Geist / Unlicht",
+      "Gift / Psycho"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Geist / Gift"
+  },
+  {
+    "number": 36,
+    "id": "pokemon-wie-hei-t-das-team-das-in-kanto-pokemon-stiehlt",
+    "category": "Pokémon",
+    "question": "Wie heißt das Team, das in Kanto Pokémon stiehlt?",
+    "answers": [
+      "Team Rocket",
+      "Team Magma",
+      "Team Plasma"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Team Rocket"
+  },
+  {
+    "number": 37,
+    "id": "pokemon-welches-pokemon-kann-sich-in-jedes-andere-verwan",
+    "category": "Pokémon",
+    "question": "Welches Pokémon kann sich in jedes andere verwandeln?",
+    "answers": [
+      "Ditto",
+      "Mew",
+      "Zoroark"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Ditto"
+  },
+  {
+    "number": 38,
+    "id": "pokemon-wie-viele-pokemon-gab-es-in-der-ersten-generatio",
+    "category": "Pokémon",
+    "question": "Wie viele Pokémon gab es in der ersten Generation?",
+    "answers": [
+      "151",
+      "150",
+      "152"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "151"
+  },
+  {
+    "number": 39,
+    "id": "pokemon-welcher-typ-ist-effektiv-gegen-drachen-pokemon",
+    "category": "Pokémon",
+    "question": "Welcher Typ ist effektiv gegen Drachen-Pokémon?",
+    "answers": [
+      "Eis",
+      "Feuer",
+      "Elektro"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Eis"
+  },
+  {
+    "number": 40,
+    "id": "pokemon-wie-hei-t-ashs-ewiger-rivale-aus-alabastia",
+    "category": "Pokémon",
+    "question": "Wie heißt Ashs ewiger Rivale aus Alabastia?",
+    "answers": [
+      "Gary",
+      "Paul",
+      "Tobias"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Gary"
+  },
+  {
+    "number": 41,
+    "id": "yu-gi-oh-wie-hei-t-yugis-machtigstes-monster",
+    "category": "Yu-Gi-Oh!",
+    "question": "Wie heißt Yugis mächtigstes Monster?",
+    "answers": [
+      "Dunkler Magier",
+      "Blauäugiger w. Drache",
+      "Exodia"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Dunkler Magier"
+  },
+  {
+    "number": 42,
+    "id": "yu-gi-oh-wie-viele-teile-hat-exodia",
+    "category": "Yu-Gi-Oh!",
+    "question": "Wie viele Teile hat Exodia?",
+    "answers": [
+      "5",
+      "3",
+      "7"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "5"
+  },
+  {
+    "number": 43,
+    "id": "yu-gi-oh-wer-besitzt-den-blauaugigen-wei-en-drachen",
+    "category": "Yu-Gi-Oh!",
+    "question": "Wer besitzt den Blauäugigen Weißen Drachen?",
+    "answers": [
+      "Seto Kaiba",
+      "Joey Wheeler",
+      "Marik"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Seto Kaiba"
+  },
+  {
+    "number": 44,
+    "id": "yu-gi-oh-wie-hei-t-das-millennium-artefakt-das-yugi-tragt",
+    "category": "Yu-Gi-Oh!",
+    "question": "Wie heißt das Millennium-Artefakt, das Yugi trägt?",
+    "answers": [
+      "Millennium-Puzzle",
+      "Millennium-Ring",
+      "Millennium-Stab"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Millennium-Puzzle"
+  },
+  {
+    "number": 45,
+    "id": "yu-gi-oh-wie-viele-lebenspunkte-hat-man-zu-beginn-eines-d",
+    "category": "Yu-Gi-Oh!",
+    "question": "Wie viele Lebenspunkte hat man zu Beginn eines Duells?",
+    "answers": [
+      "8000",
+      "4000",
+      "10000"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "8000"
+  },
+  {
+    "number": 46,
+    "id": "yu-gi-oh-welches-monster-ist-joeys-ace-karte",
+    "category": "Yu-Gi-Oh!",
+    "question": "Welches Monster ist Joeys Ace-Karte?",
+    "answers": [
+      "Rotäugiger schwarzer Drache",
+      "Flammenritter",
+      "Zeitmagier"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Rotäugiger schwarzer Drache"
+  },
+  {
+    "number": 47,
+    "id": "yu-gi-oh-wie-hei-t-der-pharao-der-in-yugis-puzzle-lebt",
+    "category": "Yu-Gi-Oh!",
+    "question": "Wie heißt der Pharao, der in Yugis Puzzle lebt?",
+    "answers": [
+      "Atem",
+      "Seth",
+      "Mahad"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Atem"
+  },
+  {
+    "number": 48,
+    "id": "yu-gi-oh-welche-gotter-karte-kontrolliert-marik",
+    "category": "Yu-Gi-Oh!",
+    "question": "Welche Götter-Karte kontrolliert Marik?",
+    "answers": [
+      "Geflügelter Drache des Ra",
+      "Obelisk der Peiniger",
+      "Slifer"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Geflügelter Drache des Ra"
+  },
+  {
+    "number": 49,
+    "id": "yu-gi-oh-wie-hei-t-das-turnier-das-kaiba-auf-seiner-insel",
+    "category": "Yu-Gi-Oh!",
+    "question": "Wie heißt das Turnier, das Kaiba auf seiner Insel veranstaltet?",
+    "answers": [
+      "Battle City (Kaiba Corp Island)",
+      "Duelist Kingdom",
+      "Grand Championship"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Battle City (Kaiba Corp Island)"
+  },
+  {
+    "number": 50,
+    "id": "yu-gi-oh-welches-monster-wird-durch-polymerisation-aus-3-",
+    "category": "Yu-Gi-Oh!",
+    "question": "Welches Monster wird durch Polymerisation aus 3 Blauäugigen fusioniert?",
+    "answers": [
+      "Blauäugiger Ultimativer Drache",
+      "Meister der Drachen",
+      "Fünfköpfiger Drache"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Blauäugiger Ultimativer Drache"
+  },
+  {
+    "number": 51,
+    "id": "captain-tsubasa-wie-hei-t-tsubasas-kongenialer-spielpartner",
+    "category": "Captain Tsubasa",
+    "question": "Wie heißt Tsubasas kongenialer Spielpartner?",
+    "answers": [
+      "Taro Misaki",
+      "Kojiro Hyuga",
+      "Ryo Ishizaki"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Taro Misaki"
+  },
+  {
+    "number": 52,
+    "id": "captain-tsubasa-welcher-brasilianische-ex-profi-trainiert-tsubas",
+    "category": "Captain Tsubasa",
+    "question": "Welcher brasilianische Ex-Profi trainiert Tsubasa zu Beginn?",
+    "answers": [
+      "Roberto Hongo",
+      "Carlos Santana",
+      "Natureza"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Roberto Hongo"
+  },
+  {
+    "number": 53,
+    "id": "captain-tsubasa-auf-welcher-position-spielt-genzo-wakabayashi",
+    "category": "Captain Tsubasa",
+    "question": "Auf welcher Position spielt Genzo Wakabayashi?",
+    "answers": [
+      "Torwart",
+      "Mittelfeld",
+      "Stürmer"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Torwart"
+  },
+  {
+    "number": 54,
+    "id": "captain-tsubasa-wie-hei-t-tsubasas-schulteam-zu-beginn-der-serie",
+    "category": "Captain Tsubasa",
+    "question": "Wie heißt Tsubasas Schulteam zu Beginn der Serie?",
+    "answers": [
+      "Nankatsu",
+      "Toho",
+      "Furano"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Nankatsu"
+  },
+  {
+    "number": 55,
+    "id": "captain-tsubasa-welcher-rivale-ist-fur-seinen-tigerschuss-beruhm",
+    "category": "Captain Tsubasa",
+    "question": "Welcher Rivale ist für seinen Tigerschuss berühmt?",
+    "answers": [
+      "Kojiro Hyuga",
+      "Jun Misugi",
+      "Ken Wakashimazu"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Kojiro Hyuga"
+  },
+  {
+    "number": 56,
+    "id": "captain-tsubasa-wie-hei-t-die-spezialtechnik-der-tachibana-zwill",
+    "category": "Captain Tsubasa",
+    "question": "Wie heißt die Spezialtechnik der Tachibana-Zwillinge?",
+    "answers": [
+      "Skylab Hurricane",
+      "Twin Shot",
+      "Eagle Shot"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Skylab Hurricane"
+  },
+  {
+    "number": 57,
+    "id": "captain-tsubasa-zu-welchem-spanischen-klub-wechselt-tsubasa-spat",
+    "category": "Captain Tsubasa",
+    "question": "Zu welchem spanischen Klub wechselt Tsubasa später?",
+    "answers": [
+      "FC Barcelona",
+      "Real Madrid",
+      "Valencia CF"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "FC Barcelona"
+  },
+  {
+    "number": 58,
+    "id": "captain-tsubasa-wie-hei-t-der-verteidiger-mit-der-markanten-narb",
+    "category": "Captain Tsubasa",
+    "question": "Wie heißt der Verteidiger mit der markanten Narbe im Gesicht?",
+    "answers": [
+      "Ryo Ishizaki",
+      "Hikaru Matsuyama",
+      "Shun Nitta"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Ryo Ishizaki"
+  },
+  {
+    "number": 59,
+    "id": "captain-tsubasa-welcher-geniale-mittelfeldspieler-leidet-an-herz",
+    "category": "Captain Tsubasa",
+    "question": "Welcher geniale Mittelfeldspieler leidet an Herzproblemen?",
+    "answers": [
+      "Jun Misugi",
+      "Karl-Heinz Schneider",
+      "Makoto Soda"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Jun Misugi"
+  },
+  {
+    "number": 60,
+    "id": "captain-tsubasa-wie-hei-t-der-deutsche-star-sturmer-im-internati",
+    "category": "Captain Tsubasa",
+    "question": "Wie heißt der deutsche Star-Stürmer im internationalen Jugendturnier?",
+    "answers": [
+      "Karl-Heinz Schneider",
+      "Franz Schester",
+      "Hermann Kaltz"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Karl-Heinz Schneider"
+  },
+  {
+    "number": 61,
+    "id": "naruto-wie-hei-t-der-bijuu-der-in-naruto-versiegelt-ist",
+    "category": "Naruto",
+    "question": "Wie heißt der Bijuu, der in Naruto versiegelt ist?",
+    "answers": [
+      "Kurama",
+      "Shukaku",
+      "Gyuki"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Kurama"
+  },
+  {
+    "number": 62,
+    "id": "naruto-wer-ist-der-lehrer-von-team-7",
+    "category": "Naruto",
+    "question": "Wer ist der Lehrer von Team 7?",
+    "answers": [
+      "Kakashi Hatake",
+      "Might Guy",
+      "Asuma Sarutobi"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Kakashi Hatake"
+  },
+  {
+    "number": 63,
+    "id": "naruto-welchen-gro-en-traum-verfolgt-naruto",
+    "category": "Naruto",
+    "question": "Welchen großen Traum verfolgt Naruto?",
+    "answers": [
+      "Hokage werden",
+      "ANBU-Captain werden",
+      "Kazekage werden"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Hokage werden"
+  },
+  {
+    "number": 64,
+    "id": "naruto-wie-hei-t-sasukes-alterer-bruder",
+    "category": "Naruto",
+    "question": "Wie heißt Sasukes älterer Bruder?",
+    "answers": [
+      "Itachi Uchiha",
+      "Shisui Uchiha",
+      "Madara Uchiha"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Itachi Uchiha"
+  },
+  {
+    "number": 65,
+    "id": "naruto-welche-technik-gilt-als-narutos-markenzeichen",
+    "category": "Naruto",
+    "question": "Welche Technik gilt als Narutos Markenzeichen?",
+    "answers": [
+      "Kage Bunshin no Jutsu",
+      "Chidori",
+      "Byakugan"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Kage Bunshin no Jutsu"
+  },
+  {
+    "number": 66,
+    "id": "naruto-wer-ist-die-kunoichi-aus-team-7",
+    "category": "Naruto",
+    "question": "Wer ist die Kunoichi aus Team 7?",
+    "answers": [
+      "Sakura Haruno",
+      "Hinata Hyuga",
+      "Ino Yamanaka"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Sakura Haruno"
+  },
+  {
+    "number": 67,
+    "id": "naruto-wie-hei-t-der-legendare-sannin-der-naruto-traini",
+    "category": "Naruto",
+    "question": "Wie heißt der legendäre Sannin, der Naruto trainiert?",
+    "answers": [
+      "Jiraiya",
+      "Orochimaru",
+      "Tsunade"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Jiraiya"
+  },
+  {
+    "number": 68,
+    "id": "naruto-aus-welchem-dorf-stammt-gaara",
+    "category": "Naruto",
+    "question": "Aus welchem Dorf stammt Gaara?",
+    "answers": [
+      "Sunagakure",
+      "Kirigakure",
+      "Iwagakure"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Sunagakure"
+  },
+  {
+    "number": 69,
+    "id": "naruto-wie-hei-t-das-dojutsu-des-hyuga-clans",
+    "category": "Naruto",
+    "question": "Wie heißt das Dojutsu des Hyuga-Clans?",
+    "answers": [
+      "Byakugan",
+      "Sharingan",
+      "Rinnegan"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Byakugan"
+  },
+  {
+    "number": 70,
+    "id": "naruto-wer-ist-der-vierte-hokage-und-narutos-vater",
+    "category": "Naruto",
+    "question": "Wer ist der vierte Hokage und Narutos Vater?",
+    "answers": [
+      "Minato Namikaze",
+      "Hiruzen Sarutobi",
+      "Tobirama Senju"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Minato Namikaze"
+  },
+  {
+    "number": 71,
+    "id": "gaming-history-welche-konsole-erschien-zuerst-in-japan",
+    "category": "Gaming History",
+    "question": "Welche Konsole erschien zuerst in Japan?",
+    "answers": [
+      "PlayStation",
+      "Nintendo 64",
+      "Dreamcast"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "PlayStation"
+  },
+  {
+    "number": 72,
+    "id": "gaming-history-in-welchem-jahr-erschien-die-nintendo-64-zuerst",
+    "category": "Gaming History",
+    "question": "In welchem Jahr erschien die Nintendo 64 zuerst?",
+    "answers": [
+      "1994",
+      "1996",
+      "1998"
+    ],
+    "correctIndex": 1,
+    "correctAnswer": "1996"
+  },
+  {
+    "number": 73,
+    "id": "gaming-history-wie-hie-nintendos-erste-heimkonsole",
+    "category": "Gaming History",
+    "question": "Wie hieß Nintendos erste Heimkonsole?",
+    "answers": [
+      "Color TV-Game",
+      "Famicom",
+      "Game & Watch"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Color TV-Game"
+  },
+  {
+    "number": 74,
+    "id": "gaming-history-welche-konsole-gilt-allgemein-als-meistverkaufte",
+    "category": "Gaming History",
+    "question": "Welche Konsole gilt allgemein als meistverkaufte Heimkonsole aller Zeiten?",
+    "answers": [
+      "PS2",
+      "Wii",
+      "Nintendo Switch"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "PS2"
+  },
+  {
+    "number": 75,
+    "id": "gaming-history-welche-nintendo-hardware-hat-laut-nintendo-die-d",
+    "category": "Gaming History",
+    "question": "Welche Nintendo-Hardware hat laut Nintendo die DS inzwischen überholt?",
+    "answers": [
+      "Wii",
+      "Switch",
+      "Game Boy Advance"
+    ],
+    "correctIndex": 1,
+    "correctAnswer": "Switch"
+  },
+  {
+    "number": 76,
+    "id": "nintendo-wie-hei-t-nintendos-hybrid-konsole-von-2017",
+    "category": "Nintendo",
+    "question": "Wie heißt Nintendos Hybrid-Konsole von 2017?",
+    "answers": [
+      "Switch",
+      "Wii U",
+      "3DS"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Switch"
+  },
+  {
+    "number": 77,
+    "id": "nintendo-wie-hie-nintendos-erste-handheld-reihe",
+    "category": "Nintendo",
+    "question": "Wie hieß Nintendos erste Handheld-Reihe?",
+    "answers": [
+      "Game & Watch",
+      "Game Boy",
+      "Virtual Boy"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Game & Watch"
+  },
+  {
+    "number": 78,
+    "id": "nintendo-in-welchem-spiel-hatte-wario-seinen-ersten-auftr",
+    "category": "Nintendo",
+    "question": "In welchem Spiel hatte Wario seinen ersten Auftritt?",
+    "answers": [
+      "Super Mario Land 2",
+      "Wario Land",
+      "Mario Kart 64"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Super Mario Land 2"
+  },
+  {
+    "number": 79,
+    "id": "nintendo-wie-hei-t-donkey-kongs-beruhmter-kleiner-partner",
+    "category": "Nintendo",
+    "question": "Wie heißt Donkey Kongs berühmter kleiner Partner?",
+    "answers": [
+      "Diddy Kong",
+      "Tiny Kong",
+      "Chunky Kong"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Diddy Kong"
+  },
+  {
+    "number": 80,
+    "id": "nintendo-zu-welcher-reihe-gehort-samus-aran",
+    "category": "Nintendo",
+    "question": "Zu welcher Reihe gehört Samus Aran?",
+    "answers": [
+      "Metroid",
+      "Star Fox",
+      "F-Zero"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Metroid"
+  },
+  {
+    "number": 81,
+    "id": "playstation-in-welchem-jahr-erschien-die-ps2-zuerst-in-japan",
+    "category": "PlayStation",
+    "question": "In welchem Jahr erschien die PS2 zuerst in Japan?",
+    "answers": [
+      "1998",
+      "2000",
+      "2001"
+    ],
+    "correctIndex": 1,
+    "correctAnswer": "2000"
+  },
+  {
+    "number": 82,
+    "id": "playstation-wie-hie-sonys-handheld-vor-der-ps-vita",
+    "category": "PlayStation",
+    "question": "Wie hieß Sonys Handheld vor der PS Vita?",
+    "answers": [
+      "PSP",
+      "PocketStation",
+      "PS Mini"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "PSP"
+  },
+  {
+    "number": 83,
+    "id": "playstation-wie-hei-t-die-reihe-mit-nathan-drake",
+    "category": "PlayStation",
+    "question": "Wie heißt die Reihe mit Nathan Drake?",
+    "answers": [
+      "Uncharted",
+      "Killzone",
+      "Resistance"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Uncharted"
+  },
+  {
+    "number": 84,
+    "id": "playstation-wie-hei-t-kratos-sohn-in-god-of-war",
+    "category": "PlayStation",
+    "question": "Wie heißt Kratos’ Sohn in God of War?",
+    "answers": [
+      "Atreus",
+      "Deimos",
+      "Baldur"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Atreus"
+  },
+  {
+    "number": 85,
+    "id": "playstation-mit-welcher-reihe-ist-aloy-verbunden",
+    "category": "PlayStation",
+    "question": "Mit welcher Reihe ist Aloy verbunden?",
+    "answers": [
+      "Horizon",
+      "Infamous",
+      "Returnal"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Horizon"
+  },
+  {
+    "number": 86,
+    "id": "sega-welche-16-bit-konsole-brachte-sega-1988-in-japan",
+    "category": "Sega",
+    "question": "Welche 16-Bit-Konsole brachte Sega 1988 in Japan heraus?",
+    "answers": [
+      "Mega Drive",
+      "Saturn",
+      "SG-1000"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Mega Drive"
+  },
+  {
+    "number": 87,
+    "id": "sega-wie-hie-segas-erste-heimkonsole",
+    "category": "Sega",
+    "question": "Wie hieß Segas erste Heimkonsole?",
+    "answers": [
+      "SG-1000",
+      "Master System",
+      "Mega Drive"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "SG-1000"
+  },
+  {
+    "number": 88,
+    "id": "sega-wie-hei-t-segas-letzte-heimkonsole",
+    "category": "Sega",
+    "question": "Wie heißt Segas letzte Heimkonsole?",
+    "answers": [
+      "Dreamcast",
+      "Saturn",
+      "32X"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Dreamcast"
+  },
+  {
+    "number": 89,
+    "id": "sega-aus-welcher-reihe-stammt-kazuma-kiryu",
+    "category": "Sega",
+    "question": "Aus welcher Reihe stammt Kazuma Kiryu?",
+    "answers": [
+      "Yakuza / Like a Dragon",
+      "Shenmue",
+      "Virtua Fighter"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Yakuza / Like a Dragon"
+  },
+  {
+    "number": 90,
+    "id": "sega-wie-hie-die-speichereinheit-mit-bildschirm-der-d",
+    "category": "Sega",
+    "question": "Wie hieß die Speichereinheit mit Bildschirm der Dreamcast?",
+    "answers": [
+      "VMU",
+      "Memory Stick",
+      "Visual Card"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "VMU"
+  },
+  {
+    "number": 91,
+    "id": "mario-in-welchem-spiel-hatte-mario-seinen-ersten-auftr",
+    "category": "Mario",
+    "question": "In welchem Spiel hatte Mario seinen ersten Auftritt?",
+    "answers": [
+      "Donkey Kong",
+      "Super Mario Bros.",
+      "Mario Bros."
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Donkey Kong"
+  },
+  {
+    "number": 92,
+    "id": "mario-wie-hei-t-marios-bruder",
+    "category": "Mario",
+    "question": "Wie heißt Marios Bruder?",
+    "answers": [
+      "Luigi",
+      "Wario",
+      "Toad"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Luigi"
+  },
+  {
+    "number": 93,
+    "id": "mario-wie-hei-t-marios-erzfeind",
+    "category": "Mario",
+    "question": "Wie heißt Marios Erzfeind?",
+    "answers": [
+      "Bowser",
+      "Waluigi",
+      "Kamek"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Bowser"
+  },
+  {
+    "number": 94,
+    "id": "mario-wie-hei-t-marios-gruner-dino-freund",
+    "category": "Mario",
+    "question": "Wie heißt Marios grüner Dino-Freund?",
+    "answers": [
+      "Yoshi",
+      "Birdo",
+      "Rex"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Yoshi"
+  },
+  {
+    "number": 95,
+    "id": "mario-welche-prinzessin-rettet-mario-meistens",
+    "category": "Mario",
+    "question": "Welche Prinzessin rettet Mario meistens?",
+    "answers": [
+      "Peach",
+      "Daisy",
+      "Rosalina"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Peach"
+  },
+  {
+    "number": 96,
+    "id": "zelda-wie-hei-t-das-konigreich-in-the-legend-of-zelda",
+    "category": "Zelda",
+    "question": "Wie heißt das Königreich in The Legend of Zelda?",
+    "answers": [
+      "Hyrule",
+      "Termina",
+      "Lorule"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Hyrule"
+  },
+  {
+    "number": 97,
+    "id": "zelda-wie-hei-en-die-drei-teile-der-triforce",
+    "category": "Zelda",
+    "question": "Wie heißen die drei Teile der Triforce?",
+    "answers": [
+      "Mut, Weisheit, Kraft",
+      "Licht, Zeit, Schatten",
+      "Feuer, Eis, Donner"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Mut, Weisheit, Kraft"
+  },
+  {
+    "number": 98,
+    "id": "zelda-wie-hei-t-links-legendares-schwert",
+    "category": "Zelda",
+    "question": "Wie heißt Links legendäres Schwert?",
+    "answers": [
+      "Master-Schwert",
+      "Hylia-Klinge",
+      "Kokiri-Schwert"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Master-Schwert"
+  },
+  {
+    "number": 99,
+    "id": "zelda-welches-instrument-spielt-link-in-ocarina-of-tim",
+    "category": "Zelda",
+    "question": "Welches Instrument spielt Link in Ocarina of Time?",
+    "answers": [
+      "Okarina",
+      "Harfe",
+      "Flöte"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Okarina"
+  },
+  {
+    "number": 100,
+    "id": "zelda-wie-hei-t-zeldas-bekanntester-widersacher-in-men",
+    "category": "Zelda",
+    "question": "Wie heißt Zeldas bekanntester Widersacher in Menschengestalt?",
+    "answers": [
+      "Ganondorf",
+      "Vaati",
+      "Zant"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Ganondorf"
+  },
+  {
+    "number": 101,
+    "id": "sonic-wie-hei-t-sonics-bester-freund",
+    "category": "Sonic",
+    "question": "Wie heißt Sonics bester Freund?",
+    "answers": [
+      "Tails",
+      "Knuckles",
+      "Amy"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Tails"
+  },
+  {
+    "number": 102,
+    "id": "sonic-welches-tier-ist-knuckles",
+    "category": "Sonic",
+    "question": "Welches Tier ist Knuckles?",
+    "answers": [
+      "Ameisenigel",
+      "Fuchs",
+      "Igel"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Ameisenigel"
+  },
+  {
+    "number": 103,
+    "id": "sonic-wie-hei-en-sonics-sieben-edelsteine",
+    "category": "Sonic",
+    "question": "Wie heißen Sonics sieben Edelsteine?",
+    "answers": [
+      "Chaos Emeralds",
+      "Phantom Rubies",
+      "Time Stones"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Chaos Emeralds"
+  },
+  {
+    "number": 104,
+    "id": "sonic-wie-hei-t-sonics-erzfeind",
+    "category": "Sonic",
+    "question": "Wie heißt Sonics Erzfeind?",
+    "answers": [
+      "Dr. Eggman",
+      "Fang",
+      "Mephiles"
+    ],
+    "correctIndex": 0,
+    "correctAnswer": "Dr. Eggman"
+  },
+  {
+    "number": 105,
+    "id": "sonic-in-welchem-jahr-erschien-das-erste-sonic-the-hed",
+    "category": "Sonic",
+    "question": "In welchem Jahr erschien das erste Sonic the Hedgehog?",
+    "answers": [
+      "1989",
+      "1991",
+      "1993"
+    ],
+    "correctIndex": 1,
+    "correctAnswer": "1991"
+  }
+]

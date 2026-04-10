@@ -16,6 +16,7 @@ import {
   Sparkles,
   Clock,
   User,
+  Zap,
 } from "lucide-react";
 import { LanguageSwitcher } from "../language-switcher";
 import type { CartState } from "./use-cart-state";
@@ -30,6 +31,7 @@ interface MobileDrawerProps {
   userName: string;
   avatarUrl: string;
   levelLabel: string;
+  userRole?: string;
 }
 
 export function MobileDrawer({
@@ -42,7 +44,9 @@ export function MobileDrawer({
   userName,
   avatarUrl,
   levelLabel,
+  userRole,
 }: MobileDrawerProps) {
+  const isAdmin = userRole === "admin" || userRole === "super_admin";
   const pathname = usePathname();
   const router = useRouter();
   const dashboardHref = `/${lang}/dashboard`;
@@ -213,6 +217,13 @@ export function MobileDrawer({
               )}
             </AnimatePresence>
           </div>
+
+          {isAdmin && (
+            <Link href={`/${lang}/events`} onClick={onClose} className={linkClass(pathname.startsWith(`/${lang}/events`))}>
+              <Zap className="h-5 w-5 shrink-0" />
+              <span className="flex-1">{dict["events"] ?? "Events"}</span>
+            </Link>
+          )}
 
           <Link href={`/${lang}/cart`} onClick={onClose} className={linkClass(pathname.startsWith(`/${lang}/cart`))}>
             <ShoppingCart className="h-5 w-5 shrink-0" />

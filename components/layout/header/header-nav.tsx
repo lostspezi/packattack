@@ -8,6 +8,7 @@ import {
   Trophy,
   ShoppingCart,
   ShoppingBag,
+  Zap,
 } from "lucide-react";
 import { HeaderNavItem, HeaderNavGroup } from "./header-nav-item";
 import type { MegaMenuSection } from "./mega-menu";
@@ -16,6 +17,7 @@ import type { CartState } from "./use-cart-state";
 interface HeaderNavProps {
   lang: string;
   dict: Record<string, string>;
+  userRole?: string;
   cartState: CartState;
   megaMenuSection: MegaMenuSection;
   onOpenSection: (section: MegaMenuSection, triggerEl: HTMLElement) => void;
@@ -24,10 +26,12 @@ interface HeaderNavProps {
 export function HeaderNav({
   lang,
   dict,
+  userRole,
   cartState,
   megaMenuSection,
   onOpenSection,
 }: HeaderNavProps) {
+  const isAdmin = userRole === "admin" || userRole === "super_admin";
   const pathname = usePathname();
   const dashboardHref = `/${lang}/dashboard`;
   const isDashboardActive = pathname === dashboardHref;
@@ -82,6 +86,15 @@ export function HeaderNav({
         icon={<Trophy className="h-4 w-4 shrink-0" />}
         label={dict["leaderboard"] ?? "Bestenliste"}
       />
+
+      {isAdmin && (
+        <HeaderNavItem
+          href={`/${lang}/events`}
+          active={pathname.startsWith(`/${lang}/events`)}
+          icon={<Zap className="h-4 w-4 shrink-0" />}
+          label={dict["events"] ?? "Events"}
+        />
+      )}
 
       <div
         onMouseEnter={(e) => handleOpen("cart", e)}
