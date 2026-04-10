@@ -76,7 +76,7 @@ export function QuizEventsManager() {
     status: "draft",
     startsAt: "2026-04-14T20:00",
     endsAt: "",
-    questionsPerParticipant: 15,
+    questionsPerParticipant: 20,
     requiredBadgeKey: "beta_tester",
     notes: "",
     importQuestions: true,
@@ -452,7 +452,7 @@ export function QuizEventsManager() {
                 onChange={(e) =>
                   setForm((f) => ({
                     ...f,
-                    questionsPerParticipant: parseInt(e.target.value, 10) || 15,
+                    questionsPerParticipant: parseInt(e.target.value, 10) || 20,
                   }))
                 }
                 className="w-full rounded-lg border border-border bg-surface-alt px-3 py-2 text-sm text-text-primary focus:border-pa-green focus:outline-none"

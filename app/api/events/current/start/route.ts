@@ -6,6 +6,7 @@ import QuizEvent from "@/models/quiz-event";
 import QuizParticipant from "@/models/quiz-participant";
 import QuizQuestion from "@/models/quiz-question";
 import { Types } from "mongoose";
+import { shuffleAnswers } from "@/lib/quiz-helpers";
 
 /**
  * Fisher-Yates shuffle — returns a new array.
@@ -106,25 +107,34 @@ export async function POST() {
     participant.currentQuestionIndex = 0;
     await participant.save();
 
-    // Return first question
+    // Return first question with shuffled answers
     const firstQuestion = await QuizQuestion.findById(assigned[0])
-      .select("number category question answers")
+      .select("number category question answers correctIndex")
       .lean();
+
+    let q = null;
+    if (firstQuestion) {
+      const { shuffledAnswers } = shuffleAnswers(
+        firstQuestion.answers,
+        firstQuestion.correctIndex,
+        String(firstQuestion._id),
+        String(participant._id),
+      );
+      q = {
+        _id: String(firstQuestion._id),
+        number: firstQuestion.number,
+        category: firstQuestion.category,
+        question: firstQuestion.question,
+        answers: shuffledAnswers,
+      };
+    }
 
     return NextResponse.json({
       started: true,
       startedAt: participant.startedAt,
       currentQuestionIndex: 0,
       totalQuestions: assigned.length,
-      question: firstQuestion
-        ? {
-            _id: String(firstQuestion._id),
-            number: firstQuestion.number,
-            category: firstQuestion.category,
-            question: firstQuestion.question,
-            answers: firstQuestion.answers,
-          }
-        : null,
+      question: q,
     });
   } catch (err) {
     console.error("[events/current/start] POST error:", err);
@@ -138,15 +148,23 @@ async function getNextQuestion(participant: InstanceType<typeof QuizParticipant>
 
   const qId = participant.assignedQuestionIds[idx];
   const q = await QuizQuestion.findById(qId)
-    .select("number category question answers")
+    .select("number category question answers correctIndex")
     .lean();
 
   if (!q) return null;
+
+  const { shuffledAnswers } = shuffleAnswers(
+    q.answers,
+    q.correctIndex,
+    String(q._id),
+    String(participant._id),
+  );
+
   return {
     _id: String(q._id),
     number: q.number,
     category: q.category,
     question: q.question,
-    answers: q.answers,
+    answers: shuffledAnswers,
   };
 }

@@ -5,6 +5,7 @@ import User from "@/models/user";
 import QuizEvent from "@/models/quiz-event";
 import QuizParticipant from "@/models/quiz-participant";
 import QuizQuestion from "@/models/quiz-question";
+import { shuffleAnswers } from "@/lib/quiz-helpers";
 
 /** POST — submit an answer for the current question */
 export async function POST(req: NextRequest) {
@@ -87,7 +88,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "question_not_found" }, { status: 500 });
     }
 
-    const correct = selectedIndex === question.correctIndex;
+    // Use the same deterministic shuffle to find correct index in shuffled space
+    const { newCorrectIndex } = shuffleAnswers(
+      question.answers,
+      question.correctIndex,
+      String(question._id),
+      String(participant._id),
+    );
+
+    const correct = selectedIndex === newCorrectIndex;
     const now = new Date();
 
     // Record the answer
@@ -124,33 +133,41 @@ export async function POST(req: NextRequest) {
       await participant.save();
     }
 
-    // Build response
+    // Build response — return shuffled correctIndex so UI highlights the right answer
     const response: Record<string, unknown> = {
       correct,
-      correctIndex: question.correctIndex,
+      correctIndex: newCorrectIndex,
       answeredCount: participant.answers.length,
       correctCount: participant.correctCount,
       totalQuestions: participant.assignedQuestionIds.length,
       isComplete,
     };
 
-    // If not complete, include next question
+    // If not complete, include next question with shuffled answers
     if (!isComplete) {
       const nextQId =
         participant.assignedQuestionIds[participant.currentQuestionIndex];
       const nextQ = await QuizQuestion.findById(nextQId)
-        .select("number category question answers")
+        .select("number category question answers correctIndex")
         .lean();
 
-      response.nextQuestion = nextQ
-        ? {
-            _id: String(nextQ._id),
-            number: nextQ.number,
-            category: nextQ.category,
-            question: nextQ.question,
-            answers: nextQ.answers,
-          }
-        : null;
+      let nextQuestion = null;
+      if (nextQ) {
+        const { shuffledAnswers: nextShuffled } = shuffleAnswers(
+          nextQ.answers,
+          nextQ.correctIndex,
+          String(nextQ._id),
+          String(participant._id),
+        );
+        nextQuestion = {
+          _id: String(nextQ._id),
+          number: nextQ.number,
+          category: nextQ.category,
+          question: nextQ.question,
+          answers: nextShuffled,
+        };
+      }
+      response.nextQuestion = nextQuestion;
     } else {
       response.totalTimeMs = participant.totalTimeMs;
       response.placement = participant.placement;
