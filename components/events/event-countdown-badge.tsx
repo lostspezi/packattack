@@ -54,9 +54,9 @@ export function EventCountdownBadge() {
       const s = Math.floor((diff % 60000) / 1000);
 
       if (d > 0) {
-        setLabel(`${d}T ${h}h`);
+        setLabel(`${d}T ${h}h ${m}m ${String(s).padStart(2, "0")}s`);
       } else if (h > 0) {
-        setLabel(`${h}h ${m}m`);
+        setLabel(`${h}h ${m}m ${String(s).padStart(2, "0")}s`);
       } else {
         setLabel(`${m}:${String(s).padStart(2, "0")}`);
       }
