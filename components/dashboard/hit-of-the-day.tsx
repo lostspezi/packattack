@@ -78,7 +78,7 @@ export function HitOfTheDay({ lang }: { lang: string }) {
         </div>
 
         {/* Info */}
-        <div className="flex-1 min-w-0">
+        <div className="min-w-0 shrink-0">
           {/* Label row */}
           <div className="flex items-center gap-2 mb-1.5">
             <div className="flex items-center gap-1.5">
@@ -103,6 +103,19 @@ export function HitOfTheDay({ lang }: { lang: string }) {
           <div className="flex items-center gap-2 mt-1">
             <Badge variant="info" className="text-[10px]">{hit.rarity}</Badge>
             <span className="text-xs text-text-muted truncate">{hit.setName}</span>
+          </div>
+
+          {/* Value */}
+          <div className="flex items-center gap-2 mt-2">
+            <Coins className="w-3.5 h-3.5 text-pa-green" />
+            <span className="text-lg font-extrabold tabular-nums text-pa-green leading-none">
+              {hit.coinValue.toLocaleString()}
+            </span>
+            {hit.marketPrice != null && hit.marketPrice > 0 && (
+              <span className="text-[11px] text-text-muted">
+                · ~{hit.marketPrice.toFixed(2)} €
+              </span>
+            )}
           </div>
 
           {/* Puller */}
@@ -132,20 +145,12 @@ export function HitOfTheDay({ lang }: { lang: string }) {
           </div>
         </div>
 
-        {/* Value — right side */}
-        <div className="shrink-0 text-right">
-          <div className="flex items-center gap-1.5 justify-end">
-            <Coins className="w-4 h-4 text-pa-green" />
-            <span className="text-2xl font-extrabold tabular-nums text-pa-green leading-none">
-              {hit.coinValue.toLocaleString()}
-            </span>
-          </div>
-          {hit.marketPrice != null && hit.marketPrice > 0 && (
-            <p className="text-[11px] text-text-muted mt-1">
-              ~{hit.marketPrice.toFixed(2)} € Market
-            </p>
-          )}
-        </div>
+        {/* CTA text — fills remaining space, text centered within it */}
+        <p className="hidden lg:block flex-1 text-center text-lg font-bold text-text-muted whitespace-nowrap">
+          {isDe
+            ? "Zeig der Community deinen Hit des Tages!"
+            : "Show the community your Hit of the Day!"}
+        </p>
       </div>
     </div>
   );

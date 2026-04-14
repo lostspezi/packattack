@@ -756,6 +756,23 @@ export function QuizEventPage() {
               </span>
             </div>
 
+            {/* Giveaway prize */}
+            <div className="mt-6 sm:mt-8">
+              <p className="text-xs font-bold uppercase tracking-wider text-pa-green mb-3">
+                Das gibt es zu gewinnen
+              </p>
+              <div className="relative overflow-hidden rounded-xl border border-pa-green/20 bg-gradient-to-br from-pa-green/[0.05] via-surface to-pa-lila/[0.04]">
+                <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-pa-green/[0.06] blur-3xl" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/giveaway.webp"
+                  alt="Giveaway Preise"
+                  className="w-full max-h-[375px] object-contain"
+                  draggable={false}
+                />
+              </div>
+            </div>
+
             {/* Requirements */}
             <div className="mt-5 rounded-xl border border-border bg-surface-alt p-4 text-left sm:mt-6">
               <div className="flex items-center gap-2 text-sm font-medium text-text-primary">
@@ -842,6 +859,23 @@ export function QuizEventPage() {
             <p className="mt-2 text-sm text-text-secondary sm:text-base">
               Du stehst auf der Warteliste. Das Quiz startet bald.
             </p>
+
+            {/* Giveaway prize */}
+            <div className="mt-6 sm:mt-8">
+              <p className="text-xs font-bold uppercase tracking-wider text-pa-green mb-3">
+                Das gibt es zu gewinnen
+              </p>
+              <div className="relative overflow-hidden rounded-xl border border-pa-green/20 bg-gradient-to-br from-pa-green/[0.05] via-surface to-pa-lila/[0.04]">
+                <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-pa-green/[0.06] blur-3xl" />
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/giveaway.webp"
+                  alt="Giveaway Preise"
+                  className="w-full max-h-[375px] object-contain"
+                  draggable={false}
+                />
+              </div>
+            </div>
 
             {event?.status !== "draft" && countdown && (
               <div className="mt-5 sm:mt-6">
