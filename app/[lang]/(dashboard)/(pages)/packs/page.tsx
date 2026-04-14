@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Package, Loader2, Coins, ChevronRight } from "lucide-react";
 
+import { HitOfTheDay } from "@/components/dashboard/hit-of-the-day";
 import { CoinChestAnimation } from "@/components/balance/coin-chest-animation";
 import { useToast } from "@/components/ui/toast";
 
@@ -132,6 +133,8 @@ export default function PacksPage() {
           </p>
         </div>
       ) : (
+        <>
+        <HitOfTheDay lang={lang} />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {boxes.map((box) => {
             const name = isDe
@@ -235,6 +238,7 @@ export default function PacksPage() {
             );
           })}
         </div>
+        </>
       )}
     </div>
   );
