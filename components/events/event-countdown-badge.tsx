@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 export function EventCountdownBadge() {
   const [startsAt, setStartsAt] = useState<number | null>(null);
   const [label, setLabel] = useState("");
+  const [urgent, setUrgent] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -53,6 +54,8 @@ export function EventCountdownBadge() {
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
 
+      setUrgent(diff < 3600000);
+
       if (d > 0) {
         setLabel(`${d}T ${h}h ${m}m ${String(s).padStart(2, "0")}s`);
       } else if (h > 0) {
@@ -79,7 +82,9 @@ export function EventCountdownBadge() {
         "ml-1.5 inline-flex items-center rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold leading-none",
         isLive
           ? "animate-pulse bg-pa-green/20 text-pa-green"
-          : "bg-yellow-500/15 text-yellow-400",
+          : urgent
+            ? "bg-red-500/15 text-red-400"
+            : "bg-yellow-500/15 text-yellow-400",
       ].join(" ")}
     >
       {label}

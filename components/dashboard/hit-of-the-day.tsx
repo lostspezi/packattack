@@ -146,7 +146,7 @@ export function HitOfTheDay({ lang }: { lang: string }) {
         </div>
 
         {/* CTA text — fills remaining space, text centered within it */}
-        <p className="hidden lg:block flex-1 text-center text-lg font-bold text-text-muted whitespace-nowrap">
+        <p className="hidden lg:block flex-1 text-center text-lg font-bold text-pa-green whitespace-nowrap">
           {isDe
             ? "Zeig der Community deinen Hit des Tages!"
             : "Show the community your Hit of the Day!"}
