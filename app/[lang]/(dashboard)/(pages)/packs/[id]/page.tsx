@@ -172,6 +172,7 @@ export default function PackDetailPage() {
       }
       setOpenResult(data);
       setUserCoins(data.newBalance);
+      window.dispatchEvent(new CustomEvent("coin-balance-change", { detail: { delta: -(box.priceInCoins * packCount) } }));
     } catch {
       toast({ type: "error", title: "Network error" });
     } finally {

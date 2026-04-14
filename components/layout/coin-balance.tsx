@@ -30,7 +30,7 @@ export function CoinBalance() {
       }, 300);
     }
 
-    // Initial fetch (no debounce)
+    // Fetch on mount and on every route change
     fetch("/api/profile")
       .then(async (res) => {
         if (!res.ok) return;
@@ -74,7 +74,7 @@ export function CoinBalance() {
       window.removeEventListener("coin-balance-change", handleChange);
       if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
     };
-  }, []);
+  }, [pathname]);
 
   if (coins === null) return null;
 

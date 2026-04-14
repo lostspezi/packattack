@@ -34,15 +34,36 @@ export function BalancePage({ lang, dict }: BalancePageProps) {
 
   // Fetch initial data
   useEffect(() => {
-    Promise.all([
-      fetch("/api/coins/packages").then((r) => r.json()),
-      fetch("/api/profile").then((r) => r.json()),
-      fetch("/api/coins/verify-identity/status").then((r) => r.json()),
-    ]).then(([pkgs, profile, identity]) => {
-      setPackages(pkgs || []);
-      setBalance(profile?.coins || 0);
-      setIdentityVerified(identity?.identityVerified ?? false);
-    });
+    function fetchData() {
+      Promise.all([
+        fetch("/api/coins/packages").then((r) => r.json()),
+        fetch("/api/profile").then((r) => r.json()),
+        fetch("/api/coins/verify-identity/status").then((r) => r.json()),
+      ]).then(([pkgs, profile, identity]) => {
+        setPackages(pkgs || []);
+        setBalance(profile?.coins || 0);
+        setIdentityVerified(identity?.identityVerified ?? false);
+      });
+    }
+
+    fetchData();
+
+    // Stay in sync with header coin balance
+    function handleCoinUpdate() {
+      fetch("/api/profile")
+        .then((r) => r.json())
+        .then((data) => {
+          if (data?.coins !== undefined) setBalance(data.coins);
+        })
+        .catch(() => {});
+    }
+
+    window.addEventListener("coin-balance-refresh", handleCoinUpdate);
+    window.addEventListener("coin-balance-change", handleCoinUpdate);
+    return () => {
+      window.removeEventListener("coin-balance-refresh", handleCoinUpdate);
+      window.removeEventListener("coin-balance-change", handleCoinUpdate);
+    };
   }, []);
 
   function handleSelectPackage(packageId: string) {

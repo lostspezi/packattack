@@ -270,6 +270,7 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
           ? "Alle Karten entschieden!"
           : "All cards decided!",
       });
+      window.dispatchEvent(new CustomEvent("coin-balance-refresh"));
       setPendingData(null);
       setChoices(new Map());
       lastSessionRef.current = null;

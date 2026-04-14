@@ -61,6 +61,7 @@ export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {
         return;
       }
 
+      window.dispatchEvent(new CustomEvent("coin-balance-refresh"));
       onCreated(data.battle);
     } catch {
       toast({ title: isDe ? "Fehler beim Erstellen" : "Error creating battle", type: "error" });

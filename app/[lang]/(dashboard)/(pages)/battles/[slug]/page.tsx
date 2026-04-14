@@ -604,6 +604,7 @@ export default function BattleDetailPage() {
     try {
       const res = await fetch(`/api/battles/${battle._id}/join`, { method: "POST" });
       if (res.ok) {
+        window.dispatchEvent(new CustomEvent("coin-balance-refresh"));
         await fetchBattle();
       } else {
         const data = await res.json();
