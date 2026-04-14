@@ -761,7 +761,7 @@ export function QuizEventPage() {
               <p className="text-xs font-bold uppercase tracking-wider text-pa-green mb-3">
                 Das gibt es zu gewinnen
               </p>
-              <div className="relative inline-block overflow-hidden rounded-xl border border-pa-green/20 bg-gradient-to-br from-pa-green/[0.05] via-surface to-pa-lila/[0.04]">
+              <div className="relative inline-block overflow-hidden rounded-xl border-2 border-pa-green/20 bg-gradient-to-br from-pa-green/[0.05] via-surface to-pa-lila/[0.04]">
                 <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-pa-green/[0.06] blur-3xl" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -865,7 +865,7 @@ export function QuizEventPage() {
               <p className="text-xs font-bold uppercase tracking-wider text-pa-green mb-3">
                 Das gibt es zu gewinnen
               </p>
-              <div className="relative inline-block overflow-hidden rounded-xl border border-pa-green/20 bg-gradient-to-br from-pa-green/[0.05] via-surface to-pa-lila/[0.04]">
+              <div className="relative inline-block overflow-hidden rounded-xl border-2 border-pa-green/20 bg-gradient-to-br from-pa-green/[0.05] via-surface to-pa-lila/[0.04]">
                 <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-pa-green/[0.06] blur-3xl" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
