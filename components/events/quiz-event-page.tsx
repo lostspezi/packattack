@@ -757,17 +757,17 @@ export function QuizEventPage() {
             </div>
 
             {/* Giveaway prize */}
-            <div className="mt-6 sm:mt-8">
+            <div className="mt-6 flex flex-col items-center sm:mt-8">
               <p className="text-xs font-bold uppercase tracking-wider text-pa-green mb-3">
                 Das gibt es zu gewinnen
               </p>
-              <div className="relative overflow-hidden rounded-xl border border-pa-green/20 bg-gradient-to-br from-pa-green/[0.05] via-surface to-pa-lila/[0.04]">
+              <div className="relative inline-block overflow-hidden rounded-xl border border-pa-green/20 bg-gradient-to-br from-pa-green/[0.05] via-surface to-pa-lila/[0.04]">
                 <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-pa-green/[0.06] blur-3xl" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/images/giveaway.webp"
                   alt="Giveaway Preise"
-                  className="w-full max-h-[375px] object-contain"
+                  className="block max-h-[375px]"
                   draggable={false}
                 />
               </div>
@@ -861,17 +861,17 @@ export function QuizEventPage() {
             </p>
 
             {/* Giveaway prize */}
-            <div className="mt-6 sm:mt-8">
+            <div className="mt-6 flex flex-col items-center sm:mt-8">
               <p className="text-xs font-bold uppercase tracking-wider text-pa-green mb-3">
                 Das gibt es zu gewinnen
               </p>
-              <div className="relative overflow-hidden rounded-xl border border-pa-green/20 bg-gradient-to-br from-pa-green/[0.05] via-surface to-pa-lila/[0.04]">
+              <div className="relative inline-block overflow-hidden rounded-xl border border-pa-green/20 bg-gradient-to-br from-pa-green/[0.05] via-surface to-pa-lila/[0.04]">
                 <div className="pointer-events-none absolute -top-16 -right-16 h-40 w-40 rounded-full bg-pa-green/[0.06] blur-3xl" />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/images/giveaway.webp"
                   alt="Giveaway Preise"
-                  className="w-full max-h-[375px] object-contain"
+                  className="block max-h-[375px]"
                   draggable={false}
                 />
               </div>
