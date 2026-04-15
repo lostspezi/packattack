@@ -105,16 +105,7 @@ export default function PacksPage() {
         />
       )}
 
-      <div>
-        <h2 className="text-2xl font-bold text-text-primary">
-          {isDe ? "Packs" : "Packs"}
-        </h2>
-        <p className="text-text-secondary mt-1 text-sm">
-          {isDe
-            ? "Wähle eine Box und öffne Packs!"
-            : "Choose a box and open packs!"}
-        </p>
-      </div>
+      <HitOfTheDay lang={lang} />
 
       {loading ? (
         <div className="py-16 text-center">
@@ -134,7 +125,16 @@ export default function PacksPage() {
         </div>
       ) : (
         <>
-        <HitOfTheDay lang={lang} />
+        <div>
+          <h2 className="text-2xl font-bold text-text-primary">
+            {isDe ? "Packs" : "Packs"}
+          </h2>
+          <p className="text-text-secondary mt-1 text-sm mb-4">
+            {isDe
+              ? "Wähle eine Box und öffne Packs!"
+              : "Choose a box and open packs!"}
+          </p>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {boxes.map((box) => {
             const name = isDe
