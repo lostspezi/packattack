@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { QuizBadgeDistributionModal } from "@/components/admin/quiz-badge-distribution-modal";
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -17,6 +18,7 @@ interface QuizEventData {
   questionsPerParticipant: number;
   requiredBadgeKey: string | null;
   notes: string;
+  badgesDistributedAt: string | null;
   createdAt: string;
   stats: {
     totalParticipants: number;
@@ -64,6 +66,7 @@ export function QuizEventsManager() {
   const [view, setView] = useState<View>("list");
   const [events, setEvents] = useState<QuizEventData[]>([]);
   const [selectedEvent, setSelectedEvent] = useState<QuizEventData | null>(null);
+  const [badgeModalOpen, setBadgeModalOpen] = useState(false);
   const [participants, setParticipants] = useState<ParticipantData[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -570,6 +573,16 @@ export function QuizEventsManager() {
                     Beenden
                   </button>
                 )}
+                {selectedEvent.status === "ended" && (
+                  <button
+                    onClick={() => setBadgeModalOpen(true)}
+                    className="rounded-lg bg-pa-green/20 px-3 py-1.5 text-xs font-medium text-pa-green hover:bg-pa-green/30"
+                  >
+                    {selectedEvent.badgesDistributedAt
+                      ? "Badges verteilt \u2713"
+                      : "Badges verteilen"}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -682,6 +695,20 @@ export function QuizEventsManager() {
             )}
           </div>
         </div>
+      )}
+      {selectedEvent && (
+        <QuizBadgeDistributionModal
+          open={badgeModalOpen}
+          onClose={() => setBadgeModalOpen(false)}
+          eventId={selectedEvent._id}
+          eventTitle={selectedEvent.title.de}
+          alreadyDistributed={!!selectedEvent.badgesDistributedAt}
+          distributedAt={selectedEvent.badgesDistributedAt}
+          onDistributed={() => {
+            fetchEvents();
+            fetchParticipants(selectedEvent._id);
+          }}
+        />
       )}
     </div>
   );

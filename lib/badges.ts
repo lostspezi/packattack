@@ -56,6 +56,54 @@ const CORE_BADGES: Array<{
     visibility: "public",
     category: "testing",
   },
+  {
+    key: "quiz_1st",
+    slug: "quiz-1st",
+    label: "Quiz-Champion",
+    iconUrl: "/badges/quiz-badge-01-gold.svg",
+    description: "1. Platz bei einem Quiz-Event.",
+    tone: "gold",
+    active: true,
+    sortOrder: 200,
+    visibility: "public",
+    category: "quiz",
+  },
+  {
+    key: "quiz_2nd",
+    slug: "quiz-2nd",
+    label: "Quiz-Silber",
+    iconUrl: "/badges/quiz-badge-01-silver.svg",
+    description: "2. Platz bei einem Quiz-Event.",
+    tone: "neutral",
+    active: true,
+    sortOrder: 190,
+    visibility: "public",
+    category: "quiz",
+  },
+  {
+    key: "quiz_3rd",
+    slug: "quiz-3rd",
+    label: "Quiz-Bronze",
+    iconUrl: "/badges/quiz-badge-01-bronze.svg",
+    description: "3. Platz bei einem Quiz-Event.",
+    tone: "neutral",
+    active: true,
+    sortOrder: 180,
+    visibility: "public",
+    category: "quiz",
+  },
+  {
+    key: "quiz_participant",
+    slug: "quiz-participant",
+    label: "Quiz-Teilnehmer",
+    iconUrl: "/badges/quiz-badge-01-white.svg",
+    description: "Hat an einem Quiz-Event teilgenommen.",
+    tone: "neutral",
+    active: true,
+    sortOrder: 170,
+    visibility: "public",
+    category: "quiz",
+  },
 ];
 
 function toStringId(value: unknown): string {
@@ -234,6 +282,83 @@ export async function getUserBadgeSummariesForUsers(
   }
 
   return summariesByUser;
+}
+
+export async function bulkGrantBadges(input: {
+  grants: Array<{
+    userId: string;
+    badgeKey: string;
+    awardReason?: string | null;
+    note?: string | null;
+  }>;
+  awardedByUserId: string | null;
+}): Promise<{
+  granted: number;
+  skipped: number;
+  failed: number;
+  errors: Array<{ userId: string; badgeKey: string; error: string }>;
+}> {
+  await ensureCoreBadgesSeeded();
+
+  const uniqueKeys = [...new Set(input.grants.map((g) => g.badgeKey))];
+  const badges = await Badge.find({ key: { $in: uniqueKeys }, active: true }).lean();
+  const badgeByKey = new Map(badges.map((b) => [b.key, b as IBadge]));
+
+  let granted = 0;
+  let skipped = 0;
+  let failed = 0;
+  const errors: Array<{ userId: string; badgeKey: string; error: string }> = [];
+
+  // Process in chunks of 10
+  for (let i = 0; i < input.grants.length; i += 10) {
+    const chunk = input.grants.slice(i, i + 10);
+    const results = await Promise.allSettled(
+      chunk.map(async (grant) => {
+        const badge = badgeByKey.get(grant.badgeKey);
+        if (!badge) {
+          throw new Error(`Badge "${grant.badgeKey}" not found`);
+        }
+
+        const existing = await UserBadge.findOne({
+          userId: grant.userId,
+          badgeId: badge._id,
+          active: true,
+        }).lean();
+
+        if (existing) return "skipped" as const;
+
+        await UserBadge.create({
+          userId: grant.userId,
+          badgeId: badge._id,
+          badgeKeySnapshot: badge.key,
+          awardedAt: new Date(),
+          awardedByUserId: input.awardedByUserId ?? null,
+          awardReason: grant.awardReason?.trim() || null,
+          note: grant.note?.trim() || null,
+          active: true,
+        });
+
+        return "granted" as const;
+      }),
+    );
+
+    for (let j = 0; j < results.length; j++) {
+      const result = results[j];
+      if (result.status === "fulfilled") {
+        if (result.value === "granted") granted++;
+        else skipped++;
+      } else {
+        failed++;
+        errors.push({
+          userId: chunk[j].userId,
+          badgeKey: chunk[j].badgeKey,
+          error: result.reason instanceof Error ? result.reason.message : "Unknown error",
+        });
+      }
+    }
+  }
+
+  return { granted, skipped, failed, errors };
 }
 
 export async function grantBadgeToUser(input: {

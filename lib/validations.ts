@@ -261,6 +261,24 @@ export const adminBadgeRevokeSchema = z.object({
   revokeReason: z.string().trim().max(200).optional(),
 });
 
+export const quizBadgeDistributionSchema = z.object({
+  mappings: z
+    .array(
+      z.object({
+        placement: z.union([
+          z.literal(1),
+          z.literal(2),
+          z.literal(3),
+          z.literal("completed"),
+        ]),
+        badgeKey: z.string().trim().min(1).max(64),
+      }),
+    )
+    .min(1)
+    .max(10),
+  force: z.boolean().optional().default(false),
+});
+
 export const adminChatLogsQuerySchema = z.object({
   page: z.number().int().min(1).optional(),
   limit: z.number().int().min(1).max(100).optional(),

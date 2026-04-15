@@ -18,6 +18,7 @@ export interface IQuizEvent extends Document {
   questionsPerParticipant: number;
   requiredBadgeKey: string | null;
   winners: IQuizEventWinner[];
+  badgesDistributedAt: Date | null;
   createdBy: Types.ObjectId;
   notes: string;
   createdAt: Date;
@@ -52,6 +53,7 @@ const QuizEventSchema = new Schema<IQuizEvent>(
     questionsPerParticipant: { type: Number, required: true, min: 1, max: 100 },
     requiredBadgeKey: { type: String, default: null },
     winners: { type: [QuizEventWinnerSchema], default: [] },
+    badgesDistributedAt: { type: Date, default: null },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     notes: { type: String, default: "" },
   },
