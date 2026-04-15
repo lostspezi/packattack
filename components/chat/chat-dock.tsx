@@ -198,7 +198,10 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     user: ChatAuthorSummary | ChatOnlineUserSummary;
     rect: DOMRect;
   } | null>(null);
-  const [activeBadge, setActiveBadge] = useState<ChatBadgeSummary | null>(null);
+  const [activeBadgeState, setActiveBadgeState] = useState<{
+    badges: ChatBadgeSummary[];
+    index: number;
+  } | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const gifButtonRef = useRef<HTMLButtonElement>(null);
@@ -1471,20 +1474,26 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         }}
         onClose={() => setActiveUserCard(null)}
         onBadgeClick={(badge) => {
+          const allBadges = activeUserCard?.user.profileBadges ?? [];
+          const idx = allBadges.findIndex((b) => b.key === badge.key);
           setActiveUserCard(null);
-          setActiveBadge(badge);
+          setActiveBadgeState({
+            badges: allBadges,
+            index: idx >= 0 ? idx : 0,
+          });
         }}
       />
 
       <ChatBadgeDetailModal
-        open={activeBadge !== null}
-        badge={activeBadge}
+        open={activeBadgeState !== null}
+        badges={activeBadgeState?.badges ?? []}
+        initialIndex={activeBadgeState?.index ?? 0}
         lang={lang}
         labels={{
           awardedAt: copy.badges.awardedAt,
           reason: copy.badges.reason,
         }}
-        onClose={() => setActiveBadge(null)}
+        onClose={() => setActiveBadgeState(null)}
       />
 
       <ChatGifPicker

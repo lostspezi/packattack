@@ -111,7 +111,10 @@ export function AdminChatConsole({
     user: ChatAuthorSummary;
     rect: DOMRect;
   } | null>(null);
-  const [activeBadge, setActiveBadge] = useState<ChatBadgeSummary | null>(null);
+  const [activeBadgeState, setActiveBadgeState] = useState<{
+    badges: ChatBadgeSummary[];
+    index: number;
+  } | null>(null);
 
   const selectedUser =
     userResults.find((user) => user.userId === selectedUserId) ?? userResults[0] ?? null;
@@ -1359,20 +1362,26 @@ export function AdminChatConsole({
         }}
         onClose={() => setActiveUserCard(null)}
         onBadgeClick={(badge) => {
+          const allBadges = activeUserCard?.user.profileBadges ?? [];
+          const idx = allBadges.findIndex((b) => b.key === badge.key);
           setActiveUserCard(null);
-          setActiveBadge(badge);
+          setActiveBadgeState({
+            badges: allBadges,
+            index: idx >= 0 ? idx : 0,
+          });
         }}
       />
 
       <ChatBadgeDetailModal
-        open={activeBadge !== null}
-        badge={activeBadge}
+        open={activeBadgeState !== null}
+        badges={activeBadgeState?.badges ?? []}
+        initialIndex={activeBadgeState?.index ?? 0}
         lang={lang}
         labels={{
           awardedAt: copy.badges.awardedAt,
           reason: copy.badges.reason,
         }}
-        onClose={() => setActiveBadge(null)}
+        onClose={() => setActiveBadgeState(null)}
       />
     </div>
   );

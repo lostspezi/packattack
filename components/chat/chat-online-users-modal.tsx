@@ -32,13 +32,16 @@ export function ChatOnlineUsersModal({
     user: ChatOnlineUserSummary;
     rect: DOMRect;
   } | null>(null);
-  const [activeBadge, setActiveBadge] = useState<ChatBadgeSummary | null>(null);
+  const [activeBadgeState, setActiveBadgeState] = useState<{
+    badges: ChatBadgeSummary[];
+    index: number;
+  } | null>(null);
 
   /* eslint-disable react-hooks/set-state-in-effect -- resetting child state when modal closes */
   useEffect(() => {
     if (!open) {
       setActiveUserCard(null);
-      setActiveBadge(null);
+      setActiveBadgeState(null);
     }
   }, [open]);
   /* eslint-enable react-hooks/set-state-in-effect */
@@ -112,20 +115,26 @@ export function ChatOnlineUsersModal({
         }}
         onClose={() => setActiveUserCard(null)}
         onBadgeClick={(badge) => {
+          const allBadges = activeUserCard?.user.profileBadges ?? [];
+          const idx = allBadges.findIndex((b) => b.key === badge.key);
           setActiveUserCard(null);
-          setActiveBadge(badge);
+          setActiveBadgeState({
+            badges: allBadges,
+            index: idx >= 0 ? idx : 0,
+          });
         }}
       />
 
       <ChatBadgeDetailModal
-        open={activeBadge !== null}
-        badge={activeBadge}
+        open={activeBadgeState !== null}
+        badges={activeBadgeState?.badges ?? []}
+        initialIndex={activeBadgeState?.index ?? 0}
         lang={lang}
         labels={{
           awardedAt: copy.badges.awardedAt,
           reason: copy.badges.reason,
         }}
-        onClose={() => setActiveBadge(null)}
+        onClose={() => setActiveBadgeState(null)}
       />
     </>
   );
