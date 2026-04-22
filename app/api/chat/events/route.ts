@@ -31,6 +31,35 @@ export async function GET(_req: NextRequest) {
 
   const stream = new ReadableStream({
     async start(controller) {
+      // Shared teardown. Safe to call from any failure path — idempotent
+      // via `teardownStarted` so abort + keepalive-fail + cancel don't
+      // race into double-disconnect.
+      let teardownStarted = false;
+      let keepalive: ReturnType<typeof setInterval> | null = null;
+      const teardown = async (reason: "abort" | "cancel" | "keepalive_failed") => {
+        if (teardownStarted) return;
+        teardownStarted = true;
+        if (keepalive) clearInterval(keepalive);
+        if (subscriberRedis) {
+          subscriberRedis.unsubscribe().catch(() => {});
+          subscriberRedis.disconnect();
+          subscriberRedis = null;
+        }
+        try {
+          lastPresenceCount = await removeChatPresence(room.slug, connectionId);
+          await publishRoomState(room);
+        } catch {
+          // presence cleanup best-effort
+        }
+        if (reason !== "cancel") {
+          try {
+            controller.close();
+          } catch {
+            // already closed
+          }
+        }
+      };
+
       controller.enqueue(encoder.encode(": connected\n\n"));
 
       lastPresenceCount = await addChatPresence(room.slug, session.user.id, connectionId);
@@ -41,7 +70,7 @@ export async function GET(_req: NextRequest) {
         try {
           controller.enqueue(encoder.encode(`data: ${message}\n\n`));
         } catch {
-          // Stream already closed.
+          void teardown("keepalive_failed");
         }
       });
 
@@ -50,7 +79,7 @@ export async function GET(_req: NextRequest) {
         getChatUserRedisChannel(session.user.id)
       );
 
-      const keepalive = setInterval(() => {
+      keepalive = setInterval(() => {
         void (async () => {
           try {
             const nextPresenceCount = await touchChatPresence(
@@ -64,30 +93,23 @@ export async function GET(_req: NextRequest) {
             }
             controller.enqueue(encoder.encode(": keepalive\n\n"));
           } catch {
-            clearInterval(keepalive);
+            // enqueue throws once the stream is closed — that's our cue
+            // that the abort listener never fired (proxy timeout, dropped
+            // TCP, etc.) and we need to tear down actively.
+            void teardown("keepalive_failed");
           }
         })();
       }, 30000);
 
-      _req.signal.addEventListener("abort", async () => {
-        clearInterval(keepalive);
-        if (subscriberRedis) {
-          subscriberRedis.unsubscribe().catch(() => {});
-          subscriberRedis.disconnect();
-        }
-        lastPresenceCount = await removeChatPresence(room.slug, connectionId);
-        await publishRoomState(room);
-        try {
-          controller.close();
-        } catch {
-          // already closed
-        }
+      _req.signal.addEventListener("abort", () => {
+        void teardown("abort");
       });
     },
     cancel() {
       if (subscriberRedis) {
         subscriberRedis.unsubscribe().catch(() => {});
         subscriberRedis.disconnect();
+        subscriberRedis = null;
       }
     },
   });
