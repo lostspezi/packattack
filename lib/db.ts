@@ -15,8 +15,10 @@ interface MongooseCache {
 }
 
 declare global {
-   
+
   var _mongoose: MongooseCache | undefined;
+
+  var _mongoose_seeded: boolean | undefined;
 }
 
 const cached: MongooseCache = global._mongoose ?? { conn: null, promise: null };
@@ -24,8 +26,6 @@ const cached: MongooseCache = global._mongoose ?? { conn: null, promise: null };
 if (!global._mongoose) {
   global._mongoose = cached;
 }
-
-let seeded = false;
 
 export async function connectDB(): Promise<typeof mongoose> {
   if (cached.conn) {
@@ -42,8 +42,11 @@ export async function connectDB(): Promise<typeof mongoose> {
 
   cached.conn = await cached.promise;
 
-  if (!seeded) {
-    seeded = true;
+  // Global flag survives Next.js HMR module reloads, so the translations /
+  // email-templates / OP12 seeders only run once per process instead of on
+  // every file edit in dev.
+  if (!global._mongoose_seeded) {
+    global._mongoose_seeded = true;
     runSeed().catch(console.error);
   }
 
