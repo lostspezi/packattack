@@ -12,6 +12,7 @@ import { getChatRoleBadgeLabel } from "@/lib/chat-constants";
 import connectDB from "@/lib/db";
 import { getRedis } from "@/lib/redis";
 import PackPull from "@/models/pack-pull";
+import PackOpenSession from "@/models/pack-open-session";
 import CartItem from "@/models/cart-item";
 import User from "@/models/user";
 import Box from "@/models/box";
@@ -23,7 +24,12 @@ import CoinTransaction from "@/models/coin-transaction";
 const RESERVATION_HOURS = 3;
 const CHAT_JACKPOT_MIN_VALUE = 90;
 
-async function publishJackpotPullsAfterCompletion(input: {
+/**
+ * Runs after each decision. If every pull in the group is now decided we
+ * (a) release the open-session mutex so the user can open a new pack and
+ * (b) broadcast any jackpot pulls to the chat room.
+ */
+async function finalizePackGroupIfComplete(input: {
   packGroupId: string;
   userId: string;
 }) {
@@ -33,6 +39,19 @@ async function publishJackpotPullsAfterCompletion(input: {
     status: "pending",
   });
   if (hasPending) return;
+
+  await PackOpenSession.deleteOne({
+    userId: input.userId,
+    packGroupId: input.packGroupId,
+  });
+
+  await publishJackpotPulls(input);
+}
+
+async function publishJackpotPulls(input: {
+  packGroupId: string;
+  userId: string;
+}) {
 
   const jackpotPulls = await PackPull.find({
     packGroupId: input.packGroupId,
@@ -240,7 +259,7 @@ export async function POST(req: NextRequest) {
       // Publish SSE live event
       void publishLiveEvent(boxId, userDoc, cardDoc, rarity ?? "", coinValue ?? 0, decision);
 
-      await publishJackpotPullsAfterCompletion({ packGroupId: pull.packGroupId, userId });
+      await finalizePackGroupIfComplete({ packGroupId: pull.packGroupId, userId });
 
       return NextResponse.json({
         success: true,
@@ -273,7 +292,7 @@ export async function POST(req: NextRequest) {
       // Publish SSE live event
       void publishLiveEvent(boxId, userDoc, cardDoc, pull.rarity, pull.coinValue, decision);
 
-      await publishJackpotPullsAfterCompletion({ packGroupId: pull.packGroupId, userId });
+      await finalizePackGroupIfComplete({ packGroupId: pull.packGroupId, userId });
 
       return NextResponse.json({ success: true, decision: "converted", newBalance: user?.coins ?? 0 });
     }

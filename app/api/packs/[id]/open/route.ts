@@ -7,6 +7,7 @@ import Box from "@/models/box";
 import Card from "@/models/card";
 import User from "@/models/user";
 import PackPull from "@/models/pack-pull";
+import PackOpenSession from "@/models/pack-open-session";
 import CoinTransaction from "@/models/coin-transaction";
 import Notification from "@/models/notification";
 import { drawPacks, type PackCard } from "@/lib/pack-engine";
@@ -53,13 +54,27 @@ export async function POST(
     const realBoxId = box._id;
     const totalCost = box.priceInCoins * packCount;
 
-    // 2. Check for existing pending session — block before deducting coins
-    const existingPending = await PackPull.findOne({ userId, status: "pending" }).lean();
-    if (existingPending) {
-      return NextResponse.json(
-        { error: "pending_session", message: "Du hast noch offene Karten aus einem vorherigen Opening." },
-        { status: 409 }
-      );
+    // 2. Open-session mutex — unique index on userId enforces at most one
+    // active session. Double-click / racing tabs hit E11000 and get a clean
+    // 409 before any coins are touched. A TTL on expiresAt reaps abandoned
+    // sessions automatically.
+    const packGroupId = randomUUID();
+    const sessionExpiresAt = new Date(Date.now() + 5 * 60 * 1000);
+    try {
+      await PackOpenSession.create({
+        userId,
+        boxId: realBoxId,
+        packGroupId,
+        expiresAt: sessionExpiresAt,
+      });
+    } catch (err) {
+      if ((err as { code?: number }).code === 11000) {
+        return NextResponse.json(
+          { error: "pending_session", message: "Du hast noch offene Karten aus einem vorherigen Opening." },
+          { status: 409 }
+        );
+      }
+      throw err;
     }
 
     // 3. Check user coins (atomic: only deduct if sufficient)
@@ -70,6 +85,7 @@ export async function POST(
     );
 
     if (!user) {
+      await PackOpenSession.deleteOne({ userId, packGroupId });
       return NextResponse.json({ error: "Insufficient coins" }, { status: 400 });
     }
 
@@ -102,8 +118,9 @@ export async function POST(
       });
 
     if (packCards.length === 0) {
-      // Refund coins — no cards available
+      // Refund coins + release session — no cards available
       await User.findByIdAndUpdate(userId, { $inc: { coins: totalCost } });
+      await PackOpenSession.deleteOne({ userId, packGroupId });
       return NextResponse.json({ error: "No available cards in this box" }, { status: 400 });
     }
 
@@ -116,8 +133,9 @@ export async function POST(
     );
 
     if (result.drawnCards.length === 0) {
-      // Refund coins — couldn't draw
+      // Refund coins + release session — couldn't draw
       await User.findByIdAndUpdate(userId, { $inc: { coins: totalCost } });
+      await PackOpenSession.deleteOne({ userId, packGroupId });
       return NextResponse.json({ error: "Could not draw cards" }, { status: 400 });
     }
 
@@ -127,9 +145,10 @@ export async function POST(
       ?? "unknown";
     const ua = req.headers.get("user-agent") ?? "unknown";
 
-    // 6. Create PackPull records with status "pending" — crash-safe
-    const packGroupId = randomUUID();
-    const pullExpiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+    // 6. Create PackPull records with status "pending" — crash-safe. Reuse
+    // the packGroupId + expiry we already pinned on the session so pulls and
+    // session rot together.
+    const pullExpiresAt = sessionExpiresAt;
     const pullDocs = result.drawnCards.map((d, i) => ({
       userId,
       boxId: realBoxId,
