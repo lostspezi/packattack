@@ -5,11 +5,8 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ExternalLink,
-  Flag,
   ImageIcon,
-  MoreHorizontal,
   MessagesSquare,
-  Reply,
   Volume2,
   X,
 } from "lucide-react";
@@ -19,22 +16,21 @@ import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
-import { ChatAvatar } from "@/components/chat/chat-avatar";
 import { ChatBadgeDetailModal } from "@/components/chat/chat-badge-detail-modal";
 import { ChatGifAttachmentPreview } from "@/components/chat/chat-gif-attachment-preview";
 import { ChatGifPicker } from "@/components/chat/chat-gif-picker";
-import { ChatMessageContent } from "@/components/chat/chat-message-content";
-import { ChatMessageReactions } from "@/components/chat/chat-message-reactions";
 import { ChatUserCard } from "@/components/chat/chat-user-card";
-import { ChatUserBadges } from "@/components/chat/chat-user-badges";
 import { ChatOnlineUsersModal } from "@/components/chat/chat-online-users-modal";
 import { MentionSuggestions } from "@/components/chat/mention-suggestions";
 import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
 import { playNotificationTone } from "@/components/chat/notification-tone";
+import {
+  ChatMessageItem,
+  type QuickModerationAction,
+} from "@/components/chat/chat-message-item";
 import { messageMentionsViewer } from "@/lib/chat-mentions";
 import { mergeChatMessageSummaries } from "@/lib/chat-message-summary";
-import { isChatAdmin } from "@/lib/chat-constants";
 import type { ChatDictionary } from "@/lib/chat-i18n";
 import { getChatUiCopy } from "@/lib/chat-i18n";
 import type {
@@ -53,12 +49,6 @@ interface ChatDockProps {
   currentUserId: string;
   userRole: string;
 }
-
-type QuickModerationAction =
-  | "delete_message"
-  | "restore_message"
-  | "timeout_user"
-  | "ban_user";
 
 const TIMEOUT_PRESETS = [5, 15, 60, 1440] as const;
 
@@ -79,30 +69,6 @@ const DEFAULT_PERMISSIONS: ChatOverviewResponse["permissions"] = {
   chatStatus: "active",
   trustTier: "new",
 };
-
-function formatTime(value: string) {
-  return new Intl.DateTimeFormat("de-DE", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
-
-function isProtectedModerationTarget(message: ChatMessageSummary, currentUserId: string) {
-  return (
-    message.author?.id === currentUserId ||
-    message.author?.role === "admin" ||
-    message.author?.role === "super_admin" ||
-    message.author?.role === "moderator"
-  );
-}
-
-function canEditOwnAdminMessage(message: ChatMessageSummary, currentUserId: string) {
-  return (
-    !message.isDeleted &&
-    message.author?.id === currentUserId &&
-    isChatAdmin(message.author?.role)
-  );
-}
 
 function getQuotePreviewText(
   message: ChatMessageSummary,
@@ -129,7 +95,7 @@ function formatTimeoutPreset(minutes: number) {
 
 export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps) {
   const pathname = usePathname();
-  const copy = getChatUiCopy(lang, dict);
+  const copy = useMemo(() => getChatUiCopy(lang, dict), [lang, dict]);
   const { toast } = useToast();
   const isStaff = userRole === "admin" || userRole === "super_admin" || userRole === "moderator";
   const hiddenOnRoute = pathname === `/${lang}/chat` || pathname.startsWith(`/${lang}/admin/chat`);
@@ -140,6 +106,10 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const [loadError, setLoadError] = useState<string | null>(null);
   const [room, setRoom] = useState<ChatOverviewResponse["room"] | null>(null);
   const [messages, setMessages] = useState<ChatMessageSummary[]>([]);
+  // Autoscroll should react to new-message events (and full reloads), not to
+  // every edit/reaction/delete. `messagesVersion` is bumped only in those two
+  // cases so the scroll effect doesn't thrash on reaction bursts.
+  const [messagesVersion, setMessagesVersion] = useState(0);
   const [readState, setReadState] = useState(DEFAULT_READ_STATE);
   const [permissions, setPermissions] = useState(DEFAULT_PERMISSIONS);
   const [selfUsername, setSelfUsername] = useState<string | null>(null);
@@ -330,7 +300,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [isPanelOpen, messages]);
+  }, [isPanelOpen, messagesVersion]);
 
   useEffect(() => {
     if (sending || !shouldRefocusComposerRef.current) return;
@@ -357,6 +327,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
       const payload = (await res.json()) as ChatOverviewResponse;
       setRoom(payload.room);
       setMessages(payload.messages);
+      setMessagesVersion((v) => v + 1);
       setReadState(payload.readState);
       setPermissions(payload.permissions);
       setSelfUsername(payload.selfUsername);
@@ -423,6 +394,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           const nextMessage = (payload.payload as { message: ChatMessageSummary }).message;
           const isSelfMessage = nextMessage.author?.id === currentUserId;
           setMessages((current) => mergeChatMessageSummaries(current, nextMessage));
+          setMessagesVersion((v) => v + 1);
           setRoom((current) =>
             current
               ? {
@@ -852,6 +824,67 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     }
   }
 
+  // Stable forwarders for ChatMessageItem. The target handlers are plain
+  // functions that capture live state, so we route every call through a ref
+  // that we update on each render — this keeps the forwarder identity stable
+  // (so React.memo on the item is not defeated) while always invoking the
+  // current closure.
+  const itemHandlersRef = useRef({
+    openUserCard,
+    openEditModal,
+    openModerationAction,
+    setQuoteTarget,
+    setReportTarget,
+    setReportOpen,
+    toggleReaction,
+    focusComposer: () => composerRef.current?.focus(),
+  });
+  itemHandlersRef.current = {
+    openUserCard,
+    openEditModal,
+    openModerationAction,
+    setQuoteTarget,
+    setReportTarget,
+    setReportOpen,
+    toggleReaction,
+    focusComposer: () => composerRef.current?.focus(),
+  };
+
+  const stableItemHandlers = useMemo(
+    () => ({
+      onOpenUserCard: (
+        user: ChatAuthorSummary | ChatOnlineUserSummary | null | undefined,
+        target: HTMLElement,
+      ) => itemHandlersRef.current.openUserCard(user, target),
+      onQuote: (message: ChatMessageSummary) => {
+        itemHandlersRef.current.setQuoteTarget(message);
+        window.requestAnimationFrame(() => {
+          itemHandlersRef.current.focusComposer();
+        });
+      },
+      onEditOwn: (message: ChatMessageSummary) =>
+        itemHandlersRef.current.openEditModal(message),
+      onModerationAction: (action: QuickModerationAction, message: ChatMessageSummary) =>
+        itemHandlersRef.current.openModerationAction(action, message),
+      onReport: (message: ChatMessageSummary) => {
+        itemHandlersRef.current.setReportTarget(message);
+        itemHandlersRef.current.setReportOpen(true);
+      },
+      onToggleReaction: (
+        messageId: string,
+        emoji: ChatMessageSummary["reactions"][number]["emoji"],
+      ) => {
+        void itemHandlersRef.current.toggleReaction(messageId, emoji);
+      },
+    }),
+    [],
+  );
+
+  const pendingReactionSet = useMemo(
+    () => new Set(pendingReactionMessageIds),
+    [pendingReactionMessageIds],
+  );
+
   const cannotPostMessage =
     permissions.chatStatus === "banned"
       ? copy.composer.banned
@@ -972,183 +1005,21 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         ) : messages.length === 0 ? (
           <p className="text-sm text-text-muted">{copy.page.empty}</p>
         ) : (
-          messages.map((message) => {
-            const mentionedCurrentUser = isMentionForCurrentUser(message);
-
-            return (
-              <div
-                key={message.id}
-                className={`rounded-[16px] border p-3 ${
-                  mentionedCurrentUser && !message.isDeleted
-                    ? "border-pa-green/20 bg-pa-green/8 ring-1 ring-pa-green/10"
-                    : "border-white/7 bg-black/12"
-                }`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    {message.author ? (
-                      <>
-                        <button
-                          type="button"
-                          onClick={(event) => openUserCard(message.author, event.currentTarget)}
-                          className="flex min-w-0 items-center gap-3 rounded-[12px] text-left outline-none transition-colors hover:text-pa-green focus-visible:text-pa-green"
-                        >
-                          <ChatAvatar
-                            name={message.author.username ?? message.author.name ?? "System"}
-                            src={message.author.avatarUrl ?? null}
-                            size="sm"
-                          />
-                          <div className="min-w-0">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="text-sm font-semibold text-text-primary">
-                                {message.author.username ?? message.author.name ?? "System"}
-                              </span>
-                              {message.author.roleBadge ? (
-                                <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
-                                  {message.author.roleBadge}
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </button>
-                        {message.author.profileBadges.length ? (
-                          <ChatUserBadges badges={message.author.profileBadges} lang={lang} />
-                        ) : null}
-                      </>
-                    ) : (
-                      <div className="min-w-0">
-                        <span className="text-sm font-semibold text-text-primary">System</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-text-muted">
-                    <time title={new Date(message.createdAt).toLocaleString("de-DE")}>
-                      {formatTime(message.createdAt)}
-                    </time>
-                    {!message.isDeleted ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setQuoteTarget(message);
-                          window.requestAnimationFrame(() => {
-                            composerRef.current?.focus();
-                          });
-                        }}
-                        className="inline-flex items-center text-text-muted transition-colors hover:text-pa-green"
-                        aria-label={copy.quote.action}
-                        title={copy.quote.action}
-                      >
-                        <Reply className="h-3.5 w-3.5" />
-                      </button>
-                    ) : null}
-                    {isStaff ? (
-                      <Dropdown
-                        align="right"
-                        side="auto"
-                        minWidth={180}
-                        trigger={
-                          <button
-                            type="button"
-                            className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-muted transition-colors hover:text-pa-green"
-                            aria-label={copy.admin.quickActions}
-                            title={copy.admin.quickActions}
-                          >
-                            <MoreHorizontal className="h-3.5 w-3.5" />
-                          </button>
-                        }
-                        items={[
-                          ...(canEditOwnAdminMessage(message, currentUserId)
-                            ? [
-                                {
-                                  label: copy.messageEditor.edit,
-                                  value: `edit:${message.id}`,
-                                  onClick: () => openEditModal(message),
-                                },
-                              ]
-                            : []),
-                          ...(message.isDeleted
-                            ? [
-                                {
-                                  label: copy.admin.restore,
-                                  value: `restore:${message.id}`,
-                                  onClick: () => openModerationAction("restore_message", message),
-                                },
-                              ]
-                            : [
-                                {
-                                  label: copy.admin.delete,
-                                  value: `delete:${message.id}`,
-                                  onClick: () => openModerationAction("delete_message", message),
-                                },
-                              ]),
-                          ...(message.author?.id &&
-                          !isProtectedModerationTarget(message, currentUserId) &&
-                          !message.isDeleted
-                            ? [
-                                {
-                                  label: copy.admin.timeout,
-                                  value: `timeout:${message.id}`,
-                                  onClick: () => openModerationAction("timeout_user", message),
-                                },
-                                {
-                                  label: copy.admin.ban,
-                                  value: `ban:${message.id}`,
-                                  onClick: () => openModerationAction("ban_user", message),
-                                },
-                              ]
-                            : []),
-                        ]}
-                      />
-                    ) : !message.isDeleted && message.author?.id !== currentUserId ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setReportTarget(message);
-                          setReportOpen(true);
-                        }}
-                        className="inline-flex items-center text-text-muted transition-colors hover:text-pa-green"
-                      >
-                        <Flag className="h-3.5 w-3.5" />
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-                <ChatMessageContent
-                  body={message.body}
-                  gif={message.gif}
-                  highlightCard={message.highlightCard}
-                  battleInvite={message.battleInvite}
-                  quotedMessage={message.quotedMessage}
-                  quoteLabels={{
-                    replyingTo: copy.quote.replyingTo,
-                    gifFallback: copy.quote.gifFallback,
-                  }}
-                  highlightedMentionUsername={mentionedCurrentUser ? selfUsername : null}
-                  lang={lang}
-                  className="mt-2 space-y-2"
-                  gifClassName="max-w-[220px]"
-                  gifImageClassName="max-h-[220px]"
-                  bodyClassName={`whitespace-pre-wrap break-words text-sm ${message.isDeleted ? "italic text-text-muted" : "text-text-primary"}`}
-                />
-                {!message.isDeleted ? (
-                  <ChatMessageReactions
-                    lang={lang}
-                    reactions={message.reactions}
-                    currentUserId={currentUserId}
-                    disabled={pendingReactionMessageIds.includes(message.id)}
-                    onToggle={
-                      permissions.canPost
-                        ? (emoji) => {
-                            void toggleReaction(message.id, emoji);
-                          }
-                        : undefined
-                    }
-                    labels={copy.reactions}
-                  />
-                ) : null}
-              </div>
-            );
-          })
+          messages.map((message) => (
+            <ChatMessageItem
+              key={message.id}
+              message={message}
+              mentionedCurrentUser={isMentionForCurrentUser(message)}
+              pendingReaction={pendingReactionSet.has(message.id)}
+              isStaff={isStaff}
+              canPost={permissions.canPost}
+              currentUserId={currentUserId}
+              selfUsername={selfUsername ?? null}
+              lang={lang}
+              copy={copy}
+              {...stableItemHandlers}
+            />
+          ))
         )}
 
         {pendingNewCount > 0 && isPanelOpen ? (
