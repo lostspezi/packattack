@@ -6,9 +6,12 @@ const SOUND_MAP = {
   rip: "/sounds/pack-rip.mp3",
   burst: "/sounds/pack-burst.mp3",
   flip: "/sounds/card-flip.mp3",
+  spark: "/sounds/card-spark.mp3",
   shimmer: "/sounds/card-shimmer.mp3",
+  chime: "/sounds/card-chime.mp3",
   epic: "/sounds/card-epic.mp3",
   legendary: "/sounds/card-legendary.mp3",
+  rain: "/sounds/coins-rain.mp3",
 } as const;
 
 export type SoundKey = keyof typeof SOUND_MAP;

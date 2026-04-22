@@ -3,14 +3,11 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, useMotionValue, useSpring } from "motion/react";
 import { Scissors } from "lucide-react";
-import type { EffectTier } from "./effect-tiers";
-import { TIER_CONFIGS } from "./effect-tiers";
 import type { ParticleCanvasHandle } from "./particle-canvas";
 
 interface PackRipperProps {
   boxName: string;
   cardCount: number;
-  maxTier: EffectTier;
   particleRef: React.RefObject<ParticleCanvasHandle | null>;
   onRipComplete: () => void;
   onPlaySound: (key: "rip" | "burst", volume?: number) => void;
@@ -23,6 +20,9 @@ const TEAR_ZONE = 55;
 const COMPLETE_THRESHOLD = 0.9;
 
 const FOIL_BG = "linear-gradient(160deg, #1a0e35 0%, #2a1850 15%, #1d0f3a 30%, #24043A 50%, #1a0e35 70%, #2a1850 85%, #1d0f3a 100%)";
+
+const RIP_COLORS = ["#FFFFFF", "#E8E8F0", "#9BFF00"];
+const RIP_GLOW = "#9BFF00";
 
 function packBodyShadow(isBottom = false) {
   return isBottom
@@ -146,7 +146,6 @@ function PackFaceDesign({ cardCount, offsetY = 0 }: { cardCount: number; offsetY
 export function PackRipper({
   boxName,
   cardCount,
-  maxTier,
   particleRef,
   onRipComplete,
   onPlaySound,
@@ -167,8 +166,6 @@ export function PackRipper({
   const springX = useSpring(tiltX, { stiffness: 120, damping: 18 });
   const springY = useSpring(tiltY, { stiffness: 120, damping: 18 });
 
-  const tierColors = TIER_CONFIGS[maxTier].colors;
-  const glowColor = tierColors[0];
   const gap = progress * 12;
   const topTiltDeg = progress * -4;
 
@@ -206,14 +203,14 @@ export function PackRipper({
       particleRef.current.emit({
         x: packRect.left + PACK_W / 2,
         y: packRect.top + TEAR_Y,
-        count: 40, colors: tierColors,
+        count: 40, colors: RIP_COLORS,
         speed: [100, 300], size: [3, 8],
         lifetime: [600, 1400], gravity: 70,
         spread: Math.PI, shape: "circle",
       });
     }
     setTimeout(() => onRipComplete(), 900);
-  }, [onPlaySound, onRipComplete, particleRef, tierColors]);
+  }, [onPlaySound, onRipComplete, particleRef]);
 
   const emitSparks = useCallback(
     (clientX: number) => {
@@ -225,13 +222,13 @@ export function PackRipper({
       particleRef.current.emit({
         x: packRect.left + relX,
         y: packRect.top + TEAR_Y,
-        count: 3, colors: tierColors,
+        count: 3, colors: RIP_COLORS,
         speed: [40, 130], size: [1, 4],
         lifetime: [200, 600], gravity: 50,
         spread: Math.PI * 0.8, shape: "circle",
       });
     },
-    [particleRef, tierColors],
+    [particleRef],
   );
 
   const handlePointerDown = useCallback(
@@ -305,7 +302,7 @@ export function PackRipper({
 
           <motion.div
             className="absolute left-0 right-0 h-[6px] rounded-full"
-            style={{ top: TEAR_Y - 3, background: glowColor, boxShadow: `0 0 25px ${glowColor}, 0 0 50px ${glowColor}` }}
+            style={{ top: TEAR_Y - 3, background: RIP_GLOW, boxShadow: `0 0 25px ${RIP_GLOW}, 0 0 50px ${RIP_GLOW}` }}
             initial={{ opacity: 1, scaleY: 1 }}
             animate={{ opacity: 0, scaleY: 5 }}
             transition={{ duration: 0.8 }}
@@ -391,16 +388,16 @@ export function PackRipper({
           {progress > 0 && (
             <div className="absolute top-1/2 h-[4px] -translate-y-1/2 left-0 rounded-full" style={{
               width: `${progress * 100}%`,
-              background: `linear-gradient(90deg, ${glowColor}80, ${glowColor})`,
-              boxShadow: `0 0 10px ${glowColor}, 0 0 25px ${glowColor}80`,
+              background: `linear-gradient(90deg, ${RIP_GLOW}80, ${RIP_GLOW})`,
+              boxShadow: `0 0 10px ${RIP_GLOW}, 0 0 25px ${RIP_GLOW}80`,
             }} />
           )}
           {progress > 0.01 && (
             <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 rounded-full" style={{
               left: `${progress * 100}%`,
               width: 14, height: 14,
-              background: glowColor,
-              boxShadow: `0 0 12px ${glowColor}, 0 0 24px ${glowColor}, 0 0 40px ${glowColor}80`,
+              background: RIP_GLOW,
+              boxShadow: `0 0 12px ${RIP_GLOW}, 0 0 24px ${RIP_GLOW}, 0 0 40px ${RIP_GLOW}80`,
             }} />
           )}
         </div>

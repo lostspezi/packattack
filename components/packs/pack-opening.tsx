@@ -5,11 +5,10 @@ import { Volume2, VolumeX, SkipForward } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import { Pack3D } from "./pack-3d";
 import { PackRipper } from "./pack-ripper";
-import { CardRevealGrid } from "./card-reveal-grid";
+import { CardRevealStack } from "./card-reveal-stack";
 import { suppressPendingGuard, notifyPendingPulls } from "./pending-pulls-guard";
 import { ParticleCanvas, type ParticleCanvasHandle } from "./particle-canvas";
 import { usePackSounds, type SoundKey } from "./use-pack-sounds";
-import { getMaxTierFromCards } from "./effect-tiers";
 
 interface DrawnCard {
   cardId: string;
@@ -92,7 +91,6 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
 
   const cards = result.cards;
   const boxName = isDe ? (box.name.de || box.name.en) : (box.name.en || box.name.de);
-  const maxTier = getMaxTierFromCards(cards);
 
   const handlePlaySound = useCallback((key: string, volume?: number) => {
     play(key as SoundKey, volume);
@@ -156,7 +154,6 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
               <PackRipper
                 boxName={boxName}
                 cardCount={cards.length}
-                maxTier={maxTier}
                 particleRef={particleRef}
                 onRipComplete={() => setPhase("reveal")}
                 onPlaySound={handlePlaySound}
@@ -165,7 +162,7 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
           </div>
         )}
         {phase === "reveal" && (
-          <CardRevealGrid
+          <CardRevealStack
             cards={cards}
             packCount={result.packCount}
             lang={lang}
