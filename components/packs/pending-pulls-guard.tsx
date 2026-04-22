@@ -37,7 +37,11 @@ interface PendingData {
   cards: PendingCard[];
 }
 
-const POLL_INTERVAL = 8_000;
+// Polling is only an insurance policy — real updates arrive via the
+// `pending-pulls-changed` event and the explicit refetch from decide/open.
+// 30s is long enough not to matter for perf but short enough to self-heal if
+// an event is missed.
+const POLL_INTERVAL = 30_000;
 const WARNING_THRESHOLD = 60; // seconds — play warning sound
 const CRITICAL_THRESHOLD = 30; // seconds — urgent UI
 const NOTIFY_THRESHOLD = 90; // seconds — send browser notification
