@@ -10,7 +10,7 @@ import PackPull from "@/models/pack-pull";
 import CoinTransaction from "@/models/coin-transaction";
 import Notification from "@/models/notification";
 import { drawPacks, type PackCard } from "@/lib/pack-engine";
-import { runSubstitutions } from "@/lib/substitution";
+import { enqueueSubstitution } from "@/lib/substitution";
 
 export async function POST(
   req: NextRequest,
@@ -208,7 +208,7 @@ export async function POST(
       }
     }
     if (Object.keys(depletedCards).length > 0) {
-      void runSubstitutions({ boxId: realBoxId.toString(), depletedCards });
+      void enqueueSubstitution({ boxId: realBoxId.toString(), depletedCards });
     }
 
     // 12. Response

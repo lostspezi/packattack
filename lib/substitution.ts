@@ -13,6 +13,7 @@ import InventoryItem from "@/models/inventory-item";
 import Notification from "@/models/notification";
 import User from "@/models/user";
 import { Types } from "mongoose";
+import { getQueue, SUBSTITUTION_QUEUE } from "@/lib/queue";
 
 export interface SubstitutionInput {
   boxId: string;
@@ -161,4 +162,21 @@ export async function runSubstitutions(
   }
 
   return { substituted, boxPaused };
+}
+
+/**
+ * Hand substitution off to the BullMQ worker so the request-cycle never has
+ * to await the aggregation pipeline. Retries + dead-letter live with the
+ * queue, instead of the silent `void runSubstitutions` fire-and-forget the
+ * API route used before.
+ */
+export async function enqueueSubstitution(input: SubstitutionInput): Promise<void> {
+  if (Object.keys(input.depletedCards).length === 0) return;
+  const queue = getQueue(SUBSTITUTION_QUEUE);
+  await queue.add("run", input, {
+    attempts: 3,
+    backoff: { type: "exponential", delay: 2_000 },
+    removeOnComplete: 100,
+    removeOnFail: 50,
+  });
 }
