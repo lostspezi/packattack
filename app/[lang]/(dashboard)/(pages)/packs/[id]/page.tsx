@@ -94,6 +94,9 @@ export default function PackDetailPage() {
   const [loading, setLoading] = useState(true);
   const [packCount, setPackCount] = useState(1);
   const [opening, setOpening] = useState(false);
+  // Synchronous guard — React state is set asynchronously, so two fast clicks
+  // can both enter handleOpen before `opening` flips to true.
+  const openingRef = useRef(false);
   const [openResult, setOpenResult] = useState<OpenResult | null>(null);
   const [userCoins, setUserCoins] = useState<number | null>(null);
   const [showBoxInfo, setShowBoxInfo] = useState(false);
@@ -158,6 +161,8 @@ export default function PackDetailPage() {
 
   async function handleOpen() {
     if (!box) return;
+    if (openingRef.current) return;
+    openingRef.current = true;
     setOpening(true);
     try {
       const res = await fetch(`/api/packs/${id}/open`, {
@@ -177,6 +182,7 @@ export default function PackDetailPage() {
       toast({ type: "error", title: "Network error" });
     } finally {
       setOpening(false);
+      openingRef.current = false;
     }
   }
 
