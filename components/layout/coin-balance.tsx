@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Coins } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { fetchProfile } from "@/lib/profile-client";
 
 export function CoinBalance() {
   const [coins, setCoins] = useState<number | null>(null);
@@ -21,23 +22,16 @@ export function CoinBalance() {
     function fetchBalance() {
       if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
       fetchDebounceRef.current = setTimeout(() => {
-        fetch("/api/profile")
-          .then((r) => r.json())
-          .then((data) => {
-            if (data?.coins !== undefined) setCoins(data.coins);
-          })
-          .catch(() => {});
+        void fetchProfile().then((data) => {
+          if (data?.coins !== undefined) setCoins(data.coins);
+        });
       }, 300);
     }
 
     // Fetch on mount and on every route change
-    fetch("/api/profile")
-      .then(async (res) => {
-        if (!res.ok) return;
-        const data = (await res.json()) as { coins?: number };
-        setCoins(data.coins ?? 0);
-      })
-      .catch(() => {});
+    void fetchProfile().then((data) => {
+      if (data?.coins !== undefined) setCoins(data.coins);
+    });
 
     function handleRefresh() {
       fetchBalance();

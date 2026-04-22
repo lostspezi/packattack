@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Coins, Zap } from "lucide-react";
+import { fetchProfile } from "@/lib/profile-client";
 import { IdentityVerificationBanner } from "./identity-verification-banner";
 import { PackageCard } from "./package-card";
 import { PurchaseHistory } from "./purchase-history";
@@ -37,7 +38,7 @@ export function BalancePage({ lang, dict }: BalancePageProps) {
     function fetchData() {
       Promise.all([
         fetch("/api/coins/packages").then((r) => r.json()),
-        fetch("/api/profile").then((r) => r.json()),
+        fetchProfile(),
         fetch("/api/coins/verify-identity/status").then((r) => r.json()),
       ]).then(([pkgs, profile, identity]) => {
         setPackages(pkgs || []);
@@ -50,12 +51,9 @@ export function BalancePage({ lang, dict }: BalancePageProps) {
 
     // Stay in sync with header coin balance
     function handleCoinUpdate() {
-      fetch("/api/profile")
-        .then((r) => r.json())
-        .then((data) => {
-          if (data?.coins !== undefined) setBalance(data.coins);
-        })
-        .catch(() => {});
+      void fetchProfile().then((data) => {
+        if (data?.coins !== undefined) setBalance(data.coins);
+      });
     }
 
     window.addEventListener("coin-balance-refresh", handleCoinUpdate);
