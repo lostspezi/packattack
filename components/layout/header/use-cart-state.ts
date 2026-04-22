@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMe } from "@/components/layout/me-provider";
 
 export interface CartState {
   cartCount: number;
@@ -25,8 +26,22 @@ function timerColor(seconds: number) {
 }
 
 export function useCartState(): CartState {
-  const [cartCount, setCartCount] = useState(0);
-  const [cartTimer, setCartTimer] = useState(0);
+  const me = useMe();
+  // Overrides are set by refreshCart() after user actions; until then we
+  // derive the displayed values straight from the /api/me snapshot.
+  const [override, setOverride] = useState<{ totalItems: number; cartExpiresInSeconds: number } | null>(null);
+  const [tickOffset, setTickOffset] = useState(0);
+
+  const source = useMemo(
+    () =>
+      override ??
+      (me
+        ? { totalItems: me.cart.totalItems, cartExpiresInSeconds: me.cart.cartExpiresInSeconds }
+        : null),
+    [override, me],
+  );
+  const cartCount = source?.totalItems ?? 0;
+  const cartTimer = Math.max(0, (source?.cartExpiresInSeconds ?? 0) - tickOffset);
 
   const refreshCart = useCallback(() => {
     fetch("/api/cart")
@@ -35,31 +50,32 @@ export function useCartState(): CartState {
         return r.json();
       })
       .then((data) => {
-        setCartCount(data.totalItems ?? 0);
-        setCartTimer(data.cartExpiresInSeconds ?? 0);
+        setOverride({
+          totalItems: data.totalItems ?? 0,
+          cartExpiresInSeconds: data.cartExpiresInSeconds ?? 0,
+        });
+        setTickOffset(0);
       })
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    refreshCart();
-  }, [refreshCart]);
-
-  // Only run the countdown interval while there are items in the cart.
-  // cartCount is the gate: interval is created once when items appear,
-  // torn down when cart empties. The setter reads prev to avoid drift.
+  // Countdown against the current source (override or me snapshot). We only
+  // bump a local offset so the source value stays authoritative and we don't
+  // need to mutate it in an effect.
   useEffect(() => {
     if (cartCount <= 0) return;
     const interval = setInterval(() => {
-      setCartTimer((prev) => {
-        if (prev <= 0) return 0;
-        const next = prev - 1;
-        if (next === 0) refreshCart();
-        return next;
-      });
+      setTickOffset((prev) => prev + 1);
     }, 1000);
     return () => clearInterval(interval);
-  }, [cartCount, refreshCart]);
+  }, [cartCount]);
+
+  // When the countdown hits zero, refetch fresh state.
+  useEffect(() => {
+    if (cartCount > 0 && cartTimer === 0 && source && source.cartExpiresInSeconds > 0) {
+      refreshCart();
+    }
+  }, [cartCount, cartTimer, source, refreshCart]);
 
   return { cartCount, cartTimer, formatTimer, timerColor, refreshCart };
 }

@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { Modal } from "@/components/ui/modal";
 import { fetchProfile } from "@/lib/profile-client";
+import { useMe } from "@/components/layout/me-provider";
 import { PackOpening } from "@/components/packs/pack-opening";
 import { TopHits } from "@/components/packs/top-hits";
 import { LiveEvents } from "@/components/packs/live-events";
@@ -90,6 +91,7 @@ export default function PackDetailPage() {
   const isDe = lang === "de";
   const router = useRouter();
   const { toast } = useToast();
+  const me = useMe();
 
   const [box, setBox] = useState<BoxDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -110,55 +112,53 @@ export default function PackDetailPage() {
     pendingCount: number;
   } | null>(null);
 
+  // Load box + coins. /api/profile stays in place because fetchProfile
+  // shares an in-flight promise with the header; /api/pulls/pending only
+  // fires when the /api/me snapshot says something is pending, avoiding
+  // the redundant fetch on every mount.
   useEffect(() => {
     Promise.all([
       fetch(`/api/packs/${id}`).then((r) => r.ok ? r.json() : null),
       fetchProfile(),
-      fetch("/api/pulls/pending").then((r) => r.ok ? r.json() : null),
-    ]).then(([boxData, profileData, pendingData]) => {
+    ]).then(([boxData, profileData]) => {
       const typedBox = boxData as BoxDetail | null;
       const typedProfile = profileData as { coins?: number } | null;
-      const typedPending = pendingData as {
-        pending: boolean;
-        packGroupId?: string;
-        boxId?: string;
-        boxSlug?: string;
-        boxName?: { de: string; en: string };
-        packCount?: number;
-        totalCards?: number;
-        pendingCount?: number;
-        decidedCount?: number;
-        cards?: OpenResult["cards"];
-      } | null;
-
       setBox(typedBox);
       setUserCoins(typedProfile?.coins ?? 0);
-
-      // Recovery: pending session found
-      if (typedPending?.pending && typedPending.cards) {
-        // Match by slug OR by ObjectId against the URL param
-        const isSameBox =
-          typedPending.boxSlug === id ||
-          typedPending.boxId === id ||
-          typedPending.boxId === typedBox?._id;
-
-        if (isSameBox) {
-          // Same box — the PendingPullsGuard will handle the review overlay
-          // (no need to route through PackOpening for recovery)
-        } else {
-          // Different box — show banner
-          const name = isDe
-            ? (typedPending.boxName?.de || typedPending.boxName?.en || "Box")
-            : (typedPending.boxName?.en || typedPending.boxName?.de || "Box");
-          setPendingOtherBox({
-            boxName: name,
-            boxSlug: typedPending.boxSlug ?? typedPending.boxId!,
-            pendingCount: typedPending.pendingCount ?? 0,
-          });
-        }
-      }
     }).catch(() => {}).finally(() => setLoading(false));
-  }, [id, isDe]);
+  }, [id]);
+
+  // Cross-box pending banner — only fetch the detailed pending payload
+  // when the shared /api/me snapshot says there is one. Skipping this
+  // spares the /api/pulls/pending roundtrip on every pack-page mount for
+  // the common case (nothing pending).
+  useEffect(() => {
+    if (!me?.pending.exists || !box) return;
+
+    let cancelled = false;
+    fetch("/api/pulls/pending")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((pendingData) => {
+        if (cancelled || !pendingData?.pending || !pendingData.cards) return;
+        const isSameBox =
+          pendingData.boxSlug === id ||
+          pendingData.boxId === id ||
+          pendingData.boxId === box._id;
+        if (isSameBox) return; // Guard overlay handles same-box recovery
+        const name = isDe
+          ? (pendingData.boxName?.de || pendingData.boxName?.en || "Box")
+          : (pendingData.boxName?.en || pendingData.boxName?.de || "Box");
+        setPendingOtherBox({
+          boxName: name,
+          boxSlug: pendingData.boxSlug ?? pendingData.boxId,
+          pendingCount: pendingData.pendingCount ?? 0,
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [me?.pending.exists, box, id, isDe]);
 
   async function handleOpen() {
     if (!box) return;

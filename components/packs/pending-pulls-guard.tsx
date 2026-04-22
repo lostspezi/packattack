@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { CardReview } from "./card-review";
+import { useMe } from "@/components/layout/me-provider";
 import { useToast } from "@/components/ui/toast";
 import { Clock, AlertTriangle, Volume2, VolumeX } from "lucide-react";
 
@@ -72,6 +73,7 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
   const lang = params?.lang ?? "de";
   const isDe = lang === "de";
   const { toast } = useToast();
+  const me = useMe();
 
   const [pendingData, setPendingData] = useState<PendingData | null>(null);
   const [choices, setChoices] = useState<Map<number, CardChoice>>(new Map());
@@ -133,16 +135,21 @@ export function PendingPullsGuard({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Poll on mount, periodically, and on custom event
+  // Poll on mount, periodically, and on custom event.
+  // Skip the initial fetch when /api/me has already told us there's nothing
+  // pending — the interval and the pending-pulls-changed event still cover
+  // the case where something shows up later in the session.
   useEffect(() => {
-    fetchPending();
+    if (me === null || me.pending.exists) {
+      fetchPending();
+    }
     pollRef.current = setInterval(fetchPending, POLL_INTERVAL);
     window.addEventListener(PENDING_PULLS_EVENT, fetchPending);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
       window.removeEventListener(PENDING_PULLS_EVENT, fetchPending);
     };
-  }, [fetchPending]);
+  }, [fetchPending, me]);
 
   // Countdown timer
   const expiresAtStr = pendingData?.expiresAt ?? null;

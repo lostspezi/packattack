@@ -2,6 +2,7 @@
 import { ChatDock } from "@/components/chat/chat-dock";
 import { Footer } from "@/components/layout/footer";
 import { UserHeader } from "@/components/layout/header/user-header";
+import { MeProvider } from "@/components/layout/me-provider";
 import { PendingPullsGuard } from "@/components/packs/pending-pulls-guard";
 import { auth } from "@/lib/auth";
 import { getActiveLanguages, getDictionary } from "@/lib/i18n";
@@ -32,25 +33,27 @@ export default async function DashboardLayout({
   const userImage = session.user.image ?? null;
 
   return (
-    <div className="flex flex-1 flex-col xl:pr-[420px]" style={{ background: "linear-gradient(135deg, var(--color-pa-lila) 30%, var(--color-pa-blue) 80%)" }}>
-      <UserHeader
-        lang={lang}
-        dict={commonDict}
-        languages={languages}
-        userName={userName}
-        userImage={userImage}
-        userRole={userRole}
-      />
-      <PendingPullsGuard>
-        <div className="flex flex-1 flex-col">{children}</div>
-      </PendingPullsGuard>
-      <ChatDock
-        lang={lang}
-        dict={chatDict}
-        currentUserId={session.user.id}
-        userRole={userRole}
-      />
-      <Footer lang={lang} dict={footerDict} />
-    </div>
+    <MeProvider>
+      <div className="flex flex-1 flex-col xl:pr-[420px]" style={{ background: "linear-gradient(135deg, var(--color-pa-lila) 30%, var(--color-pa-blue) 80%)" }}>
+        <UserHeader
+          lang={lang}
+          dict={commonDict}
+          languages={languages}
+          userName={userName}
+          userImage={userImage}
+          userRole={userRole}
+        />
+        <PendingPullsGuard>
+          <div className="flex flex-1 flex-col">{children}</div>
+        </PendingPullsGuard>
+        <ChatDock
+          lang={lang}
+          dict={chatDict}
+          currentUserId={session.user.id}
+          userRole={userRole}
+        />
+        <Footer lang={lang} dict={footerDict} />
+      </div>
+    </MeProvider>
   );
 }

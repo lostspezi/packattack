@@ -5,9 +5,14 @@ import { Coins } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { fetchProfile } from "@/lib/profile-client";
+import { useMe } from "@/components/layout/me-provider";
 
 export function CoinBalance() {
-  const [coins, setCoins] = useState<number | null>(null);
+  const me = useMe();
+  // `override` wins once an event-driven fetch returns a newer value;
+  // otherwise we derive coins directly from the /api/me snapshot.
+  const [override, setOverride] = useState<number | null>(null);
+  const coins = override ?? me?.coins ?? null;
   const [floatText, setFloatText] = useState<string | null>(null);
   const [glowing, setGlowing] = useState(false);
   const [popping, setPopping] = useState(false);
@@ -23,15 +28,10 @@ export function CoinBalance() {
       if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
       fetchDebounceRef.current = setTimeout(() => {
         void fetchProfile().then((data) => {
-          if (data?.coins !== undefined) setCoins(data.coins);
+          if (data?.coins !== undefined) setOverride(data.coins);
         });
       }, 300);
     }
-
-    // Fetch on mount and on every route change
-    void fetchProfile().then((data) => {
-      if (data?.coins !== undefined) setCoins(data.coins);
-    });
 
     function handleRefresh() {
       fetchBalance();
@@ -68,7 +68,7 @@ export function CoinBalance() {
       window.removeEventListener("coin-balance-change", handleChange);
       if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
     };
-  }, [pathname]);
+  }, []);
 
   if (coins === null) return null;
 
