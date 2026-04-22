@@ -31,6 +31,7 @@ import { ChatOnlineUsersModal } from "@/components/chat/chat-online-users-modal"
 import { MentionSuggestions } from "@/components/chat/mention-suggestions";
 import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
+import { playNotificationTone } from "@/components/chat/notification-tone";
 import { messageMentionsViewer } from "@/lib/chat-mentions";
 import { mergeChatMessageSummaries } from "@/lib/chat-message-summary";
 import { isChatAdmin } from "@/lib/chat-constants";
@@ -84,29 +85,6 @@ function formatTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
-}
-
-function playNotificationTone(kind: "mention" | "staff") {
-  if (typeof window === "undefined") return;
-  const AudioContextClass =
-    window.AudioContext ||
-    (window as typeof window & { webkitAudioContext?: typeof AudioContext })
-      .webkitAudioContext;
-  if (!AudioContextClass) {
-    throw new Error("audio_unsupported");
-  }
-  const ctx = new AudioContextClass();
-  const oscillator = ctx.createOscillator();
-  const gain = ctx.createGain();
-  oscillator.type = "sine";
-  oscillator.frequency.value = kind === "mention" ? 880 : 660;
-  gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.04, ctx.currentTime + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.18);
-  oscillator.connect(gain);
-  gain.connect(ctx.destination);
-  oscillator.start();
-  oscillator.stop(ctx.currentTime + 0.2);
 }
 
 function isProtectedModerationTarget(message: ChatMessageSummary, currentUserId: string) {
