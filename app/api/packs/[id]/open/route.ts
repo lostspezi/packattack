@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
+import { Types } from "mongoose";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Box from "@/models/box";
@@ -153,20 +154,34 @@ export async function POST(
       stockUpdates[d.cardId] = (stockUpdates[d.cardId] ?? 0) + 1;
     }
 
-    // Track stock decrements (some may fail if stock depleted concurrently)
+    // One atomic decrement per drawn unit, still guarded by $gte:1 so a
+    // concurrent depletion skips the surplus op. bulkWrite with ordered:true
+    // executes the guards against the state left by previous ops in the batch,
+    // so three decrements against stock=2 still cleanly produce stock=0.
+    const stockOps: Array<{
+      updateOne: {
+        filter: Record<string, unknown>;
+        update: Record<string, unknown>;
+      };
+    }> = [];
     for (const [cardId, count] of Object.entries(stockUpdates)) {
-      const cardObjectId = new (await import("mongoose")).Types.ObjectId(cardId);
-      // Decrement one at a time with atomic $gte guard
+      const cardObjectId = new Types.ObjectId(cardId);
       for (let i = 0; i < count; i++) {
-        await Box.updateOne(
-          { _id: realBoxId, "cards.card": cardObjectId, "cards.stock": { $gte: 1 } },
-          { $inc: { "cards.$.stock": -1 } }
-        );
+        stockOps.push({
+          updateOne: {
+            filter: { _id: realBoxId, "cards.card": cardObjectId, "cards.stock": { $gte: 1 } },
+            update: { $inc: { "cards.$.stock": -1 } },
+          },
+        });
       }
     }
-
-    // Atomically increment packsOpened
-    await Box.updateOne({ _id: realBoxId }, { $inc: { packsOpened: packCount } });
+    stockOps.push({
+      updateOne: {
+        filter: { _id: realBoxId },
+        update: { $inc: { packsOpened: packCount } },
+      },
+    });
+    await Box.bulkWrite(stockOps, { ordered: true });
 
     // Reload box for stock alerts (need current state)
     const updatedBox = await Box.findById(realBoxId);
