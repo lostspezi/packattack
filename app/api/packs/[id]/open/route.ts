@@ -39,6 +39,10 @@ export async function POST(
     return NextResponse.json({ error: "packCount must be 1-10" }, { status: 400 });
   }
 
+  // Hoisted so the outer catch can clean up the session mutex if anything
+  // between `PackOpenSession.create` and the success response throws.
+  let heldSessionKey: string | null = null;
+
   try {
     await connectDB();
 
@@ -67,6 +71,7 @@ export async function POST(
         packGroupId,
         expiresAt: sessionExpiresAt,
       });
+      heldSessionKey = packGroupId;
     } catch (err) {
       if ((err as { code?: number }).code === 11000) {
         return NextResponse.json(
@@ -240,6 +245,11 @@ export async function POST(
     });
   } catch (err) {
     console.error("[packs/[id]/open POST]", err);
+    // Release the open-session mutex so the user isn't blocked for the full
+    // 5-minute TTL after a server error between session-create and response.
+    if (heldSessionKey) {
+      await PackOpenSession.deleteOne({ userId, packGroupId: heldSessionKey }).catch(() => {});
+    }
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
 }
