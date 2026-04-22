@@ -10,7 +10,9 @@ import bcryptjs from "bcryptjs";
 import { Types } from "mongoose";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
+import CoinTransaction from "@/models/coin-transaction";
 import PlatformSettings from "@/models/platform-settings";
+import { SIGNUP_BONUS_COINS } from "@/lib/constants";
 
 async function backfillMissingUserRole(userId?: string | null, email?: string | null) {
   const filter =
@@ -29,6 +31,38 @@ async function backfillMissingUserRole(userId?: string | null, email?: string | 
     },
     { $set: { role: "user" } }
   );
+}
+
+async function grantSignupBonus(userId?: string | null, email?: string | null) {
+  const filter =
+    userId && Types.ObjectId.isValid(userId) && new Types.ObjectId(userId).toString() === userId
+      ? { _id: new Types.ObjectId(userId) }
+      : email
+        ? { email }
+        : null;
+
+  if (!filter) return;
+
+  const result = await User.updateOne(
+    { ...filter, coins: { $exists: false } },
+    { $set: { coins: SIGNUP_BONUS_COINS } }
+  );
+
+  if (result.modifiedCount !== 1) return;
+
+  try {
+    const created = await User.findOne(filter).select("_id").lean();
+    if (created?._id) {
+      await CoinTransaction.create({
+        userId: created._id,
+        amount: SIGNUP_BONUS_COINS,
+        type: "signup_bonus",
+        reason: "Welcome bonus for OAuth signup",
+      });
+    }
+  } catch (err) {
+    console.error("[auth grantSignupBonus ledger]", err);
+  }
 }
 
 // Helper: find user by ID (handles both ObjectId and UUID strings)
@@ -121,6 +155,7 @@ const authConfig: NextAuthConfig = {
       try {
         await connectDB();
         await backfillMissingUserRole(user.id, user.email ?? null);
+        await grantSignupBonus(user.id, user.email ?? null);
       } catch (error) {
         console.error("[auth createUser]", error);
       }

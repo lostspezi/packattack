@@ -3,10 +3,12 @@ import bcrypt from "bcryptjs";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
 import ConsentLog from "@/models/consent-log";
+import CoinTransaction from "@/models/coin-transaction";
 import PlatformSettings from "@/models/platform-settings";
 import { registerSchema } from "@/lib/validations";
 import { generateVerificationToken } from "@/lib/tokens";
 import { sendTemplateEmail } from "@/lib/mail";
+import { SIGNUP_BONUS_COINS } from "@/lib/constants";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
@@ -65,7 +67,19 @@ export async function POST(req: NextRequest) {
       role: "user",
       dateOfBirth: dob,
       onboardingCompleted: true,
+      coins: SIGNUP_BONUS_COINS,
     });
+
+    try {
+      await CoinTransaction.create({
+        userId: user._id,
+        amount: SIGNUP_BONUS_COINS,
+        type: "signup_bonus",
+        reason: "Welcome bonus for new signup",
+      });
+    } catch (err) {
+      console.error("[register signup-bonus ledger]", err);
+    }
 
     // Get platform settings for consent version
     const settings = await PlatformSettings.findOne().lean();
