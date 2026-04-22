@@ -4,8 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
 import { BuildIndicator } from "@/components/layout/build-indicator";
 import { ToastProvider } from "@/components/ui/toast";
-import { Footer } from "@/components/layout/footer";
-import { getActiveLocales, getDefaultLocale, getDictionary } from "@/lib/i18n";
+import { getActiveLocales, getDefaultLocale } from "@/lib/i18n";
 import "@/app/globals.css";
 
 const geistSans = Geist({
@@ -42,8 +41,6 @@ export default async function LangLayout({
     redirect(`/${defaultLocale}/dashboard`);
   }
 
-  const footerDict = await getDictionary(lang, "footer");
-
   return (
     <html
       lang={lang}
@@ -56,8 +53,7 @@ export default async function LangLayout({
       <body className="bg-bg text-text-primary h-screen safe-top safe-bottom flex flex-col overflow-hidden">
         <SessionProvider>
           <ToastProvider>
-            <div className="flex-1 flex flex-col overflow-y-auto">{children}</div>
-            <Footer lang={lang} dict={footerDict} />
+            <div className="flex-1 flex flex-col overflow-y-auto xl:scrollbar-hide">{children}</div>
             <BuildIndicator />
           </ToastProvider>
         </SessionProvider>

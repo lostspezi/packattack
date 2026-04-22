@@ -458,6 +458,17 @@ button[disabled] {
   @apply hidden lg:block;
 }
 
+/* Hide scrollbar while keeping scroll functionality.
+ * Used on desktop to prevent a 17px gap between the content (constrained
+ * by the fixed chat sidebar's padding reservation) and the sidebar itself,
+ * which is positioned against the viewport and ignores scrollbar width. */
+@utility scrollbar-hide {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* ================================================================
  * GOOGLE PLACES AUTOCOMPLETE — Dark theme
  * ================================================================ */

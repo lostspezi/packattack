@@ -109,14 +109,14 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
 
   // ─── ANIMATION PHASES: fullscreen overlay for ripping + reveal ───
   return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center overflow-auto bg-[#08070d]">
+    <div className="fixed inset-0 z-80 flex flex-col items-center justify-center overflow-auto bg-[#08070d]">
       {/* Particle canvas — covers entire overlay */}
       <div className="absolute inset-0">
         <ParticleCanvas ref={particleRef} />
       </div>
 
       {/* Controls — top right */}
-      <div className="fixed top-4 right-4 z-[60] flex items-center gap-2">
+      <div className="fixed top-4 right-4 z-[90] flex items-center gap-2">
         <SoundControl volume={masterVolume} onChange={setMasterVolume} />
         <button
           type="button"

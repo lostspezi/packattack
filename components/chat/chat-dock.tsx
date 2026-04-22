@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  ChevronRight,
   ExternalLink,
   Flag,
   ImageIcon,
@@ -158,7 +157,6 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const hiddenOnRoute = pathname === `/${lang}/chat` || pathname.startsWith(`/${lang}/admin/chat`);
 
   const [isDesktop, setIsDesktop] = useState(false);
-  const [desktopOpen, setDesktopOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -211,7 +209,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const isComposingRef = useRef(false);
   const launcherAnimationTimeoutRef = useRef<number | null>(null);
 
-  const isPanelOpen = isDesktop ? desktopOpen : mobileOpen;
+  const isPanelOpen = isDesktop || mobileOpen;
   const unreadCount = room ? Math.max(0, room.lastVisibleSeq - readState.lastReadVisibleSeq) : 0;
   const badgeCount = Math.max(unreadCount, pendingNewCount);
 
@@ -396,7 +394,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   useEffect(() => {
@@ -543,7 +541,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     };
 
     return () => source.close();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [currentUserId]);
 
   useEffect(() => {
@@ -891,20 +889,8 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                 ? copy.composer.verificationRequired
                 : null;
 
-  function openPanel() {
-    if (isDesktop) {
-      setDesktopOpen(true);
-    } else {
-      setMobileOpen(true);
-    }
-  }
-
-  function closePanel() {
-    if (isDesktop) {
-      setDesktopOpen(false);
-    } else {
-      setMobileOpen(false);
-    }
+  function closeMobilePanel() {
+    setMobileOpen(false);
   }
 
   if (hiddenOnRoute) {
@@ -912,7 +898,13 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   }
 
   const panelContent = (
-    <div className="flex h-full flex-col overflow-hidden rounded-[24px] border border-white/10 bg-surface-elevated/95 ring-1 ring-white/6 backdrop-blur-xl">
+    <div
+      className={`flex h-full flex-col overflow-hidden bg-surface-elevated/95 backdrop-blur-xl ${
+        isDesktop
+          ? "border-l border-white/10"
+          : "rounded-[24px] border border-white/10 ring-1 ring-white/6"
+      }`}
+    >
       <div className="border-b border-white/8 px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
@@ -937,28 +929,16 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                 <ExternalLink className="h-4 w-4" />
               </Link>
             ) : null}
-            {isDesktop ? (
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={closePanel}
-                className="h-9 shrink-0 whitespace-nowrap px-3 text-xs font-semibold"
-                aria-label={collapseLabel}
-              >
-                <ChevronRight className="h-4 w-4" />
-                {collapseLabel}
-              </Button>
-            ) : (
+            {!isDesktop ? (
               <button
                 type="button"
-                onClick={closePanel}
+                onClick={closeMobilePanel}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
                 aria-label={collapseLabel}
               >
                 <X className="h-4 w-4" />
               </button>
-            )}
+            ) : null}
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -1341,40 +1321,18 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
 
   return (
     <>
-      <div className="hidden xl:block">
-        {desktopOpen ? (
-          <div className="fixed bottom-4 right-4 top-20 z-60 w-[420px]">{panelContent}</div>
-        ) : (
-          <div className={`fixed bottom-24 right-4 z-60 ${launcherAnimationClassName}`}>
-            <button
-              type="button"
-              onClick={openPanel}
-              className="group flex items-center gap-3 rounded-full border border-white/10 bg-surface-elevated/95 px-4 py-3 ring-1 ring-white/6 transition-colors hover:border-pa-green/25"
-              title={copy.page.expand}
-            >
-              <span className="relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-pa-green/10 text-pa-green">
-                <MessagesSquare className="h-5 w-5" />
-                {triggerBadgeCount > 0 ? (
-                  <span className={`absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${triggerBadgeClassName}`}>
-                    {triggerBadgeCount > 99 ? "99+" : triggerBadgeCount}
-                  </span>
-                ) : null}
-              </span>
-              <div className="text-left">
-                <p className="text-sm font-semibold text-text-primary">{copy.page.roomTitle}</p>
-                <p className="text-xs text-text-secondary">{room?.onlineCount ?? 0} {copy.page.online}</p>
-              </div>
-            </button>
-          </div>
-        )}
-      </div>
-
-      <div className="xl:hidden">
-        {!mobileOpen ? (
+      {isDesktop ? (
+        <div className="fixed inset-y-0 right-0 z-60 w-[420px]">{panelContent}</div>
+      ) : (
+        <>
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className={`fixed bottom-24 right-4 z-60 inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-surface-elevated/95 text-pa-green ring-1 ring-white/6 ${launcherAnimationClassName}`}
+            aria-hidden={mobileOpen}
+            tabIndex={mobileOpen ? -1 : 0}
+            className={`fixed bottom-24 right-4 z-60 inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-surface-elevated/95 text-pa-green ring-1 ring-white/6 transition-opacity duration-200 ${
+              mobileOpen ? "pointer-events-none opacity-0" : "opacity-100"
+            } ${launcherAnimationClassName}`}
             title={copy.page.expand}
           >
             <MessagesSquare className="h-5 w-5" />
@@ -1384,13 +1342,24 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
               </span>
             ) : null}
           </button>
-        ) : (
-          <>
-            <div className="fixed inset-0 z-70 bg-black/60" onClick={() => setMobileOpen(false)} />
-            <div className="fixed inset-x-3 bottom-3 top-24 z-75">{panelContent}</div>
-          </>
-        )}
-      </div>
+          <div
+            onClick={() => setMobileOpen(false)}
+            aria-hidden={!mobileOpen}
+            className={`fixed inset-0 z-70 bg-black/60 transition-opacity duration-200 ${
+              mobileOpen ? "opacity-100" : "pointer-events-none opacity-0"
+            }`}
+          />
+          <div
+            inert={!mobileOpen}
+            aria-hidden={!mobileOpen}
+            className={`fixed inset-x-3 bottom-3 top-24 z-75 transition-transform duration-300 ease-out ${
+              mobileOpen ? "translate-y-0" : "pointer-events-none translate-y-[110%]"
+            }`}
+          >
+            {panelContent}
+          </div>
+        </>
+      )}
 
       <Modal open={editOpen} onClose={closeEditModal} title={copy.messageEditor.title}>
         <div className="space-y-4">

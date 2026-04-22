@@ -1,5 +1,6 @@
 ﻿import { redirect } from "next/navigation";
 import { ChatDock } from "@/components/chat/chat-dock";
+import { Footer } from "@/components/layout/footer";
 import { UserHeader } from "@/components/layout/header/user-header";
 import { PendingPullsGuard } from "@/components/packs/pending-pulls-guard";
 import { auth } from "@/lib/auth";
@@ -19,9 +20,10 @@ export default async function DashboardLayout({
     redirect(`/${lang}/login`);
   }
 
-  const [commonDict, chatDict, languages] = await Promise.all([
+  const [commonDict, chatDict, footerDict, languages] = await Promise.all([
     getDictionary(lang, "common"),
     getDictionary(lang, "chat"),
+    getDictionary(lang, "footer"),
     getActiveLanguages(),
   ]);
 
@@ -30,7 +32,7 @@ export default async function DashboardLayout({
   const userImage = session.user.image ?? null;
 
   return (
-    <div className="flex flex-1 flex-col" style={{ background: "linear-gradient(135deg, var(--color-pa-lila) 30%, var(--color-pa-blue) 80%)" }}>
+    <div className="flex flex-1 flex-col xl:pr-[420px]" style={{ background: "linear-gradient(135deg, var(--color-pa-lila) 30%, var(--color-pa-blue) 80%)" }}>
       <UserHeader
         lang={lang}
         dict={commonDict}
@@ -48,6 +50,7 @@ export default async function DashboardLayout({
         currentUserId={session.user.id}
         userRole={userRole}
       />
+      <Footer lang={lang} dict={footerDict} />
     </div>
   );
 }
