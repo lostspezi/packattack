@@ -19,7 +19,6 @@ interface BoxItem {
   cardsPerPack: number;
   totalCards: number;
   availableCards: number;
-  packsOpened: number;
   rarities: string[];
   previewCards?: Array<{
     image: string;

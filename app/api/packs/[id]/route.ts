@@ -4,6 +4,7 @@ import connectDB from "@/lib/db";
 import Box from "@/models/box";
 import Card from "@/models/card";
 import PackPull from "@/models/pack-pull";
+import { bucketPacksOpened } from "@/lib/packs/packs-opened-bucket";
 
 export async function GET(
   _req: NextRequest,
@@ -138,7 +139,7 @@ export async function GET(
       cardsPerPack: box.cardsPerPack,
       totalCards: cardEntries.length,
       availableCards: cardEntries.filter((c) => (c.stock ?? 0) > 0).length,
-      packsOpened: box.packsOpened ?? 0,
+      packsOpenedBucket: bucketPacksOpened(box.packsOpened ?? 0),
       rarityInfo,
       cardPool,
       topHits,

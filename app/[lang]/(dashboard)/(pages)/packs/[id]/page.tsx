@@ -38,7 +38,7 @@ interface BoxDetail {
   cardsPerPack: number;
   totalCards: number;
   availableCards: number;
-  packsOpened: number;
+  packsOpenedBucket: string | null;
   rarityInfo: Array<{ rarity: string; percentage: number }>;
   conditionInfo: Array<{ condition: string; percentage: number }>;
   cardPool: CardInfo[];
@@ -309,9 +309,15 @@ export default function PackDetailPage() {
                   <div className="flex-1 min-w-0 pt-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h1 className="text-lg font-extrabold text-text-primary">{name}</h1>
-                      <span className="bg-pa-green/8 border border-pa-green/15 text-pa-green text-[10px] px-2 py-0.5 rounded-md">
-                        🔥 {box.packsOpened.toLocaleString()}
-                      </span>
+                      {box.packsOpenedBucket ? (
+                        <span className="bg-pa-green/8 border border-pa-green/15 text-pa-green text-[10px] px-2 py-0.5 rounded-md">
+                          🔥 {box.packsOpenedBucket}
+                        </span>
+                      ) : (
+                        <span className="bg-white/4 border border-border text-text-muted text-[10px] px-2 py-0.5 rounded-md">
+                          ✨ {isDe ? "Neu" : "New"}
+                        </span>
+                      )}
                     </div>
                     <p className="text-xs text-text-muted mt-0.5">{box.game}</p>
                     <div className="flex gap-3 mt-2 text-[11px] text-text-muted flex-wrap">
@@ -331,9 +337,15 @@ export default function PackDetailPage() {
             {/* Desktop only title (mobile title is in the card row above) */}
             <div className="hidden lg:flex items-center gap-3 flex-wrap">
               <h1 className="text-2xl font-extrabold text-text-primary">{name}</h1>
-              <span className="bg-pa-green/8 border border-pa-green/15 text-pa-green text-xs px-2.5 py-1 rounded-lg">
-                🔥 {box.packsOpened.toLocaleString()} {isDe ? "geöffnet" : "opened"}
-              </span>
+              {box.packsOpenedBucket ? (
+                <span className="bg-pa-green/8 border border-pa-green/15 text-pa-green text-xs px-2.5 py-1 rounded-lg">
+                  🔥 {box.packsOpenedBucket} {isDe ? "geöffnet" : "opened"}
+                </span>
+              ) : (
+                <span className="bg-white/4 border border-border text-text-muted text-xs px-2.5 py-1 rounded-lg">
+                  ✨ {isDe ? "Neu" : "New"}
+                </span>
+              )}
             </div>
             <p className="hidden lg:block text-xs text-text-muted mt-0.5">{box.game}</p>
 
