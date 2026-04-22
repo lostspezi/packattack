@@ -28,15 +28,18 @@ export async function GET(_req: NextRequest) {
   const encoder = new TextEncoder();
   let subscriberRedis: ReturnType<typeof getRedis> | null = null;
   let lastPresenceCount = 0;
+  // Hoisted so `cancel()` (which fires on normal stream close, not just on
+  // abort) can reach the same idempotent teardown path as the abort listener.
+  // Assigned inside `start()` where `controller` is in scope.
+  let teardown:
+    | ((reason: "abort" | "cancel" | "keepalive_failed") => Promise<void>)
+    | null = null;
 
   const stream = new ReadableStream({
     async start(controller) {
-      // Shared teardown. Safe to call from any failure path — idempotent
-      // via `teardownStarted` so abort + keepalive-fail + cancel don't
-      // race into double-disconnect.
       let teardownStarted = false;
       let keepalive: ReturnType<typeof setInterval> | null = null;
-      const teardown = async (reason: "abort" | "cancel" | "keepalive_failed") => {
+      teardown = async (reason) => {
         if (teardownStarted) return;
         teardownStarted = true;
         if (keepalive) clearInterval(keepalive);
@@ -70,7 +73,7 @@ export async function GET(_req: NextRequest) {
         try {
           controller.enqueue(encoder.encode(`data: ${message}\n\n`));
         } catch {
-          void teardown("keepalive_failed");
+          void teardown?.("keepalive_failed");
         }
       });
 
@@ -96,21 +99,17 @@ export async function GET(_req: NextRequest) {
             // enqueue throws once the stream is closed — that's our cue
             // that the abort listener never fired (proxy timeout, dropped
             // TCP, etc.) and we need to tear down actively.
-            void teardown("keepalive_failed");
+            void teardown?.("keepalive_failed");
           }
         })();
       }, 30000);
 
       _req.signal.addEventListener("abort", () => {
-        void teardown("abort");
+        void teardown?.("abort");
       });
     },
     cancel() {
-      if (subscriberRedis) {
-        subscriberRedis.unsubscribe().catch(() => {});
-        subscriberRedis.disconnect();
-        subscriberRedis = null;
-      }
+      void teardown?.("cancel");
     },
   });
 
