@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
 import { Modal } from "@/components/ui/modal";
+import { fetchProfile } from "@/lib/profile-client";
 import { PackOpening } from "@/components/packs/pack-opening";
 import { TopHits } from "@/components/packs/top-hits";
 import { LiveEvents } from "@/components/packs/live-events";
@@ -112,7 +113,7 @@ export default function PackDetailPage() {
   useEffect(() => {
     Promise.all([
       fetch(`/api/packs/${id}`).then((r) => r.ok ? r.json() : null),
-      fetch("/api/profile").then((r) => r.ok ? r.json() : null),
+      fetchProfile(),
       fetch("/api/pulls/pending").then((r) => r.ok ? r.json() : null),
     ]).then(([boxData, profileData, pendingData]) => {
       const typedBox = boxData as BoxDetail | null;
@@ -210,8 +211,17 @@ export default function PackDetailPage() {
         lang={lang}
         quickOpen={quickOpenRef.current}
         onDone={() => {
+          // Adjust the box state in place instead of refetching the full
+          // box detail — newBalance and the drawn-card count are already
+          // known from the open response, and the card pool chances don't
+          // meaningfully shift between two consecutive opens.
+          const drawn = openResult?.cards.length ?? 0;
           setOpenResult(null);
-          fetch(`/api/packs/${id}`).then((r) => r.ok ? r.json() : null).then((d) => { if (d) setBox(d as BoxDetail); }).catch(() => {});
+          setBox((prev) =>
+            prev
+              ? { ...prev, availableCards: Math.max(0, prev.availableCards - drawn) }
+              : prev,
+          );
         }}
       />
     );
