@@ -54,15 +54,30 @@ export async function assertChatSubmissionAllowed({
   const windowLimit = getWindowLimit(trustTier);
   const hash = createHash("sha256").update(normalizedBody).digest("hex");
 
-  const windowCount = await runRedisCommand<number>(
+  // Single-roundtrip rate + duplicate check: atomically INCR the window
+  // counter (setting the TTL only on first hit so the window genuinely
+  // expires), then GET the previous duplicate hash and SET the new one.
+  const [windowCount, duplicatePrev] = await runRedisCommand<[number, string | null]>(
     `chat:rate:${userId}`,
-    0,
+    [0, null],
     async (redis) => {
-      const count = await redis.incr(windowKey);
-      if (count === 1) {
-        await redis.expire(windowKey, RATE_WINDOW_SECONDS);
-      }
-      return count;
+      const result = await redis.eval(
+        `local count = redis.call('INCR', KEYS[1])
+if count == 1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+local prev = redis.call('GET', KEYS[2])
+redis.call('SET', KEYS[2], ARGV[2], 'EX', ARGV[3])
+return { count, prev }`,
+        2,
+        windowKey,
+        duplicateKey,
+        String(RATE_WINDOW_SECONDS),
+        hash,
+        "120",
+      );
+      const arr = result as [number | string, string | null];
+      return [Number(arr[0]) || 0, arr[1] ?? null];
     }
   );
 
@@ -74,17 +89,7 @@ export async function assertChatSubmissionAllowed({
     };
   }
 
-  const duplicateMatch = await runRedisCommand<boolean>(
-    `chat:dup:${userId}`,
-    false,
-    async (redis) => {
-      const previous = await redis.get(duplicateKey);
-      await redis.set(duplicateKey, hash, "EX", 120);
-      return previous === hash;
-    }
-  );
-
-  if (duplicateMatch) {
+  if (duplicatePrev === hash) {
     return {
       allowed: false,
       error: "duplicate_message",

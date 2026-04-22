@@ -135,16 +135,21 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectDB();
-    const user = await User.findById(userId).lean();
+
+    const [user, room, policy] = await Promise.all([
+      User.findById(userId).lean(),
+      ensureGlobalChatRoom(),
+      ensureGlobalChatPolicy(),
+    ]);
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const normalizedUser = { ...user, role: user.role ?? "user" };
 
-    const room = await ensureGlobalChatRoom();
-    const policy = await ensureGlobalChatPolicy();
-    const userState = await ensureChatUserState(normalizedUser as never);
-    const readState = await ensureChatReadState(room._id, userId);
+    const [userState, readState] = await Promise.all([
+      ensureChatUserState(normalizedUser as never),
+      ensureChatReadState(room._id, userId),
+    ]);
     const permissions = buildChatPermissions({
       user: normalizedUser as never,
       room,
@@ -299,29 +304,25 @@ export async function POST(req: NextRequest) {
             ? "shadow_hidden"
             : "blocked";
 
-    const updatedRoom = await ChatRoom.findOneAndUpdate(
-      { slug: CHAT_ROOM_SLUG },
-      shouldBeVisible
-        ? {
-            $inc: { submissionSeq: 1, visibleSeq: 1 },
-            $set: { lastVisibleMessageAt: new Date() },
-          }
-        : {
-            $inc: { submissionSeq: 1 },
-          },
-      { returnDocument: "after" }
-    );
-
-    if (!updatedRoom) {
-      return NextResponse.json({ error: "server_error" }, { status: 500 });
-    }
-
     const mentionUsernames = normalizedBody
       ? extractMentionUsernames(normalizedBody).slice(0, 8)
       : [];
-    const mentionUsers =
+
+    const [updatedRoom, mentionUsers, badgeMap] = await Promise.all([
+      ChatRoom.findOneAndUpdate(
+        { slug: CHAT_ROOM_SLUG },
+        shouldBeVisible
+          ? {
+              $inc: { submissionSeq: 1, visibleSeq: 1 },
+              $set: { lastVisibleMessageAt: new Date() },
+            }
+          : {
+              $inc: { submissionSeq: 1 },
+            },
+        { returnDocument: "after" }
+      ),
       mentionUsernames.length > 0
-        ? await User.find(
+        ? User.find(
             {
               $or: mentionUsernames.map((username) => ({
                 username: new RegExp(`^${escapeMentionRegex(username)}$`, "i"),
@@ -329,7 +330,14 @@ export async function POST(req: NextRequest) {
             },
             "name username"
           ).lean()
-        : [];
+        : Promise.resolve([]),
+      getUserBadgeSummariesForUsers([normalizedUser._id]),
+    ]);
+
+    if (!updatedRoom) {
+      return NextResponse.json({ error: "server_error" }, { status: 500 });
+    }
+
     const mentionTargets = mentionUsers
       .filter((target): target is typeof target & { username: string } => Boolean(target.username))
       .map((target) => ({
@@ -338,7 +346,6 @@ export async function POST(req: NextRequest) {
         name: target.username,
       }));
     const hasMention = mentionTargets.length > 0;
-    const badgeMap = await getUserBadgeSummariesForUsers([normalizedUser._id]);
     const profileBadges =
       badgeMap.get(normalizedUser._id.toString()) ??
       getLegacyBadgeSummaries(normalizedUser as never);
@@ -391,7 +398,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await appendChatArchiveEvent({
+    // Kick off all independent post-create writes in parallel. We only need to
+    // await the serialization result before the status-specific fan-out that
+    // uses `serializedMessage` in `publishRoomEvent`.
+    const submittedArchivePromise = appendChatArchiveEvent({
       roomId: room._id,
       eventType: "message_submitted",
       messageId: message._id,
@@ -408,7 +418,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    await userState.updateOne({
+    const userStateUpdatePromise = userState.updateOne({
       $set: {
         lastSubmittedAt: new Date(),
       },
@@ -430,64 +440,68 @@ export async function POST(req: NextRequest) {
           }
         : serializedBaseMessage;
 
+    const tailWrites: Promise<unknown>[] = [submittedArchivePromise, userStateUpdatePromise];
+
     if (shouldBeVisible && message.visibleSeq) {
-      await readState.updateOne({
-        $set: {
-          lastReadVisibleSeq: message.visibleSeq,
-          lastSeenVisibleSeq: message.visibleSeq,
-        },
-      });
-
-      await appendChatArchiveEvent({
-        roomId: room._id,
-        eventType: "message_visible",
-        messageId: message._id,
-        submissionSeq: message.submissionSeq,
-        actorUserId: userId,
-        payload: {
-          visibleSeq: message.visibleSeq,
-          gif,
-        },
-      });
-
-      await publishRoomEvent(room.slug, {
-        type: "message_created",
-        payload: {
-          message: serializedMessage,
-        },
-      });
+      tailWrites.push(
+        readState.updateOne({
+          $set: {
+            lastReadVisibleSeq: message.visibleSeq,
+            lastSeenVisibleSeq: message.visibleSeq,
+          },
+        }),
+        appendChatArchiveEvent({
+          roomId: room._id,
+          eventType: "message_visible",
+          messageId: message._id,
+          submissionSeq: message.submissionSeq,
+          actorUserId: userId,
+          payload: {
+            visibleSeq: message.visibleSeq,
+            gif,
+          },
+        }),
+        publishRoomEvent(room.slug, {
+          type: "message_created",
+          payload: { message: serializedMessage },
+        }),
+      );
     } else if (message.status === "held") {
-      await appendChatArchiveEvent({
-        roomId: room._id,
-        eventType: "message_held",
-        messageId: message._id,
-        submissionSeq: message.submissionSeq,
-        actorUserId: userId,
-        payload: {
-          reasonCodes: moderation.reasonCodes,
-          gif,
-        },
-      });
-      await publishRoomEvent(room.slug, {
-        type: "message_held",
-        payload: {
-          message: serializedMessage,
-        },
-      });
+      tailWrites.push(
+        appendChatArchiveEvent({
+          roomId: room._id,
+          eventType: "message_held",
+          messageId: message._id,
+          submissionSeq: message.submissionSeq,
+          actorUserId: userId,
+          payload: {
+            reasonCodes: moderation.reasonCodes,
+            gif,
+          },
+        }),
+        publishRoomEvent(room.slug, {
+          type: "message_held",
+          payload: { message: serializedMessage },
+        }),
+      );
     } else {
-      await appendChatArchiveEvent({
-        roomId: room._id,
-        eventType: "message_blocked",
-        messageId: message._id,
-        submissionSeq: message.submissionSeq,
-        actorUserId: userId,
-        payload: {
-          reasonCodes: moderation.reasonCodes,
-          shadowMuted,
-          gif,
-        },
-      });
+      tailWrites.push(
+        appendChatArchiveEvent({
+          roomId: room._id,
+          eventType: "message_blocked",
+          messageId: message._id,
+          submissionSeq: message.submissionSeq,
+          actorUserId: userId,
+          payload: {
+            reasonCodes: moderation.reasonCodes,
+            shadowMuted,
+            gif,
+          },
+        }),
+      );
     }
+
+    await Promise.all(tailWrites);
 
     if (message.status === "blocked") {
       return NextResponse.json({ error: "message_blocked" }, { status: 400 });
