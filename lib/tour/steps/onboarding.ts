@@ -183,12 +183,12 @@ export const ONBOARDING_STEPS: TourStep[] = [
     copy: {
       de: {
         title: "Meine letzten Pulls",
-        body: "Deine eigene Pull-Historie für diese Box. So behältst du den Überblick, was du schon hast und was dir noch fehlt.",
+        body: "Deine letzten Pulls aus dieser Box. Siehst du auf einen Blick, was du zuletzt gezogen hast.",
         nextLabel: "Weiter",
       },
       en: {
         title: "My recent pulls",
-        body: "Your own pull history for this box. Helps you see what you already have and what's still missing.",
+        body: "Your most recent pulls from this box. Shows at a glance what you pulled last.",
         nextLabel: "Next",
       },
     },
