@@ -159,17 +159,18 @@ async function prepareNextRound(
     revealedAt: null,
   });
 
-  for (const hand of hands) {
-    events.push({
-      type: "round_start",
-      data: {
-        roundNumber: nextRoundNumber,
-        playerId: hand.player.toString(),
-        hand: hand.cards,
-        selectDeadline: selectDeadline.toISOString(),
-      },
-    });
-  }
+  // Single broadcast event carrying every player's hand — the SSE route
+  // picks the right hand per user. Saves N-1 Redis publishes per round.
+  events.push({
+    type: "round_start",
+    data: {
+      roundNumber: nextRoundNumber,
+      selectDeadline: selectDeadline.toISOString(),
+      hands: Object.fromEntries(
+        hands.map((h) => [h.player.toString(), h.cards]),
+      ),
+    },
+  });
 
   return nextRoundNumber;
 }

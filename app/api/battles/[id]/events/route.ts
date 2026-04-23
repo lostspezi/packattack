@@ -55,23 +55,26 @@ export async function GET(
         }
       }
 
-      // Returns the serialized payload for a BattleEvent, filtering the
-      // per-player round_start hand so each SSE client only sees its own.
+      // Returns the serialized payload for a BattleEvent. round_start is
+      // published as a single broadcast carrying every player's hand; we
+      // pick the current user's hand here so the SSE event the client sees
+      // matches the shape of the old per-player publish.
       function serializeForUser(event: BattleEvent): string | null {
         if (event.type === "round_start") {
-          const eventPlayerId = event.data.playerId as string | undefined;
-          if (eventPlayerId && eventPlayerId !== userId) {
-            return JSON.stringify({
-              type: event.type,
-              data: {
-                roundNumber: event.data.roundNumber,
-                selectDeadline: event.data.selectDeadline,
-                // hand omitted — this event is for another player
-              },
-              timestamp: event.timestamp,
-              streamId: event.streamId,
-            });
-          }
+          const handsByUser = event.data.hands as
+            | Record<string, unknown[]>
+            | undefined;
+          const myHand = handsByUser?.[userId] ?? null;
+          return JSON.stringify({
+            type: event.type,
+            data: {
+              roundNumber: event.data.roundNumber,
+              selectDeadline: event.data.selectDeadline,
+              hand: myHand,
+            },
+            timestamp: event.timestamp,
+            streamId: event.streamId,
+          });
         }
         return JSON.stringify(event);
       }
