@@ -114,10 +114,28 @@ export async function PATCH(
 
       // Validate weight distribution before publishing
       if (updates.status === "published") {
-        const cardEntries = (box.cards ?? []) as Array<{ card: { toString(): string }; weight: number; rarity: string }>;
+        const cardEntries = (box.cards ?? []) as Array<{ card: { toString(): string }; weight: number; rarity: string; stock?: number }>;
         const cardIds = cardEntries.map((e) => e.card.toString());
         const cardDocs = await Card.find({ _id: { $in: cardIds } }).select("name").lean();
         const cardNameMap = new Map(cardDocs.map((c) => [c._id.toString(), c.name as string]));
+
+        // Block publish/reactivate if any card has stock 0 — otherwise the
+        // box would immediately re-pause on the next pull.
+        const zeroStockNames = cardEntries
+          .filter((e) => (e.stock ?? 0) === 0)
+          .map((e) => cardNameMap.get(e.card.toString()) ?? "Unbekannt");
+        if (zeroStockNames.length > 0) {
+          const lang = req.headers.get("x-lang") ?? "en";
+          const list = zeroStockNames.join(", ");
+          const message =
+            lang === "de"
+              ? `Folgende Karten haben Bestand 0 — bitte auffüllen oder entfernen: ${list}`
+              : `These cards have stock 0 — please restock or remove them: ${list}`;
+          return NextResponse.json(
+            { error: message, zeroStockCards: zeroStockNames },
+            { status: 400 },
+          );
+        }
 
         const validationInput = {
           cards: cardEntries.map((e) => ({
