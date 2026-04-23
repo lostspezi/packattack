@@ -13,6 +13,7 @@ interface HeaderNavItemProps {
   badge?: ReactNode;
   children?: ReactNode;
   megaMenuActive?: boolean;
+  labelClassName?: string;
   "aria-haspopup"?: "true" | "false";
   "aria-expanded"?: boolean;
 }
@@ -26,15 +27,23 @@ export function HeaderNavItem({
   badge,
   children,
   megaMenuActive,
+  labelClassName,
   "aria-haspopup": ariaHasPopup,
   "aria-expanded": ariaExpanded,
 }: HeaderNavItemProps) {
+  // When the visible label is collapsed at some breakpoints, keep an
+  // always-present sr-only copy so the accessible name is stable.
+  const hasResponsiveLabel = Boolean(labelClassName);
+
   if (disabled) {
     return (
       <span className="relative select-none rounded-lg px-3 py-2 text-sm font-medium text-text-muted opacity-35">
         <span className="flex items-center gap-2">
           {icon}
-          <span>{label}</span>
+          {hasResponsiveLabel && <span className="sr-only">{label}</span>}
+          <span className={labelClassName} aria-hidden={hasResponsiveLabel}>
+            {label}
+          </span>
           {badge}
         </span>
       </span>
@@ -56,7 +65,10 @@ export function HeaderNavItem({
       aria-expanded={ariaExpanded}
     >
       {icon}
-      <span>{label}</span>
+      {hasResponsiveLabel && <span className="sr-only">{label}</span>}
+      <span className={labelClassName} aria-hidden={hasResponsiveLabel}>
+        {label}
+      </span>
       {children}
       {active && (
         <motion.span

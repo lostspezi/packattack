@@ -145,7 +145,6 @@ export function UserHeader({
             <HeaderNav
               lang={lang}
               dict={dict}
-              userRole={userRole}
               cartState={cartState}
               megaMenuSection={megaMenuSection}
               onOpenSection={openSection}
@@ -180,11 +179,11 @@ export function UserHeader({
                     (e.target as HTMLImageElement).src = "/images/default-avatar.png";
                   }}
                 />
-                <div className="hidden text-left sm:block">
+                <div className="hidden text-left sm:block xl:hidden 3xl:block">
                   <p className="leading-tight text-sm font-medium text-text-primary">{userName}</p>
                   <p className="leading-tight text-xs text-text-muted">{levelLabel} 1</p>
                 </div>
-                <ChevronDown className="hidden h-4 w-4 text-text-muted sm:block" />
+                <ChevronDown className="hidden h-4 w-4 text-text-muted sm:block xl:hidden 3xl:block" />
               </button>
 
               <UserDropdown
@@ -205,7 +204,6 @@ export function UserHeader({
           onClose={closeNow}
           lang={lang}
           dict={dict}
-          cartState={cartState}
           contentLeft={megaMenuLeft}
         />
       </div>
@@ -220,7 +218,6 @@ export function UserHeader({
         userName={userName}
         avatarUrl={avatarUrl}
         levelLabel={levelLabel}
-        userRole={userRole}
       />
     </>
   );

@@ -7,6 +7,7 @@ export interface CartState {
   cartCount: number;
   cartTimer: number;
   formatTimer: (seconds: number) => string;
+  formatTimerCompact: (seconds: number) => string;
   timerColor: (seconds: number) => string;
   refreshCart: () => void;
 }
@@ -16,6 +17,17 @@ function formatTimer(seconds: number) {
   const m = Math.floor((seconds % 3600) / 60);
   const s = seconds % 60;
   return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function formatTimerCompact(seconds: number) {
+  if (seconds >= 3600) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    return `${h}:${String(m).padStart(2, "0")}`;
+  }
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
 }
 
 function timerColor(seconds: number) {
@@ -77,5 +89,5 @@ export function useCartState(): CartState {
     }
   }, [cartCount, cartTimer, source, refreshCart]);
 
-  return { cartCount, cartTimer, formatTimer, timerColor, refreshCart };
+  return { cartCount, cartTimer, formatTimer, formatTimerCompact, timerColor, refreshCart };
 }

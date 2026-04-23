@@ -4,21 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import {
-  LayoutGrid,
-  Package,
-  Swords,
-  Trophy,
-  ShoppingCart,
-  ShoppingBag,
-  ChevronDown,
-  Sparkles,
-  Clock,
-  User,
-  Zap,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import { LanguageSwitcher } from "../language-switcher";
 import type { CartState } from "./use-cart-state";
+import { NAV_ITEMS, type NavItem, isNavItemActive } from "./nav-config";
 import { EventCountdownBadge } from "@/components/events/event-countdown-badge";
 
 interface MobileDrawerProps {
@@ -31,7 +20,6 @@ interface MobileDrawerProps {
   userName: string;
   avatarUrl: string;
   levelLabel: string;
-  userRole?: string;
 }
 
 export function MobileDrawer({
@@ -44,17 +32,13 @@ export function MobileDrawer({
   userName,
   avatarUrl,
   levelLabel,
-  userRole,
 }: MobileDrawerProps) {
-  const isAdmin = userRole === "admin" || userRole === "super_admin";
   const pathname = usePathname();
-  const dashboardHref = `/${lang}/dashboard`;
-  const isDashboardActive = pathname === dashboardHref;
 
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
+  const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
-  function toggleSection(section: string) {
-    setExpandedSection((prev) => (prev === section ? null : section));
+  function toggleSection(key: string) {
+    setExpandedKey((prev) => (prev === key ? null : key));
   }
 
   const linkClass = (active: boolean) =>
@@ -65,6 +49,118 @@ export function MobileDrawer({
 
   const subLinkClass =
     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-text-muted transition-colors hover:text-text-primary hover:bg-white/3";
+
+  function renderItemExtras(item: NavItem) {
+    if (item.hasEventCountdown) return <EventCountdownBadge />;
+    if (item.isCart && cartState.cartCount > 0) {
+      return (
+        <>
+          <span
+            className={`font-mono text-xs tabular-nums ${cartState.timerColor(cartState.cartTimer)}`}
+          >
+            {cartState.formatTimer(cartState.cartTimer)}
+          </span>
+          <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-pa-green px-1.5 text-[10px] font-bold text-black">
+            {cartState.cartCount}
+          </span>
+        </>
+      );
+    }
+    if (item.soonBadge) {
+      return (
+        <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
+          Soon
+        </span>
+      );
+    }
+    return null;
+  }
+
+  function renderItem(item: NavItem) {
+    const Icon = item.icon;
+    const label = dict[item.labelKey] ?? item.labelFallback;
+    const active = isNavItemActive(pathname, item, lang);
+
+    if (item.disabled) {
+      return (
+        <span
+          key={item.key}
+          className="flex select-none items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-text-muted opacity-35"
+        >
+          <Icon className="h-5 w-5 shrink-0" />
+          <span className="flex-1">{label}</span>
+          {renderItemExtras(item)}
+        </span>
+      );
+    }
+
+    if (item.children && item.children.length > 0) {
+      const expanded = expandedKey === item.key;
+      return (
+        <div key={item.key}>
+          <button
+            type="button"
+            onClick={() => toggleSection(item.key)}
+            className={[
+              "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
+              active
+                ? "bg-pa-green/6 text-pa-green"
+                : "text-text-muted hover:text-text-primary",
+            ].join(" ")}
+            aria-expanded={expanded}
+          >
+            <Icon className="h-5 w-5 shrink-0" />
+            <span className="flex-1 text-left">{label}</span>
+            <ChevronDown
+              className={[
+                "h-4 w-4 shrink-0 transition-transform duration-200",
+                expanded ? "rotate-180" : "",
+              ].join(" ")}
+            />
+          </button>
+          <AnimatePresence>
+            {expanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="overflow-hidden pl-4"
+              >
+                {item.children.map((child) => {
+                  const ChildIcon = child.icon;
+                  return (
+                    <Link
+                      key={child.key}
+                      href={child.href(lang)}
+                      onClick={onClose}
+                      className={subLinkClass}
+                    >
+                      <ChildIcon className="h-4 w-4 shrink-0" />
+                      <span>{dict[child.labelKey] ?? child.labelFallback}</span>
+                    </Link>
+                  );
+                })}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      );
+    }
+
+    return (
+      <Link
+        key={item.key}
+        href={item.href(lang)}
+        onClick={onClose}
+        className={linkClass(active)}
+      >
+        <Icon className="h-5 w-5 shrink-0" />
+        <span className="flex-1">{label}</span>
+        {renderItemExtras(item)}
+      </Link>
+    );
+  }
 
   return (
     <div
@@ -99,127 +195,7 @@ export function MobileDrawer({
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
-          <Link href={dashboardHref} onClick={onClose} className={linkClass(isDashboardActive)}>
-            <LayoutGrid className="h-5 w-5 shrink-0" />
-            <span>{dict["dashboard"] ?? "Dashboard"}</span>
-          </Link>
-
-          {/* Packs with accordion */}
-          <div>
-            <button
-              onClick={() => toggleSection("packs")}
-              className={[
-                "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
-                pathname.startsWith(`/${lang}/packs`) ? "bg-pa-green/6 text-pa-green" : "text-text-muted hover:text-text-primary",
-              ].join(" ")}
-            >
-              <Package className="h-5 w-5 shrink-0" />
-              <span className="flex-1 text-left">{dict["packs"] ?? "Packs"}</span>
-              <ChevronDown
-                className={[
-                  "h-4 w-4 shrink-0 transition-transform duration-200",
-                  expandedSection === "packs" ? "rotate-180" : "",
-                ].join(" ")}
-              />
-            </button>
-            <AnimatePresence>
-              {expandedSection === "packs" && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden pl-4"
-                >
-                  <Link href={`/${lang}/packs`} onClick={onClose} className={subLinkClass}>
-                    <Package className="h-4 w-4 shrink-0" />
-                    <span>{dict["all_packs"] ?? "Alle Packs"}</span>
-                  </Link>
-                  <Link href={`/${lang}/packs?sort=featured`} onClick={onClose} className={subLinkClass}>
-                    <Sparkles className="h-4 w-4 shrink-0" />
-                    <span>{dict["featured_packs"] ?? "Featured Packs"}</span>
-                  </Link>
-                  <Link href={`/${lang}/dashboard`} onClick={onClose} className={subLinkClass}>
-                    <Clock className="h-4 w-4 shrink-0" />
-                    <span>{dict["recently_opened"] ?? "Zuletzt geöffnet"}</span>
-                  </Link>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Battles with accordion */}
-          <div>
-            <button
-              onClick={() => toggleSection("battles")}
-              className={[
-                "flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors",
-                pathname.startsWith(`/${lang}/battles`) ? "bg-pa-green/6 text-pa-green" : "text-text-muted hover:text-text-primary",
-              ].join(" ")}
-            >
-              <Swords className="h-5 w-5 shrink-0" />
-              <span className="flex-1 text-left">{dict["battles"] ?? "Battles"}</span>
-              <ChevronDown
-                className={[
-                  "h-4 w-4 shrink-0 transition-transform duration-200",
-                  expandedSection === "battles" ? "rotate-180" : "",
-                ].join(" ")}
-              />
-            </button>
-            <AnimatePresence>
-              {expandedSection === "battles" && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden pl-4"
-                >
-                  <Link href={`/${lang}/battles`} onClick={onClose} className={subLinkClass}>
-                    <Swords className="h-4 w-4 shrink-0" />
-                    <span>{dict["join_battle"] ?? "Battle beitreten"}</span>
-                  </Link>
-                  <Link href={`/${lang}/battles?filter=mine`} onClick={onClose} className={subLinkClass}>
-                    <User className="h-4 w-4 shrink-0" />
-                    <span>{dict["my_battles"] ?? "Meine Battles"}</span>
-                  </Link>
-                  <Link href={`/${lang}/leaderboard`} onClick={onClose} className={subLinkClass}>
-                    <Trophy className="h-4 w-4 shrink-0" />
-                    <span>{dict["leaderboard"] ?? "Bestenliste"}</span>
-                  </Link>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <Link href={`/${lang}/events`} onClick={onClose} className={linkClass(pathname.startsWith(`/${lang}/events`))}>
-            <Zap className="h-5 w-5 shrink-0" />
-            <span className="flex-1">{dict["events"] ?? "Events"}</span>
-            <EventCountdownBadge />
-          </Link>
-
-          <Link href={`/${lang}/cart`} onClick={onClose} className={linkClass(pathname.startsWith(`/${lang}/cart`))}>
-            <ShoppingCart className="h-5 w-5 shrink-0" />
-            <span className="flex-1">{dict["cart"] ?? "Warenkorb"}</span>
-            {cartState.cartCount > 0 && (
-              <>
-                <span className={`font-mono text-xs ${cartState.timerColor(cartState.cartTimer)}`}>
-                  {cartState.formatTimer(cartState.cartTimer)}
-                </span>
-                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-pa-green px-1.5 text-[10px] font-bold text-black">
-                  {cartState.cartCount}
-                </span>
-              </>
-            )}
-          </Link>
-
-          <span className="flex select-none items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-text-muted opacity-35">
-            <ShoppingBag className="h-5 w-5 shrink-0" />
-            <span className="flex-1">{dict["marketplace"] ?? "Marktplatz"}</span>
-            <span className="inline-flex items-center rounded border border-pa-green/20 bg-pa-green/10 px-1.5 py-0.5 text-[10px] font-semibold text-pa-green">
-              Soon
-            </span>
-          </span>
+          {NAV_ITEMS.map(renderItem)}
         </nav>
 
         <div className="border-t border-border px-3 py-3">

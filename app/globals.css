@@ -334,13 +334,17 @@
   --color-success: #9BFF00;
   --color-warning: #F59E0B;
 
+  /* Custom breakpoint: comfortable width once chat dock (420px) is open */
+  --breakpoint-3xl: 1800px;
+
   /* --------------------------------------------------------
-   * Breakpoints reference (Tailwind defaults):
+   * Breakpoints reference (Tailwind defaults + custom):
    *   sm:  640px   — large phones landscape / small tablets
    *   md:  768px   — tablets portrait
    *   lg:  1024px  — tablets landscape / small desktops
    *   xl:  1280px  — desktops
    *   2xl: 1536px  — large desktops
+   *   3xl: 1800px  — header has comfortable width with chat dock open
    *
    * Our convention:
    *   mobile-first (no prefix) = 0–639px (iPhone SE 375px baseline)

@@ -2,19 +2,15 @@
 
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { MegaMenuPacks } from "./mega-menu-packs";
 import { MegaMenuBattles } from "./mega-menu-battles";
-import { MegaMenuCart } from "./mega-menu-cart";
-import type { CartState } from "./use-cart-state";
 
-export type MegaMenuSection = "packs" | "battles" | "cart" | null;
+export type MegaMenuSection = "battles" | null;
 
 interface MegaMenuProps {
   activeSection: MegaMenuSection;
   onClose: () => void;
   lang: string;
   dict: Record<string, string>;
-  cartState: CartState;
   contentLeft: number;
 }
 
@@ -23,7 +19,6 @@ export function MegaMenu({
   onClose,
   lang,
   dict,
-  cartState,
   contentLeft,
 }: MegaMenuProps) {
   useEffect(() => {
@@ -53,14 +48,8 @@ export function MegaMenu({
             className="py-5 pr-6"
             style={{ paddingLeft: contentLeft }}
           >
-            {activeSection === "packs" && (
-              <MegaMenuPacks lang={lang} dict={dict} onClose={onClose} />
-            )}
             {activeSection === "battles" && (
               <MegaMenuBattles lang={lang} dict={dict} onClose={onClose} />
-            )}
-            {activeSection === "cart" && (
-              <MegaMenuCart lang={lang} dict={dict} cartState={cartState} onClose={onClose} />
             )}
           </div>
         </motion.div>
