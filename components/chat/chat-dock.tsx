@@ -192,6 +192,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const gifButtonRef = useRef<HTMLButtonElement>(null);
   const shouldStickToBottomRef = useRef(true);
+  const shouldStickPackiRef = useRef(true);
   const pendingScrollToBottomRef = useRef(false);
   const shouldRefocusComposerRef = useRef(false);
   const isComposingRef = useRef(false);
@@ -342,9 +343,28 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     return () => window.cancelAnimationFrame(frame);
   }, [isPanelOpen, messagesVersion]);
 
-  // Keep the Packi message list stuck to the bottom as messages / tokens arrive.
+  // Track whether the user is parked near the Packi list's bottom so we
+  // only auto-scroll when they haven't manually scrolled up.
   useEffect(() => {
     if (!isPanelOpen || activeTab !== "packi") return;
+    const node = packiListRef.current;
+    if (!node) return;
+    function handleScroll() {
+      const currentNode = packiListRef.current;
+      if (!currentNode) return;
+      const distance =
+        currentNode.scrollHeight - currentNode.scrollTop - currentNode.clientHeight;
+      shouldStickPackiRef.current = distance < 40;
+    }
+    node.addEventListener("scroll", handleScroll);
+    return () => node.removeEventListener("scroll", handleScroll);
+  }, [isPanelOpen, activeTab]);
+
+  // Keep the Packi message list stuck to the bottom as messages / tokens arrive,
+  // but only when the user was already at the bottom.
+  useEffect(() => {
+    if (!isPanelOpen || activeTab !== "packi") return;
+    if (!shouldStickPackiRef.current) return;
     const node = packiListRef.current;
     if (!node) return;
     const frame = window.requestAnimationFrame(() => {
@@ -368,7 +388,10 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         }
       } else {
         const node = packiListRef.current;
-        if (node) node.scrollTop = node.scrollHeight;
+        if (node) {
+          node.scrollTop = node.scrollHeight;
+          shouldStickPackiRef.current = true;
+        }
       }
     });
     return () => window.cancelAnimationFrame(frame);
