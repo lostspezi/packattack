@@ -37,7 +37,7 @@ export default async function DashboardPage({
   return (
     <div className="space-y-6 md:space-y-8">
       {/* Welcome heading */}
-      <div>
+      <div data-tour="dashboard-welcome">
         <h2 className="text-2xl font-bold text-text-primary">{welcomeMessage}</h2>
         <p className="text-text-secondary mt-1 text-sm">
           {dashboardDict["welcomeSubtitle"] ?? "Here's an overview of your activity."}

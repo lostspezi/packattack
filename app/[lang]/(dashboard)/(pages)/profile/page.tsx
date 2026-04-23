@@ -61,14 +61,16 @@ export default async function ProfilePage({
         </p>
       </div>
 
-      <Card variant="soft" className="p-4 md:p-6">
-        <ProfileForm
-          dict={profileDict}
-          lang={lang}
-          initialData={initialData}
-          linkedProviders={linkedProviders}
-        />
-      </Card>
+      <div data-tour="profile-edit">
+        <Card variant="soft" className="p-4 md:p-6">
+          <ProfileForm
+            dict={profileDict}
+            lang={lang}
+            initialData={initialData}
+            linkedProviders={linkedProviders}
+          />
+        </Card>
+      </div>
 
     </div>
   );

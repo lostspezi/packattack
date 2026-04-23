@@ -277,7 +277,7 @@ export default function LeaderboardPage() {
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody data-tour="leaderboard-list">
               {entries.map((entry) => {
                 const isMe = myStats?.username === entry.username;
                 return (

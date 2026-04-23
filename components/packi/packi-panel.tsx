@@ -8,9 +8,10 @@ import {
   useState,
   type FormEvent,
 } from "react";
-import { Send, Sparkles, X, Trash2 } from "lucide-react";
+import { Map, Send, Sparkles, Trash2, X } from "lucide-react";
 import { usePacki, type PackiError } from "@/components/packi/packi-provider";
 import { PackiMessageBubble } from "@/components/packi/packi-message";
+import { useTour } from "@/components/tour/tour-provider";
 
 interface PackiPanelProps {
   className?: string;
@@ -51,6 +52,17 @@ export function PackiPanel({ className = "" }: PackiPanelProps) {
     clearError,
     clearConversation,
   } = usePacki();
+  const { start: startTour, isActive: tourActive } = useTour();
+
+  // Auto-close panel once the tour takes over — they'd overlap otherwise.
+  useEffect(() => {
+    if (tourActive && open) closePanel();
+  }, [tourActive, open, closePanel]);
+
+  const handleRestartTour = useCallback(() => {
+    closePanel();
+    startTour();
+  }, [closePanel, startTour]);
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -120,6 +132,15 @@ export function PackiPanel({ className = "" }: PackiPanelProps) {
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handleRestartTour}
+            className="text-text-muted hover:text-pa-green p-1.5 rounded-md"
+            aria-label="Tour neu starten"
+            title="Tour neu starten"
+          >
+            <Map className="h-4 w-4" aria-hidden="true" />
+          </button>
           {messages.length > 0 && (
             <button
               type="button"

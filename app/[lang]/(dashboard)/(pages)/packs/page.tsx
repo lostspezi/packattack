@@ -134,8 +134,11 @@ export default function PacksPage() {
               : "Choose a box and open packs!"}
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {boxes.map((box) => {
+        <div
+          data-tour="packs-grid"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+        >
+          {boxes.map((box, boxIdx) => {
             const name = isDe
               ? box.name.de || box.name.en
               : box.name.en || box.name.de;
@@ -143,7 +146,8 @@ export default function PacksPage() {
               <button
                 key={box._id}
                 type="button"
-                onClick={() => router.push(`/${lang}/packs/${box.slug}`)}       
+                data-tour={boxIdx === 0 ? "pack-buy" : undefined}
+                onClick={() => router.push(`/${lang}/packs/${box.slug}`)}
                 className="bg-surface border border-border rounded-[14px] p-4 text-left hover:border-pa-green/30 transition-all duration-300 group hover:-translate-y-2 hover:shadow-[0_8px_30px_rgba(155,255,0,0.08)] block w-full relative overflow-hidden flex flex-col"
               >
                 {/* Box image or Preview Cards */}
