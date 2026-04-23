@@ -103,16 +103,20 @@ export function PackiPanel({ className = "" }: PackiPanelProps) {
     [messages, streamingText, streaming],
   );
 
-  if (!open) return null;
-
   return (
     <div
+      inert={!open}
+      aria-hidden={!open}
       className={[
         "fixed z-[100]",
         "inset-x-3 bottom-3 h-[min(80vh,640px)] rounded-2xl",
         "sm:inset-auto sm:bottom-24 sm:left-6 sm:h-[560px] sm:w-[380px]",
         "bg-surface border border-border shadow-2xl",
         "flex flex-col",
+        "transition-[transform,opacity] duration-300 ease-out",
+        open
+          ? "translate-y-0 opacity-100"
+          : "pointer-events-none translate-y-[calc(100%+16px)] opacity-0",
         className,
       ].join(" ")}
       role="dialog"
