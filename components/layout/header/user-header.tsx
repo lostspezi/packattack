@@ -43,6 +43,7 @@ export function UserHeader({
   const [megaMenuLeft, setMegaMenuLeft] = useState(24);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout>>(null);
   const activeTriggerElRef = useRef<HTMLElement | null>(null);
+  const megaMenuWrapperRef = useRef<HTMLDivElement>(null);
 
   const openSection = useCallback((section: MegaMenuSection, triggerEl: HTMLElement) => {
     if (closeTimerRef.current) {
@@ -78,6 +79,19 @@ export function UserHeader({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, [megaMenuSection]);
+
+  // Close mega-menu on outside tap (touch devices have no mouseLeave).
+  useEffect(() => {
+    if (!megaMenuSection) return;
+    function handlePointerDown(e: PointerEvent) {
+      const wrapper = megaMenuWrapperRef.current;
+      if (wrapper && !wrapper.contains(e.target as Node)) {
+        closeNow();
+      }
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [megaMenuSection, closeNow]);
 
 
   useEffect(() => {
@@ -116,6 +130,7 @@ export function UserHeader({
         down into the panel never triggers a close.
       */}
       <div
+        ref={megaMenuWrapperRef}
         className="relative z-40 shrink-0"
         onMouseLeave={startClose}
         onBlur={(e) => {
@@ -148,6 +163,7 @@ export function UserHeader({
               cartState={cartState}
               megaMenuSection={megaMenuSection}
               onOpenSection={openSection}
+              onCloseSection={closeNow}
             />
           </div>
 
