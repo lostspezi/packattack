@@ -218,6 +218,10 @@ export function TourProvider({ steps, children }: TourProviderProps) {
     ],
   );
 
+  // Replay = user has completed the tour and claimed the reward at least
+  // once. Used to pick alternate copy that doesn't re-promise the bonus.
+  const isReplay = Boolean(me?.tour.rewardGrantedAt);
+
   return (
     <TourContext.Provider value={value}>
       {children}
@@ -228,6 +232,7 @@ export function TourProvider({ steps, children }: TourProviderProps) {
           stepIndex={stepIndex}
           totalSteps={steps.length}
           tutorialSlug={tutorialSlug}
+          isReplay={isReplay}
           onAdvance={() => void advance()}
           onSkip={() => void skip()}
         />
@@ -241,6 +246,7 @@ interface TourStepRunnerProps {
   stepIndex: number;
   totalSteps: number;
   tutorialSlug: string | null;
+  isReplay: boolean;
   onAdvance: () => void;
   onSkip: () => void;
 }
@@ -255,6 +261,7 @@ function TourStepRunner({
   stepIndex,
   totalSteps,
   tutorialSlug,
+  isReplay,
   onAdvance,
   onSkip,
 }: TourStepRunnerProps) {
@@ -262,7 +269,7 @@ function TourStepRunner({
   const pathname = usePathname();
   const params = useParams<{ lang?: string }>();
   const lang = params?.lang ?? "de";
-  const copy = pickCopy(step, lang);
+  const copy = pickCopy(step, lang, isReplay);
   const interpolationVars = useMemo(
     () => ({ lang, tutorialSlug: tutorialSlug ?? "" }),
     [lang, tutorialSlug],

@@ -57,6 +57,34 @@ describe("pickCopy", () => {
     const deOnly: TourStep = { ...step, copy: { de: step.copy.de } };
     expect(pickCopy(deOnly, "fr").title).toBe("Hallo");
   });
+
+  it("returns base copy when isReplay=true but no copyOnReplay is defined", () => {
+    expect(pickCopy(step, "de", true)).toEqual(step.copy.de);
+  });
+
+  it("merges copyOnReplay over base copy on replay — partial overrides fall through", () => {
+    const replayStep: TourStep = {
+      ...step,
+      copyOnReplay: {
+        de: { body: "Zurück — keine Belohnung mehr" },
+      },
+    };
+    const first = pickCopy(replayStep, "de", false);
+    const replay = pickCopy(replayStep, "de", true);
+    expect(first.body).toBe("Welt");
+    expect(replay.title).toBe("Hallo"); // inherited from base
+    expect(replay.body).toBe("Zurück — keine Belohnung mehr"); // override
+  });
+
+  it("uses copyOnReplay locale fallbacks when the active locale has none", () => {
+    const replayStep: TourStep = {
+      ...step,
+      copyOnReplay: {
+        en: { title: "Replay EN only" },
+      },
+    };
+    expect(pickCopy(replayStep, "de", true).title).toBe("Replay EN only");
+  });
 });
 
 describe("ONBOARDING_STEPS", () => {
@@ -126,5 +154,15 @@ describe("ONBOARDING_STEPS", () => {
     const last = ONBOARDING_STEPS[ONBOARDING_STEPS.length - 1];
     expect(last.id).toBe("tour-balance");
     expect(last.route).toBe("/{lang}/balance");
+  });
+
+  it("welcome and balance steps ship replay variants so re-runs don't re-promise coins", () => {
+    const welcome = ONBOARDING_STEPS.find((s) => s.id === "tour-welcome")!;
+    const balance = ONBOARDING_STEPS.find((s) => s.id === "tour-balance")!;
+    expect(welcome.copyOnReplay, "welcome needs a replay body").toBeDefined();
+    expect(balance.copyOnReplay, "balance needs a replay body").toBeDefined();
+    // Key phrases from the first-run copy should not survive the override.
+    expect(welcome.copyOnReplay?.de?.body).not.toMatch(/10 Coins als Dankeschön/);
+    expect(balance.copyOnReplay?.de?.body).not.toMatch(/landen gleich 10 Coins/);
   });
 });

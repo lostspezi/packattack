@@ -39,6 +39,14 @@ export const ONBOARDING_STEPS: TourStep[] = [
         nextLabel: "Let's go",
       },
     },
+    copyOnReplay: {
+      de: {
+        body: "Kleiner Frische-Rundgang durch die vier Hauptbereiche. Die 10-Coin-Belohnung hast du schon beim ersten Mal bekommen — diesmal nur zum Nachsehen.",
+      },
+      en: {
+        body: "A quick refresher through the four main areas. You already claimed the 10-coin reward on your first run — this time it's just the walkthrough.",
+      },
+    },
   },
   {
     id: "tour-packs",
@@ -100,6 +108,18 @@ export const ONBOARDING_STEPS: TourStep[] = [
         title: "Coin shop — all done 🎴",
         body: "Refill coins here with real money. That's it! 10 coins are landing in your balance now as a thank-you. Happy collecting — ping me anytime via Packi bottom-left.",
         nextLabel: "Claim reward",
+      },
+    },
+    copyOnReplay: {
+      de: {
+        title: "Coin-Shop — alles klar",
+        body: "Leere Coins lädst du hier mit Echtgeld auf. Das war die Tour. Viel Spaß beim Sammeln — du erreichst mich jederzeit über Packi unten links.",
+        nextLabel: "Fertig",
+      },
+      en: {
+        title: "Coin shop — all set",
+        body: "Refill coins here with real money. That's the walkthrough. Happy collecting — ping me anytime via Packi bottom-left.",
+        nextLabel: "Done",
       },
     },
   },

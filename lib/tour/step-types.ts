@@ -28,6 +28,14 @@ export interface TourStep {
   /** Inline per-locale copy — swappable for DB translations later. */
   copy: Record<string, TourCopy>;
   /**
+   * Optional copy overrides shown when the user replays the tour after
+   * completing it once. Typically used to suppress the reward promise
+   * on the welcome/final steps — the reward is one-time per account, so
+   * mentioning it again would mislead. Partial: any field not specified
+   * falls back to the base `copy`.
+   */
+  copyOnReplay?: Record<string, Partial<TourCopy>>;
+  /**
    * Optional soft timeout override for the selector wait.
    * Defaults to SELECTOR_POLL_TIMEOUT_MS.
    */
@@ -63,6 +71,19 @@ export function interpolateRoute(pattern: string, lang: string): string {
   return interpolatePattern(pattern, { lang });
 }
 
-export function pickCopy(step: TourStep, lang: string): TourCopy {
-  return step.copy[lang] ?? step.copy.en ?? step.copy.de ?? Object.values(step.copy)[0];
+export function pickCopy(
+  step: TourStep,
+  lang: string,
+  isReplay = false,
+): TourCopy {
+  const base =
+    step.copy[lang] ?? step.copy.en ?? step.copy.de ?? Object.values(step.copy)[0];
+  if (!isReplay || !step.copyOnReplay) return base;
+  const override =
+    step.copyOnReplay[lang] ??
+    step.copyOnReplay.en ??
+    step.copyOnReplay.de ??
+    Object.values(step.copyOnReplay)[0];
+  if (!override) return base;
+  return { ...base, ...override };
 }
