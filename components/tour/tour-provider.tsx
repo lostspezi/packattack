@@ -64,10 +64,21 @@ export function TourProvider({ steps, children }: TourProviderProps) {
   const [tutorialSlug, setTutorialSlug] = useState<string | null>(null);
 
   const advanceLockRef = useRef(false);
+  // Flipped the first time the tour is started in this mount — whether by
+  // auto-start or a manual Packi-panel click. Gates the auto-start effect
+  // so a brief completed=false / isActive=false window during finish()
+  // (between setIsActive(false) and the POST-response setTour) can't
+  // re-trigger the tour.
+  const tourRunStartedRef = useRef(false);
 
   const currentStep = isActive ? (steps[stepIndex] ?? null) : null;
 
   const start = useCallback(async () => {
+    // Any start — manual or auto — is a tour run. Mark it before any
+    // async work so the auto-start effect never sees a window where the
+    // ref is still false after this entrypoint fires.
+    tourRunStartedRef.current = true;
+
     // Resolve the tutorial-box slug before the tour enters its first routed
     // step. Without it, pack-buy can't navigate anywhere sensible.
     try {
@@ -178,19 +189,24 @@ export function TourProvider({ steps, children }: TourProviderProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [isActive, skip]);
 
-  // Auto-start for new users: MeProvider has hydrated, the tour was never
-  // completed, and it was never skipped. Fires exactly once per client
-  // lifetime — the tour itself clears skippedAt on start, so a subsequent
-  // remount won't re-trigger. Deferred via setTimeout so the setState work
-  // inside start() doesn't run synchronously in the effect body.
-  const autoStartedRef = useRef(false);
+  // Auto-start for genuinely new users only:
+  //   - MeProvider has hydrated
+  //   - The reward was never granted (first-time gate — set once by the
+  //     server atomically at first completion and never cleared)
+  //   - The tour isn't currently active
+  //   - The user hasn't already skipped in this session
+  //   - No tour run has been started yet on this mount
+  //
+  // Deferred via setTimeout so the setState work inside start() doesn't
+  // run synchronously in the effect body.
   useEffect(() => {
-    if (autoStartedRef.current) return;
+    if (tourRunStartedRef.current) return;
     if (!me) return;
     if (isActive) return;
+    if (me.tour.rewardGrantedAt) return;
     if (me.tour.completed) return;
     if (me.tour.skippedAt) return;
-    autoStartedRef.current = true;
+    tourRunStartedRef.current = true;
     const handle = setTimeout(() => void start(), 0);
     return () => clearTimeout(handle);
   }, [me, isActive, start]);
