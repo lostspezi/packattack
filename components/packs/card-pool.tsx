@@ -70,18 +70,22 @@ export function CardPool({ cards, lang, pullCounts }: { cards: CardInfo[]; lang:
 
   return (
     <>
-      <div className="bg-surface border border-border rounded-[14px] p-4">
+      <div
+        data-tour="box-card-pool"
+        className="bg-surface border border-border rounded-[14px] p-4"
+      >
         <div className="text-xs text-text-muted uppercase tracking-wider font-semibold mb-3">
           {isDe ? `Alle Karten (${cards.length})` : `All Cards (${cards.length})`}
         </div>
 
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2.5">
-          {cards.map((card) => {
+          {cards.map((card, idx) => {
             const outOfStock = card.stock === 0;
             return (
               <button
                 key={card.cardId}
                 type="button"
+                data-tour={idx === 0 ? "box-first-card" : undefined}
                 onClick={() => setSelected(card)}
                 className="bg-white/3 border border-border rounded-xl p-2 text-center hover:border-pa-green/20 transition-all"
               >

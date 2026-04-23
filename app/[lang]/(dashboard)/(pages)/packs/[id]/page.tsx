@@ -442,7 +442,7 @@ export default function PackDetailPage() {
             </div>
 
             {/* Condition distribution */}
-            <div className="bg-white/4 rounded-xl p-3.5">
+            <div data-tour="box-condition" className="bg-white/4 rounded-xl p-3.5">
               <p className="text-[10px] text-text-muted uppercase tracking-wider mb-2">
                 {isDe ? "Zustand" : "Condition"}
               </p>
@@ -465,7 +465,7 @@ export default function PackDetailPage() {
             </div>
 
             {/* Rarity distribution */}
-            <div className="bg-white/4 rounded-xl p-3.5">
+            <div data-tour="box-rarities" className="bg-white/4 rounded-xl p-3.5">
               <p className="text-[10px] text-text-muted uppercase tracking-wider mb-2">
                 {isDe ? "Raritäten" : "Rarities"}
               </p>
@@ -493,9 +493,15 @@ export default function PackDetailPage() {
 
       {/* ═══ THREE COLUMNS ═══ */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <TopHits cards={box.topHits} lang={lang} pullCounts={box.myPullCounts} />
-        <LiveEvents boxId={box._id} initialEvents={initialEvents} cardPool={box.cardPool} lang={lang} />
-        <MyPulls pulls={box.recentPulls} lang={lang} />
+        <div data-tour="box-top-hits">
+          <TopHits cards={box.topHits} lang={lang} pullCounts={box.myPullCounts} />
+        </div>
+        <div data-tour="box-live-pulls">
+          <LiveEvents boxId={box._id} initialEvents={initialEvents} cardPool={box.cardPool} lang={lang} />
+        </div>
+        <div data-tour="box-my-pulls">
+          <MyPulls pulls={box.recentPulls} lang={lang} />
+        </div>
       </div>
 
       {/* ═══ CARD POOL ═══ */}

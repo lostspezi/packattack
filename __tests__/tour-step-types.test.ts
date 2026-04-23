@@ -93,12 +93,17 @@ describe("ONBOARDING_STEPS", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("is a compact 4-step walkthrough: welcome → packs → tutorial-box → balance", () => {
-    expect(ONBOARDING_STEPS).toHaveLength(4);
+  it("walks welcome → packs → (box detail deep-dive) → balance in order", () => {
     expect(ONBOARDING_STEPS.map((s) => s.id)).toEqual([
       "tour-welcome",
       "tour-packs",
-      "tour-tutorial-box",
+      "tour-box-buy",
+      "tour-box-condition",
+      "tour-box-rarities",
+      "tour-box-top-hits",
+      "tour-box-live-pulls",
+      "tour-box-my-pulls",
+      "tour-box-card",
       "tour-balance",
     ]);
   });
@@ -133,12 +138,17 @@ describe("ONBOARDING_STEPS", () => {
     }
   });
 
-  it("only tour-tutorial-box needs the {tutorialSlug} placeholder", () => {
+  it("every box-detail sub-step uses the {tutorialSlug} placeholder", () => {
     const slugSteps = ONBOARDING_STEPS.filter((s) =>
       s.route.includes("{tutorialSlug}"),
     );
-    expect(slugSteps).toHaveLength(1);
-    expect(slugSteps[0].id).toBe("tour-tutorial-box");
+    expect(slugSteps.length).toBeGreaterThanOrEqual(1);
+    for (const step of slugSteps) {
+      expect(
+        step.id.startsWith("tour-box-"),
+        `step ${step.id} uses tutorial slug but isn't a box-detail step`,
+      ).toBe(true);
+    }
   });
 
   it("all steps advance via click-next — no forced real interactions", () => {
