@@ -1,10 +1,9 @@
 import mongoose from "mongoose";
 import type { IBattle, IVirtualCard } from "@/models/battle";
 import Battle from "@/models/battle";
-import Box from "@/models/box";
 import User from "@/models/user";
 import { evaluateRound, evaluateBattle } from "@/lib/battle-engine";
-import { prepareBoxCardsForBattle, drawBattleHandCards } from "@/lib/battle-cards";
+import { loadBattleBoxCards, drawBattleHandCards } from "@/lib/battle-cards";
 import { calculateEloChanges, DEFAULT_ELO, type EloPlayer } from "@/lib/battle-elo";
 import {
   publishBattleEvent,
@@ -132,13 +131,7 @@ async function prepareNextRound(
   battle: InstanceType<typeof Battle>,
   events: BufferedEvent[],
 ): Promise<number> {
-  const box = await Box.findById(battle.box)
-    .populate("cards.card", "name image rarity internalPrice marketPrice")
-    .lean();
-
-  if (!box) throw new Error(`Box ${battle.box} not found for battle ${battle._id}`);
-
-  const boxCards = prepareBoxCardsForBattle(box);
+  const boxCards = await loadBattleBoxCards(battle.box);
   const nextRoundNumber = battle.rounds.length + 1;
   battle.currentRound = nextRoundNumber;
 

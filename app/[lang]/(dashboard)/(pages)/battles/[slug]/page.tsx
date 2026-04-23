@@ -108,6 +108,36 @@ function findRecentRevealRound(rounds: BattleRound[]): BattleRound | null {
   return null;
 }
 
+function buildRevealFromRound(
+  round: BattleRound,
+  playerNameMap: Map<string, string>,
+): RoundHistoryEntry {
+  const players = round.hands
+    .filter((h) => h.selectedCardIndex !== null && h.selectedCardIndex >= 0)
+    .map((h) => ({
+      userId: String(h.player),
+      username: playerNameMap.get(String(h.player)) ?? "???",
+      card: h.cards[h.selectedCardIndex!],
+    }));
+  return {
+    roundNumber: round.roundNumber,
+    players,
+    winnerId: round.winner ? String(round.winner) : null,
+  };
+}
+
+function buildRoundHistory(b: BattleData): RoundHistoryEntry[] {
+  const playerNameMap = new Map(
+    b.players.map((p) => [String(p.user._id), p.user.username]),
+  );
+  const history: RoundHistoryEntry[] = [];
+  for (const round of b.rounds) {
+    if (round.status !== "completed") continue;
+    history.push(buildRevealFromRound(round, playerNameMap));
+  }
+  return history;
+}
+
 /* ------------------------------------------------------------------ */
 /*  SSE Hook                                                           */
 /* ------------------------------------------------------------------ */
@@ -217,39 +247,6 @@ export default function BattleDetailPage() {
   const activeRevealRef = useRef<RoundHistoryEntry | null>(null);
   // Guard against concurrent fetchBattle calls
   const fetchingRef = useRef(false);
-
-  // Helper: rebuild round history from battle data
-  function buildRoundHistory(b: BattleData): RoundHistoryEntry[] {
-    const playerNameMap = new Map(
-      b.players.map((p) => [String(p.user._id), p.user.username]),
-    );
-    const history: RoundHistoryEntry[] = [];
-    for (const round of b.rounds) {
-      if (round.status !== "completed") continue;
-      history.push(buildRevealFromRound(round, playerNameMap));
-    }
-    return history;
-  }
-
-  // Helper: build a single reveal entry from a completed round (used for
-  // both history and recovery-reveal rendering).
-  function buildRevealFromRound(
-    round: BattleRound,
-    playerNameMap: Map<string, string>,
-  ): RoundHistoryEntry {
-    const players = round.hands
-      .filter((h) => h.selectedCardIndex !== null && h.selectedCardIndex >= 0)
-      .map((h) => ({
-        userId: String(h.player),
-        username: playerNameMap.get(String(h.player)) ?? "???",
-        card: h.cards[h.selectedCardIndex!],
-      }));
-    return {
-      roundNumber: round.roundNumber,
-      players,
-      winnerId: round.winner ? String(round.winner) : null,
-    };
-  }
 
   // Fetch battle state — isRecovery=true suppresses redirects on error
   const fetchBattle = useCallback(async (isRecovery = false) => {

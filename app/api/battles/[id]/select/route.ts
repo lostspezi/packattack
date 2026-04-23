@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import mongoose from "mongoose";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
@@ -58,7 +59,19 @@ export async function POST(
         // resolveRound persists the battle and fires all follow-up events.
         await resolveRound(battle, id);
       } else {
-        await battle.save();
+        // Minimal, surgical update — avoids serializing the whole battle doc
+        // (which carries all rounds × hands × 5 cards each) for a single
+        // index assignment.
+        await Battle.updateOne(
+          { _id: battle._id, "rounds.roundNumber": currentRound.roundNumber },
+          {
+            $set: {
+              "rounds.$.hands.$[h].selectedCardIndex": cardIndex,
+              "rounds.$.hands.$[h].selectedAt": hand.selectedAt,
+            },
+          },
+          { arrayFilters: [{ "h.player": new mongoose.Types.ObjectId(session.user!.id) }] },
+        );
       }
 
       // player_selected only goes out AFTER the DB write so any refetching
