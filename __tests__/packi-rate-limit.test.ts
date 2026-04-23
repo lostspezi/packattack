@@ -3,13 +3,15 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Stateful in-memory Redis used by the mock of @/lib/redis below.
 type Stored = { value: number; expiresAt: number | null };
 const store = new Map<string, Stored>();
+const simulateRedisDown = { value: false };
 
 vi.mock("@/lib/redis", () => ({
   runRedisCommand: async <T>(
     _label: string,
-    _fallback: T,
+    fallback: T,
     command: (redis: unknown) => Promise<T>,
   ) => {
+    if (simulateRedisDown.value) return fallback;
     const fakeRedis = {
       eval: async (
         _script: string,
@@ -36,6 +38,7 @@ import {
 
 beforeEach(() => {
   store.clear();
+  simulateRedisDown.value = false;
 });
 
 describe("assertPackiMessageAllowed", () => {
@@ -82,6 +85,15 @@ describe("assertPackiMessageAllowed", () => {
     const freshUser = await assertPackiMessageAllowed("user-fresh");
     expect(freshUser.allowed).toBe(true);
     expect(freshUser.used).toBe(1);
+  });
+
+  it("denies when Redis is unreachable (fail-closed on infra outage)", async () => {
+    simulateRedisDown.value = true;
+    const result = await assertPackiMessageAllowed("user-offline");
+    expect(result.allowed).toBe(false);
+    expect(result.used).toBe(0);
+    expect(result.remaining).toBe(0);
+    expect(result.retryAfterSeconds).toBeGreaterThan(0);
   });
 
   it("separates counters by UTC day", async () => {

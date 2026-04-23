@@ -30,9 +30,11 @@ export async function assertPackiMessageAllowed(
   const key = `packi:rate:${userId}:${dayKey}`;
   const retryAfterSeconds = secondsUntilNextUtcDay(now);
 
+  // Fallback sentinel -1 (not 0) so a Redis outage → deny, not unbounded
+  // free messages. A successful INCR never returns <= 0, so -1 is unambiguous.
   const count = await runRedisCommand<number>(
     `packi:rate:${userId}`,
-    0,
+    -1,
     async (redis) => {
       const result = await redis.eval(
         `local count = redis.call('INCR', KEYS[1])
@@ -48,13 +50,13 @@ return count`,
     },
   );
 
-  if (count === 0) {
+  if (count === -1) {
     return {
-      allowed: true,
+      allowed: false,
       used: 0,
       limit: PACKI_DAILY_LIMIT,
-      remaining: PACKI_DAILY_LIMIT,
-      retryAfterSeconds: 0,
+      remaining: 0,
+      retryAfterSeconds: 60,
     };
   }
 

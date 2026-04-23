@@ -11,6 +11,7 @@ import {
   type PackiTurn,
 } from "@/lib/packi/session";
 import {
+  sanitizePackiMessage,
   validatePackiInput,
   scrubPackiOutput,
 } from "@/lib/packi/guardrails";
@@ -36,8 +37,9 @@ interface ChatRequestBody {
 const ENCODER = new TextEncoder();
 
 function sseFrame(event: string, data: unknown): Uint8Array {
-  const payload = typeof data === "string" ? data : JSON.stringify(data);
-  return ENCODER.encode(`event: ${event}\ndata: ${payload}\n\n`);
+  // Always JSON-encode. Keeps client-side parsing uniform across frame types
+  // (otherwise the client JSON.parse throws for every raw-string token frame).
+  return ENCODER.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
 
 function jsonError(status: number, body: Record<string, unknown>) {
@@ -106,8 +108,12 @@ export async function POST(req: NextRequest) {
 
   const userMessage = validation.sanitized;
   const route = body.route as string;
+  // Display names are attacker-controlled. Strip injection markers before
+  // interpolating into the system prompt's context block.
+  const rawName = session.user.name ?? "Freund";
+  const username = sanitizePackiMessage(rawName) || "Freund";
   const ctx: PackiContext = {
-    username: session.user.name ?? "Freund",
+    username,
     lang: (session.user.language as string | undefined) ?? "de",
     route,
     onboardingCompleted: Boolean(session.user.onboardingCompleted),
@@ -136,13 +142,26 @@ export async function POST(req: NextRequest) {
 
       safeEnqueue(sseFrame("meta", { remaining: rate.remaining }));
 
+      // Propagate client cancellation to Anthropic so a closed connection
+      // stops billing immediately instead of draining the full max_tokens.
+      const abortSignal = req.signal;
+      const onClientAbort = () => {
+        anthropicStream?.abort();
+      };
+      let anthropicStream: ReturnType<typeof client.messages.stream> | null =
+        null;
+
       try {
-        const anthropicStream = client.messages.stream({
-          model: PACKI_MODEL,
-          max_tokens: PACKI_MAX_TOKENS,
-          system,
-          messages,
-        });
+        anthropicStream = client.messages.stream(
+          {
+            model: PACKI_MODEL,
+            max_tokens: PACKI_MAX_TOKENS,
+            system,
+            messages,
+          },
+          { signal: abortSignal },
+        );
+        abortSignal?.addEventListener("abort", onClientAbort, { once: true });
 
         for await (const event of anthropicStream) {
           if (
@@ -173,7 +192,15 @@ export async function POST(req: NextRequest) {
           ]);
         }
       } catch (error) {
-        if (error instanceof Anthropic.RateLimitError) {
+        const isClientAbort =
+          abortSignal?.aborted ||
+          (error instanceof DOMException && error.name === "AbortError") ||
+          (error instanceof Error && error.name === "AbortError");
+
+        if (isClientAbort) {
+          // Client went away (closed panel / navigated). No error frame,
+          // no log — this is normal cancellation, stream is done.
+        } else if (error instanceof Anthropic.RateLimitError) {
           safeEnqueue(
             sseFrame("error", { reason: "anthropic_rate_limited" }),
           );
@@ -182,8 +209,9 @@ export async function POST(req: NextRequest) {
         } else {
           safeEnqueue(sseFrame("error", { reason: "internal" }));
         }
-        console.error("[packi/chat]", error);
+        if (!isClientAbort) console.error("[packi/chat]", error);
       } finally {
+        abortSignal?.removeEventListener("abort", onClientAbort);
         if (!closed) {
           closed = true;
           try {
