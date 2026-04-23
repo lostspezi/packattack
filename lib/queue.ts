@@ -14,7 +14,6 @@ function parseRedisUrl(url: string) {
 const connection = parseRedisUrl(REDIS_URL);
 
 export const RESERVATION_QUEUE = "reservation-jobs";
-export const SUBSTITUTION_QUEUE = "substitution-jobs";
 
 const queueCache = new Map<string, Queue>();
 

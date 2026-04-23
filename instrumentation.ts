@@ -12,8 +12,5 @@ export async function register() {
 
     const { startBattleWorker } = await import("@/workers/battle-worker");
     startBattleWorker();
-
-    const { startSubstitutionWorker } = await import("@/workers/substitution-worker");
-    startSubstitutionWorker();
   }
 }
