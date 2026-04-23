@@ -250,11 +250,17 @@ function TourStepRunner({
     return undefined;
   }, [step, target, onAdvance]);
 
-  if (!resolved) return null;
+  // Render immediately for targetOptional steps — otherwise a user sees
+  // nothing during the (potentially 6s) selector wait and thinks the tour
+  // froze. Non-optional steps still wait: their tooltip is anchored to a
+  // real DOM target, so rendering before resolution would flash at (0,0).
+  if (!resolved && !step.targetOptional) return null;
 
-  const showNextButton =
-    step.nextTrigger.type !== "click-target" &&
-    step.nextTrigger.type !== "event";
+  // Show the Weiter-button for click-next AND event triggers. Event-typed
+  // steps need an explicit fallback because the expected custom event
+  // (e.g. "pack-opened") might not fire in this session — the user still
+  // needs a way to proceed.
+  const showNextButton = step.nextTrigger.type !== "click-target";
 
   return (
     <>
