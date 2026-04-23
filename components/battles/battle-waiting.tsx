@@ -39,7 +39,6 @@ interface BattleWaitingProps {
 const MODE_LABELS: Record<string, { de: string; en: string }> = {
   lowest_card: { de: "Niedrigste Karte", en: "Lowest Card" },
   highest_card: { de: "Höchste Karte", en: "Highest Card" },
-  all_cards: { de: "Alle Karten", en: "All Cards" },
 };
 
 export function BattleWaiting({

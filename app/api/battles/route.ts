@@ -23,7 +23,7 @@ import { scheduleBattleJob } from "@/lib/battle-jobs";
 
 const VALID_PLAYER_COUNTS = [2, 3, 4] as const;
 const VALID_ROUNDS = [3, 5, 7] as const;
-const VALID_MODES = ["lowest_card", "highest_card", "all_cards"] as const;
+const VALID_MODES = ["lowest_card", "highest_card"] as const;
 const LOBBY_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 
 // ---------- Announce battle in global chat ----------

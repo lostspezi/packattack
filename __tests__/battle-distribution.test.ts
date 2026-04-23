@@ -21,7 +21,6 @@ function makeVCard(coinValue: number, name?: string): IVirtualCard {
 
 const p1 = new Types.ObjectId();
 const p2 = new Types.ObjectId();
-const p3 = new Types.ObjectId();
 
 // ---------- Mode Distribution ----------
 
@@ -64,32 +63,6 @@ describe("distributeByMode", () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].cards[0].coinValue).toBe(90);
-    });
-  });
-
-  describe("all_cards", () => {
-    it("winner gets all cards from each loser", () => {
-      const playerCards = new Map<string, IVirtualCard[]>();
-      playerCards.set(p1.toString(), [makeVCard(100)]);
-      playerCards.set(p2.toString(), [makeVCard(10), makeVCard(30)]);
-
-      const result = distributeByMode("all_cards", p1.toString(), playerCards);
-
-      expect(result).toHaveLength(1);
-      expect(result[0].cards).toHaveLength(2);
-    });
-
-    it("works with 3 players — winner gets from all losers", () => {
-      const playerCards = new Map<string, IVirtualCard[]>();
-      playerCards.set(p1.toString(), [makeVCard(100)]);
-      playerCards.set(p2.toString(), [makeVCard(10)]);
-      playerCards.set(p3.toString(), [makeVCard(20)]);
-
-      const result = distributeByMode("all_cards", p1.toString(), playerCards);
-
-      expect(result).toHaveLength(2);
-      const totalCards = result.reduce((sum, t) => sum + t.cards.length, 0);
-      expect(totalCards).toBe(2);
     });
   });
 

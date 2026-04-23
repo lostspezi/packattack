@@ -100,7 +100,6 @@ type RoundHistoryEntry = {
  * transfer candidate based on the battle mode.
  * Returns a Map of "{roundNumber}-{userId}" → leaderId (who would receive the card).
  *
- * - all_cards: every card from every non-leading player → all are at risk
  * - lowest_card: the single lowest-value card per non-leading player
  * - highest_card: the single highest-value card per non-leading player
  */
@@ -137,9 +136,7 @@ function computeTransferPreviews(
   for (const [userId, cards] of playerCards.entries()) {
     if (leaders.has(userId)) continue; // leaders don't lose cards
 
-    if (mode === "all_cards") {
-      for (const c of cards) atRisk.set(`${c.roundNumber}-${userId}`, leaderId);
-    } else if (mode === "lowest_card") {
+    if (mode === "lowest_card") {
       const min = Math.min(...cards.map((c) => c.coinValue));
       const target = cards.find((c) => c.coinValue === min);
       if (target) atRisk.set(`${target.roundNumber}-${userId}`, leaderId);
@@ -921,7 +918,7 @@ export default function BattleDetailPage() {
               <div className="space-y-2 text-[11px]">
                 <div className="flex items-center justify-between">
                   <span className="text-zinc-500">{isDe ? "Modus" : "Mode"}</span>
-                  <span className="font-bold text-zinc-300">{battle.settings.mode === "highest_card" ? (isDe ? "Höchste Karte" : "Highest Card") : battle.settings.mode === "lowest_card" ? (isDe ? "Niedrigste Karte" : "Lowest Card") : battle.settings.mode === "all_cards" ? (isDe ? "Alle Karten" : "All Cards") : battle.settings.mode}</span>
+                  <span className="font-bold text-zinc-300">{battle.settings.mode === "highest_card" ? (isDe ? "Höchste Karte" : "Highest Card") : battle.settings.mode === "lowest_card" ? (isDe ? "Niedrigste Karte" : "Lowest Card") : battle.settings.mode}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-zinc-500">{isDe ? "Einsatz" : "Entry"}</span>

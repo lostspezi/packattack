@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Swords, Globe, Lock, Loader2, ArrowDownToLine, ArrowUpToLine, Flame } from "lucide-react";
+import { Swords, Globe, Lock, Loader2, ArrowDownToLine, ArrowUpToLine } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
 interface BoxOption {
@@ -23,7 +23,6 @@ const ROUND_OPTIONS = [3, 5, 7] as const;
 const MODES = [
   { value: "lowest_card" as const, label: { de: "Niedrigste Karte", en: "Lowest Card" }, icon: <ArrowDownToLine className="h-5 w-5 text-blue-400" />, desc: { de: "Gewinner erhält niedrigste Karte des Verlierers", en: "Winner gets loser's lowest card" } },
   { value: "highest_card" as const, label: { de: "Höchste Karte", en: "Highest Card" }, icon: <ArrowUpToLine className="h-5 w-5 text-orange-400" />, desc: { de: "Gewinner erhält höchste Karte des Verlierers", en: "Winner gets loser's highest card" } },
-  { value: "all_cards" as const, label: { de: "Alle Karten", en: "All Cards" }, icon: <Flame className="h-5 w-5 text-red-400" />, desc: { de: "Gewinner erhält alle Karten des Verlierers", en: "Winner gets all loser's cards" } },
 ];
 
 export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {

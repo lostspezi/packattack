@@ -197,17 +197,6 @@ export function BattleHandbook({ lang }: { lang: string }) {
                     : "The winner receives each loser's highest coin-value card. Higher risk, but also higher reward."}
                 </p>
               </div>
-              <div className="rounded-lg bg-zinc-800/40 p-3">
-                <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-red-400">
-                  <Flame className="h-3.5 w-3.5" />
-                  {de ? "Alle Karten" : "All Cards"}
-                </div>
-                <p>
-                  {de
-                    ? "Der Gewinner erhält ALLE gespielten Karten der Verlierer. Maximales Risiko, maximale Belohnung — alles oder nichts!"
-                    : "The winner receives ALL played cards from the losers. Maximum risk, maximum reward — all or nothing!"}
-                </p>
-              </div>
             </div>
           </Section>
 
@@ -368,8 +357,8 @@ export function BattleHandbook({ lang }: { lang: string }) {
               <li>
                 <strong className="text-zinc-300">{de ? "Modus beachten:" : "Watch the mode:"}</strong>{" "}
                 {de
-                  ? "Im \"Alle Karten\"-Modus steht deutlich mehr auf dem Spiel als im \"Niedrigste Karte\"-Modus. Wähle den Modus passend zu deiner Risikobereitschaft."
-                  : "\"All Cards\" mode has much more at stake than \"Lowest Card\" mode. Choose the mode based on your risk tolerance."}
+                  ? "Im \"Höchste Karte\"-Modus verlierst du potenziell wertvollere Karten als im \"Niedrigste Karte\"-Modus. Wähle den Modus passend zu deiner Risikobereitschaft."
+                  : "In \"Highest Card\" mode you can lose more valuable cards than in \"Lowest Card\" mode. Choose the mode based on your risk tolerance."}
               </li>
               <li>
                 <strong className="text-zinc-300">{de ? "Rundenanzahl:" : "Round count:"}</strong>{" "}

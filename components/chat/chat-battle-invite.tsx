@@ -237,7 +237,6 @@ interface ChatBattleInviteProps {
 const MODE_LABELS: Record<string, Record<string, string>> = {
   lowest_card: { de: "Niedrigste Karte", en: "Lowest Card" },
   highest_card: { de: "Höchste Karte", en: "Highest Card" },
-  all_cards: { de: "Alle Karten", en: "All Cards" },
 };
 
 const STATUS_TEXT: Record<string, Record<BattleStatus, string | null>> = {

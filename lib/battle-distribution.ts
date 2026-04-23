@@ -39,10 +39,6 @@ export function distributeByMode(
         transferCards = highest ? [highest] : [];
         break;
       }
-      case "all_cards": {
-        transferCards = [...cards];
-        break;
-      }
       default:
         transferCards = [];
     }
