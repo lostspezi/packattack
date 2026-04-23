@@ -195,11 +195,11 @@ export function UserHeader({
                     (e.target as HTMLImageElement).src = "/images/default-avatar.png";
                   }}
                 />
-                <div className="hidden text-left lg:block xl:hidden 3xl:block">
+                <div className="hidden text-left 3xl:block">
                   <p className="leading-tight text-sm font-medium text-text-primary">{userName}</p>
                   <p className="leading-tight text-xs text-text-muted">{levelLabel} 1</p>
                 </div>
-                <ChevronDown className="hidden h-4 w-4 text-text-muted lg:block xl:hidden 3xl:block" />
+                <ChevronDown className="hidden h-4 w-4 text-text-muted 3xl:block" />
               </button>
 
               <UserDropdown
