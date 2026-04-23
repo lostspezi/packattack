@@ -144,6 +144,10 @@ export function TourProvider({ steps, children }: TourProviderProps) {
       advanceLockRef.current = false;
       return;
     }
+    console.debug("[tour] advance", {
+      from: step.id,
+      nextIndex: stepIndex + 1,
+    });
 
     const priorLocal = readLocalProgress()?.completedSteps ?? [];
     const merged = mergeCompletedSteps(priorLocal, [step.id]);
@@ -274,9 +278,20 @@ function TourStepRunner({
       pathname !== expectedRoute &&
       !pathname.startsWith(`${expectedRoute}/`)
     ) {
+      console.debug("[tour] navigating", {
+        stepId: step.id,
+        from: pathname,
+        to: expectedRoute,
+      });
       router.push(expectedRoute);
       return;
     }
+
+    console.debug("[tour] step-effect run", {
+      stepId: step.id,
+      selector: step.selector,
+      pathname,
+    });
 
     const controller = new AbortController();
     let cancelled = false;
@@ -285,10 +300,14 @@ function TourStepRunner({
       signal: controller.signal,
     }).then((el) => {
       if (cancelled) return;
+      console.debug("[tour] target resolved", {
+        stepId: step.id,
+        found: !!el,
+      });
       setTarget(el);
       setResolved(true);
       if (!el && !step.targetOptional) {
-        console.warn("[tour] target missing", {
+        console.warn("[tour] target missing (non-optional, skipping)", {
           stepId: step.id,
           selector: step.selector,
         });
@@ -331,11 +350,14 @@ function TourStepRunner({
   // real DOM target, so rendering before resolution would flash at (0,0).
   if (!resolved && !step.targetOptional) return null;
 
-  // Show the Weiter-button for click-next AND event triggers. Event-typed
-  // steps need an explicit fallback because the expected custom event
-  // (e.g. "pack-opened") might not fire — the user still needs a way to
-  // proceed.
-  const showNextButton = step.nextTrigger.type !== "click-target";
+  // Normally click-target steps hide the Weiter-button so the spotlight
+  // invites the user to click the highlighted element. But if the target
+  // search finished without finding anything (targetOptional + timeout),
+  // there's nothing to click — fall back to Weiter so the user isn't
+  // trapped. While still polling we keep Weiter hidden so users don't
+  // shortcut past a real purchase that's about to be reachable.
+  const showNextButton =
+    step.nextTrigger.type !== "click-target" || (resolved && !target);
 
   return (
     <>
