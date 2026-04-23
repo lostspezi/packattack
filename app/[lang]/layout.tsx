@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Geist, Geist_Mono } from "next/font/google";
 import { SessionProvider } from "next-auth/react";
-import { BuildIndicator } from "@/components/layout/build-indicator";
 import { ToastProvider } from "@/components/ui/toast";
 import { getActiveLocales, getDefaultLocale } from "@/lib/i18n";
 import "@/app/globals.css";
@@ -54,7 +53,6 @@ export default async function LangLayout({
         <SessionProvider>
           <ToastProvider>
             <div className="flex-1 flex flex-col overflow-y-auto xl:scrollbar-hide">{children}</div>
-            <BuildIndicator />
           </ToastProvider>
         </SessionProvider>
       </body>
