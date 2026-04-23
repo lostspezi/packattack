@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -12,7 +12,6 @@ import {
   ShoppingCart,
   ShoppingBag,
   ChevronDown,
-  Search,
   Sparkles,
   Clock,
   User,
@@ -49,25 +48,13 @@ export function MobileDrawer({
 }: MobileDrawerProps) {
   const isAdmin = userRole === "admin" || userRole === "super_admin";
   const pathname = usePathname();
-  const router = useRouter();
   const dashboardHref = `/${lang}/dashboard`;
   const isDashboardActive = pathname === dashboardHref;
 
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
 
   function toggleSection(section: string) {
     setExpandedSection((prev) => (prev === section ? null : section));
-  }
-
-  function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = searchQuery.trim();
-    if (trimmed) {
-      router.push(`/${lang}/search?q=${encodeURIComponent(trimmed)}`);
-      setSearchQuery("");
-      onClose();
-    }
   }
 
   const linkClass = (active: boolean) =>
@@ -110,20 +97,6 @@ export function MobileDrawer({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/images/logo.svg" alt="PackAttack.gg" className="h-5 w-auto" />
         </div>
-
-        {/* Search */}
-        <form onSubmit={handleSearch} className="border-b border-border px-3 py-3">
-          <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
-            <Search className="h-4 w-4 shrink-0 text-text-muted" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={dict["search_placeholder"] ?? "Suchen..."}
-              className="flex-1 bg-transparent text-sm text-text-primary placeholder:text-text-muted outline-none"
-            />
-          </div>
-        </form>
 
         <nav className="flex-1 space-y-1 px-3 py-4">
           <Link href={dashboardHref} onClick={onClose} className={linkClass(isDashboardActive)}>

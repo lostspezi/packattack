@@ -9,7 +9,6 @@ import { NotificationBell } from "../notification-bell";
 import { UserDropdown } from "../user-dropdown";
 import { CoinBalance } from "../coin-balance";
 import { HeaderNav } from "./header-nav";
-import { HeaderSearch } from "./header-search";
 import { MegaMenu, type MegaMenuSection } from "./mega-menu";
 import { MobileDrawer } from "./mobile-drawer";
 import { useCartState } from "./use-cart-state";
@@ -154,7 +153,6 @@ export function UserHeader({
           </div>
 
           <div className="flex items-center gap-2 md:gap-3">
-            <HeaderSearch lang={lang} dict={dict} />
             <div className="hidden sm:block">
               <LanguageSwitcher lang={lang} languages={languages} />
             </div>
