@@ -153,8 +153,9 @@ Setze {lang} in allen Deep-Links durch "${ctx.lang}".`;
 
 export function buildSystemBlocks(
   ctx: PackiContext,
+  correctionsBlock: string | null = null,
 ): Anthropic.TextBlockParam[] {
-  return [
+  const blocks: Anthropic.TextBlockParam[] = [
     {
       type: "text",
       text: PACKI_PERSONA,
@@ -165,4 +166,8 @@ export function buildSystemBlocks(
       text: buildContextBlock(ctx),
     },
   ];
+  if (correctionsBlock) {
+    blocks.push({ type: "text", text: correctionsBlock });
+  }
+  return blocks;
 }

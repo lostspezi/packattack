@@ -44,6 +44,7 @@ export const adminNavItems: NavItem[] = [
   { key: "adminShipping", label: "Versand", href: "/admin/shipping", icon: "Truck" },
   { key: "adminSeasons", label: "Battle Seasons", href: "/admin/seasons", icon: "Trophy" },
   { key: "adminQuizEvents", label: "Quiz Events", href: "/admin/quiz-events", icon: "Zap" },
+  { key: "adminPacki", label: "Packi", href: "/admin/packi", icon: "Sparkles" },
 ];
 
 export const shopNavItems: NavItem[] = [

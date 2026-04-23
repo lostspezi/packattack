@@ -20,6 +20,10 @@ import {
   PACKI_MODEL,
   type PackiContext,
 } from "@/lib/packi/system-prompt";
+import {
+  buildCorrectionsBlock,
+  loadPackiCorrections,
+} from "@/lib/packi/corrections";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -110,9 +114,12 @@ export async function POST(req: NextRequest) {
     tourCompleted: false,
   };
 
-  const prior = await loadPackiSession(userId);
+  const [prior, corrections] = await Promise.all([
+    loadPackiSession(userId),
+    loadPackiCorrections(ctx.lang),
+  ]);
   const messages = buildHistoryMessages(prior, userMessage);
-  const system = buildSystemBlocks(ctx);
+  const system = buildSystemBlocks(ctx, buildCorrectionsBlock(corrections));
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
