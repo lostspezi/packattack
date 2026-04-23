@@ -11,7 +11,6 @@ import PackOpenSession from "@/models/pack-open-session";
 import CoinTransaction from "@/models/coin-transaction";
 import Notification from "@/models/notification";
 import { drawPacks, type PackCard } from "@/lib/pack-engine";
-import { enqueueSubstitution } from "@/lib/substitution";
 
 export async function POST(
   req: NextRequest,
@@ -229,18 +228,39 @@ export async function POST(
     // 10. Check for low-stock / out-of-stock notifications (only for drawn cards)
     if (updatedBox) void sendStockAlerts(updatedBox, cardMap, stockUpdates);
 
-    // 11. Substitute depleted cards from global inventory
-    const depletedCards: Record<string, number> = {};
+    // 11. Pause box if any drawn card hit stock 0. Admin reviews before it
+    // goes live again. The `status: "published"` guard on the filter means
+    // concurrent opens racing for the same depletion can't double-pause.
     if (updatedBox) {
-      for (const [cardId, drawnCount] of Object.entries(stockUpdates)) {
+      let firstDepleted: { cardId: string; cardName: string } | null = null;
+      for (const cardId of Object.keys(stockUpdates)) {
         const entry = updatedBox.cards.find((c) => c.card.toString() === cardId);
         if (entry && (entry.stock ?? 0) === 0) {
-          depletedCards[cardId] = drawnCount;
+          firstDepleted = {
+            cardId,
+            cardName: cardMap.get(cardId)?.name ?? "Unknown",
+          };
+          break;
         }
       }
-    }
-    if (Object.keys(depletedCards).length > 0) {
-      void enqueueSubstitution({ boxId: realBoxId.toString(), depletedCards });
+
+      if (firstDepleted) {
+        const pausedAt = new Date();
+        await Box.updateOne(
+          { _id: realBoxId, status: "published" },
+          {
+            $set: {
+              status: "paused",
+              pausedAt,
+              pausedReason: {
+                cardId: new Types.ObjectId(firstDepleted.cardId),
+                cardName: firstDepleted.cardName,
+                at: pausedAt,
+              },
+            },
+          },
+        );
+      }
     }
 
     // 12. Response
@@ -292,7 +312,7 @@ async function sendStockAlerts(
           await Notification.create({
             userId: adminId,
             title: `Ausverkauft: ${cardName}`,
-            message: `${cardName} in "${boxName}" hat Bestand 0 und wird nicht mehr gezogen.`,
+            message: `${cardName} in "${boxName}" hat Bestand 0. Box wurde pausiert — bitte prüfen und Bestand auffüllen oder Karte ersetzen, dann reaktivieren.`,
             type: "error",
             cta: { label: "Box öffnen", url: `/de/admin/boxes/${box._id}` },
           });
