@@ -74,13 +74,11 @@ export function TourProvider({ steps, children }: TourProviderProps) {
   const currentStep = isActive ? (steps[stepIndex] ?? null) : null;
 
   const start = useCallback(async () => {
-    // Any start — manual or auto — is a tour run. Mark it before any
-    // async work so the auto-start effect never sees a window where the
-    // ref is still false after this entrypoint fires.
-    tourRunStartedRef.current = true;
-
     // Resolve the tutorial-box slug before the tour enters its first routed
-    // step. Without it, pack-buy can't navigate anywhere sensible.
+    // step. Without it, pack-buy can't navigate anywhere sensible. If either
+    // early return fires, reset the run-started ref so a later me/isActive
+    // change can let auto-start retry. Otherwise a single transient fetch
+    // failure would permanently block onboarding for the whole session.
     try {
       const res = await fetch("/api/tutorial-box");
       if (!res.ok) {
@@ -90,14 +88,21 @@ export function TourProvider({ steps, children }: TourProviderProps) {
           message:
             "Ein Admin muss erst eine Box als Tutorial markieren, damit die Tour starten kann.",
         });
+        tourRunStartedRef.current = false;
         return;
       }
       const data = (await res.json()) as { slug: string };
       setTutorialSlug(data.slug);
     } catch {
       toast({ type: "error", title: "Tour konnte nicht gestartet werden" });
+      tourRunStartedRef.current = false;
       return;
     }
+
+    // Ensure the ref is set on the success path — covers the manual entry
+    // (Packi-panel "Tour neu starten" click) where the auto-start effect
+    // didn't run and therefore didn't flip it.
+    tourRunStartedRef.current = true;
 
     setStepIndex(0);
     setIsActive(true);

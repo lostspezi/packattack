@@ -189,6 +189,20 @@ export async function PATCH(
 
     return NextResponse.json(box.toObject());
   } catch (err) {
+    // Concurrent tutorial-flag PATCHes can race past the app-level
+    // updateMany and collide on the partial unique index. Surface that as
+    // 409 so the admin UI can tell them to retry, instead of a blanket 500.
+    if ((err as { code?: number }).code === 11000) {
+      console.warn("[admin/boxes/[id] PATCH] tutorial-flag conflict", { id });
+      return NextResponse.json(
+        {
+          error: "tutorial_conflict",
+          message:
+            "Eine andere Box wurde gleichzeitig als Tutorial markiert. Bitte erneut versuchen.",
+        },
+        { status: 409 },
+      );
+    }
     console.error("[admin/boxes/[id] PATCH]", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
