@@ -7,6 +7,8 @@ import {
   ExternalLink,
   ImageIcon,
   MessagesSquare,
+  Sparkles,
+  Trash2,
   Volume2,
   X,
 } from "lucide-react";
@@ -25,6 +27,8 @@ import { useChatVisibility } from "@/components/chat/chat-visibility-context";
 import { MentionSuggestions } from "@/components/chat/mention-suggestions";
 import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
+import { usePacki } from "@/components/packi/packi-provider";
+import { PackiMessageBubble } from "@/components/packi/packi-message";
 import { playNotificationTone } from "@/components/chat/notification-tone";
 import {
   ChatMessageItem,
@@ -84,6 +88,28 @@ function getQuotePreviewText(
   return source.length > 180 ? `${source.slice(0, 180)}...` : source;
 }
 
+function packiErrorLabel(reason: string): string {
+  switch (reason) {
+    case "rate_limited":
+      return "Ich brauch kurz Pause ✨ Morgen wieder!";
+    case "anthropic_rate_limited":
+      return "Gerade viel los bei mir — versuch's gleich noch mal.";
+    case "anthropic_error":
+    case "packi_offline":
+      return "Bin kurz offline. Probier's in ein paar Minuten nochmal.";
+    case "route_not_allowed":
+      return "Hier kann ich dir gerade nicht helfen — wechsel auf Packs oder Dashboard.";
+    case "too_long":
+      return "Das ist mir zu lang. Fass kurz zusammen?";
+    case "empty":
+      return "Schreib mir was — ich lese mit.";
+    case "unauthorized":
+      return "Du bist gerade nicht eingeloggt.";
+    default:
+      return "Irgendwas ist schiefgelaufen. Nochmal?";
+  }
+}
+
 function formatTimeoutPreset(minutes: number) {
   if (minutes >= 1440) {
     return `${Math.round(minutes / 60 / 24 * 10) / 10} T`;
@@ -99,11 +125,22 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const copy = useMemo(() => getChatUiCopy(lang, dict), [lang, dict]);
   const { toast } = useToast();
   const { collapsed: desktopCollapsed, setCollapsed: setDesktopCollapsed } = useChatVisibility();
+  const {
+    messages: packiMessages,
+    streamingText: packiStreamingText,
+    streaming: packiStreaming,
+    error: packiError,
+    remaining: packiRemaining,
+    sendMessage: sendPackiMessage,
+    clearConversation: clearPackiConversation,
+    clearError: clearPackiError,
+  } = usePacki();
   const isStaff = userRole === "admin" || userRole === "super_admin" || userRole === "moderator";
   const hiddenOnRoute = pathname === `/${lang}/chat` || pathname.startsWith(`/${lang}/admin/chat`);
 
   const [isDesktop, setIsDesktop] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"chat" | "packi">("chat");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [room, setRoom] = useState<ChatOverviewResponse["room"] | null>(null);
@@ -151,6 +188,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     index: number;
   } | null>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const packiListRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLTextAreaElement>(null);
   const gifButtonRef = useRef<HTMLButtonElement>(null);
   const shouldStickToBottomRef = useRef(true);
@@ -303,6 +341,17 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
 
     return () => window.cancelAnimationFrame(frame);
   }, [isPanelOpen, messagesVersion]);
+
+  // Keep the Packi message list stuck to the bottom as messages / tokens arrive.
+  useEffect(() => {
+    if (!isPanelOpen || activeTab !== "packi") return;
+    const node = packiListRef.current;
+    if (!node) return;
+    const frame = window.requestAnimationFrame(() => {
+      node.scrollTop = node.scrollHeight;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [isPanelOpen, activeTab, packiMessages, packiStreamingText, packiStreaming]);
 
   useEffect(() => {
     if (sending || !shouldRefocusComposerRef.current) return;
@@ -539,6 +588,27 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     if (sending) return;
     const trimmed = body.trim();
     if (!trimmed && !attachedGif && !quoteTarget) return;
+
+    // On the Packi tab, or when the message starts with `/packi`, route to
+    // the Packi API instead of posting to the public chat room.
+    const lower = trimmed.toLowerCase();
+    const isPackiCommand =
+      lower === "/packi" ||
+      lower.startsWith("/packi ") ||
+      lower.startsWith("/packi\n") ||
+      lower.startsWith("/packi\t");
+    if (activeTab === "packi" || isPackiCommand) {
+      if (packiStreaming) return;
+      const promptText = isPackiCommand ? trimmed.slice("/packi".length).trim() : trimmed;
+      if (!promptText) return;
+      shouldRefocusComposerRef.current = true;
+      setBody("");
+      setAttachedGif(null);
+      setQuoteTarget(null);
+      setActiveTab("packi");
+      void sendPackiMessage(promptText);
+      return;
+    }
 
     shouldRefocusComposerRef.current = true;
     setSending(true);
@@ -918,138 +988,229 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           : "rounded-[24px] border border-white/10 ring-1 ring-white/6"
       }`}
     >
-      <div className="border-b border-white/8 px-4 py-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-base font-semibold leading-tight text-text-primary">
-                {copy.page.roomTitle}
-              </h3>
+      <div className="border-b border-white/8">
+        <div className="flex items-center justify-between gap-2 px-3 pt-3">
+          <div className="flex items-center gap-1" role="tablist" aria-label="Chat / Packi">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "chat"}
+              onClick={() => setActiveTab("chat")}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                activeTab === "chat"
+                  ? "bg-pa-green/12 text-pa-green"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <MessagesSquare className="h-3.5 w-3.5" />
+              {copy.page.roomTitle}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "packi"}
+              onClick={() => setActiveTab("packi")}
+              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                activeTab === "packi"
+                  ? "bg-pa-green/12 text-pa-green"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Packi
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={isDesktop ? () => setDesktopCollapsed(true) : closeMobilePanel}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
+            aria-label={collapseLabel}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 px-4 pb-3 pt-3">
+          {activeTab === "chat" ? (
+            <>
               {room && room.mode !== "open" ? (
                 <span className="rounded-full border border-pa-green/15 bg-pa-green/10 px-2 py-0.5 text-[10px] font-semibold text-pa-green">
                   {copy.roomModes[room.mode]}
                 </span>
               ) : null}
-            </div>
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {isStaff ? (
-              <Link
-                href={`/${lang}/admin/chat`}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
-                title="Moderation"
-              >
-                <ExternalLink className="h-4 w-4" />
-              </Link>
-            ) : null}
-            <button
-              type="button"
-              onClick={isDesktop ? () => setDesktopCollapsed(true) : closeMobilePanel}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
-              aria-label={collapseLabel}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-        <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Dropdown
-            align="left"
-            minWidth={220}
-            selectedValue={readState.soundMode}
-            trigger={
+              <Dropdown
+                align="left"
+                minWidth={220}
+                selectedValue={readState.soundMode}
+                trigger={
+                  <button
+                    type="button"
+                    className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-white/8 bg-white/4 px-3 text-xs font-medium text-text-secondary transition-colors hover:text-pa-green"
+                    aria-label={copy.sounds.label}
+                    title={`${copy.sounds.label}: ${currentSoundModeLabel}`}
+                  >
+                    <Volume2 className="h-3.5 w-3.5" />
+                    <span>{copy.sounds.label}</span>
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${currentSoundBadge.className}`}
+                    >
+                      {currentSoundBadge.label}
+                    </span>
+                  </button>
+                }
+                items={soundModeOptions.map((option) => ({
+                  label: option.label,
+                  value: option.value,
+                  onClick: (value) => {
+                    void saveSoundMode(value);
+                  },
+                }))}
+              />
               <button
                 type="button"
-                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full border border-white/8 bg-white/4 px-3 text-xs font-medium text-text-secondary transition-colors hover:text-pa-green"
-                aria-label={copy.sounds.label}
-                title={`${copy.sounds.label}: ${currentSoundModeLabel}`}
+                onClick={() => setOnlineUsersOpen(true)}
+                className="inline-flex min-w-0 items-center gap-2 rounded-full border border-white/8 bg-white/4 px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-pa-green"
+                title={copy.page.onlineUsersTitle}
               >
-                <Volume2 className="h-3.5 w-3.5" />
-                <span>{copy.sounds.label}</span>
-                <span
-                  className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${currentSoundBadge.className}`}
-                >
-                  {currentSoundBadge.label}
+                <span className="inline-block h-2 w-2 rounded-full bg-pa-green" />
+                <span>
+                  {room?.onlineCount ?? 0} {copy.page.online}
                 </span>
               </button>
-            }
-            items={soundModeOptions.map((option) => ({
-              label: option.label,
-              value: option.value,
-              onClick: (value) => {
-                void saveSoundMode(value);
-              },
-            }))}
-          />
-          <button
-            type="button"
-            onClick={() => setOnlineUsersOpen(true)}
-            className="inline-flex min-w-0 items-center gap-2 rounded-full border border-white/8 bg-white/4 px-3 py-1 text-xs font-medium text-text-secondary transition-colors hover:text-pa-green"
-            title={copy.page.onlineUsersTitle}
-          >
-            <span className="inline-block h-2 w-2 rounded-full bg-pa-green" />
-            <span>
-              {room?.onlineCount ?? 0} {copy.page.online}
-            </span>
-          </button>
+              {isStaff ? (
+                <Link
+                  href={`/${lang}/admin/chat`}
+                  className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
+                  title="Moderation"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Link>
+              ) : null}
+            </>
+          ) : (
+            <>
+              {typeof packiRemaining === "number" ? (
+                <span className="rounded-full border border-white/8 bg-white/4 px-3 py-1 text-[11px] font-medium text-text-muted">
+                  Noch {packiRemaining} Nachrichten heute
+                </span>
+              ) : null}
+              {packiMessages.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={clearPackiConversation}
+                  className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
+                  title="Packi-Verlauf leeren"
+                  aria-label="Packi-Verlauf leeren"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              ) : null}
+            </>
+          )}
         </div>
       </div>
 
-      <div ref={listRef} className="relative flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        {loading ? (
-          <p className="text-sm text-text-muted">{copy.page.loading}</p>
-        ) : loadError ? (
-          <div className="rounded-[14px] border border-red-500/15 bg-red-500/10 p-3 text-sm text-red-200">
-            {loadError}
-          </div>
-        ) : messages.length === 0 ? (
-          <p className="text-sm text-text-muted">{copy.page.empty}</p>
-        ) : (
-          messages.map((message) => (
-            <ChatMessageItem
-              key={message.id}
-              message={message}
-              mentionedCurrentUser={isMentionForCurrentUser(message)}
-              pendingReaction={pendingReactionSet.has(message.id)}
-              isStaff={isStaff}
-              canPost={permissions.canPost}
-              currentUserId={currentUserId}
-              selfUsername={selfUsername ?? null}
-              lang={lang}
-              copy={copy}
-              {...stableItemHandlers}
-            />
-          ))
-        )}
+      {activeTab === "chat" ? (
+        <div ref={listRef} className="relative flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          {loading ? (
+            <p className="text-sm text-text-muted">{copy.page.loading}</p>
+          ) : loadError ? (
+            <div className="rounded-[14px] border border-red-500/15 bg-red-500/10 p-3 text-sm text-red-200">
+              {loadError}
+            </div>
+          ) : messages.length === 0 ? (
+            <p className="text-sm text-text-muted">{copy.page.empty}</p>
+          ) : (
+            messages.map((message) => (
+              <ChatMessageItem
+                key={message.id}
+                message={message}
+                mentionedCurrentUser={isMentionForCurrentUser(message)}
+                pendingReaction={pendingReactionSet.has(message.id)}
+                isStaff={isStaff}
+                canPost={permissions.canPost}
+                currentUserId={currentUserId}
+                selfUsername={selfUsername ?? null}
+                lang={lang}
+                copy={copy}
+                {...stableItemHandlers}
+              />
+            ))
+          )}
 
-        {pendingNewCount > 0 && isPanelOpen ? (
-          <div className="sticky bottom-2 flex justify-center">
-            <button
-              type="button"
-              onClick={() => {
-                const node = listRef.current;
-                if (node) {
-                  node.scrollTop = node.scrollHeight;
-                }
-                shouldStickToBottomRef.current = true;
-                setPendingNewCount(0);
-              }}
-              className="rounded-full border border-pa-green/15 bg-pa-green/10 px-3 py-1 text-xs font-semibold text-pa-green"
-            >
-              {copy.page.newMessages} ({pendingNewCount})
-            </button>
-          </div>
-        ) : null}
-      </div>
+          {pendingNewCount > 0 && isPanelOpen ? (
+            <div className="sticky bottom-2 flex justify-center">
+              <button
+                type="button"
+                onClick={() => {
+                  const node = listRef.current;
+                  if (node) {
+                    node.scrollTop = node.scrollHeight;
+                  }
+                  shouldStickToBottomRef.current = true;
+                  setPendingNewCount(0);
+                }}
+                className="rounded-full border border-pa-green/15 bg-pa-green/10 px-3 py-1 text-xs font-semibold text-pa-green"
+              >
+                {copy.page.newMessages} ({pendingNewCount})
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ) : (
+        <div ref={packiListRef} className="relative flex-1 space-y-3 overflow-y-auto px-4 py-4">
+          {packiMessages.length === 0 && !packiStreaming ? (
+            <div className="rounded-[14px] border border-white/8 bg-white/3 p-4 text-sm text-text-muted">
+              <p className="mb-1 font-medium text-text-secondary">Hey! Ich bin Packi ✨</p>
+              <p>Frag mich alles rund um PACKATTACK — Packs, Sammlung, Chat, Profil. Tipp: vom Chat aus geht auch <code className="rounded bg-white/5 px-1 text-[11px]">/packi …</code>.</p>
+            </div>
+          ) : (
+            packiMessages.map((msg) => (
+              <PackiMessageBubble key={msg.id} role={msg.role} content={msg.content} />
+            ))
+          )}
+
+          {packiStreaming && packiStreamingText ? (
+            <PackiMessageBubble role="assistant" content={packiStreamingText} streaming />
+          ) : null}
+
+          {packiStreaming && !packiStreamingText ? (
+            <div className="flex gap-1 px-3.5 py-2">
+              <span className="h-2 w-2 rounded-full bg-text-muted animate-bounce" />
+              <span
+                className="h-2 w-2 rounded-full bg-text-muted animate-bounce"
+                style={{ animationDelay: "120ms" }}
+              />
+              <span
+                className="h-2 w-2 rounded-full bg-text-muted animate-bounce"
+                style={{ animationDelay: "240ms" }}
+              />
+            </div>
+          ) : null}
+
+          {packiError ? (
+            <div className="flex items-start justify-between gap-2 rounded-[12px] border border-error/30 bg-error/8 px-3 py-2 text-xs text-text-primary">
+              <span>{packiErrorLabel(packiError.reason)}</span>
+              <button
+                type="button"
+                onClick={clearPackiError}
+                className="shrink-0 text-text-muted hover:text-text-secondary"
+                aria-label="Fehler ausblenden"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ) : null}
+        </div>
+      )}
 
       <div className="border-t border-white/8 px-4 py-4">
-        {cannotPostMessage ? (
+        {activeTab === "chat" && cannotPostMessage ? (
           <div className="mb-3 rounded-[12px] border border-yellow-500/15 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-200">
             {cannotPostMessage}
           </div>
         ) : null}
 
-        {quoteTarget ? (
+        {activeTab === "chat" && quoteTarget ? (
           <div className="mb-3 flex items-start justify-between gap-3 rounded-[12px] border border-white/10 bg-white/4 px-3 py-2">
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wide text-text-muted">
@@ -1074,7 +1235,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
           </div>
         ) : null}
 
-        {attachedGif ? (
+        {activeTab === "chat" && attachedGif ? (
           <ChatGifAttachmentPreview
             gif={attachedGif}
             copy={copy}
@@ -1121,25 +1282,39 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                   void submitMessage();
                 }
               }}
-              placeholder={copy.composer.placeholder}
+              placeholder={activeTab === "packi" ? "Frag Packi…" : copy.composer.placeholder}
               rows={3}
-              maxLength={500}
-              disabled={sending || !permissions.canPost}
+              maxLength={activeTab === "packi" ? 2000 : 500}
+              disabled={
+                activeTab === "packi"
+                  ? packiStreaming
+                  : sending || !permissions.canPost
+              }
               className="min-h-[92px] w-full rounded-[14px] border border-white/8 bg-white/4 px-4 py-3 text-sm text-text-primary outline-none transition-colors focus:border-pa-green/35 focus:ring-2 focus:ring-pa-green/6 disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
           <Button
             onClick={submitMessage}
-            loading={sending}
-            disabled={!permissions.canPost || (!body.trim() && !attachedGif && !quoteTarget)}
+            loading={activeTab === "packi" ? packiStreaming : sending}
+            disabled={
+              activeTab === "packi"
+                ? packiStreaming || !body.trim()
+                : !permissions.canPost || (!body.trim() && !attachedGif && !quoteTarget)
+            }
             className="self-center"
           >
-            {sending ? copy.composer.sending : copy.composer.send}
+            {activeTab === "packi"
+              ? packiStreaming
+                ? copy.composer.sending
+                : copy.composer.send
+              : sending
+                ? copy.composer.sending
+                : copy.composer.send}
           </Button>
         </div>
         <div className="mt-2 flex items-center justify-between text-xs text-text-muted">
           <div className="flex items-center gap-2">
-            {permissions.canUseGifs ? (
+            {activeTab === "chat" && permissions.canUseGifs ? (
               <button
                 ref={gifButtonRef}
                 type="button"
@@ -1152,12 +1327,16 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
               </button>
             ) : null}
             <span>
-              {room?.mode === "slow_mode" && room.slowModeSeconds > 0
-                ? `${copy.composer.slowMode}: ${room.slowModeSeconds}s`
-                : copy.composer.shortcutHint}
+              {activeTab === "packi"
+                ? copy.composer.shortcutHint
+                : room?.mode === "slow_mode" && room.slowModeSeconds > 0
+                  ? `${copy.composer.slowMode}: ${room.slowModeSeconds}s`
+                  : `${copy.composer.shortcutHint} · /packi fragt Packi`}
             </span>
           </div>
-          <span>{body.trim().length} / 500</span>
+          <span>
+            {body.trim().length} / {activeTab === "packi" ? 2000 : 500}
+          </span>
         </div>
       </div>
     </div>

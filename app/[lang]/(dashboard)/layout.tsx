@@ -5,7 +5,6 @@ import { Footer } from "@/components/layout/footer";
 import { UserHeader } from "@/components/layout/header/user-header";
 import { MeProvider } from "@/components/layout/me-provider";
 import { PendingPullsGuard } from "@/components/packs/pending-pulls-guard";
-import { Packi } from "@/components/packi/packi";
 import { PackiProvider } from "@/components/packi/packi-provider";
 import { TourProvider } from "@/components/tour/tour-provider";
 import { ONBOARDING_STEPS } from "@/lib/tour/steps/onboarding";
@@ -60,7 +59,6 @@ export default async function DashboardLayout({
               userRole={userRole}
             />
             <Footer lang={lang} dict={footerDict} />
-            <Packi />
           </DashboardShell>
         </PackiProvider>
       </TourProvider>
