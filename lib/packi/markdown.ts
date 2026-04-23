@@ -2,10 +2,21 @@ import type { ReactNode } from "react";
 import { createElement, Fragment } from "react";
 
 // Markdown subset supported: **bold**, *italic*, [text](url), - list items.
-// Links are only emitted for relative hrefs starting with "/". Anything else
-// is rendered as plain text — defense-in-depth against phishing/exfil.
+// Links are only emitted when the href is a relative path to one of the
+// FAB-scope routes (dashboard/packs/profile) — everywhere else the FAB is
+// hidden, so deep-linking there would navigate the user away from Packi.
+// Non-matching anchors fall through to plain text. Defense-in-depth: the
+// system prompt already tells Packi not to emit them.
 
+const LINK_ALLOWED_BASES = new Set(["dashboard", "packs", "profile"]);
 const LINK_PATTERN = /\[([^\]\n]+?)\]\((\/[^)\s]*)\)/g;
+const LINK_BASE_PATTERN = /^\/[a-zA-Z]{2,5}\/([^/?#]+)/;
+
+function isAllowedHref(href: string): boolean {
+  const match = href.match(LINK_BASE_PATTERN);
+  if (!match) return false;
+  return LINK_ALLOWED_BASES.has(match[1]);
+}
 const BOLD_PATTERN = /\*\*([^*\n]+?)\*\*/g;
 const ITALIC_PATTERN = /(^|[^*])\*([^*\n]+?)\*(?!\*)/g;
 
@@ -23,6 +34,7 @@ function tokenizeInline(line: string): Token[] {
   }> = [];
 
   for (const match of line.matchAll(LINK_PATTERN)) {
+    if (!isAllowedHref(match[2])) continue;
     matches.push({
       start: match.index ?? 0,
       end: (match.index ?? 0) + match[0].length,

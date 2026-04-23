@@ -74,6 +74,27 @@
   50% { box-shadow: 0 0 12px 4px rgba(234, 179, 8, 0.08); }
 }
 
+@keyframes packiFabPulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(155, 255, 0, 0.25);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(155, 255, 0, 0.45);
+    transform: scale(1.03);
+  }
+}
+
+.packi-fab-pulse {
+  animation: packiFabPulse 3.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .packi-fab-pulse {
+    animation: none;
+  }
+}
+
 @keyframes chatDockShake {
   0% {
     transform: translate3d(0, 0, 0) rotate(0deg);

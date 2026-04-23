@@ -19,12 +19,13 @@ export function PackiFab() {
       aria-expanded={open}
       className={[
         "fixed z-[99]",
-        "bottom-5 right-5 xl:right-[calc(420px+20px)]",
+        "bottom-5 left-5",
         "h-12 w-12 rounded-full",
         "bg-pa-green text-black shadow-lg",
         "flex items-center justify-center",
         "hover:scale-105 transition-transform",
         "focus:outline-none focus:ring-2 focus:ring-pa-green/40",
+        open ? "" : "packi-fab-pulse",
       ].join(" ")}
     >
       {open ? (

@@ -17,10 +17,20 @@ describe("renderPackiMarkdown", () => {
     expect(html("Das ist *kursiv* ok")).toContain("<em>kursiv</em>");
   });
 
-  it("renders links only for relative hrefs starting with /", () => {
-    const out = html("Schau [hier](/de/dashboard)");
-    expect(out).toContain('href="/de/dashboard"');
-    expect(out).toContain("text-pa-green");
+  it("renders links for allowed FAB-scope routes", () => {
+    for (const route of ["/de/dashboard", "/en/packs", "/de/profile"]) {
+      const out = html(`Schau [hier](${route})`);
+      expect(out).toContain(`href="${route}"`);
+      expect(out).toContain("text-pa-green");
+    }
+  });
+
+  it("refuses to link to chat / leaderboard / settings (FAB hidden there)", () => {
+    for (const route of ["/de/chat", "/de/leaderboard", "/de/settings"]) {
+      const out = html(`Schau [hier](${route})`);
+      expect(out).not.toContain("<a");
+      expect(out).toContain(`[hier](${route})`);
+    }
   });
 
   it("refuses to render http(s) links as anchors", () => {
