@@ -15,6 +15,12 @@ export interface IBoxCard {
   originalCard: Types.ObjectId | null;
 }
 
+export interface IBoxPausedReason {
+  cardId: Types.ObjectId;
+  cardName: string;
+  at: Date;
+}
+
 export interface IBox extends Document {
   name: { de: string; en: string };
   slug: string;
@@ -35,6 +41,9 @@ export interface IBox extends Document {
    * this flag at a time — see the partial unique index below.
    */
   isTutorial: boolean;
+  /** Set when the box was auto-paused because a card hit stock 0. Cleared on reactivate. */
+  pausedAt: Date | null;
+  pausedReason: IBoxPausedReason | null;
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -89,6 +98,18 @@ const BoxSchema = new Schema<IBox>(
     ],
     battleFeePerRound: { type: Number, default: 0, min: 0 },
     isTutorial: { type: Boolean, default: false },
+    pausedAt: { type: Date, default: null },
+    pausedReason: {
+      type: new Schema<IBoxPausedReason>(
+        {
+          cardId: { type: Schema.Types.ObjectId, ref: "Card", required: true },
+          cardName: { type: String, required: true },
+          at: { type: Date, required: true },
+        },
+        { _id: false }
+      ),
+      default: null,
+    },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }
