@@ -20,8 +20,8 @@ interface BattleCreateProps {
 const PLAYER_COUNTS = [2, 3, 4] as const;
 const ROUND_OPTIONS = [3, 5, 7] as const;
 const MODES = [
-  { value: "lowest_card" as const, label: { de: "Niedrigste Karte", en: "Lowest Card" }, icon: <ArrowDownToLine className="h-5 w-5 text-blue-400" />, desc: { de: "Gewinner erhält niedrigste Karte des Verlierers", en: "Winner gets loser's lowest card" } },
-  { value: "highest_card" as const, label: { de: "Höchste Karte", en: "Highest Card" }, icon: <ArrowUpToLine className="h-5 w-5 text-orange-400" />, desc: { de: "Gewinner erhält höchste Karte des Verlierers", en: "Winner gets loser's highest card" } },
+  { value: "lowest_card" as const, label: { de: "Niedrigste Karte", en: "Lowest Card" }, icon: <ArrowDownToLine className="h-5 w-5 text-blue-400" />, desc: { de: "Die niedrigste Karte gewinnt die Runde", en: "The lowest card wins the round" } },
+  { value: "highest_card" as const, label: { de: "Höchste Karte", en: "Highest Card" }, icon: <ArrowUpToLine className="h-5 w-5 text-orange-400" />, desc: { de: "Die höchste Karte gewinnt die Runde", en: "The highest card wins the round" } },
 ];
 
 export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {

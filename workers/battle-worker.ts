@@ -6,8 +6,7 @@ import Box from "@/models/box";
 import User from "@/models/user";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
 import { evaluateRound, evaluateBattle } from "@/lib/battle-engine";
-import { prepareBoxCardsForBattle, drawAndPersistBattleHand, transferCardOwnership, activateBattlePullExpiry, cleanupUnselectedBattlePulls } from "@/lib/battle-cards";
-import { distributeByMode } from "@/lib/battle-distribution";
+import { prepareBoxCardsForBattle, drawBattleHandCards } from "@/lib/battle-cards";
 import { calculateEloChanges, DEFAULT_ELO, type EloPlayer } from "@/lib/battle-elo";
 import { scheduleBattleJob } from "@/lib/battle-jobs";
 import type { IVirtualCard } from "@/models/battle";
@@ -66,9 +65,7 @@ async function processAutoStart(battleId: string) {
     const selectDeadline = new Date(Date.now() + 30_000);
     const hands = [];
     for (const p of battle.players) {
-      const cards = await drawAndPersistBattleHand(
-        battle.box.toString(), boxCards, p.user.toString(), battleId,
-      );
+      const cards = drawBattleHandCards(boxCards);
       hands.push({ player: p.user, cards, selectedCardIndex: null, selectedAt: null });
     }
 
@@ -153,7 +150,7 @@ async function resolveRound(
     card: h.cards[h.selectedCardIndex!] as IVirtualCard,
   }));
 
-  const roundResult = evaluateRound(selections);
+  const roundResult = evaluateRound(selections, battle.settings.mode);
   currentRound.winner = roundResult.winner;
   currentRound.status = "completed";
 
@@ -219,9 +216,7 @@ async function startNewRound(
   const selectDeadline = new Date(Date.now() + 30_000);
   const hands = [];
   for (const p of battle.players) {
-    const cards = await drawAndPersistBattleHand(
-      battle.box.toString(), boxCards, p.user.toString(), battleId,
-    );
+    const cards = drawBattleHandCards(boxCards);
     hands.push({ player: p.user, cards, selectedCardIndex: null, selectedAt: null });
   }
 
@@ -253,40 +248,6 @@ async function finishBattle(
   winnerId: string | null,
 ) {
   battle.status = "finished";
-
-  const playerCards = new Map<string, IVirtualCard[]>();
-  const selectedPullIds = new Set<string>();
-  for (const p of battle.players) {
-    playerCards.set(p.user.toString(), []);
-  }
-
-  for (const round of battle.rounds) {
-    for (const hand of round.hands) {
-      if (hand.selectedCardIndex !== null) {
-        const card = hand.cards[hand.selectedCardIndex];
-        const existing = playerCards.get(hand.player.toString());
-        if (existing) existing.push(card);
-        if (card.pullId) selectedPullIds.add(card.pullId.toString());
-      }
-    }
-  }
-
-  // Clean up unselected cards (return stock, mark converted)
-  await cleanupUnselectedBattlePulls(battleId, selectedPullIds);
-
-  const transfers = winnerId
-    ? distributeByMode(battle.settings.mode, winnerId, playerCards)
-    : [];
-
-  // Transfer PackPull ownership for redistributed cards
-  for (const transfer of transfers) {
-    if (transfer.from === transfer.to) continue;
-    for (const card of transfer.cards) {
-      if (card.pullId) {
-        await transferCardOwnership(card.pullId.toString(), transfer.to);
-      }
-    }
-  }
 
   const playerIds = battle.players.map((p) => p.user.toString());
   const users = await User.find({ _id: { $in: playerIds } })
@@ -335,12 +296,6 @@ async function finishBattle(
       player: p.user instanceof mongoose.Types.ObjectId ? p.user : new mongoose.Types.ObjectId(String(p.user)),
       roundsWon: p.roundsWon,
     })),
-    transfers: transfers.map((t) => ({
-      from: new mongoose.Types.ObjectId(t.from),
-      to: new mongoose.Types.ObjectId(t.to),
-      cards: t.cards,
-      mode: t.mode,
-    })),
     eloChanges: eloChanges.map((c) => ({
       player: new mongoose.Types.ObjectId(c.id),
       oldElo: c.oldElo,
@@ -349,9 +304,6 @@ async function finishBattle(
     })),
     completedAt: new Date(),
   };
-
-  // Activate 5-min expiry timer on all battle pulls
-  await activateBattlePullExpiry(battleId);
 
   await publishBattleEvent(battleId, "battle_end", { result: battle.result });
 }

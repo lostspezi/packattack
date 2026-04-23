@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
 import Box from "@/models/box";
-import { prepareBoxCardsForBattle, drawAndPersistBattleHand } from "@/lib/battle-cards";
+import { prepareBoxCardsForBattle, drawBattleHandCards } from "@/lib/battle-cards";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
 import { scheduleBattleJob, removeBattleJob } from "@/lib/battle-jobs";
 
@@ -52,16 +52,14 @@ export async function POST(
 
       const boxCards = prepareBoxCardsForBattle(box);
 
-      // Generate hands for round 1 (real cards with stock decrement)
+      // Generate virtual hands for round 1
       battle.status = "active";
       battle.currentRound = 1;
 
       const selectDeadline = new Date(Date.now() + SELECT_DEADLINE_MS);
       const hands = [];
       for (const p of battle.players) {
-        const cards = await drawAndPersistBattleHand(
-          battle.box.toString(), boxCards, p.user.toString(), id,
-        );
+        const cards = drawBattleHandCards(boxCards);
         hands.push({ player: p.user, cards, selectedCardIndex: null, selectedAt: null });
       }
 

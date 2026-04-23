@@ -36,13 +36,6 @@ export interface IBattlePlayer {
   roundsWon: number;
 }
 
-export interface IBattleTransfer {
-  from: Types.ObjectId;
-  to: Types.ObjectId;
-  cards: IVirtualCard[];
-  mode: string;
-}
-
 export interface IBattleEloChange {
   player: Types.ObjectId;
   oldElo: number;
@@ -54,7 +47,6 @@ export interface IBattleResult {
   winner: Types.ObjectId | null;
   isDraw: boolean;
   finalScores: { player: Types.ObjectId; roundsWon: number }[];
-  transfers: IBattleTransfer[];
   eloChanges: IBattleEloChange[];
   completedAt: Date;
 }
@@ -140,16 +132,6 @@ const BattlePlayerSchema = new Schema<IBattlePlayer>(
   { _id: false },
 );
 
-const BattleTransferSchema = new Schema<IBattleTransfer>(
-  {
-    from: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    to: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    cards: { type: [VirtualCardSchema], required: true },
-    mode: { type: String, required: true },
-  },
-  { _id: false },
-);
-
 const BattleEloChangeSchema = new Schema<IBattleEloChange>(
   {
     player: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -171,7 +153,6 @@ const BattleResultSchema = new Schema<IBattleResult>(
         _id: false,
       },
     ],
-    transfers: { type: [BattleTransferSchema], default: [] },
     eloChanges: { type: [BattleEloChangeSchema], default: [] },
     completedAt: { type: Date, required: true },
   },

@@ -26,44 +26,77 @@ describe("evaluateRound", () => {
   const p1 = new Types.ObjectId();
   const p2 = new Types.ObjectId();
 
-  it("player with highest coinValue wins", () => {
-    const selections = [
-      { player: p1, card: makeVCard(50, "A") },
-      { player: p2, card: makeVCard(30, "B") },
-    ];
-    const result = evaluateRound(selections);
-    expect(result.winner?.toString()).toBe(p1.toString());
+  describe("highest_card mode", () => {
+    it("player with highest coinValue wins", () => {
+      const selections = [
+        { player: p1, card: makeVCard(50, "A") },
+        { player: p2, card: makeVCard(30, "B") },
+      ];
+      const result = evaluateRound(selections, "highest_card");
+      expect(result.winner?.toString()).toBe(p1.toString());
+    });
+
+    it("returns null winner on tie for highest", () => {
+      const selections = [
+        { player: p1, card: makeVCard(50, "A") },
+        { player: p2, card: makeVCard(50, "B") },
+      ];
+      const result = evaluateRound(selections, "highest_card");
+      expect(result.winner).toBeNull();
+    });
+
+    it("works with 3+ players", () => {
+      const p3 = new Types.ObjectId();
+      const selections = [
+        { player: p1, card: makeVCard(10, "A") },
+        { player: p2, card: makeVCard(99, "B") },
+        { player: p3, card: makeVCard(50, "C") },
+      ];
+      const result = evaluateRound(selections, "highest_card");
+      expect(result.winner?.toString()).toBe(p2.toString());
+    });
+
+    it("tie among 3 players with same max value returns null", () => {
+      const p3 = new Types.ObjectId();
+      const selections = [
+        { player: p1, card: makeVCard(50, "A") },
+        { player: p2, card: makeVCard(50, "B") },
+        { player: p3, card: makeVCard(30, "C") },
+      ];
+      const result = evaluateRound(selections, "highest_card");
+      expect(result.winner).toBeNull();
+    });
   });
 
-  it("returns null winner on tie", () => {
-    const selections = [
-      { player: p1, card: makeVCard(50, "A") },
-      { player: p2, card: makeVCard(50, "B") },
-    ];
-    const result = evaluateRound(selections);
-    expect(result.winner).toBeNull();
-  });
+  describe("lowest_card mode", () => {
+    it("player with lowest coinValue wins", () => {
+      const selections = [
+        { player: p1, card: makeVCard(50, "A") },
+        { player: p2, card: makeVCard(30, "B") },
+      ];
+      const result = evaluateRound(selections, "lowest_card");
+      expect(result.winner?.toString()).toBe(p2.toString());
+    });
 
-  it("works with 3+ players", () => {
-    const p3 = new Types.ObjectId();
-    const selections = [
-      { player: p1, card: makeVCard(10, "A") },
-      { player: p2, card: makeVCard(99, "B") },
-      { player: p3, card: makeVCard(50, "C") },
-    ];
-    const result = evaluateRound(selections);
-    expect(result.winner?.toString()).toBe(p2.toString());
-  });
+    it("returns null winner on tie for lowest", () => {
+      const selections = [
+        { player: p1, card: makeVCard(20, "A") },
+        { player: p2, card: makeVCard(20, "B") },
+      ];
+      const result = evaluateRound(selections, "lowest_card");
+      expect(result.winner).toBeNull();
+    });
 
-  it("tie among 3 players with same max value returns null", () => {
-    const p3 = new Types.ObjectId();
-    const selections = [
-      { player: p1, card: makeVCard(50, "A") },
-      { player: p2, card: makeVCard(50, "B") },
-      { player: p3, card: makeVCard(30, "C") },
-    ];
-    const result = evaluateRound(selections);
-    expect(result.winner).toBeNull();
+    it("works with 3+ players, smallest wins", () => {
+      const p3 = new Types.ObjectId();
+      const selections = [
+        { player: p1, card: makeVCard(10, "A") },
+        { player: p2, card: makeVCard(99, "B") },
+        { player: p3, card: makeVCard(50, "C") },
+      ];
+      const result = evaluateRound(selections, "lowest_card");
+      expect(result.winner?.toString()).toBe(p1.toString());
+    });
   });
 });
 

@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Loader2, ArrowLeft, ArrowRight, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight } from "lucide-react";
 import { GiTrophyCup, GiCrossedSwords, GiScales, GiLaurelCrown, GiPodiumWinner, GiPodiumSecond, GiPodiumThird, GiSandsOfTime, GiScrollUnfurled, GiRoundStar } from "react-icons/gi";
 
 import { BattleWaiting } from "@/components/battles/battle-waiting";
@@ -49,12 +49,6 @@ interface BattleResult {
   winner: string | null;
   isDraw: boolean;
   finalScores: { player: string; roundsWon: number }[];
-  transfers: {
-    from: string;
-    to: string;
-    cards: VirtualCard[];
-    mode: string;
-  }[];
   eloChanges: {
     player: string;
     oldElo: number;
@@ -93,61 +87,6 @@ type RoundHistoryEntry = {
   players: { userId: string; username: string; card: { name: string; image: string; coinValue: number } }[];
   winnerId: string | null;
 };
-
-/**
- * For each player, compute which of their played cards is currently the
- * transfer candidate based on the battle mode.
- * Returns a Map of "{roundNumber}-{userId}" → leaderId (who would receive the card).
- *
- * - lowest_card: the single lowest-value card per non-leading player
- * - highest_card: the single highest-value card per non-leading player
- */
-function computeTransferPreviews(
-  history: RoundHistoryEntry[],
-  mode: string,
-  scores: Map<string, number>,
-): Map<string, string> {
-  const atRisk = new Map<string, string>();
-  if (history.length === 0) return atRisk;
-
-  // Find leading player(s)
-  let maxScore = 0;
-  for (const s of scores.values()) if (s > maxScore) maxScore = s;
-  const leaders = new Set<string>();
-  let leaderId = "";
-  for (const [id, s] of scores.entries()) {
-    if (s === maxScore) { leaders.add(id); leaderId = id; }
-  }
-  // If everyone is tied, no transfers yet
-  if (leaders.size === scores.size) return atRisk;
-  // If multiple leaders tied, pick first one for display
-  if (leaders.size > 1) leaderId = [...leaders][0];
-
-  // Collect played cards per player with round reference
-  const playerCards = new Map<string, { roundNumber: number; coinValue: number }[]>();
-  for (const round of history) {
-    for (const p of round.players) {
-      if (!playerCards.has(p.userId)) playerCards.set(p.userId, []);
-      playerCards.get(p.userId)!.push({ roundNumber: round.roundNumber, coinValue: p.card.coinValue });
-    }
-  }
-
-  for (const [userId, cards] of playerCards.entries()) {
-    if (leaders.has(userId)) continue; // leaders don't lose cards
-
-    if (mode === "lowest_card") {
-      const min = Math.min(...cards.map((c) => c.coinValue));
-      const target = cards.find((c) => c.coinValue === min);
-      if (target) atRisk.set(`${target.roundNumber}-${userId}`, leaderId);
-    } else if (mode === "highest_card") {
-      const max = Math.max(...cards.map((c) => c.coinValue));
-      const target = cards.find((c) => c.coinValue === max);
-      if (target) atRisk.set(`${target.roundNumber}-${userId}`, leaderId);
-    }
-  }
-
-  return atRisk;
-}
 
 /* ------------------------------------------------------------------ */
 /*  SSE Hook                                                           */
@@ -645,10 +584,6 @@ export default function BattleDetailPage() {
   const isActive = battle.status === "active" || battle.status === "sudden_death";
   const isFinished = battle.status === "finished" || battle.status === "cancelled";
 
-  // Compute transfer preview for in-game round history
-  const scoreMap = new Map(battle.players.map((p) => [String(p.user._id), p.roundsWon]));
-  const atRiskCards = computeTransferPreviews(roundHistory, battle.settings.mode, scoreMap);
-
   return (
     <div className={`mx-auto w-full px-4 py-6 ${isFinished ? "max-w-[1600px]" : isActive ? "max-w-[1400px]" : "max-w-5xl"}`}>
       {/* Back Link */}
@@ -733,28 +668,13 @@ export default function BattleDetailPage() {
                         <div className="flex items-center gap-2">
                           {round.players.map((rp) => {
                             const isWin = rp.userId === round.winnerId;
-                            const atRiskTo = atRiskCards.get(`${round.roundNumber}-${rp.userId}`);
-                            const isAtRisk = !!atRiskTo;
-                            const leaderName = atRiskTo ? battle.players.find((p) => String(p.user._id) === atRiskTo)?.user.username : null;
                             return (
-                              <div key={rp.userId} className="flex flex-col items-center gap-0.5">
-                                <div className="flex items-center gap-1">
-                                  <div className="relative">
-                                    <div className={`overflow-hidden rounded border ${isAtRisk ? "border-red-500/60 ring-1 ring-red-500/30" : isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "28px", aspectRatio: "2/3" }}>
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
-                                    </div>
-                                    {isAtRisk && (
-                                      <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-white">
-                                        <ArrowUpRight className="h-2.5 w-2.5" />
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span className={`text-[10px] font-bold tabular-nums ${isAtRisk ? "text-red-400" : isWin ? "text-yellow-400" : "text-zinc-500"}`}>{rp.card.coinValue}</span>
+                              <div key={rp.userId} className="flex items-center gap-1">
+                                <div className={`overflow-hidden rounded border ${isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "28px", aspectRatio: "2/3" }}>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
                                 </div>
-                                {isAtRisk && leaderName && (
-                                  <span className="max-w-[60px] truncate text-[8px] text-red-400/80">{isDe ? "an" : "to"} {leaderName}</span>
-                                )}
+                                <span className={`text-[10px] font-bold tabular-nums ${isWin ? "text-yellow-400" : "text-zinc-500"}`}>{rp.card.coinValue}</span>
                               </div>
                             );
                           })}
@@ -959,19 +879,10 @@ export default function BattleDetailPage() {
                       <div className="flex items-center gap-1.5">
                         {round.players.map((rp) => {
                           const isWin = rp.userId === round.winnerId;
-                          const atRiskTo = atRiskCards.get(`${round.roundNumber}-${rp.userId}`);
-                          const isAtRisk = !!atRiskTo;
                           return (
-                            <div key={rp.userId} className="relative">
-                              <div className={`overflow-hidden rounded border ${isAtRisk ? "border-red-500/60" : isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "22px", aspectRatio: "2/3" }}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
-                              </div>
-                              {isAtRisk && (
-                                <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-white">
-                                  <ArrowUpRight className="h-2 w-2" />
-                                </span>
-                              )}
+                            <div key={rp.userId} className={`overflow-hidden rounded border ${isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "22px", aspectRatio: "2/3" }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
                             </div>
                           );
                         })}
@@ -1099,17 +1010,7 @@ function BattleResultView({
             <div className="border-b border-zinc-800 px-3 py-2">
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isDe ? "Rundenverlauf" : "Round History"}</h3>
             </div>
-            <RoundRows rounds={battle.rounds} settings={battle.settings} playerNameMap={playerNameMap} currentUserId={currentUserId} isDe={isDe} transfers={result.transfers} />
-          </div>
-        )}
-
-        {/* Transfers */}
-        {result.transfers.length > 0 && (
-          <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/70 overflow-hidden" style={{animation: "battleFadeUp 0.5s ease-out 320ms both"}}>
-            <div className="border-b border-zinc-800 px-3 py-2">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isDe ? "Erhaltene Karten" : "Cards Received"}</h3>
-            </div>
-            <TransfersList transfers={result.transfers} players={battle.players} currentUserId={currentUserId} />
+            <RoundRows rounds={battle.rounds} settings={battle.settings} playerNameMap={playerNameMap} currentUserId={currentUserId} isDe={isDe} />
           </div>
         )}
       </div>
@@ -1171,23 +1072,13 @@ function BattleResultView({
             </div>
           </div>
 
-          {/* Transfers — md: col2 row2, lg: col3 row-span-2 (right sidebar) */}
-          {result.transfers.length > 0 && (
-            <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/70 overflow-hidden md:col-span-1 md:row-span-1 lg:col-start-3 lg:row-span-2 lg:row-start-1" style={{animation: "battleFadeUp 0.5s ease-out 160ms both"}}>
-              <div className="border-b border-zinc-800 px-3 py-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isDe ? "Erhaltene Karten" : "Cards Received"}</h3>
-              </div>
-              <TransfersList transfers={result.transfers} players={battle.players} currentUserId={currentUserId} />
-            </div>
-          )}
-
-          {/* Rounds — md: col-span-full or col1, lg: col-span-2 */}
+          {/* Rounds — full width under Banner + Podium */}
           {battle.rounds.length > 0 && (
-            <div className={`rounded-xl border border-zinc-800/80 bg-zinc-900/70 overflow-hidden ${result.transfers.length > 0 ? "md:col-span-1 lg:col-span-2" : "md:col-span-2 lg:col-span-3"}`} style={{animation: "battleFadeUp 0.5s ease-out 240ms both"}}>
+            <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/70 overflow-hidden md:col-span-2 lg:col-span-3" style={{animation: "battleFadeUp 0.5s ease-out 240ms both"}}>
               <div className="border-b border-zinc-800 px-4 py-2">
                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isDe ? "Rundenverlauf" : "Round History"}</h3>
               </div>
-              <RoundRows rounds={battle.rounds} settings={battle.settings} playerNameMap={playerNameMap} currentUserId={currentUserId} isDe={isDe} transfers={result.transfers} />
+              <RoundRows rounds={battle.rounds} settings={battle.settings} playerNameMap={playerNameMap} currentUserId={currentUserId} isDe={isDe} />
             </div>
           )}
         </div>
@@ -1264,25 +1155,13 @@ function PodiumBlock({ scores, players, currentUserId, eloChanges, isDe }: {
   );
 }
 
-function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe, transfers }: {
+function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe }: {
   rounds: BattleRound[];
   settings: { rounds: number };
   playerNameMap: Map<string, string>;
   currentUserId: string;
   isDe: boolean;
-  transfers?: BattleResult["transfers"];
 }) {
-  // Build a lookup: pullId → { from, to } for transferred cards
-  const transferMap = new Map<string, { from: string; to: string }>();
-  if (transfers) {
-    for (const t of transfers) {
-      if (t.from === t.to) continue;
-      for (const card of t.cards) {
-        if (card.pullId) transferMap.set(String(card.pullId), { from: t.from, to: t.to });
-      }
-    }
-  }
-
   return (
     <div>
       {rounds
@@ -1310,29 +1189,13 @@ function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe, trans
                   const isMe = pid === currentUserId;
                   const isW = pid === winnerId;
                   const card = hand.selectedCardIndex !== null && hand.selectedCardIndex >= 0 ? hand.cards[hand.selectedCardIndex] : null;
-                  const transfer = card?.pullId ? transferMap.get(String(card.pullId)) : null;
-                  const wasTransferred = transfer && transfer.from !== transfer.to;
-                  const lostCard = wasTransferred && transfer.from === pid;
-                  const gainedCard = wasTransferred && transfer.to === pid;
                   return (
                     <React.Fragment key={pid}>
                       {hIdx > 0 && <span className="hidden text-[10px] font-bold text-zinc-600 md:block">vs</span>}
                       <div className={`flex flex-1 items-center gap-2 rounded-lg border p-1.5 ${isW ? "border-yellow-400/20 bg-yellow-400/5" : "border-zinc-800 bg-zinc-800/20"}`}>
                         {card && card.cardId ? (
-                          <div className="relative shrink-0">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={card.image} alt="" className={`h-10 w-7 rounded border object-cover ${isW ? "border-yellow-400/50" : "border-zinc-700"}`} />
-                            {lostCard && (
-                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white" title={isDe ? `Geht an ${playerNameMap.get(transfer.to) ?? "???"}` : `Goes to ${playerNameMap.get(transfer.to) ?? "???"}`}>
-                                <ArrowUpRight className="h-2.5 w-2.5" />
-                              </span>
-                            )}
-                            {gainedCard && (
-                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-white" title={isDe ? `Von ${playerNameMap.get(transfer.from) ?? "???"}` : `From ${playerNameMap.get(transfer.from) ?? "???"}`}>
-                                <ArrowDownLeft className="h-2.5 w-2.5" />
-                              </span>
-                            )}
-                          </div>
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={card.image} alt="" className={`h-10 w-7 shrink-0 rounded border object-cover ${isW ? "border-yellow-400/50" : "border-zinc-700"}`} />
                         ) : (
                           <div className="flex h-10 w-7 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-800 text-[10px] text-zinc-600">?</div>
                         )}
@@ -1344,16 +1207,6 @@ function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe, trans
                               <span className={`shrink-0 text-[10px] font-bold ${isW ? "text-yellow-400" : "text-zinc-400"}`}>{card.coinValue}</span>
                             </div>
                           )}
-                          {lostCard && (
-                            <span className="flex items-center gap-0.5 text-[9px] text-red-400">
-                              <ArrowUpRight className="h-2.5 w-2.5" /> {playerNameMap.get(transfer.to) ?? "???"}
-                            </span>
-                          )}
-                          {gainedCard && (
-                            <span className="flex items-center gap-0.5 text-[9px] text-green-400">
-                              <ArrowDownLeft className="h-2.5 w-2.5" /> {playerNameMap.get(transfer.from) ?? "???"}
-                            </span>
-                          )}
                         </div>
                       </div>
                     </React.Fragment>
@@ -1363,40 +1216,6 @@ function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe, trans
             </div>
           );
         })}
-    </div>
-  );
-}
-
-function TransfersList({ transfers, players, currentUserId }: {
-  transfers: BattleResult["transfers"];
-  players: BattlePlayer[];
-  currentUserId: string;
-}) {
-  return (
-    <div className="divide-y divide-zinc-800/60">
-      {transfers.map((transfer, i) => {
-        const toPlayer = players.find((p) => String(p.user._id) === String(transfer.to));
-        const isMe = String(transfer.to) === currentUserId;
-        const total = transfer.cards.reduce((s, c) => s + c.coinValue, 0);
-        return (
-          <div key={i} className={`p-2.5 ${isMe ? "bg-yellow-400/[0.03]" : ""}`}>
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className={`text-xs font-bold ${isMe ? "text-yellow-400" : "text-zinc-300"}`}>{toPlayer?.user.username ?? "???"}</span>
-              <span className="text-xs font-bold text-yellow-400">{total} Coins</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              {transfer.cards.map((card, j) => (
-                <div key={j} className="flex items-center gap-2 rounded-lg border border-zinc-700/50 bg-zinc-800/50 p-1.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={card.image} alt="" className="h-8 w-6 shrink-0 rounded object-cover" />
-                  <div className="min-w-0 flex-1 truncate text-[11px] text-zinc-300">{card.name}</div>
-                  <div className="shrink-0 text-[10px] font-bold text-yellow-400">{card.coinValue}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }
