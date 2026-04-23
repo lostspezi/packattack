@@ -67,6 +67,13 @@ export interface IUser extends Document {
     };
   };
   onboardingCompleted: boolean;
+  tour: {
+    completed: boolean;
+    skippedAt: Date | null;
+    completedSteps: string[];
+    lastPromptAt: Date | null;
+    sessionCountSincePrompt: number;
+  };
   shippingAddress: {
     name: string | null;
     street: string | null;
@@ -156,6 +163,25 @@ const UserSchema = new Schema<IUser>(
       },
     },
     onboardingCompleted: { type: Boolean, default: false },
+    tour: {
+      type: new Schema(
+        {
+          completed: { type: Boolean, default: false },
+          skippedAt: { type: Date, default: null },
+          completedSteps: { type: [String], default: [] },
+          lastPromptAt: { type: Date, default: null },
+          sessionCountSincePrompt: { type: Number, default: 0 },
+        },
+        { _id: false }
+      ),
+      default: () => ({
+        completed: false,
+        skippedAt: null,
+        completedSteps: [],
+        lastPromptAt: null,
+        sessionCountSincePrompt: 0,
+      }),
+    },
     coins: { type: Number, default: 0 },
     elo: { type: Number, default: 1000 },
     battleStats: {

@@ -1,6 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
+import connectDB from "@/lib/db";
+import User from "@/models/user";
 import {
   assertPackiMessageAllowed,
   PACKI_DAILY_LIMIT,
@@ -108,22 +110,27 @@ export async function POST(req: NextRequest) {
 
   const userMessage = validation.sanitized;
   const route = body.route as string;
+  const lang = (session.user.language as string | undefined) ?? "de";
+
+  await connectDB();
+  const [prior, corrections, tourDoc] = await Promise.all([
+    loadPackiSession(userId),
+    loadPackiCorrections(lang),
+    User.findById(userId).select("tour").lean(),
+  ]);
+
   // Display names are attacker-controlled. Strip injection markers before
   // interpolating into the system prompt's context block.
   const rawName = session.user.name ?? "Freund";
   const username = sanitizePackiMessage(rawName) || "Freund";
   const ctx: PackiContext = {
     username,
-    lang: (session.user.language as string | undefined) ?? "de",
+    lang,
     route,
     onboardingCompleted: Boolean(session.user.onboardingCompleted),
-    tourCompleted: false,
+    tourCompleted: tourDoc?.tour?.completed ?? false,
   };
 
-  const [prior, corrections] = await Promise.all([
-    loadPackiSession(userId),
-    loadPackiCorrections(ctx.lang),
-  ]);
   const messages = buildHistoryMessages(prior, userMessage);
   const system = buildSystemBlocks(ctx, buildCorrectionsBlock(corrections));
 

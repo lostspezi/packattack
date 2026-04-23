@@ -5,6 +5,28 @@ import User from "@/models/user";
 import CartItem from "@/models/cart-item";
 import PackPull from "@/models/pack-pull";
 import QuizEvent from "@/models/quiz-event";
+import { TOUR_DEFAULTS, type TourState } from "@/lib/packi/tour-validation";
+
+function normalizeTour(tour: {
+  completed?: boolean;
+  skippedAt?: Date | null;
+  completedSteps?: string[];
+  lastPromptAt?: Date | null;
+  sessionCountSincePrompt?: number;
+} | null | undefined): TourState {
+  if (!tour) return { ...TOUR_DEFAULTS };
+  return {
+    completed: tour.completed ?? false,
+    skippedAt: tour.skippedAt ? new Date(tour.skippedAt).toISOString() : null,
+    completedSteps: Array.isArray(tour.completedSteps)
+      ? [...tour.completedSteps]
+      : [],
+    lastPromptAt: tour.lastPromptAt
+      ? new Date(tour.lastPromptAt).toISOString()
+      : null,
+    sessionCountSincePrompt: tour.sessionCountSincePrompt ?? 0,
+  };
+}
 
 /**
  * Consolidated dashboard-header snapshot. Replaces the five parallel
@@ -24,7 +46,7 @@ export async function GET() {
     await connectDB();
 
     const [user, cartItems, hasPending, currentEvent] = await Promise.all([
-      User.findById(userId).select("coins role").lean(),
+      User.findById(userId).select("coins role tour").lean(),
       CartItem.find({ userId, status: "reserved" })
         .select("expiresAt")
         .lean(),
@@ -59,6 +81,7 @@ export async function GET() {
             status: currentEvent.status,
           }
         : null,
+      tour: normalizeTour(user?.tour),
     });
   } catch (err) {
     console.error("[me GET]", err);
