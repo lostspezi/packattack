@@ -78,13 +78,6 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
       // Unsuppress before onDone unmounts us, so the guard can show immediately
       suppressPendingGuard(false);
       notifyPendingPulls();
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("packi-tour-event", {
-            detail: { event: "pack-opened" },
-          }),
-        );
-      }
       onDone();
     }
   }, [skipAnimation, onDone]);
@@ -108,15 +101,6 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
     // Unsuppress before onDone unmounts us, so the guard can show immediately
     suppressPendingGuard(false);
     notifyPendingPulls();
-    // Notify the onboarding tour so it can advance past "pack-opening".
-    // No-op for any other listener; scope is the single custom event type.
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("packi-tour-event", {
-          detail: { event: "pack-opened" },
-        }),
-      );
-    }
     onDone();
   }, [onDone]);
 

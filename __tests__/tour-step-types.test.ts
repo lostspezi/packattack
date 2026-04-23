@@ -65,8 +65,14 @@ describe("ONBOARDING_STEPS", () => {
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("covers the 8 onboarding touchpoints (welcome → reward)", () => {
-    expect(ONBOARDING_STEPS).toHaveLength(8);
+  it("is a compact 4-step walkthrough: welcome → packs → tutorial-box → balance", () => {
+    expect(ONBOARDING_STEPS).toHaveLength(4);
+    expect(ONBOARDING_STEPS.map((s) => s.id)).toEqual([
+      "tour-welcome",
+      "tour-packs",
+      "tour-tutorial-box",
+      "tour-balance",
+    ]);
   });
 
   it("every step has both de and en copy with non-empty title+body", () => {
@@ -99,19 +105,26 @@ describe("ONBOARDING_STEPS", () => {
     }
   });
 
-  it("steps that need the tutorial slug use the {tutorialSlug} placeholder", () => {
+  it("only tour-tutorial-box needs the {tutorialSlug} placeholder", () => {
     const slugSteps = ONBOARDING_STEPS.filter((s) =>
-      ["pack-buy", "pack-opening", "card-decision"].includes(s.id),
+      s.route.includes("{tutorialSlug}"),
     );
-    expect(slugSteps).toHaveLength(3);
-    for (const step of slugSteps) {
-      expect(step.route).toContain("{tutorialSlug}");
+    expect(slugSteps).toHaveLength(1);
+    expect(slugSteps[0].id).toBe("tour-tutorial-box");
+  });
+
+  it("all steps advance via click-next — no forced real interactions", () => {
+    for (const step of ONBOARDING_STEPS) {
+      expect(
+        step.nextTrigger.type,
+        `step ${step.id} should be click-next`,
+      ).toBe("click-next");
     }
   });
 
-  it("the final step triggers the reward POST via click-next", () => {
+  it("the final step lives on /balance where the reward is granted", () => {
     const last = ONBOARDING_STEPS[ONBOARDING_STEPS.length - 1];
-    expect(last.id).toBe("tour-reward");
-    expect(last.nextTrigger.type).toBe("click-next");
+    expect(last.id).toBe("tour-balance");
+    expect(last.route).toBe("/{lang}/balance");
   });
 });

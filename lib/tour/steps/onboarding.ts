@@ -1,21 +1,23 @@
 import type { TourStep } from "@/lib/tour/step-types";
 
 /**
- * Onboarding tour (replaces the earlier narrative-only social tour).
+ * Simplified visual-only onboarding tour.
  *
- * Flow: welcome → spot tutorial box on /packs → buy tutorial box →
- * reveal (waits for "pack-opened" event) → explain sell-vs-cart →
- * cart reservation window → balance top-up → reward.
+ * Four steps narrate the main surfaces a new user needs to know about:
+ * Dashboard → Packs list → Tutorial Box detail → Coin Shop (/balance).
+ * Every step uses `click-next` — the tour doesn't trigger real purchases
+ * or pack opens. Users can bail at any time.
  *
- * Interactive: steps 2-4 drive a real purchase + pack open using the
- * user's signup-starter coins (which are sized to exactly match the
- * tutorial box price).
- * Visual-only: cart and balance are narrated; the user can proceed via
- * "Weiter" without triggering real checkouts. Skipping the tour at any
- * point is non-destructive.
+ * The tutorial box is hidden from the normal `/packs` list (client-side
+ * filter) and only surfaces while this tour is active, so non-tour users
+ * don't stumble into it.
  *
- * Placeholders: `{lang}` and `{tutorialSlug}` — the TourProvider fetches
- * /api/tutorial-box at tour-start and injects the slug.
+ * Completing the tour once grants a 10-coin reward via
+ * /api/me/tour/complete. The grant is gated by `tour.rewardGrantedAt`,
+ * so replays of the tour are welcome but pay no additional bonus.
+ *
+ * Placeholders: `{lang}` and `{tutorialSlug}` (fetched from
+ * /api/tutorial-box at tour start).
  */
 export const ONBOARDING_STEPS: TourStep[] = [
   {
@@ -27,156 +29,76 @@ export const ONBOARDING_STEPS: TourStep[] = [
     targetOptional: true,
     copy: {
       de: {
-        title: "Hey, ich bin Packi ✨",
-        body: "Ich zeig dir in 7 kurzen Schritten, wie PACKATTACK funktioniert. Du kannst jederzeit abbrechen — am Ende gibt's 10 Coins als Belohnung.",
+        title: "Willkommen bei PACKATTACK ✨",
+        body: "Ich zeig dir in 4 kurzen Schritten die wichtigsten Bereiche. Am Ende gibt's 10 Coins als Dankeschön — einmalig pro Account.",
         nextLabel: "Los geht's",
       },
       en: {
-        title: "Hey, I'm Packi ✨",
-        body: "I'll walk you through PACKATTACK in 7 quick steps. You can bail anytime — finish it to grab 10 bonus coins.",
+        title: "Welcome to PACKATTACK ✨",
+        body: "I'll walk you through the four most important areas in a minute. Finish the tour once and you'll get 10 coins as a thank-you — one-time only.",
         nextLabel: "Let's go",
       },
     },
   },
   {
-    id: "pack-discover",
+    id: "tour-packs",
     route: "/{lang}/packs",
-    selector: '[data-tour-tutorial-box="true"]',
-    placement: "right",
-    nextTrigger: { type: "click-target" },
-    waitTimeoutMs: 4000,
+    selector: '[data-tour="packs-grid"]',
+    placement: "top",
+    nextTrigger: { type: "click-next" },
     targetOptional: true,
+    waitTimeoutMs: 4000,
     copy: {
       de: {
-        title: "Deine Tutorial-Box",
-        body: "Diese Box kostet genau deine 10 Start-Coins. Klick drauf, um sie dir anzuschauen.",
-        nextLabel: "Box öffnen",
+        title: "Die Packs-Seite",
+        body: "Hier findest du alle verfügbaren Packs. Jede Box hat eigene Karten und Chancen. Für die Tour ist zusätzlich eine Tutorial-Box eingeblendet — die schauen wir als Nächstes an.",
+        nextLabel: "Tutorial-Box öffnen",
       },
       en: {
-        title: "Your tutorial box",
-        body: "This one costs exactly your 10 starter coins. Click it to take a look.",
-        nextLabel: "Open box",
+        title: "The packs page",
+        body: "Every available pack lives here — each with its own pool and odds. For the tour there's an extra tutorial box pinned to the list. We'll look at it next.",
+        nextLabel: "Open tutorial box",
       },
     },
   },
   {
-    id: "pack-buy",
+    id: "tour-tutorial-box",
     route: "/{lang}/packs/{tutorialSlug}",
     selector: '[data-tour="pack-buy-button"]',
     placement: "top",
-    nextTrigger: { type: "click-target" },
+    nextTrigger: { type: "click-next" },
+    targetOptional: true,
     waitTimeoutMs: 5000,
-    targetOptional: true,
     copy: {
       de: {
-        title: "Pack kaufen",
-        body: "Klick hier, um das Pack für 10 Coins zu kaufen und direkt zu öffnen.",
-        nextLabel: "Kaufen",
+        title: "Die Tutorial-Box",
+        body: "So sieht eine Box-Detailseite aus: Preis, Inhalt, Chancen auf einen Blick. Wenn du ein Pack öffnest, entscheidest du pro Karte — in Coins umwandeln oder in den Warenkorb (3 h reserviert, danach automatisch Coins). Jetzt weiter zum Coin-Shop.",
+        nextLabel: "Weiter zum Coin-Shop",
       },
       en: {
-        title: "Buy the pack",
-        body: "Click here to buy this pack for 10 coins and open it immediately.",
-        nextLabel: "Buy",
+        title: "The tutorial box",
+        body: "This is a box-detail page: price, contents, odds at a glance. When you open a pack you pick per card — convert to coins or drop into the cart (held 3 h, then auto-converted). Onward to the coin shop.",
+        nextLabel: "On to the coin shop",
       },
     },
   },
   {
-    id: "pack-opening",
-    route: "/{lang}/packs/{tutorialSlug}",
-    selector: '[data-tour="pack-reveal"]',
-    placement: "bottom",
-    nextTrigger: { type: "event", event: "pack-opened" },
-    waitTimeoutMs: 20000,
-    targetOptional: true,
-    copy: {
-      de: {
-        title: "Pack wird geöffnet…",
-        body: "Schau gut hin — deine Karten erscheinen gleich. Bei seltenen Karten gibt's eine Reveal-Animation.",
-        nextLabel: "Weiter",
-      },
-      en: {
-        title: "Opening the pack…",
-        body: "Keep an eye on the reveal — rare cards get their own animation.",
-        nextLabel: "Next",
-      },
-    },
-  },
-  {
-    id: "card-decision",
-    route: "/{lang}/packs/{tutorialSlug}",
-    selector: '[data-tour="card-decision"]',
-    placement: "top",
-    nextTrigger: { type: "click-next" },
-    targetOptional: true,
-    copy: {
-      de: {
-        title: "Umwandeln oder behalten?",
-        body: "Pro Karte entscheidest du: entweder sofort in Coins umwandeln, oder in den Warenkorb legen und dir später physisch schicken lassen. Beide Optionen stehen jetzt bereit.",
-        nextLabel: "Verstanden",
-      },
-      en: {
-        title: "Convert or keep?",
-        body: "For each card you choose: convert to coins right away, or drop into the cart to have it shipped later. Both options are there now.",
-        nextLabel: "Got it",
-      },
-    },
-  },
-  {
-    id: "cart-reservation",
-    route: "/{lang}/cart",
-    selector: '[data-tour="cart-items"]',
-    placement: "top",
-    nextTrigger: { type: "click-next" },
-    targetOptional: true,
-    copy: {
-      de: {
-        title: "3-Stunden-Fenster",
-        body: "Karten im Warenkorb sind für 3 Stunden reserviert. Danach gehen sie automatisch zurück in den Pool und du kriegst den Coin-Gegenwert.",
-        nextLabel: "Weiter",
-      },
-      en: {
-        title: "3-hour reservation",
-        body: "Cards in your cart are held for 3 hours. After that they go back to the pool and you're credited the coin value.",
-        nextLabel: "Next",
-      },
-    },
-  },
-  {
-    id: "balance-topup",
+    id: "tour-balance",
     route: "/{lang}/balance",
     selector: '[data-tour="balance-topup"]',
     placement: "top",
     nextTrigger: { type: "click-next" },
     targetOptional: true,
+    waitTimeoutMs: 4000,
     copy: {
       de: {
-        title: "Coins nachladen",
-        body: "Leer? Hier lädst du Coins mit Echtgeld nach — sichere Zahlung über Stripe. Tests werden nicht belastet.",
-        nextLabel: "Alles klar",
-      },
-      en: {
-        title: "Top up coins",
-        body: "Running low? Here you refill coins with real money — Stripe handles the payment. Test runs aren't charged.",
-        nextLabel: "Got it",
-      },
-    },
-  },
-  {
-    id: "tour-reward",
-    route: "/{lang}/balance",
-    selector: '[data-tour="balance-topup"]',
-    placement: "top",
-    nextTrigger: { type: "click-next" },
-    targetOptional: true,
-    copy: {
-      de: {
-        title: "Tour beendet 🎴",
-        body: "Du hast es geschafft! 10 Coins als Dankeschön landen jetzt auf deinem Konto. Viel Spaß beim Sammeln — du findest mich unten links, wenn du mich brauchst.",
+        title: "Coin-Shop — fertig 🎴",
+        body: "Leere Coins lädst du hier mit Echtgeld auf. Das war's! Als Dankeschön landen gleich 10 Coins in deinem Guthaben. Viel Spaß beim Sammeln — du erreichst mich jederzeit über Packi unten links.",
         nextLabel: "Belohnung abholen",
       },
       en: {
-        title: "Tour complete 🎴",
-        body: "You did it! 10 coins are landing in your wallet as a thank-you. Happy collecting — I'm bottom-left whenever you need me.",
+        title: "Coin shop — all done 🎴",
+        body: "Refill coins here with real money. That's it! 10 coins are landing in your balance now as a thank-you. Happy collecting — ping me anytime via Packi bottom-left.",
         nextLabel: "Claim reward",
       },
     },

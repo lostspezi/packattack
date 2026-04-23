@@ -154,7 +154,7 @@ export function BalancePage({ lang, dict }: BalancePageProps) {
       </Card>
 
       {/* Packages grid */}
-      <div>
+      <div data-tour="balance-topup">
         <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2 mb-4">
           <Zap className="h-5 w-5 text-pa-green" />
           {dict.topUp || "Münzen aufladen"}

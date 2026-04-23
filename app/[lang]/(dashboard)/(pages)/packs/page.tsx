@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Package, Loader2, Coins, ChevronRight } from "lucide-react";
 
 import { HitOfTheDay } from "@/components/dashboard/hit-of-the-day";
 import { CoinChestAnimation } from "@/components/balance/coin-chest-animation";
 import { useToast } from "@/components/ui/toast";
+import { useTour } from "@/components/tour/tour-provider";
 
 interface BoxItem {
   _id: string;
@@ -35,6 +36,7 @@ export default function PacksPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const { isActive: tourActive } = useTour();
 
   const [boxes, setBoxes] = useState<BoxItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -95,6 +97,14 @@ export default function PacksPage() {
   }, [searchParams, pollPurchaseStatus]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  // The tutorial box is hidden from the normal list. It surfaces only
+  // while the onboarding tour is active so regular users don't stumble
+  // into it; the detail page stays accessible by direct URL.
+  const visibleBoxes = useMemo(
+    () => (tourActive ? boxes : boxes.filter((b) => !b.isTutorial)),
+    [boxes, tourActive],
+  );
+
   return (
     <div className="space-y-6">
       {/* Coin chest animation overlay */}
@@ -114,7 +124,7 @@ export default function PacksPage() {
             {isDe ? "Laden…" : "Loading…"}
           </p>
         </div>
-      ) : boxes.length === 0 ? (
+      ) : visibleBoxes.length === 0 ? (
         <div className="py-16 text-center">
           <Package className="w-10 h-10 mx-auto text-text-muted mb-3" />
           <p className="text-text-muted">
@@ -139,7 +149,7 @@ export default function PacksPage() {
           data-tour="packs-grid"
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
         >
-          {boxes.map((box, boxIdx) => {
+          {visibleBoxes.map((box, boxIdx) => {
             const name = isDe
               ? box.name.de || box.name.en
               : box.name.en || box.name.de;
