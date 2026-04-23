@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import { getDictionary, type Locale } from "@/lib/i18n";
+import Box from "@/models/box";
 import User from "@/models/user";
 
 export default async function AdminLayout({
@@ -51,9 +52,10 @@ export default async function AdminLayout({
     redirect(`/${lang}/dashboard`);
   }
 
-  const [adminDict, dashboardDict] = await Promise.all([
+  const [adminDict, dashboardDict, pausedBoxCount] = await Promise.all([
     getDictionary(lang as Locale, "admin"),
     getDictionary(lang as Locale, "dashboard"),
+    Box.countDocuments({ status: "paused" }).catch(() => 0),
   ]);
 
   const userName = session!.user!.name ?? session!.user!.email ?? "User";
@@ -70,6 +72,7 @@ export default async function AdminLayout({
         userName={userName}
         userInitial={userInitial}
         mode="admin"
+        badges={{ boxes: pausedBoxCount }}
       />
       <main className="flex min-w-0 flex-1 flex-col p-4 md:p-6">{children}</main>
     </div>

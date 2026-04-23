@@ -17,6 +17,8 @@ interface SidebarProps {
   userInitial: string;
   /** "admin" = admin nav items; "shop" = shop nav items */
   mode: "admin" | "shop";
+  /** Optional numeric badges keyed by NavItem.key (e.g. { boxes: 3 }). */
+  badges?: Record<string, number>;
 }
 
 function NavIcon({ name, className }: { name: string; className?: string }) {
@@ -32,6 +34,8 @@ function NavLink({
   isActive,
   isAdmin,
   soonLabel,
+  badgeCount,
+  badgeTitle,
   onClick,
 }: {
   item: NavItem;
@@ -40,6 +44,8 @@ function NavLink({
   isActive: boolean;
   isAdmin?: boolean;
   soonLabel?: string;
+  badgeCount?: number;
+  badgeTitle?: string;
   onClick?: () => void;
 }) {
   // "Soon" items: admins get a clickable link with badge, others get a disabled span
@@ -68,6 +74,15 @@ function NavLink({
     >
       <NavIcon name={item.icon} className="w-4 h-4 shrink-0" />
       <span className="flex-1">{dict[item.key] ?? item.label}</span>
+      {badgeCount !== undefined && badgeCount > 0 && (
+        <span
+          title={badgeTitle}
+          aria-label={badgeTitle}
+          className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40"
+        >
+          {badgeCount > 99 ? "99+" : badgeCount}
+        </span>
+      )}
       {item.soon && (
         <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-pa-green/10 text-pa-green border border-pa-green/20">
           {soonLabel ?? "Soon"}
@@ -86,6 +101,7 @@ function SidebarContent({
   userName,
   userInitial,
   mode,
+  badges,
   onNavClick,
 }: SidebarProps & { onNavClick?: () => void }) {
   const pathname = usePathname();
@@ -106,6 +122,16 @@ function SidebarContent({
   const comingSoonLabel = dashboardDict["comingSoon"] ?? "Coming soon";
   const levelLabel = dashboardDict["level"] ?? "Level";
 
+  const isDe = lang === "de";
+  function badgeTitleFor(key: string, count: number): string | undefined {
+    if (key === "boxes" && count > 0) {
+      return isDe
+        ? `${count} Box${count === 1 ? "" : "en"} pausiert und brauchen Admin-Review`
+        : `${count} box${count === 1 ? "" : "es"} paused and need admin review`;
+    }
+    return undefined;
+  }
+
   if (mode === "admin") {
     return (
       <>
@@ -114,17 +140,22 @@ function SidebarContent({
             {adminLabel}
           </p>
           <ul className="space-y-1">
-            {adminNavItems.map((item) => (
-              <li key={item.key}>
-                <NavLink
-                  item={item}
-                  lang={lang}
-                  dict={adminDict}
-                  isActive={isActiveItem(item)}
-                  onClick={onNavClick}
-                />
-              </li>
-            ))}
+            {adminNavItems.map((item) => {
+              const badgeCount = badges?.[item.key];
+              return (
+                <li key={item.key}>
+                  <NavLink
+                    item={item}
+                    lang={lang}
+                    dict={adminDict}
+                    isActive={isActiveItem(item)}
+                    badgeCount={badgeCount}
+                    badgeTitle={badgeCount ? badgeTitleFor(item.key, badgeCount) : undefined}
+                    onClick={onNavClick}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
@@ -230,17 +261,22 @@ function SidebarContent({
               {adminLabel}
             </p>
             <ul className="space-y-1">
-              {adminNavItems.map((item) => (
-                <li key={item.key}>
-                  <NavLink
-                    item={item}
-                    lang={lang}
-                    dict={adminDict}
-                    isActive={isActiveItem(item)}
-                    onClick={onNavClick}
-                  />
-                </li>
-              ))}
+              {adminNavItems.map((item) => {
+                const badgeCount = badges?.[item.key];
+                return (
+                  <li key={item.key}>
+                    <NavLink
+                      item={item}
+                      lang={lang}
+                      dict={adminDict}
+                      isActive={isActiveItem(item)}
+                      badgeCount={badgeCount}
+                      badgeTitle={badgeCount ? badgeTitleFor(item.key, badgeCount) : undefined}
+                      onClick={onNavClick}
+                    />
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
