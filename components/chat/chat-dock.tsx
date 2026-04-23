@@ -1010,47 +1010,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
       }`}
     >
       <div className="border-b border-white/8">
-        <div className="flex items-center justify-between gap-2 px-3 pt-3">
-          <div className="flex items-center gap-1" role="tablist" aria-label="Chat / Packi">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === "chat"}
-              onClick={() => setActiveTab("chat")}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                activeTab === "chat"
-                  ? "bg-pa-green/12 text-pa-green"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              <MessagesSquare className="h-3.5 w-3.5" />
-              {copy.page.roomTitle}
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={activeTab === "packi"}
-              onClick={() => setActiveTab("packi")}
-              className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                activeTab === "packi"
-                  ? "bg-pa-green/12 text-pa-green"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              <Sparkles className="h-3.5 w-3.5" />
-              Packi
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={isDesktop ? () => setDesktopCollapsed(true) : closeMobilePanel}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
-            aria-label={collapseLabel}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 px-4 pb-3 pt-3">
+        <div className="flex flex-wrap items-center gap-2 px-4 pt-3">
           {activeTab === "chat" ? (
             <>
               {room && room.mode !== "open" ? (
@@ -1097,36 +1057,78 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                   {room?.onlineCount ?? 0} {copy.page.online}
                 </span>
               </button>
-              {isStaff ? (
-                <Link
-                  href={`/${lang}/admin/chat`}
-                  className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
-                  title="Moderation"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                </Link>
-              ) : null}
             </>
           ) : (
-            <>
-              {typeof packiRemaining === "number" ? (
-                <span className="rounded-full border border-white/8 bg-white/4 px-3 py-1 text-[11px] font-medium text-text-muted">
-                  Noch {packiRemaining} Nachrichten heute
-                </span>
-              ) : null}
-              {packiMessages.length > 0 ? (
-                <button
-                  type="button"
-                  onClick={clearPackiConversation}
-                  className="ml-auto inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
-                  title="Packi-Verlauf leeren"
-                  aria-label="Packi-Verlauf leeren"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              ) : null}
-            </>
+            typeof packiRemaining === "number" ? (
+              <span className="rounded-full border border-white/8 bg-white/4 px-3 py-1 text-[11px] font-medium text-text-muted">
+                Noch {packiRemaining} Nachrichten heute
+              </span>
+            ) : null
           )}
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            {activeTab === "chat" && isStaff ? (
+              <Link
+                href={`/${lang}/admin/chat`}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
+                title="Moderation"
+              >
+                <ExternalLink className="h-4 w-4" />
+              </Link>
+            ) : null}
+            {activeTab === "packi" && packiMessages.length > 0 ? (
+              <button
+                type="button"
+                onClick={clearPackiConversation}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
+                title="Packi-Verlauf leeren"
+                aria-label="Packi-Verlauf leeren"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={isDesktop ? () => setDesktopCollapsed(true) : closeMobilePanel}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
+              aria-label={collapseLabel}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        <div
+          className="flex items-center gap-1 px-3 pb-3 pt-3"
+          role="tablist"
+          aria-label="Chat / Packi"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "chat"}
+            onClick={() => setActiveTab("chat")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+              activeTab === "chat"
+                ? "bg-pa-green/12 text-pa-green"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            <MessagesSquare className="h-3.5 w-3.5" />
+            {copy.page.roomTitle}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === "packi"}
+            onClick={() => setActiveTab("packi")}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+              activeTab === "packi"
+                ? "bg-pa-green/12 text-pa-green"
+                : "text-text-secondary hover:text-text-primary"
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            Packi
+          </button>
         </div>
       </div>
 
