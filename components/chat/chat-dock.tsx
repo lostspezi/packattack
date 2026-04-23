@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ExternalLink,
   ImageIcon,
+  Map,
   MessagesSquare,
   Sparkles,
   Trash2,
@@ -29,6 +30,7 @@ import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
 import { usePacki } from "@/components/packi/packi-provider";
 import { PackiMessageBubble } from "@/components/packi/packi-message";
+import { useTour } from "@/components/tour/tour-provider";
 import { playNotificationTone } from "@/components/chat/notification-tone";
 import {
   ChatMessageItem,
@@ -135,6 +137,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     clearConversation: clearPackiConversation,
     clearError: clearPackiError,
   } = usePacki();
+  const { start: startTour } = useTour();
   const isStaff = userRole === "admin" || userRole === "super_admin" || userRole === "moderator";
   const hiddenOnRoute = pathname === `/${lang}/chat` || pathname.startsWith(`/${lang}/admin/chat`);
 
@@ -1020,6 +1023,16 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     setMobileOpen(false);
   }
 
+  function restartTour() {
+    // Get the chat panel out of the way so the tour overlay can anchor freely.
+    if (isDesktop) {
+      setDesktopCollapsed(true);
+    } else {
+      setMobileOpen(false);
+    }
+    void startTour();
+  }
+
   if (hiddenOnRoute) {
     return null;
   }
@@ -1097,6 +1110,17 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
               >
                 <ExternalLink className="h-4 w-4" />
               </Link>
+            ) : null}
+            {activeTab === "packi" ? (
+              <button
+                type="button"
+                onClick={restartTour}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
+                title="Tour neu starten"
+                aria-label="Tour neu starten"
+              >
+                <Map className="h-4 w-4" />
+              </button>
             ) : null}
             {activeTab === "packi" && packiMessages.length > 0 ? (
               <button
