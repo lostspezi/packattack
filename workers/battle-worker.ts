@@ -49,41 +49,59 @@ async function processAutoStart(battleId: string) {
 async function processAutoSelect(battleId: string, roundNumber: number) {
   await connectDB();
 
-  return withBattleLock(battleId, "select", async () => {
-    const battle = await Battle.findById(battleId);
-    if (!battle) return;
+  // Atomic claim: flip the round's status from "selecting" to "revealing"
+  // iff its deadline has actually passed. This wins against any concurrent
+  // user-select request — once the status changes, /select returns 400
+  // ("not_selecting") and cannot drive a second resolveRound.
+  const battle = await Battle.findOneAndUpdate(
+    {
+      _id: battleId,
+      status: { $in: ["active", "sudden_death"] },
+      rounds: {
+        $elemMatch: {
+          roundNumber,
+          status: "selecting",
+          selectDeadline: { $lte: new Date() },
+        },
+      },
+    },
+    { $set: { "rounds.$[r].status": "revealing" } },
+    {
+      arrayFilters: [{ "r.roundNumber": roundNumber }],
+      new: true,
+    },
+  );
 
-    if (battle.status !== "active" && battle.status !== "sudden_death") return;
+  if (!battle) return; // Already handled or deadline not reached
 
-    const currentRound = battle.rounds.find((r) => r.roundNumber === roundNumber);
-    if (!currentRound || currentRound.status !== "selecting") return;
+  const currentRound = battle.rounds.find((r) => r.roundNumber === roundNumber);
+  if (!currentRound) return;
 
-    const autoSelectedPlayers: string[] = [];
-    for (const hand of currentRound.hands) {
-      if (hand.selectedCardIndex === null) {
-        const randomIndex = Math.floor(Math.random() * hand.cards.length);
-        hand.selectedCardIndex = randomIndex;
-        hand.selectedAt = new Date();
-        autoSelectedPlayers.push(hand.player.toString());
-      }
+  const autoSelectedPlayers: string[] = [];
+  for (const hand of currentRound.hands) {
+    if (hand.selectedCardIndex === null) {
+      const randomIndex = Math.floor(Math.random() * hand.cards.length);
+      hand.selectedCardIndex = randomIndex;
+      hand.selectedAt = new Date();
+      autoSelectedPlayers.push(hand.player.toString());
     }
+  }
 
-    if (autoSelectedPlayers.length === 0) return;
+  // resolveRound persists before publishing, so client refetches are safe.
+  await resolveRound(battle, battleId);
 
-    // resolveRound persists before publishing, so client refetches are safe.
-    await resolveRound(battle, battleId);
+  // player_selected events go out after the DB write, mirroring the manual
+  // select path so clients observe events in a consistent order.
+  for (const playerId of autoSelectedPlayers) {
+    await publishBattleEvent(battleId, "player_selected", {
+      player: playerId,
+      auto: true,
+    });
+  }
 
-    // Emit player_selected AFTER the state is resolved — keeps event order
-    // consistent with the manual select path.
-    for (const playerId of autoSelectedPlayers) {
-      await publishBattleEvent(battleId, "player_selected", {
-        player: playerId,
-        auto: true,
-      });
-    }
-
-    console.log(`[battle-worker] Auto-selected for AFK players in battle ${battleId} round ${roundNumber}`);
-  });
+  console.log(
+    `[battle-worker] Auto-selected ${autoSelectedPlayers.length} AFK players in battle ${battleId} round ${roundNumber}`,
+  );
 }
 
 // ---------- Worker Entry ----------
