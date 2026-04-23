@@ -170,9 +170,42 @@ describe("ONBOARDING_STEPS", () => {
     const welcome = ONBOARDING_STEPS.find((s) => s.id === "tour-welcome")!;
     const balance = ONBOARDING_STEPS.find((s) => s.id === "tour-balance")!;
     expect(welcome.copyOnReplay, "welcome needs a replay body").toBeDefined();
-    expect(balance.copyOnReplay, "balance needs a replay body").toBeDefined();
-    // Key phrases from the first-run copy should not survive the override.
-    expect(welcome.copyOnReplay?.de?.body).not.toMatch(/10 Coins als Dankeschön/);
-    expect(balance.copyOnReplay?.de?.body).not.toMatch(/landen gleich 10 Coins/);
+    expect(balance.copyOnReplay?.de, "balance replay needs a de variant").toBeDefined();
+    // The replay bodies must not promise a bonus the user will never get.
+    expect(welcome.copyOnReplay?.de?.body).not.toMatch(/schenk ich dir 10 Coins/);
+    expect(balance.copyOnReplay?.de?.body).not.toMatch(/schreib dir gleich 10 Coins gut/);
+  });
+
+  it("no step copy uses em-dashes — they read as AI-generated", () => {
+    // Em-dash (—) and en-dash (–) both flagged. Ordinary hyphens are fine.
+    const EM_OR_EN_DASH = /[—–]/;
+    for (const step of ONBOARDING_STEPS) {
+      for (const [lang, copy] of Object.entries(step.copy)) {
+        expect(
+          copy.title,
+          `step ${step.id} / ${lang} title has a dash`,
+        ).not.toMatch(EM_OR_EN_DASH);
+        expect(
+          copy.body,
+          `step ${step.id} / ${lang} body has a dash`,
+        ).not.toMatch(EM_OR_EN_DASH);
+      }
+      if (step.copyOnReplay) {
+        for (const [lang, copy] of Object.entries(step.copyOnReplay)) {
+          if (copy.title !== undefined) {
+            expect(
+              copy.title,
+              `step ${step.id} / ${lang} replay title has a dash`,
+            ).not.toMatch(EM_OR_EN_DASH);
+          }
+          if (copy.body !== undefined) {
+            expect(
+              copy.body,
+              `step ${step.id} / ${lang} replay body has a dash`,
+            ).not.toMatch(EM_OR_EN_DASH);
+          }
+        }
+      }
+    }
   });
 });

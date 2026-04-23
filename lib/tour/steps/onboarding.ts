@@ -28,21 +28,21 @@ export const ONBOARDING_STEPS: TourStep[] = [
     copy: {
       de: {
         title: "Willkommen bei PACKATTACK ✨",
-        body: "Ich zeig dir in ein paar kurzen Schritten die wichtigsten Bereiche. Am Ende gibt's 10 Coins als Dankeschön — einmalig pro Account.",
+        body: "Kurzer Rundgang durch die wichtigsten Bereiche. Wenn du am Ende angekommen bist, schenk ich dir 10 Coins. Das läuft nur einmal pro Account.",
         nextLabel: "Los geht's",
       },
       en: {
         title: "Welcome to PACKATTACK ✨",
-        body: "I'll walk you through the most important areas in a few short steps. Finish the tour once and you'll get 10 coins as a thank-you — one-time only.",
+        body: "Quick walkthrough of the main areas. If you make it to the end, I'll give you 10 coins. Happens just once per account.",
         nextLabel: "Let's go",
       },
     },
     copyOnReplay: {
       de: {
-        body: "Kleiner Frische-Rundgang durch die Hauptbereiche. Die 10-Coin-Belohnung hast du schon beim ersten Mal bekommen — diesmal nur zum Nachsehen.",
+        body: "Kleiner Frische-Rundgang. Die 10 Coins hast du beim ersten Mal schon bekommen, diesmal läuft's ohne Belohnung.",
       },
       en: {
-        body: "A quick refresher through the main areas. You already claimed the 10-coin reward on your first run — this time it's just the walkthrough.",
+        body: "Quick refresher. You already got the 10 coins on your first run, this time it's just for looking around.",
       },
     },
   },
@@ -57,12 +57,12 @@ export const ONBOARDING_STEPS: TourStep[] = [
     copy: {
       de: {
         title: "Die Packs-Seite",
-        body: "Hier findest du alle verfügbaren Packs. Jede Box hat eigene Karten und Chancen. Für die Tour ist zusätzlich eine Tutorial-Box eingeblendet — die schauen wir uns als Nächstes im Detail an.",
+        body: "Das sind alle Packs, die du öffnen kannst. Jede Box hat eigene Karten und eigene Chancen. Für die Tour hab ich noch eine kleine Tutorial-Box reingepackt, die schauen wir uns jetzt genauer an.",
         nextLabel: "Tutorial-Box öffnen",
       },
       en: {
         title: "The packs page",
-        body: "Every available pack lives here — each with its own pool and odds. For the tour there's an extra tutorial box pinned to the list. We'll look at it in detail next.",
+        body: "These are all the packs you can open. Each box has its own cards and its own odds. I added a little tutorial box just for the tour, let's take a closer look at it.",
         nextLabel: "Open tutorial box",
       },
     },
@@ -78,12 +78,12 @@ export const ONBOARDING_STEPS: TourStep[] = [
     copy: {
       de: {
         title: "Pack öffnen",
-        body: "Hier klickst du, um ein Pack zu kaufen und direkt zu öffnen. Der Preis steht rechts auf dem Button — bei diesem Pack 10 Coins. Abgebucht wird erst nach deiner Bestätigung im nächsten Dialog.",
+        body: "Hier klickst du, um ein Pack zu kaufen und direkt zu öffnen. Den Preis siehst du rechts auf dem Button, bei diesem Pack sind das 10 Coins. Keine Sorge, abgebucht wird erst wenn du im Dialog danach bestätigst.",
         nextLabel: "Weiter",
       },
       en: {
         title: "Open a pack",
-        body: "Click here to buy a pack and open it right away. The price sits on the button — this one's 10 coins. Coins are only deducted once you confirm in the follow-up dialog.",
+        body: "Click here to buy a pack and open it right away. You see the price on the right of the button, this one costs 10 coins. Don't worry, nothing gets charged until you confirm in the next dialog.",
         nextLabel: "Next",
       },
     },
@@ -99,12 +99,12 @@ export const ONBOARDING_STEPS: TourStep[] = [
     copy: {
       de: {
         title: "Zustand der Karten",
-        body: "Zeigt, in welchen Zuständen die Karten vorkommen: Mint (perfekt), Near Mint (fast perfekt), Lightly / Moderately / Heavily Played. Besserer Zustand = höherer Coin-Gegenwert beim Umwandeln.",
+        body: "Zeigt dir, in welchen Zuständen die Karten aus dieser Box kommen. Mint ist wie neu, Near Mint fast wie neu, dann geht's über Lightly, Moderately bis Heavily Played. Je besser der Zustand, desto mehr Coins kriegst du beim Umwandeln.",
         nextLabel: "Verstanden",
       },
       en: {
         title: "Card condition",
-        body: "Shows the conditions cards come in: Mint (perfect), Near Mint, Lightly / Moderately / Heavily Played. Better condition = higher coin payout when converting.",
+        body: "Shows you what condition the cards in this box come in. Mint is pristine, Near Mint is almost pristine, then you've got Lightly, Moderately and Heavily Played. The better the condition, the more coins you get when you convert.",
         nextLabel: "Got it",
       },
     },
@@ -120,12 +120,12 @@ export const ONBOARDING_STEPS: TourStep[] = [
     copy: {
       de: {
         title: "Raritäten-Verteilung",
-        body: "Jede Rarität hat eine eigene Gesamt-Chance in dieser Box. Je seltener, desto kleiner der Prozentbalken — aber auch desto wertvoller der Pull. Die Raritäten-Namen variieren je nach Kartenspiel.",
+        body: "Jede Rarität hat ihre eigene Chance in dieser Box. Je seltener die Karte, desto kürzer der Balken und desto wertvoller der Pull. Die Namen unterscheiden sich ein bisschen von Kartenspiel zu Kartenspiel.",
         nextLabel: "Weiter",
       },
       en: {
         title: "Rarity distribution",
-        body: "Each rarity has its own total drop chance in this box. Rarer = smaller bar — and usually more valuable when pulled. Names vary by TCG.",
+        body: "Each rarity has its own chance in this box. The rarer the card, the shorter the bar and the more valuable the pull. The names differ a bit from one TCG to another.",
         nextLabel: "Next",
       },
     },
@@ -141,12 +141,12 @@ export const ONBOARDING_STEPS: TourStep[] = [
     copy: {
       de: {
         title: "Top Hits",
-        body: "Die drei wertvollsten Karten dieser Box. Das sind die Chase-Cards — auf die hofft jeder. Die kleinen Icons zeigen, ob du sie schon gezogen hast.",
+        body: "Die drei wertvollsten Karten dieser Box. Auf die hofft quasi jeder, der das Pack öffnet. An den kleinen Icons siehst du, ob du sie schon gezogen hast.",
         nextLabel: "Weiter",
       },
       en: {
         title: "Top hits",
-        body: "The three most valuable cards in this box — the chase cards everyone hopes for. The tiny icons show whether you've pulled them yet.",
+        body: "The three most valuable cards in this box. Pretty much everyone opening this pack is hoping for these. The little icons show you if you already pulled them.",
         nextLabel: "Next",
       },
     },
@@ -162,12 +162,12 @@ export const ONBOARDING_STEPS: TourStep[] = [
     copy: {
       de: {
         title: "Live Pulls",
-        body: "Was andere User gerade aus dieser Box ziehen, in Echtzeit. Gute Orientierung wie oft wirklich Top-Karten kommen — und ziemlich hypnotisch.",
+        body: "Hier siehst du live, was andere gerade aus dieser Box ziehen. Gibt dir ein ganz gutes Gefühl dafür, wie oft die richtig guten Karten wirklich rauskommen. Macht ein bisschen süchtig, warne ich dich.",
         nextLabel: "Weiter",
       },
       en: {
         title: "Live pulls",
-        body: "What other users are pulling from this box right now, in real time. A solid gut check on how often the big cards actually land — and kind of hypnotic.",
+        body: "Here you see live what other people are pulling from this box. Gives you a good sense of how often the really good cards actually show up. Fair warning, this is a bit addictive to watch.",
         nextLabel: "Next",
       },
     },
@@ -183,12 +183,12 @@ export const ONBOARDING_STEPS: TourStep[] = [
     copy: {
       de: {
         title: "Meine letzten Pulls",
-        body: "Deine eigene Pull-Historie für diese Box. Behältst du den Überblick was du schon gezogen hast und was dir noch fehlt.",
+        body: "Deine eigene Pull-Historie für diese Box. So behältst du den Überblick, was du schon hast und was dir noch fehlt.",
         nextLabel: "Weiter",
       },
       en: {
         title: "My recent pulls",
-        body: "Your own pull history for this box. Keeps tabs on what you've already got and what's still missing.",
+        body: "Your own pull history for this box. Helps you see what you already have and what's still missing.",
         nextLabel: "Next",
       },
     },
@@ -204,12 +204,12 @@ export const ONBOARDING_STEPS: TourStep[] = [
     copy: {
       de: {
         title: "Einzel-Chance pro Karte",
-        body: "Unter jeder Karte steht ihre individuelle Zieh-Chance. Die grüne Zahl heißt häufig, gelb eher selten, rot sehr selten. Klick auf eine Karte öffnet Details mit Marktpreis und Coin-Wert.",
+        body: "Unter jeder Karte steht ihre ganz eigene Ziehchance. Grün heißt häufig, gelb eher selten, rot ziemlich selten. Wenn du auf eine Karte klickst, siehst du Marktpreis und Coin-Wert.",
         nextLabel: "Weiter zum Coin-Shop",
       },
       en: {
         title: "Per-card pull chance",
-        body: "Each card shows its individual pull chance underneath. Green = common, yellow = uncommon, red = rare. Click a card to open details with market price and coin value.",
+        body: "Each card has its own pull chance right underneath. Green means common, yellow is uncommon, red is rare. Click a card to see market price and coin value.",
         nextLabel: "On to the coin shop",
       },
     },
@@ -224,25 +224,25 @@ export const ONBOARDING_STEPS: TourStep[] = [
     waitTimeoutMs: 4000,
     copy: {
       de: {
-        title: "Coin-Shop — fertig 🎴",
-        body: "Leere Coins lädst du hier mit Echtgeld auf. Das war's! Als Dankeschön landen gleich 10 Coins in deinem Guthaben. Viel Spaß beim Sammeln — du erreichst mich jederzeit über Packi unten links.",
+        title: "Coin-Shop",
+        body: "Hier lädst du mit Echtgeld Coins nach, wenn welche fehlen. Das war's auch schon! Ich schreib dir gleich 10 Coins gut als kleines Dankeschön. Viel Spaß beim Sammeln. Wenn du mich brauchst, bin ich unten links bei Packi.",
         nextLabel: "Belohnung abholen",
       },
       en: {
-        title: "Coin shop — all done 🎴",
-        body: "Refill coins here with real money. That's it! 10 coins are landing in your balance now as a thank-you. Happy collecting — ping me anytime via Packi bottom-left.",
+        title: "Coin shop",
+        body: "Refill coins here with real money whenever you need more. That's all! I'll credit you 10 coins as a little thank-you. Have fun collecting. If you need me, I'm at Packi, bottom left.",
         nextLabel: "Claim reward",
       },
     },
     copyOnReplay: {
       de: {
-        title: "Coin-Shop — alles klar",
-        body: "Leere Coins lädst du hier mit Echtgeld auf. Das war die Tour. Viel Spaß beim Sammeln — du erreichst mich jederzeit über Packi unten links.",
+        title: "Coin-Shop",
+        body: "Hier lädst du mit Echtgeld Coins nach, wenn welche fehlen. Das war die Tour. Viel Spaß beim Sammeln. Wenn du mich brauchst, bin ich unten links bei Packi.",
         nextLabel: "Fertig",
       },
       en: {
-        title: "Coin shop — all set",
-        body: "Refill coins here with real money. That's the walkthrough. Happy collecting — ping me anytime via Packi bottom-left.",
+        title: "Coin shop",
+        body: "Refill coins here with real money whenever you need more. That was the tour. Have fun collecting. If you need me, I'm at Packi, bottom left.",
         nextLabel: "Done",
       },
     },
