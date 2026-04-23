@@ -1,5 +1,6 @@
 ﻿import { redirect } from "next/navigation";
 import { ChatDock } from "@/components/chat/chat-dock";
+import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Footer } from "@/components/layout/footer";
 import { UserHeader } from "@/components/layout/header/user-header";
 import { MeProvider } from "@/components/layout/me-provider";
@@ -40,7 +41,7 @@ export default async function DashboardLayout({
     <MeProvider>
       <TourProvider steps={ONBOARDING_STEPS}>
         <PackiProvider>
-          <div className="flex flex-1 flex-col xl:pr-[420px]" style={{ background: "linear-gradient(135deg, var(--color-pa-lila) 30%, var(--color-pa-blue) 80%)" }}>
+          <DashboardShell style={{ background: "linear-gradient(135deg, var(--color-pa-lila) 30%, var(--color-pa-blue) 80%)" }}>
             <UserHeader
               lang={lang}
               dict={commonDict}
@@ -60,7 +61,7 @@ export default async function DashboardLayout({
             />
             <Footer lang={lang} dict={footerDict} />
             <Packi />
-          </div>
+          </DashboardShell>
         </PackiProvider>
       </TourProvider>
     </MeProvider>

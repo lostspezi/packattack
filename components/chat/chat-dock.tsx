@@ -21,6 +21,7 @@ import { ChatGifAttachmentPreview } from "@/components/chat/chat-gif-attachment-
 import { ChatGifPicker } from "@/components/chat/chat-gif-picker";
 import { ChatUserCard } from "@/components/chat/chat-user-card";
 import { ChatOnlineUsersModal } from "@/components/chat/chat-online-users-modal";
+import { useChatVisibility } from "@/components/chat/chat-visibility-context";
 import { MentionSuggestions } from "@/components/chat/mention-suggestions";
 import { useChatOnlineUsers } from "@/components/chat/use-chat-online-users";
 import { useChatMentionAutocomplete } from "@/components/chat/use-chat-mention-autocomplete";
@@ -97,6 +98,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const pathname = usePathname();
   const copy = useMemo(() => getChatUiCopy(lang, dict), [lang, dict]);
   const { toast } = useToast();
+  const { collapsed: desktopCollapsed, setCollapsed: setDesktopCollapsed } = useChatVisibility();
   const isStaff = userRole === "admin" || userRole === "super_admin" || userRole === "moderator";
   const hiddenOnRoute = pathname === `/${lang}/chat` || pathname.startsWith(`/${lang}/admin/chat`);
 
@@ -157,7 +159,7 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const isComposingRef = useRef(false);
   const launcherAnimationTimeoutRef = useRef<number | null>(null);
 
-  const isPanelOpen = isDesktop || mobileOpen;
+  const isPanelOpen = (isDesktop && !desktopCollapsed) || mobileOpen;
   const unreadCount = room ? Math.max(0, room.lastVisibleSeq - readState.lastReadVisibleSeq) : 0;
   const badgeCount = Math.max(unreadCount, pendingNewCount);
 
@@ -940,16 +942,14 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
                 <ExternalLink className="h-4 w-4" />
               </Link>
             ) : null}
-            {!isDesktop ? (
-              <button
-                type="button"
-                onClick={closeMobilePanel}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
-                aria-label={collapseLabel}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            ) : null}
+            <button
+              type="button"
+              onClick={isDesktop ? () => setDesktopCollapsed(true) : closeMobilePanel}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/8 bg-white/4 text-text-secondary transition-colors hover:text-pa-green"
+              aria-label={collapseLabel}
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -1171,7 +1171,39 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   return (
     <>
       {isDesktop ? (
-        <div className="fixed inset-y-0 right-0 z-60 w-[420px]">{panelContent}</div>
+        <>
+          <aside
+            className={`fixed inset-y-0 right-0 z-60 w-[420px] transition-transform duration-300 ease-out ${
+              desktopCollapsed ? "pointer-events-none translate-x-full" : "translate-x-0"
+            }`}
+            inert={desktopCollapsed}
+            aria-hidden={desktopCollapsed}
+          >
+            {panelContent}
+          </aside>
+          <button
+            type="button"
+            onClick={() => setDesktopCollapsed(false)}
+            aria-hidden={!desktopCollapsed}
+            tabIndex={desktopCollapsed ? 0 : -1}
+            className={`fixed right-0 top-1/2 z-60 flex h-14 w-11 -translate-y-1/2 items-center justify-center rounded-l-xl border border-r-0 border-white/10 bg-surface-elevated/95 text-pa-green ring-1 ring-white/6 backdrop-blur-xl transition-all duration-300 ease-out hover:text-pa-green ${
+              desktopCollapsed
+                ? "translate-x-0 opacity-100"
+                : "pointer-events-none translate-x-full opacity-0"
+            } ${launcherAnimationClassName}`}
+            title={copy.page.expand}
+            aria-label={copy.page.expand}
+          >
+            <MessagesSquare className="h-5 w-5" />
+            {triggerBadgeCount > 0 ? (
+              <span
+                className={`absolute -left-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${triggerBadgeClassName}`}
+              >
+                {triggerBadgeCount > 99 ? "99+" : triggerBadgeCount}
+              </span>
+            ) : null}
+          </button>
+        </>
       ) : (
         <>
           <button
