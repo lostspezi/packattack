@@ -109,8 +109,8 @@ export function PackiPanel({ className = "" }: PackiPanelProps) {
     <div
       className={[
         "fixed z-[100]",
-        "inset-x-0 bottom-0 h-[min(80vh,640px)] rounded-t-2xl",
-        "sm:inset-auto sm:bottom-24 sm:left-6 sm:h-[560px] sm:w-[380px] sm:rounded-2xl",
+        "inset-x-3 bottom-3 h-[min(80vh,640px)] rounded-2xl",
+        "sm:inset-auto sm:bottom-24 sm:left-6 sm:h-[560px] sm:w-[380px]",
         "bg-surface border border-border shadow-2xl",
         "flex flex-col",
         className,
