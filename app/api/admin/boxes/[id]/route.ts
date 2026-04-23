@@ -185,6 +185,14 @@ export async function PATCH(
       }
     }
 
+    // Reactivating a paused box clears the auto-pause metadata so the
+    // "Ausverkauft"-Banner disappears from the admin UI. Harmless no-op on
+    // draft → published (fields are already null).
+    if (updates.status === "published") {
+      box.pausedAt = null;
+      box.pausedReason = null;
+    }
+
     await box.save();
 
     return NextResponse.json(box.toObject());
