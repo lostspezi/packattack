@@ -70,6 +70,7 @@ export const ONBOARDING_STEPS: TourStep[] = [
   {
     id: "tour-box-buy",
     route: "/{lang}/packs/{tutorialSlug}",
+    noSkip: true,
     selector: '[data-tour="pack-buy-button"]',
     placement: "bottom",
     nextTrigger: { type: "click-next" },
@@ -91,6 +92,7 @@ export const ONBOARDING_STEPS: TourStep[] = [
   {
     id: "tour-box-condition",
     route: "/{lang}/packs/{tutorialSlug}",
+    noSkip: true,
     selector: '[data-tour="box-condition"]',
     placement: "left",
     nextTrigger: { type: "click-next" },
@@ -112,6 +114,7 @@ export const ONBOARDING_STEPS: TourStep[] = [
   {
     id: "tour-box-rarities",
     route: "/{lang}/packs/{tutorialSlug}",
+    noSkip: true,
     selector: '[data-tour="box-rarities"]',
     placement: "left",
     nextTrigger: { type: "click-next" },
@@ -133,6 +136,7 @@ export const ONBOARDING_STEPS: TourStep[] = [
   {
     id: "tour-box-top-hits",
     route: "/{lang}/packs/{tutorialSlug}",
+    noSkip: true,
     selector: '[data-tour="box-top-hits"]',
     placement: "right",
     nextTrigger: { type: "click-next" },
@@ -154,6 +158,7 @@ export const ONBOARDING_STEPS: TourStep[] = [
   {
     id: "tour-box-live-pulls",
     route: "/{lang}/packs/{tutorialSlug}",
+    noSkip: true,
     selector: '[data-tour="box-live-pulls"]',
     placement: "top",
     nextTrigger: { type: "click-next" },
@@ -175,6 +180,7 @@ export const ONBOARDING_STEPS: TourStep[] = [
   {
     id: "tour-box-my-pulls",
     route: "/{lang}/packs/{tutorialSlug}",
+    noSkip: true,
     selector: '[data-tour="box-my-pulls"]',
     placement: "left",
     nextTrigger: { type: "click-next" },
@@ -196,6 +202,7 @@ export const ONBOARDING_STEPS: TourStep[] = [
   {
     id: "tour-box-card",
     route: "/{lang}/packs/{tutorialSlug}",
+    noSkip: true,
     selector: '[data-tour="box-first-card"]',
     placement: "top",
     nextTrigger: { type: "click-next" },

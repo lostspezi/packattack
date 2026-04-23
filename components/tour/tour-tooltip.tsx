@@ -13,6 +13,7 @@ interface TourTooltipProps {
   totalSteps: number;
   nextLabel?: string;
   showNextButton: boolean;
+  canSkip: boolean;
   onNext?: () => void;
   onSkip: () => void;
 }
@@ -97,6 +98,7 @@ export function TourTooltip({
   totalSteps,
   nextLabel,
   showNextButton,
+  canSkip,
   onNext,
   onSkip,
 }: TourTooltipProps) {
@@ -148,29 +150,38 @@ export function TourTooltip({
             Schritt {stepIndex + 1} von {totalSteps}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={onSkip}
-          className="text-text-muted hover:text-text-secondary p-1 rounded-md shrink-0"
-          aria-label="Tour beenden"
-          title="Tour beenden"
-        >
-          <X className="h-4 w-4" aria-hidden="true" />
-        </button>
+        {canSkip && (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="text-text-muted hover:text-text-secondary p-1 rounded-md shrink-0"
+            aria-label="Tour beenden"
+            title="Tour beenden"
+          >
+            <X className="h-4 w-4" aria-hidden="true" />
+          </button>
+        )}
       </div>
 
       <p className="text-text-secondary text-sm leading-relaxed whitespace-pre-wrap">
         {body}
       </p>
 
-      <div className="flex items-center justify-between mt-3">
-        <button
-          type="button"
-          onClick={onSkip}
-          className="text-text-muted text-xs hover:text-text-secondary"
-        >
-          Später
-        </button>
+      <div
+        className={[
+          "flex items-center mt-3",
+          canSkip ? "justify-between" : "justify-end",
+        ].join(" ")}
+      >
+        {canSkip && (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="text-text-muted text-xs hover:text-text-secondary"
+          >
+            Später
+          </button>
+        )}
         {showNextButton && (
           <button
             type="button"

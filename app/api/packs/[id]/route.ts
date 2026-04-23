@@ -135,6 +135,7 @@ export async function GET(
       description: box.description,
       game: box.game,
       image: box.image,
+      isTutorial: Boolean((box as { isTutorial?: boolean }).isTutorial),
       priceInCoins: box.priceInCoins,
       cardsPerPack: box.cardsPerPack,
       totalCards: cardEntries.length,

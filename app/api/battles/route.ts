@@ -215,6 +215,13 @@ export async function POST(req: NextRequest) {
     if (!box || box.status !== "published") {
       return NextResponse.json({ error: "box_not_available" }, { status: 400 });
     }
+    // Tutorial boxes are tour-only — never usable in battles.
+    if ((box as { isTutorial?: boolean }).isTutorial) {
+      return NextResponse.json(
+        { error: "tutorial_box_not_battle_eligible" },
+        { status: 400 },
+      );
+    }
 
     if (!box.priceInCoins || box.priceInCoins <= 0) {
       return NextResponse.json({ error: "box_not_battle_enabled" }, { status: 400 });

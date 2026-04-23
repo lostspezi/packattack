@@ -54,6 +54,14 @@ export async function POST(
     if (!box || box.status !== "published") {
       return NextResponse.json({ error: "Box not found or not published" }, { status: 404 });
     }
+    // Tutorial boxes are tour-only display props. Opening them would consume
+    // real coins and mint real cards — explicitly blocked at the API layer.
+    if (box.isTutorial) {
+      return NextResponse.json(
+        { error: "tutorial_box_not_openable" },
+        { status: 403 },
+      );
+    }
 
     const realBoxId = box._id;
     const totalCost = box.priceInCoins * packCount;

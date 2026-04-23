@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/toast";
 import { Modal } from "@/components/ui/modal";
 import { fetchProfile } from "@/lib/profile-client";
 import { useMe } from "@/components/layout/me-provider";
+import { useTour } from "@/components/tour/tour-provider";
 import { PackOpening } from "@/components/packs/pack-opening";
 import { TopHits } from "@/components/packs/top-hits";
 import { LiveEvents } from "@/components/packs/live-events";
@@ -36,6 +37,7 @@ interface BoxDetail {
   description: { de: string; en: string } | null;
   game: string;
   image: string | null;
+  isTutorial?: boolean;
   priceInCoins: number;
   cardsPerPack: number;
   totalCards: number;
@@ -92,6 +94,7 @@ export default function PackDetailPage() {
   const router = useRouter();
   const { toast } = useToast();
   const me = useMe();
+  const { isActive: tourActive } = useTour();
 
   const [box, setBox] = useState<BoxDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -127,6 +130,16 @@ export default function PackDetailPage() {
       setUserCoins(typedProfile?.coins ?? 0);
     }).catch(() => {}).finally(() => setLoading(false));
   }, [id]);
+
+  // Tutorial boxes are tour-only. If a user lands here by direct URL —
+  // while the tour isn't running — bounce them back to /packs instead
+  // of showing detail page. The tour's own router.push sets isActive
+  // true before navigating, so during the walkthrough we stay put.
+  useEffect(() => {
+    if (!box?.isTutorial) return;
+    if (tourActive) return;
+    router.replace(`/${lang}/packs`);
+  }, [box?.isTutorial, tourActive, router, lang]);
 
   // Cross-box pending banner — only fetch the detailed pending payload
   // when the shared /api/me snapshot says there is one. Skipping this
@@ -394,9 +407,16 @@ export default function PackDetailPage() {
                   size="lg"
                   className="flex-1"
                   data-tour="pack-buy-button"
-                  disabled={!canAfford || opening || box.availableCards === 0 || !!pendingOtherBox}
+                  disabled={box.isTutorial || !canAfford || opening || box.availableCards === 0 || !!pendingOtherBox}
                   loading={opening}
                   onClick={() => setConfirmOpen("normal")}
+                  title={
+                    box.isTutorial
+                      ? isDe
+                        ? "Tutorial-Box ist nur zur Anschauung"
+                        : "Tutorial box is display-only"
+                      : undefined
+                  }
                 >
                   <Package className="w-4 h-4 mr-1.5" />
                   {isDe ? "Pack Öffnen" : "Open Pack"} — {totalCost} Coins
@@ -404,7 +424,7 @@ export default function PackDetailPage() {
                 <Button
                   variant="secondary"
                   size="lg"
-                  disabled={!canAfford || opening || box.availableCards === 0 || !!pendingOtherBox}
+                  disabled={box.isTutorial || !canAfford || opening || box.availableCards === 0 || !!pendingOtherBox}
                   onClick={() => setConfirmOpen("quick")}
                 >
                   {isDe ? "Schnell" : "Quick"}
@@ -585,7 +605,7 @@ export default function PackDetailPage() {
             variant="primary"
             size="lg"
             className="w-full shadow-[0_0_24px_--theme(--color-pa-green/0.2)]"
-            disabled={!canAfford || box.availableCards === 0}
+            disabled={box.isTutorial || !canAfford || box.availableCards === 0}
             onClick={() => { setShowBoxInfo(false); setConfirmOpen("normal"); }}
           >
             🎴 {isDe ? "Pack öffnen" : "Open Pack"} — {totalCost} Coins

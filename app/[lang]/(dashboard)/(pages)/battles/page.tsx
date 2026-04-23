@@ -54,7 +54,13 @@ export default function BattlesPage() {
       }
       if (boxesRes.ok) {
         const data = await boxesRes.json();
-        setBoxes(data.boxes ?? []);
+        // Tutorial boxes are tour-only display props and not battle-eligible.
+        // Server already rejects them in POST /api/battles, this keeps the
+        // option out of the picker so users don't see it in the first place.
+        const boxes = (data.boxes ?? []) as BoxOption[];
+        setBoxes(
+          boxes.filter((b: BoxOption & { isTutorial?: boolean }) => !b.isTutorial),
+        );
       }
     } catch {
       // silent

@@ -185,14 +185,18 @@ export function TourProvider({ steps, children }: TourProviderProps) {
   }, [steps, stepIndex, finish, setTour]);
 
   // Escape to skip — lives at provider level so it works regardless of runner.
+  // Respects the current step's noSkip flag so users can't bail out of a
+  // tutorial-only page (e.g., box-detail steps) via Escape.
   useEffect(() => {
     if (!isActive) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") void skip();
+      if (e.key !== "Escape") return;
+      if (currentStep?.noSkip) return;
+      void skip();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [isActive, skip]);
+  }, [isActive, skip, currentStep]);
 
   // Auto-start for genuinely new users only:
   //   - MeProvider has hydrated
@@ -255,7 +259,14 @@ export function TourProvider({ steps, children }: TourProviderProps) {
           tutorialSlug={tutorialSlug}
           isReplay={isReplay}
           onAdvance={() => void advance()}
-          onSkip={() => void skip()}
+          onSkip={
+            currentStep.noSkip
+              ? () => {
+                  // Step opts out of skip entirely — e.g. box-detail pages
+                  // where leaving mid-tour strands the user.
+                }
+              : () => void skip()
+          }
         />
       )}
     </TourContext.Provider>
@@ -387,11 +398,13 @@ function TourStepRunner({
   const showNextButton =
     step.nextTrigger.type !== "click-target" || (resolved && !target);
 
+  const canSkip = !step.noSkip;
+
   return (
     <>
       <TourOverlay
         target={step.targetOptional && !target ? null : target}
-        onBackdropClick={onSkip}
+        onBackdropClick={canSkip ? onSkip : undefined}
       />
       <TourTooltip
         target={step.targetOptional && !target ? null : target}
@@ -402,6 +415,7 @@ function TourStepRunner({
         totalSteps={totalSteps}
         nextLabel={copy.nextLabel}
         showNextButton={showNextButton}
+        canSkip={canSkip}
         onNext={onAdvance}
         onSkip={onSkip}
       />

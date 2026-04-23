@@ -46,6 +46,14 @@ export interface TourStep {
    * tooltip centered on the viewport if the selector isn't found.
    */
   targetOptional?: boolean;
+  /**
+   * Hide the skip/close controls on this step. Used on the box-detail
+   * sub-steps where the tutorial box is only reachable via the tour —
+   * leaving mid-walkthrough would strand the user on a page they
+   * can't legitimately return to. Users can still abandon by closing
+   * the tab; a refresh re-auto-starts from step 0.
+   */
+  noSkip?: boolean;
 }
 
 export const TOUR_EVENT_NAME = "packi-tour-event";
