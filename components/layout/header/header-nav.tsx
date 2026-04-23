@@ -74,7 +74,9 @@ export function HeaderNav({
               disabled={item.disabled}
               icon={<Icon className="h-4 w-4 shrink-0" />}
               label={label}
-              labelClassName="hidden lg:inline"
+              labelClassName={
+                item.isCart && cartState.cartCount > 0 ? "hidden" : "hidden lg:inline"
+              }
               megaMenuActive={megaMenuActive}
               badge={
                 item.soonBadge ? (

@@ -142,7 +142,7 @@ export function UserHeader({
           className="flex h-16 items-center justify-between border-b border-white/8 px-4 md:h-[72px] md:px-6"
           style={{ background: "linear-gradient(150deg, var(--color-pa-blue) 10%, var(--color-pa-lila) 50%)" }}
         >
-          <div className="flex items-center gap-3 md:gap-6">
+          <div className="flex items-center gap-3 md:gap-4 lg:gap-6">
             <button
               onClick={() => setMobileMenuOpen((prev) => !prev)}
               className="shrink-0 rounded-lg p-2 text-text-muted transition-colors hover:text-text-primary md:hidden"
@@ -154,7 +154,7 @@ export function UserHeader({
 
             <Link href={dashboardHref} className="shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/logo.svg" alt="PackAttack.gg" className="h-5 w-auto sm:h-6" />
+              <img src="/images/logo.svg" alt="PackAttack.gg" className="h-5 w-auto lg:h-6" />
             </Link>
 
             <HeaderNav
@@ -167,8 +167,8 @@ export function UserHeader({
             />
           </div>
 
-          <div className="flex items-center gap-2 md:gap-3">
-            <div className="hidden sm:block">
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="hidden lg:block">
               <LanguageSwitcher lang={lang} languages={languages} />
             </div>
             <div className="hidden sm:block">
@@ -195,11 +195,11 @@ export function UserHeader({
                     (e.target as HTMLImageElement).src = "/images/default-avatar.png";
                   }}
                 />
-                <div className="hidden text-left sm:block xl:hidden 3xl:block">
+                <div className="hidden text-left lg:block xl:hidden 3xl:block">
                   <p className="leading-tight text-sm font-medium text-text-primary">{userName}</p>
                   <p className="leading-tight text-xs text-text-muted">{levelLabel} 1</p>
                 </div>
-                <ChevronDown className="hidden h-4 w-4 text-text-muted sm:block xl:hidden 3xl:block" />
+                <ChevronDown className="hidden h-4 w-4 text-text-muted lg:block xl:hidden 3xl:block" />
               </button>
 
               <UserDropdown
