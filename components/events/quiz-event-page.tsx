@@ -104,16 +104,6 @@ function formatTime(ms: number) {
   return `${min}:${String(sec).padStart(2, "0")}`;
 }
 
-function formatUhrzeit(dateStr: string | null) {
-  if (!dateStr) return "—";
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString("de-DE", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-}
-
 function placementLabel(p: number | null) {
   if (p === 1) return "\u{1F947}";
   if (p === 2) return "\u{1F948}";
@@ -129,7 +119,6 @@ export function QuizEventPage() {
   const params = useParams<{ lang: string }>();
   const lang = params.lang ?? "de";
   const { data: session } = useSession();
-  const currentUserId = session?.user?.id ?? "";
   const userRole = (session?.user as { role?: string } | undefined)?.role;
   const isAdmin = userRole === "admin" || userRole === "super_admin";
 

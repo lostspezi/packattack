@@ -38,9 +38,11 @@ export function ChatBadgeDetailModal({
 }: ChatBadgeDetailModalProps) {
   const [index, setIndex] = useState(initialIndex);
 
+  /* eslint-disable react-hooks/set-state-in-effect -- reset index when opening or switching to a new badge */
   useEffect(() => {
     setIndex(initialIndex);
   }, [initialIndex, open]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const badge = badges[index] ?? null;
   const hasPrev = index > 0;

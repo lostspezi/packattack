@@ -16,7 +16,6 @@ import {
   Flame,
   Target,
   Timer,
-  Medal,
 } from "lucide-react";
 
 /* ------------------------------------------------------------------ */

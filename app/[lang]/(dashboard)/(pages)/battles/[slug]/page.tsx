@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Loader2, ArrowLeft, ArrowRight, ArrowUpRight, ArrowDownLeft, Swords } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight, ArrowUpRight, ArrowDownLeft } from "lucide-react";
 import { GiTrophyCup, GiCrossedSwords, GiScales, GiLaurelCrown, GiPodiumWinner, GiPodiumSecond, GiPodiumThird, GiSandsOfTime, GiScrollUnfurled, GiRoundStar } from "react-icons/gi";
 
 import { BattleWaiting } from "@/components/battles/battle-waiting";
