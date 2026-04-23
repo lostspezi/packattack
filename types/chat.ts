@@ -88,7 +88,6 @@ export interface ChatBattleInviteSummary {
   boxName: string;
   boxImage: string | null;
   boxGame: string;
-  entryFee: number;
   rounds: number;
   playerCount: number;
   mode: string;

@@ -406,7 +406,6 @@ export function serializeChatMessage(
           boxName: message.battleInvite.boxName,
           boxImage: message.battleInvite.boxImage ?? null,
           boxGame: message.battleInvite.boxGame,
-          entryFee: message.battleInvite.entryFee,
           rounds: message.battleInvite.rounds,
           playerCount: message.battleInvite.playerCount,
           mode: message.battleInvite.mode,

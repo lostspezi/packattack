@@ -6,7 +6,6 @@ import {
   ChevronDown,
   Swords,
   Clock,
-  Coins,
   Trophy,
   Users,
   Zap,
@@ -128,15 +127,15 @@ export function BattleHandbook({ lang }: { lang: string }) {
                 <strong className="text-zinc-300">{de ? "Lobby" : "Lobby"} (5 min)</strong>
                 <br />
                 {de
-                  ? "Nach dem Erstellen haben andere Spieler 5 Minuten Zeit beizutreten. Wird die Lobby nicht voll, werden alle Coins erstattet."
-                  : "After creation, other players have 5 minutes to join. If the lobby doesn't fill up, all coins are refunded."}
+                  ? "Nach dem Erstellen haben andere Spieler 5 Minuten Zeit beizutreten. Wird die Lobby nicht voll, wird das Battle automatisch abgebrochen."
+                  : "After creation, other players have 5 minutes to join. If the lobby doesn't fill up, the battle is cancelled automatically."}
               </li>
               <li>
                 <strong className="text-zinc-300">{de ? "Bereitschafts-Check" : "Ready Check"} (30s)</strong>
                 <br />
                 {de
-                  ? "Sobald alle Plätze belegt sind, müssen alle Spieler innerhalb von 30 Sekunden \"Bereit\" bestätigen. Bestätigen nicht alle rechtzeitig, wird das Battle abgebrochen und alle erhalten eine Erstattung."
-                  : "Once all slots are filled, all players must confirm \"Ready\" within 30 seconds. If not everyone confirms in time, the battle is cancelled and everyone is refunded."}
+                  ? "Sobald alle Plätze belegt sind, müssen alle Spieler innerhalb von 30 Sekunden \"Bereit\" bestätigen. Bestätigen nicht alle rechtzeitig, wird das Battle abgebrochen."
+                  : "Once all slots are filled, all players must confirm \"Ready\" within 30 seconds. If not everyone confirms in time, the battle is cancelled."}
               </li>
               <li>
                 <strong className="text-zinc-300">{de ? "Countdown" : "Countdown"} (3 min)</strong>
@@ -198,44 +197,6 @@ export function BattleHandbook({ lang }: { lang: string }) {
                 </p>
               </div>
             </div>
-          </Section>
-
-          {/* -------------------------------------------------------- */}
-          {/*  4. Eintrittsgebühr                                      */}
-          {/* -------------------------------------------------------- */}
-          <Section
-            icon={<Coins className="h-3.5 w-3.5" />}
-            title={de ? "Eintrittsgebühr & Erstattung" : "Entry Fee & Refunds"}
-          >
-            <p className="mb-3">
-              {de
-                ? "Die Eintrittsgebühr wird beim Erstellen oder Beitreten sofort abgezogen. Sie berechnet sich wie folgt:"
-                : "The entry fee is deducted immediately when creating or joining. It's calculated as follows:"}
-            </p>
-            <div className="mb-3 rounded-lg bg-zinc-800/40 p-3 text-center">
-              <div className="text-xs text-zinc-500">{de ? "Formel" : "Formula"}</div>
-              <div className="mt-1 text-sm font-bold text-yellow-400">
-                {de ? "Runden" : "Rounds"} &times; 5 {de ? "Karten" : "Cards"} &times; {de ? "Box-Preis" : "Box Price"}
-              </div>
-              <div className="mt-2 text-xs text-zinc-500">
-                {de ? "Beispiel: 3 Runden × 5 × 50 Coins = " : "Example: 3 Rounds × 5 × 50 Coins = "}
-                <span className="font-bold text-yellow-400">750 Coins</span>
-              </div>
-            </div>
-            <p className="mb-2 font-semibold text-zinc-300">
-              {de ? "Wann bekomme ich meine Coins zurück?" : "When do I get my coins back?"}
-            </p>
-            <ul className="list-inside list-disc space-y-1">
-              <li>{de ? "Die Lobby läuft ab, ohne voll zu werden" : "The lobby expires without filling up"}</li>
-              <li>{de ? "Nicht alle Spieler bestätigen den Bereitschafts-Check" : "Not all players confirm the ready check"}</li>
-              <li>{de ? "Der Ersteller bricht das Battle ab" : "The creator cancels the battle"}</li>
-              <li>{de ? "Du verlässt das Battle vor dem Start" : "You leave the battle before it starts"}</li>
-            </ul>
-            <p className="mt-2 text-xs text-zinc-500">
-              {de
-                ? "Hinweis: Nach Battlestart gibt es keine Erstattung mehr."
-                : "Note: There are no refunds after the battle has started."}
-            </p>
           </Section>
 
           {/* -------------------------------------------------------- */}
@@ -351,20 +312,20 @@ export function BattleHandbook({ lang }: { lang: string }) {
               <li>
                 <strong className="text-zinc-300">{de ? "Box-Wahl:" : "Box choice:"}</strong>{" "}
                 {de
-                  ? "Teurere Boxen haben oft wertvollere Karten, aber auch eine höhere Eintrittsgebühr. Überlege, ob das Risiko sich lohnt."
-                  : "More expensive boxes often have more valuable cards, but also a higher entry fee. Consider if the risk is worth it."}
+                  ? "Teurere Boxen haben wertvollere Karten in der Hand – das wirkt sich direkt auf die Coin-Werte pro Runde aus."
+                  : "More expensive boxes have more valuable cards in your hand, which directly affects coin values per round."}
               </li>
               <li>
                 <strong className="text-zinc-300">{de ? "Modus beachten:" : "Watch the mode:"}</strong>{" "}
                 {de
-                  ? "Im \"Höchste Karte\"-Modus verlierst du potenziell wertvollere Karten als im \"Niedrigste Karte\"-Modus. Wähle den Modus passend zu deiner Risikobereitschaft."
-                  : "In \"Highest Card\" mode you can lose more valuable cards than in \"Lowest Card\" mode. Choose the mode based on your risk tolerance."}
+                  ? "Im \"Höchste Karte\"-Modus werden ganz andere Hände gespielt als im \"Niedrigste Karte\"-Modus. Stell dich auf den gewählten Modus ein."
+                  : "\"Highest Card\" mode plays very differently than \"Lowest Card\" mode. Adapt your picks to the selected mode."}
               </li>
               <li>
                 <strong className="text-zinc-300">{de ? "Rundenanzahl:" : "Round count:"}</strong>{" "}
                 {de
-                  ? "Mehr Runden bedeuten weniger Zufall und mehr Skill-Einfluss, aber auch höhere Eintrittskosten."
-                  : "More rounds mean less randomness and more skill influence, but also higher entry costs."}
+                  ? "Mehr Runden bedeuten weniger Zufall und mehr Skill-Einfluss."
+                  : "More rounds mean less randomness and more skill influence."}
               </li>
               <li>
                 <strong className="text-zinc-300">{de ? "Nicht trödeln:" : "Don't dawdle:"}</strong>{" "}

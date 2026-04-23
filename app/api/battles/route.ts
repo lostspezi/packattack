@@ -13,7 +13,6 @@ import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
 import Box from "@/models/box";
 import User from "@/models/user";
-import CoinTransaction from "@/models/coin-transaction";
 import ChatMessage from "@/models/chat-message";
 import ChatRoom from "@/models/chat-room";
 import Card from "@/models/card";
@@ -35,7 +34,6 @@ async function publishBattleCreatedChatMessage(input: {
   boxName: string;
   boxImage: string | null;
   boxGame: string;
-  entryFee: number;
   rounds: number;
   playerCount: number;
   mode: string;
@@ -100,7 +98,6 @@ async function publishBattleCreatedChatMessage(input: {
         boxName: input.boxName,
         boxImage: input.boxImage,
         boxGame: input.boxGame,
-        entryFee: input.entryFee,
         rounds: input.rounds,
         playerCount: input.playerCount,
         mode: input.mode,
@@ -242,29 +239,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "already_in_battle" }, { status: 409 });
     }
 
-    // Calculate entry fee: 5 cards per round × rounds × pack price
-    const CARDS_PER_HAND = 5;
-    const entryFee = rounds * CARDS_PER_HAND * box.priceInCoins;
-
-    // Reserve coins atomically
-    const user = await User.findOneAndUpdate(
-      { _id: session.user.id, coins: { $gte: entryFee } },
-      { $inc: { coins: -entryFee, "battleStats.battlesCreated": 1 } },
-      { new: true },
+    // Track creator stat
+    await User.updateOne(
+      { _id: session.user.id },
+      { $inc: { "battleStats.battlesCreated": 1 } },
     );
-
-    if (!user) {
-      return NextResponse.json({ error: "insufficient_coins" }, { status: 400 });
-    }
-
-    // Record coin transaction
-    await CoinTransaction.create({
-      userId: session.user.id,
-      amount: -entryFee,
-      type: "battle_entry",
-      reason: `Battle entry fee (${rounds} rounds × ${CARDS_PER_HAND} cards × ${box.priceInCoins} coins)`,
-      relatedBattleId: null, // Will be updated after battle creation
-    });
 
     // Generate invite code for private battles
     const inviteCode = isPrivate
@@ -294,18 +273,11 @@ export async function POST(req: NextRequest) {
         isPrivate: !!isPrivate,
         inviteCode,
       },
-      entryFee,
       status: "waiting",
       currentRound: 0,
       lobbyExpiresAt: new Date(Date.now() + LOBBY_DURATION_MS),
       seasonId: activeSeason?._id ?? null,
     });
-
-    // Update coin transaction with battle ID
-    await CoinTransaction.updateOne(
-      { userId: session.user.id, type: "battle_entry", relatedBattleId: null },
-      { $set: { relatedBattleId: battle._id } },
-    );
 
     // Schedule auto-cancel when lobby expires
     await scheduleBattleJob("auto-cancel", { battleId: battle._id.toString() }, LOBBY_DURATION_MS + 5000);
@@ -335,7 +307,6 @@ export async function POST(req: NextRequest) {
         boxName: box.name?.de || box.name?.en || "Box",
         boxImage: box.image ?? null,
         boxGame: box.game ?? "",
-        entryFee,
         rounds,
         playerCount,
         mode,
@@ -347,9 +318,7 @@ export async function POST(req: NextRequest) {
       battle: {
         _id: battle._id,
         slug: battle.slug,
-        entryFee,
         inviteCode,
-        newBalance: user.coins,
       },
     }, { status: 201 });
   } catch (err) {

@@ -4,7 +4,6 @@ import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
 import Box from "@/models/box";
 import User from "@/models/user";
-import CoinTransaction from "@/models/coin-transaction";
 import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
 import { evaluateRound, evaluateBattle } from "@/lib/battle-engine";
 import { prepareBoxCardsForBattle, drawAndPersistBattleHand, transferCardOwnership, activateBattlePullExpiry, cleanupUnselectedBattlePulls } from "@/lib/battle-cards";
@@ -29,22 +28,6 @@ async function processAutoCancel(battleId: string) {
     if (battle.status !== "waiting" && battle.status !== "ready_check") return;
 
     battle.status = "cancelled";
-
-    // Refund all players
-    for (const player of battle.players) {
-      await User.updateOne(
-        { _id: player.user },
-        { $inc: { coins: battle.entryFee } },
-      );
-      await CoinTransaction.create({
-        userId: player.user,
-        amount: battle.entryFee,
-        type: "battle_refund",
-        reason: "Battle expired (no players joined in time)",
-        relatedBattleId: battle._id,
-      });
-    }
-
     await battle.save();
     await publishBattleEvent(battleId, "battle_cancelled", { reason: "expired" });
     console.log(`[battle-worker] Auto-cancelled expired battle ${battleId}`);

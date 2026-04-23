@@ -22,7 +22,6 @@ interface BattleWaitingProps {
       isPrivate: boolean;
       inviteCode: string | null;
     };
-    entryFee: number;
     lobbyExpiresAt: string;
     readyCheckExpiresAt: string | null;
   };
@@ -122,8 +121,6 @@ export function BattleWaiting({
         <span>{battle.settings.rounds} {isDe ? "Runden" : "Rounds"}</span>
         <span className="text-zinc-600">|</span>
         <span>{isDe ? MODE_LABELS[battle.settings.mode]?.de : MODE_LABELS[battle.settings.mode]?.en}</span>
-        <span className="text-zinc-600">|</span>
-        <span className="text-yellow-400">{battle.entryFee} Coins</span>
       </div>
 
       {/* Private Invite Code */}
@@ -201,7 +198,7 @@ export function BattleWaiting({
           >
             {joining
               ? isDe ? "Trete bei..." : "Joining..."
-              : isDe ? `Beitreten (${battle.entryFee} Coins)` : `Join Battle (${battle.entryFee} Coins)`}
+              : isDe ? "Beitreten" : "Join Battle"}
           </button>
         )}
 

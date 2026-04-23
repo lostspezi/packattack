@@ -28,7 +28,6 @@ export interface BattleCardData {
     mode: string;
     isPrivate: boolean;
   };
-  entryFee: number;
   lobbyExpiresAt: string;
   createdAt: string;
 }
@@ -136,12 +135,8 @@ export function BattleCard({ battle, lang, currentUserId, onJoin, joining }: Bat
         </span>
       </div>
 
-      {/* Fee + Action */}
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-bold text-yellow-400">
-          {battle.entryFee} Coins
-        </span>
-
+      {/* Action */}
+      <div className="flex items-center justify-end">
         {isInBattle ? (
           <button
             onClick={() => onJoin(battle.slug)}

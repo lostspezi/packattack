@@ -77,7 +77,6 @@ interface BattleData {
     isPrivate: boolean;
     inviteCode: string | null;
   };
-  entryFee: number;
   currentRound: number;
   lobbyExpiresAt: string;
   readyCheckExpiresAt: string | null;
@@ -601,7 +600,6 @@ export default function BattleDetailPage() {
     try {
       const res = await fetch(`/api/battles/${battle._id}/join`, { method: "POST" });
       if (res.ok) {
-        window.dispatchEvent(new CustomEvent("coin-balance-refresh"));
         await fetchBattle();
       } else {
         const data = await res.json();
@@ -919,10 +917,6 @@ export default function BattleDetailPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-zinc-500">{isDe ? "Modus" : "Mode"}</span>
                   <span className="font-bold text-zinc-300">{battle.settings.mode === "highest_card" ? (isDe ? "Höchste Karte" : "Highest Card") : battle.settings.mode === "lowest_card" ? (isDe ? "Niedrigste Karte" : "Lowest Card") : battle.settings.mode}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-500">{isDe ? "Einsatz" : "Entry"}</span>
-                  <span className="font-bold text-yellow-400">{battle.entryFee} Coins</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-zinc-500">{isDe ? "Spieler" : "Players"}</span>

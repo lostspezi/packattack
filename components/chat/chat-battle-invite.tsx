@@ -354,10 +354,7 @@ export function ChatBattleInvite({ invite, lang, className }: ChatBattleInvitePr
         )}
 
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-indigo-200">
-            {invite.entryFee} Coins
-          </p>
-          <p className="mt-0.5 break-words text-sm font-semibold text-text-primary">
+          <p className="break-words text-sm font-semibold text-text-primary">
             {invite.boxName}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-200/80">

@@ -9,7 +9,6 @@ interface BoxOption {
   name: { de: string; en: string };
   game: string;
   image: string | null;
-  priceInCoins: number;
 }
 
 interface BattleCreateProps {
@@ -36,10 +35,6 @@ export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {
   const [isPrivate, setIsPrivate] = useState(false);
   const [creating, setCreating] = useState(false);
 
-  const selectedBoxData = boxes.find((b) => b._id === selectedBox);
-  const CARDS_PER_HAND = 5;
-  const entryFee = selectedBoxData ? rounds * CARDS_PER_HAND * selectedBoxData.priceInCoins : 0;
-
   async function handleCreate() {
     if (!selectedBox) {
       toast({ title: isDe ? "Bitte Box wählen" : "Please select a box", type: "error" });
@@ -60,7 +55,6 @@ export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {
         return;
       }
 
-      window.dispatchEvent(new CustomEvent("coin-balance-refresh"));
       onCreated(data.battle);
     } catch {
       toast({ title: isDe ? "Fehler beim Erstellen" : "Error creating battle", type: "error" });
@@ -204,16 +198,6 @@ export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {
           </button>
         </div>
       </div>
-
-      {/* Fee Display */}
-      {selectedBox && (
-        <div className="rounded-lg bg-black/40 px-4 py-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-zinc-500">{isDe ? "Gebühr:" : "Entry Fee:"}</span>
-            <span className="font-bold text-yellow-400">{entryFee} Coins</span>
-          </div>
-        </div>
-      )}
 
       {/* Create Button */}
       <button

@@ -76,7 +76,6 @@ export interface IBattle extends Document {
   box: Types.ObjectId;
   players: IBattlePlayer[];
   settings: IBattleSettings;
-  entryFee: number;
   status: BattleStatus;
   currentRound: number;
   lobbyExpiresAt: Date;
@@ -196,7 +195,6 @@ const BattleSchema = new Schema<IBattle>(
       isPrivate: { type: Boolean, default: false },
       inviteCode: { type: String, default: null },
     },
-    entryFee: { type: Number, required: true, min: 0 },
     status: {
       type: String,
       enum: ["waiting", "ready_check", "countdown", "active", "sudden_death", "finished", "cancelled"],
