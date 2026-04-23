@@ -1047,7 +1047,7 @@ function BattleResultView({
               </h1>
               {myEloChange && (
                 <div className="mt-2 flex items-center gap-1.5 text-sm">
-                  <span className="text-zinc-500">ELO</span>
+                  <span className="text-zinc-500">Prestige</span>
                   <span className="font-bold text-zinc-400">{myEloChange.oldElo}</span>
                   <ArrowRight className="h-3 w-3 text-zinc-600" />
                   <span className="font-bold text-zinc-100">{myEloChange.newElo}</span>

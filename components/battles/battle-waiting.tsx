@@ -171,7 +171,7 @@ export function BattleWaiting({
                 {player.user.username}
               </div>
               {player.user.elo !== undefined && (
-                <div className="text-[10px] text-zinc-500">ELO {player.user.elo}</div>
+                <div className="text-[10px] text-zinc-500">Prestige {player.user.elo}</div>
               )}
               <div className={`mt-2 rounded-full px-3 py-0.5 text-[10px] font-bold uppercase ${
                 player.isReady

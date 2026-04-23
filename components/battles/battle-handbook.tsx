@@ -260,22 +260,22 @@ export function BattleHandbook({ lang }: { lang: string }) {
           >
             <p>
               {de
-                ? "Wenn nach allen regulären Runden zwei oder mehr Spieler gleich viele Runden gewonnen haben, wird eine zusätzliche Sudden-Death-Runde gespielt. Der Gewinner dieser Runde gewinnt das gesamte Battle. Endet auch die Sudden-Death-Runde unentschieden, gilt das Battle als Unentschieden — es gibt dann keine ELO-Änderungen."
-                : "If two or more players have won the same number of rounds after all regular rounds, an additional sudden death round is played. The winner of this round wins the entire battle. If the sudden death round also ends in a tie, the battle is a draw — no ELO changes occur."}
+                ? "Wenn nach allen regulären Runden zwei oder mehr Spieler gleich viele Runden gewonnen haben, wird eine zusätzliche Sudden-Death-Runde gespielt. Der Gewinner dieser Runde gewinnt das gesamte Battle. Endet auch die Sudden-Death-Runde unentschieden, gilt das Battle als Unentschieden — es gibt dann keine Prestige-Änderungen."
+                : "If two or more players have won the same number of rounds after all regular rounds, an additional sudden death round is played. The winner of this round wins the entire battle. If the sudden death round also ends in a tie, the battle is a draw — no prestige changes occur."}
             </p>
           </Section>
 
           {/* -------------------------------------------------------- */}
-          {/*  7. ELO-System                                           */}
+          {/*  7. Prestige & Ränge                                     */}
           {/* -------------------------------------------------------- */}
           <Section
             icon={<Trophy className="h-3.5 w-3.5" />}
-            title={de ? "ELO-System & Ränge" : "ELO System & Ranks"}
+            title={de ? "Prestige & Ränge" : "Prestige & Ranks"}
           >
             <p className="mb-3">
               {de
-                ? "Dein ELO-Wert zeigt deine Spielstärke an. Jeder Spieler startet bei 1000 ELO. Siege erhöhen dein ELO, Niederlagen verringern es. Je stärker dein Gegner, desto mehr ELO gewinnst du bei einem Sieg."
-                : "Your ELO rating reflects your skill level. Every player starts at 1000 ELO. Wins increase your ELO, losses decrease it. The stronger your opponent, the more ELO you gain from a win."}
+                ? "Dein Prestige zeigt deine Spielstärke an. Jeder Spieler startet bei 1000 Prestige. Siege erhöhen deinen Wert, Niederlagen verringern ihn. Je stärker dein Gegner, desto mehr Prestige gewinnst du bei einem Sieg."
+                : "Your prestige reflects your skill level. Every player starts at 1000 prestige. Wins increase it, losses decrease it. The stronger your opponent, the more prestige you gain from a win."}
             </p>
             <div className="mb-3 space-y-1.5">
               {[
@@ -287,7 +287,7 @@ export function BattleHandbook({ lang }: { lang: string }) {
               ].map((rank) => (
                 <div key={rank.name} className={`flex items-center justify-between rounded-lg ${rank.bg} px-3 py-2`}>
                   <span className={`text-sm font-bold ${rank.color}`}>{rank.name}</span>
-                  <span className="text-xs text-zinc-400">{rank.elo} ELO</span>
+                  <span className="text-xs text-zinc-400">{rank.elo} Prestige</span>
                 </div>
               ))}
             </div>
@@ -295,8 +295,8 @@ export function BattleHandbook({ lang }: { lang: string }) {
               <p>
                 <strong className="text-zinc-300">{de ? "K-Faktor:" : "K-Factor:"}</strong>{" "}
                 {de
-                  ? "Neue Spieler (< 30 Battles) haben einen K-Faktor von 40, erfahrene Spieler von 20. Das bedeutet, dass sich dein ELO am Anfang schneller bewegt und sich später stabilisiert."
-                  : "New players (< 30 battles) have a K-factor of 40, experienced players 20. This means your ELO moves faster at the beginning and stabilizes over time."}
+                  ? "Neue Spieler (< 30 Battles) haben einen K-Faktor von 40, erfahrene Spieler von 20. Dein Prestige bewegt sich am Anfang also schneller und stabilisiert sich mit der Zeit."
+                  : "New players (< 30 battles) have a K-factor of 40, experienced players 20. Your prestige moves faster at the beginning and stabilizes over time."}
               </p>
             </div>
           </Section>
@@ -374,7 +374,7 @@ export function BattleHandbook({ lang }: { lang: string }) {
               <Stat label={de ? "Bereitschaft" : "Ready Check"} value="30s" />
               <Stat label="Countdown" value="3 min" />
               <Stat label={de ? "Auswahlzeit" : "Pick Time"} value="30s" />
-              <Stat label={de ? "Start-ELO" : "Starting ELO"} value="1000" />
+              <Stat label={de ? "Start-Prestige" : "Starting Prestige"} value="1000" />
               <Stat label={de ? "Max. Spieler" : "Max Players"} value="4" />
             </div>
           </Section>
