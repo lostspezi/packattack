@@ -225,41 +225,48 @@ export async function POST(
       relatedBoxId: realBoxId,
     });
 
-    // 10. Check for low-stock / out-of-stock notifications (only for drawn cards)
-    if (updatedBox) void sendStockAlerts(updatedBox, cardMap, stockUpdates);
+    // 10. Low-stock warnings for drawn cards. Out-of-stock notifications
+    // live with the pause block below so the single request that actually
+    // wins the pause race is the only one that notifies admins.
+    if (updatedBox) void sendLowStockAlerts(updatedBox, cardMap, stockUpdates);
 
     // 11. Pause box if any drawn card hit stock 0. Admin reviews before it
     // goes live again. The `status: "published"` guard on the filter means
-    // concurrent opens racing for the same depletion can't double-pause.
+    // only one concurrent opener flips the status; others see modifiedCount=0
+    // and skip notifications so admins don't get duplicate alerts.
     if (updatedBox) {
-      let firstDepleted: { cardId: string; cardName: string } | null = null;
+      const depleted: Array<{ cardId: string; cardName: string }> = [];
       for (const cardId of Object.keys(stockUpdates)) {
         const entry = updatedBox.cards.find((c) => c.card.toString() === cardId);
         if (entry && (entry.stock ?? 0) === 0) {
-          firstDepleted = {
+          depleted.push({
             cardId,
             cardName: cardMap.get(cardId)?.name ?? "Unknown",
-          };
-          break;
+          });
         }
       }
 
-      if (firstDepleted) {
+      if (depleted.length > 0) {
         const pausedAt = new Date();
-        await Box.updateOne(
+        const first = depleted[0];
+        const pauseResult = await Box.updateOne(
           { _id: realBoxId, status: "published" },
           {
             $set: {
               status: "paused",
               pausedAt,
               pausedReason: {
-                cardId: new Types.ObjectId(firstDepleted.cardId),
-                cardName: firstDepleted.cardName,
+                cardId: new Types.ObjectId(first.cardId),
+                cardName: first.cardName,
                 at: pausedAt,
               },
             },
           },
         );
+
+        if (pauseResult.modifiedCount === 1) {
+          void sendOutOfStockAlerts(updatedBox, depleted);
+        }
       }
     }
 
@@ -283,10 +290,13 @@ export async function POST(
 }
 
 /**
- * Send notifications only for cards that were drawn AND just crossed a threshold.
+ * Low-stock warnings for drawn cards that just crossed the minStock threshold.
  * stockUpdates: { cardId: drawCount } — only cards affected by this opening.
+ *
+ * Out-of-stock notifications are handled by sendOutOfStockAlerts, gated on
+ * the single request that wins the pause race, to avoid duplicate alerts.
  */
-async function sendStockAlerts(
+async function sendLowStockAlerts(
   box: InstanceType<typeof Box>,
   cardMap: Map<string, { name?: string }>,
   stockUpdates: Record<string, number>
@@ -302,22 +312,12 @@ async function sendStockAlerts(
       if (!entry) continue;
 
       const stockNow = entry.stock ?? 0;
-      const stockBefore = stockNow + drawnCount; // what it was before this opening
+      if (stockNow === 0) continue; // out-of-stock handled elsewhere
+      const stockBefore = stockNow + drawnCount;
       const minStock = entry.minStock ?? 5;
       const cardName = cardMap.get(cardId)?.name ?? "Unknown";
 
-      // Only notify if threshold was JUST crossed (was above, now at or below)
-      if (stockNow === 0 && stockBefore > 0) {
-        for (const adminId of adminIds) {
-          await Notification.create({
-            userId: adminId,
-            title: `Ausverkauft: ${cardName}`,
-            message: `${cardName} in "${boxName}" hat Bestand 0. Box wurde pausiert — bitte prüfen und Bestand auffüllen oder Karte ersetzen, dann reaktivieren.`,
-            type: "error",
-            cta: { label: "Box öffnen", url: `/de/admin/boxes/${box._id}` },
-          });
-        }
-      } else if (stockNow <= minStock && stockBefore > minStock) {
+      if (stockNow <= minStock && stockBefore > minStock) {
         for (const adminId of adminIds) {
           await Notification.create({
             userId: adminId,
@@ -330,6 +330,37 @@ async function sendStockAlerts(
       }
     }
   } catch (err) {
-    console.error("[stockAlerts]", err);
+    console.error("[lowStockAlerts]", err);
+  }
+}
+
+/**
+ * Out-of-stock notifications for every card that was depleted by the request
+ * which just won the pause race. Guarded by the caller on modifiedCount=1 so
+ * concurrent openers that saw the same state don't double-notify.
+ */
+async function sendOutOfStockAlerts(
+  box: InstanceType<typeof Box>,
+  depleted: Array<{ cardId: string; cardName: string }>,
+) {
+  try {
+    const admins = await User.find({ role: { $in: ["admin", "super_admin"] } }).select("_id").lean();
+    if (admins.length === 0) return;
+    const adminIds = admins.map((a) => a._id.toString());
+    const boxName = box.name?.de ?? box.name?.en ?? "Box";
+
+    for (const { cardName } of depleted) {
+      for (const adminId of adminIds) {
+        await Notification.create({
+          userId: adminId,
+          title: `Ausverkauft: ${cardName}`,
+          message: `${cardName} in "${boxName}" hat Bestand 0. Box wurde pausiert — bitte prüfen und Bestand auffüllen oder Karte ersetzen, dann reaktivieren.`,
+          type: "error",
+          cta: { label: "Box öffnen", url: `/de/admin/boxes/${box._id}` },
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[outOfStockAlerts]", err);
   }
 }
