@@ -46,8 +46,21 @@ export interface TourEventDetail {
   event: string;
 }
 
+/**
+ * Multi-placeholder interpolation for step routes and selectors. Any
+ * `{name}` token in the pattern is replaced with `vars.name` (empty when
+ * absent). `{lang}` is the canonical one; onboarding adds `{tutorialSlug}`.
+ */
+export function interpolatePattern(
+  pattern: string,
+  vars: Record<string, string>,
+): string {
+  return pattern.replace(/\{([a-zA-Z]+)\}/g, (_, key: string) => vars[key] ?? "");
+}
+
+// Backward-compatible shorthand for the common {lang}-only case.
 export function interpolateRoute(pattern: string, lang: string): string {
-  return pattern.replace(/\{lang\}/g, lang);
+  return interpolatePattern(pattern, { lang });
 }
 
 export function pickCopy(step: TourStep, lang: string): TourCopy {

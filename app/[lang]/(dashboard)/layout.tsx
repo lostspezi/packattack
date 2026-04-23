@@ -7,7 +7,7 @@ import { PendingPullsGuard } from "@/components/packs/pending-pulls-guard";
 import { Packi } from "@/components/packi/packi";
 import { PackiProvider } from "@/components/packi/packi-provider";
 import { TourProvider } from "@/components/tour/tour-provider";
-import { CORE_SOCIAL_STEPS } from "@/lib/tour/steps/core-social";
+import { ONBOARDING_STEPS } from "@/lib/tour/steps/onboarding";
 import { auth } from "@/lib/auth";
 import { getActiveLanguages, getDictionary } from "@/lib/i18n";
 
@@ -38,7 +38,7 @@ export default async function DashboardLayout({
 
   return (
     <MeProvider>
-      <TourProvider steps={CORE_SOCIAL_STEPS}>
+      <TourProvider steps={ONBOARDING_STEPS}>
         <PackiProvider>
           <div className="flex flex-1 flex-col xl:pr-[420px]" style={{ background: "linear-gradient(135deg, var(--color-pa-lila) 30%, var(--color-pa-blue) 80%)" }}>
             <UserHeader

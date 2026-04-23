@@ -20,6 +20,7 @@ interface BoxItem {
   totalCards: number;
   availableCards: number;
   rarities: string[];
+  isTutorial?: boolean;
   previewCards?: Array<{
     image: string;
     name: string;
@@ -147,6 +148,7 @@ export default function PacksPage() {
                 key={box._id}
                 type="button"
                 data-tour={boxIdx === 0 ? "pack-buy" : undefined}
+                data-tour-tutorial-box={box.isTutorial ? "true" : undefined}
                 onClick={() => router.push(`/${lang}/packs/${box.slug}`)}
                 className="bg-surface border border-border rounded-[14px] p-4 text-left hover:border-pa-green/30 transition-all duration-300 group hover:-translate-y-2 hover:shadow-[0_8px_30px_rgba(155,255,0,0.08)] block w-full relative overflow-hidden flex flex-col"
               >

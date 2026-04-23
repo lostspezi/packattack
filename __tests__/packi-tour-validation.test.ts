@@ -101,6 +101,7 @@ describe("TOUR_DEFAULTS", () => {
       completedSteps: [],
       lastPromptAt: null,
       sessionCountSincePrompt: 0,
+      rewardGrantedAt: null,
     });
   });
 });

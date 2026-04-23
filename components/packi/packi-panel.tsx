@@ -61,7 +61,7 @@ export function PackiPanel({ className = "" }: PackiPanelProps) {
 
   const handleRestartTour = useCallback(() => {
     closePanel();
-    startTour();
+    void startTour();
   }, [closePanel, startTour]);
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);

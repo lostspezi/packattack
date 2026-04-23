@@ -14,7 +14,7 @@ import { useParams, usePathname, useRouter } from "next/navigation";
 import { TourOverlay } from "@/components/tour/tour-overlay";
 import { TourTooltip } from "@/components/tour/tour-tooltip";
 import {
-  interpolateRoute,
+  interpolatePattern,
   pickCopy,
   TOUR_EVENT_NAME,
   type TourEventDetail,
@@ -28,15 +28,24 @@ import {
   writeLocalProgress,
 } from "@/lib/tour/progress";
 import { useMeContext } from "@/components/layout/me-provider";
+import { useToast } from "@/components/ui/toast";
+import type { TourState } from "@/lib/packi/tour-validation";
 
 interface TourContextValue {
   isActive: boolean;
   currentStep: TourStep | null;
   stepIndex: number;
   totalSteps: number;
-  start: () => void;
+  start: () => Promise<void>;
   skip: () => void;
   advance: () => void;
+  tutorialSlug: string | null;
+}
+
+interface TourCompleteResponse {
+  reward: number;
+  coins: number;
+  tour: TourState;
 }
 
 const TourContext = createContext<TourContextValue | null>(null);
@@ -48,34 +57,73 @@ interface TourProviderProps {
 
 export function TourProvider({ steps, children }: TourProviderProps) {
   const { me, setTour } = useMeContext();
+  const { toast } = useToast();
 
   const [isActive, setIsActive] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const [tutorialSlug, setTutorialSlug] = useState<string | null>(null);
 
   const advanceLockRef = useRef(false);
 
   const currentStep = isActive ? (steps[stepIndex] ?? null) : null;
 
-  const start = useCallback(() => {
+  const start = useCallback(async () => {
+    // Resolve the tutorial-box slug before the tour enters its first routed
+    // step. Without it, pack-buy can't navigate anywhere sensible.
+    try {
+      const res = await fetch("/api/tutorial-box");
+      if (!res.ok) {
+        toast({
+          type: "error",
+          title: "Keine Tutorial-Box konfiguriert",
+          message:
+            "Ein Admin muss erst eine Box als Tutorial markieren, damit die Tour starten kann.",
+        });
+        return;
+      }
+      const data = (await res.json()) as { slug: string };
+      setTutorialSlug(data.slug);
+    } catch {
+      toast({ type: "error", title: "Tour konnte nicht gestartet werden" });
+      return;
+    }
+
     setStepIndex(0);
     setIsActive(true);
     advanceLockRef.current = false;
-    void patchTour({
+    const next = await patchTour({
       skippedAt: null,
       completed: false,
       completedSteps: [],
       sessionCountSincePrompt: 0,
-    }).then((next) => {
-      if (next) setTour(next);
     });
-  }, [setTour]);
+    if (next) setTour(next);
+  }, [setTour, toast]);
 
   const finish = useCallback(async () => {
     setIsActive(false);
     advanceLockRef.current = false;
+    try {
+      const res = await fetch("/api/me/tour/complete", { method: "POST" });
+      if (res.ok) {
+        const body = (await res.json()) as TourCompleteResponse;
+        setTour(body.tour);
+        if (body.reward > 0) {
+          toast({
+            type: "success",
+            title: `+${body.reward} Coins`,
+            message: "Deine Belohnung für die Tour ist gutgeschrieben. 🎴",
+          });
+        }
+        window.dispatchEvent(new CustomEvent("coin-balance-refresh"));
+      }
+    } catch {
+      // Network error at the very end — don't surface, the patch-based
+      // completion fallback below still marks the tour done.
+    }
     const next = await patchTour({ completed: true, skippedAt: null });
     if (next) setTour(next);
-  }, [setTour]);
+  }, [setTour, toast]);
 
   const skip = useCallback(async () => {
     setIsActive(false);
@@ -126,12 +174,22 @@ export function TourProvider({ steps, children }: TourProviderProps) {
     return () => window.removeEventListener("keydown", onKey);
   }, [isActive, skip]);
 
-  // Placeholder for Phase 7: auto-start on cold-load when the user has
-  // never seen the tour. Reserved — not wired yet.
+  // Auto-start for new users: MeProvider has hydrated, the tour was never
+  // completed, and it was never skipped. Fires exactly once per client
+  // lifetime — the tour itself clears skippedAt on start, so a subsequent
+  // remount won't re-trigger. Deferred via setTimeout so the setState work
+  // inside start() doesn't run synchronously in the effect body.
+  const autoStartedRef = useRef(false);
   useEffect(() => {
+    if (autoStartedRef.current) return;
     if (!me) return;
+    if (isActive) return;
     if (me.tour.completed) return;
-  }, [me]);
+    if (me.tour.skippedAt) return;
+    autoStartedRef.current = true;
+    const handle = setTimeout(() => void start(), 0);
+    return () => clearTimeout(handle);
+  }, [me, isActive, start]);
 
   const value = useMemo<TourContextValue>(
     () => ({
@@ -142,8 +200,18 @@ export function TourProvider({ steps, children }: TourProviderProps) {
       start,
       skip,
       advance,
+      tutorialSlug,
     }),
-    [isActive, currentStep, stepIndex, steps.length, start, skip, advance],
+    [
+      isActive,
+      currentStep,
+      stepIndex,
+      steps.length,
+      start,
+      skip,
+      advance,
+      tutorialSlug,
+    ],
   );
 
   return (
@@ -155,6 +223,7 @@ export function TourProvider({ steps, children }: TourProviderProps) {
           step={currentStep}
           stepIndex={stepIndex}
           totalSteps={steps.length}
+          tutorialSlug={tutorialSlug}
           onAdvance={() => void advance()}
           onSkip={() => void skip()}
         />
@@ -167,19 +236,21 @@ interface TourStepRunnerProps {
   step: TourStep;
   stepIndex: number;
   totalSteps: number;
+  tutorialSlug: string | null;
   onAdvance: () => void;
   onSkip: () => void;
 }
 
 /**
  * Renders a single tour step. Keyed by step so React remounts it on each
- * transition — that gives us fresh `target` / `waiting` state without any
+ * transition — that gives us fresh `target` / `resolved` state without any
  * setState-in-effect shenanigans.
  */
 function TourStepRunner({
   step,
   stepIndex,
   totalSteps,
+  tutorialSlug,
   onAdvance,
   onSkip,
 }: TourStepRunnerProps) {
@@ -188,13 +259,17 @@ function TourStepRunner({
   const params = useParams<{ lang?: string }>();
   const lang = params?.lang ?? "de";
   const copy = pickCopy(step, lang);
+  const interpolationVars = useMemo(
+    () => ({ lang, tutorialSlug: tutorialSlug ?? "" }),
+    [lang, tutorialSlug],
+  );
 
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const [resolved, setResolved] = useState(false);
 
   // Navigate if needed + resolve target.
   useEffect(() => {
-    const expectedRoute = interpolateRoute(step.route, lang);
+    const expectedRoute = interpolatePattern(step.route, interpolationVars);
     if (
       pathname !== expectedRoute &&
       !pathname.startsWith(`${expectedRoute}/`)
@@ -225,7 +300,7 @@ function TourStepRunner({
       cancelled = true;
       controller.abort();
     };
-  }, [step, lang, pathname, router, onAdvance]);
+  }, [step, interpolationVars, pathname, router, onAdvance]);
 
   // Wire up next-triggers (click-target, event).
   useEffect(() => {
@@ -251,15 +326,15 @@ function TourStepRunner({
   }, [step, target, onAdvance]);
 
   // Render immediately for targetOptional steps — otherwise a user sees
-  // nothing during the (potentially 6s) selector wait and thinks the tour
+  // nothing during the (potentially long) selector wait and thinks the tour
   // froze. Non-optional steps still wait: their tooltip is anchored to a
   // real DOM target, so rendering before resolution would flash at (0,0).
   if (!resolved && !step.targetOptional) return null;
 
   // Show the Weiter-button for click-next AND event triggers. Event-typed
   // steps need an explicit fallback because the expected custom event
-  // (e.g. "pack-opened") might not fire in this session — the user still
-  // needs a way to proceed.
+  // (e.g. "pack-opened") might not fire — the user still needs a way to
+  // proceed.
   const showNextButton = step.nextTrigger.type !== "click-target";
 
   return (

@@ -393,6 +393,7 @@ export default function PackDetailPage() {
                   variant="primary"
                   size="lg"
                   className="flex-1"
+                  data-tour="pack-buy-button"
                   disabled={!canAfford || opening || box.availableCards === 0 || !!pendingOtherBox}
                   loading={opening}
                   onClick={() => setConfirmOpen("normal")}
