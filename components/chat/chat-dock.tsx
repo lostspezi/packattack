@@ -353,6 +353,27 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     return () => window.cancelAnimationFrame(frame);
   }, [isPanelOpen, activeTab, packiMessages, packiStreamingText, packiStreaming]);
 
+  // Tab switches unmount the previous list, so when the new list mounts its
+  // scrollTop is 0. Force both lists back to the bottom on activation so the
+  // user lands on the newest content.
+  useEffect(() => {
+    if (!isPanelOpen) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (activeTab === "chat") {
+        const node = listRef.current;
+        if (node) {
+          node.scrollTop = node.scrollHeight;
+          shouldStickToBottomRef.current = true;
+          setPendingNewCount(0);
+        }
+      } else {
+        const node = packiListRef.current;
+        if (node) node.scrollTop = node.scrollHeight;
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [activeTab, isPanelOpen]);
+
   useEffect(() => {
     if (sending || !shouldRefocusComposerRef.current) return;
     shouldRefocusComposerRef.current = false;
