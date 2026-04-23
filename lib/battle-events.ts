@@ -19,6 +19,9 @@ export interface BattleEvent {
   type: BattleEventType;
   data: Record<string, unknown>;
   timestamp: number;
+  /** Redis Stream entry ID — populated on publish so SSE clients can use it
+   *  as the SSE `id:` field and replay missed events after reconnect. */
+  streamId?: string;
 }
 
 // ---------- Channel ----------
@@ -26,6 +29,15 @@ export interface BattleEvent {
 function channelKey(battleId: string): string {
   return `battle:${battleId}`;
 }
+
+export function streamKey(battleId: string): string {
+  return `battle:events:${battleId}`;
+}
+
+// Stream retention: ~500 entries per battle, whole key expires after 10 min.
+// A full battle (7 rounds × 4 players × events-per-round) stays well under 500.
+const STREAM_MAXLEN = 500;
+const STREAM_TTL_SECONDS = 600;
 
 // ---------- Publish ----------
 
@@ -35,10 +47,60 @@ export async function publishBattleEvent(
   data: Record<string, unknown>,
 ): Promise<void> {
   const event: BattleEvent = { type, data, timestamp: Date.now() };
+  const redis = getRedis();
+  const key = streamKey(battleId);
+
   try {
-    await getRedis().publish(channelKey(battleId), JSON.stringify(event));
+    // XADD first so the stream ID is known when we broadcast it.
+    const streamId = (await redis.xadd(
+      key,
+      "MAXLEN",
+      "~",
+      STREAM_MAXLEN,
+      "*",
+      "data",
+      JSON.stringify(event),
+    )) as string | null;
+
+    if (streamId) {
+      event.streamId = streamId;
+      // Refresh TTL on every publish — keeps the stream alive during the
+      // battle but lets it expire shortly after the last event.
+      await redis.expire(key, STREAM_TTL_SECONDS);
+    }
+
+    await redis.publish(channelKey(battleId), JSON.stringify(event));
   } catch (err) {
     console.warn(`[battle-events] publish failed for ${battleId}:`, err);
+  }
+}
+
+/**
+ * Replay events from the Redis Stream that occurred after `afterStreamId`.
+ * Used by the SSE route when a client reconnects with a Last-Event-ID header.
+ * Returns entries as [streamId, rawEventJson] tuples in chronological order.
+ */
+export async function replayBattleEventsAfter(
+  battleId: string,
+  afterStreamId: string,
+): Promise<Array<{ streamId: string; rawData: string }>> {
+  const redis = getRedis();
+  try {
+    // `(id` makes the range exclusive of the caller's last seen ID.
+    const entries = (await redis.xrange(
+      streamKey(battleId),
+      `(${afterStreamId}`,
+      "+",
+    )) as Array<[string, string[]]>;
+
+    return entries.map(([id, fields]) => {
+      const dataIdx = fields.indexOf("data");
+      const rawData = dataIdx >= 0 ? fields[dataIdx + 1] : "";
+      return { streamId: id, rawData };
+    });
+  } catch (err) {
+    console.warn(`[battle-events] replay failed for ${battleId}:`, err);
+    return [];
   }
 }
 
