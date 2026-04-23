@@ -31,6 +31,7 @@ interface BoxData {
   rarityWeights: RarityWeight[];
   packsOpened: number;
   cardsCount: number;
+  isTutorial?: boolean;
   createdAt: string;
 }
 
@@ -205,6 +206,40 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
     });
   }, [box._id, isDe, toast]);
 
+  const handleToggleTutorial = useCallback(async () => {
+    const next = !box.isTutorial;
+    setBox((prev) => ({ ...prev, isTutorial: next }));
+    try {
+      const res = await fetch(`/api/admin/boxes/${box._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isTutorial: next }),
+      });
+      if (!res.ok) {
+        setBox((prev) => ({ ...prev, isTutorial: !next }));
+        const body = await res.json().catch(() => ({}));
+        toast({
+          type: "error",
+          title: (body as { error?: string }).error ?? "Failed to update tutorial flag",
+        });
+        return;
+      }
+      toast({
+        type: "success",
+        title: next
+          ? isDe
+            ? "Als Tutorial-Box markiert"
+            : "Marked as tutorial box"
+          : isDe
+            ? "Tutorial-Flag entfernt"
+            : "Tutorial flag removed",
+      });
+    } catch {
+      setBox((prev) => ({ ...prev, isTutorial: !next }));
+      toast({ type: "error", title: "Network error" });
+    }
+  }, [box._id, box.isTutorial, isDe, toast]);
+
   async function handleDelete() {
     setDeleteLoading(true);
     try {
@@ -284,6 +319,25 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
 
         {/* Status + delete actions */}
         <div className="flex gap-2 flex-wrap shrink-0 items-start">
+          <Button
+            type="button"
+            variant={box.isTutorial ? "primary" : "secondary"}
+            size="md"
+            onClick={() => void handleToggleTutorial()}
+            title={
+              isDe
+                ? "Diese Box für die Onboarding-Tour markieren (maximal eine gleichzeitig)"
+                : "Mark this box as the onboarding tour target (at most one at a time)"
+            }
+          >
+            {box.isTutorial
+              ? isDe
+                ? "✓ Tutorial-Box"
+                : "✓ Tutorial Box"
+              : isDe
+                ? "Als Tutorial setzen"
+                : "Set as Tutorial"}
+          </Button>
           <Button
             type="button"
             variant="secondary"

@@ -29,6 +29,7 @@ export interface TourState {
   completedSteps: string[];
   lastPromptAt: string | null;
   sessionCountSincePrompt: number;
+  rewardGrantedAt: string | null;
 }
 
 export const TOUR_DEFAULTS: TourState = {
@@ -37,4 +38,5 @@ export const TOUR_DEFAULTS: TourState = {
   completedSteps: [],
   lastPromptAt: null,
   sessionCountSincePrompt: 0,
+  rewardGrantedAt: null,
 };

@@ -17,6 +17,7 @@ interface TourDoc {
   completedSteps?: string[];
   lastPromptAt?: Date | null;
   sessionCountSincePrompt?: number;
+  rewardGrantedAt?: Date | null;
 }
 
 function normalize(tour: TourDoc | null | undefined): TourState {
@@ -31,6 +32,9 @@ function normalize(tour: TourDoc | null | undefined): TourState {
       ? new Date(tour.lastPromptAt).toISOString()
       : null,
     sessionCountSincePrompt: tour.sessionCountSincePrompt ?? 0,
+    rewardGrantedAt: tour.rewardGrantedAt
+      ? new Date(tour.rewardGrantedAt).toISOString()
+      : null,
   };
 }
 

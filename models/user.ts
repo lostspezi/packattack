@@ -73,6 +73,12 @@ export interface IUser extends Document {
     completedSteps: string[];
     lastPromptAt: Date | null;
     sessionCountSincePrompt: number;
+    /**
+     * Set the first time the user finishes the tour. Kept as a timestamp
+     * (not boolean) so we can audit when the one-time reward was granted
+     * and reliably gate the grant server-side on any future replays.
+     */
+    rewardGrantedAt: Date | null;
   };
   shippingAddress: {
     name: string | null;
@@ -171,6 +177,7 @@ const UserSchema = new Schema<IUser>(
           completedSteps: { type: [String], default: [] },
           lastPromptAt: { type: Date, default: null },
           sessionCountSincePrompt: { type: Number, default: 0 },
+          rewardGrantedAt: { type: Date, default: null },
         },
         { _id: false }
       ),
@@ -180,6 +187,7 @@ const UserSchema = new Schema<IUser>(
         completedSteps: [],
         lastPromptAt: null,
         sessionCountSincePrompt: 0,
+        rewardGrantedAt: null,
       }),
     },
     coins: { type: Number, default: 0 },

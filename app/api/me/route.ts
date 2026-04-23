@@ -13,6 +13,7 @@ function normalizeTour(tour: {
   completedSteps?: string[];
   lastPromptAt?: Date | null;
   sessionCountSincePrompt?: number;
+  rewardGrantedAt?: Date | null;
 } | null | undefined): TourState {
   if (!tour) return { ...TOUR_DEFAULTS };
   return {
@@ -25,6 +26,9 @@ function normalizeTour(tour: {
       ? new Date(tour.lastPromptAt).toISOString()
       : null,
     sessionCountSincePrompt: tour.sessionCountSincePrompt ?? 0,
+    rewardGrantedAt: tour.rewardGrantedAt
+      ? new Date(tour.rewardGrantedAt).toISOString()
+      : null,
   };
 }
 

@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     const [boxes, total] = await Promise.all([
       Box.find(query)
         .select(
-          "_id name game status priceInCoins cardsPerPack totalPacks packsOpened cards createdAt"
+          "_id name game status priceInCoins cardsPerPack totalPacks packsOpened cards createdAt isTutorial"
         )
         .skip((page - 1) * limit)
         .limit(limit)
@@ -57,6 +57,7 @@ export async function GET(req: NextRequest) {
         totalPacks: b.totalPacks,
         packsOpened: b.packsOpened,
         cardsCount: Array.isArray(b.cards) ? b.cards.length : 0,
+        isTutorial: Boolean(b.isTutorial),
         createdAt: b.createdAt,
       })),
       total,

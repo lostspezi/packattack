@@ -30,6 +30,11 @@ export interface IBox extends Document {
   rarityWeights: Array<{ rarity: string; weight: number }>;
   cards: IBoxCard[];
   battleFeePerRound: number;
+  /**
+   * Marks the box used by the onboarding tour. At most one box should carry
+   * this flag at a time — see the partial unique index below.
+   */
+  isTutorial: boolean;
   createdBy: Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -83,6 +88,7 @@ const BoxSchema = new Schema<IBox>(
       },
     ],
     battleFeePerRound: { type: Number, default: 0, min: 0 },
+    isTutorial: { type: Boolean, default: false },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
   },
   { timestamps: true }
@@ -115,6 +121,11 @@ BoxSchema.pre("save", async function () {
 
 BoxSchema.index({ status: 1 });
 BoxSchema.index({ game: 1 });
+// Partial unique index: only one box may have isTutorial=true at a time.
+BoxSchema.index(
+  { isTutorial: 1 },
+  { unique: true, partialFilterExpression: { isTutorial: true } }
+);
 
 const Box: Model<IBox> =
   mongoose.models.Box ?? mongoose.model<IBox>("Box", BoxSchema);

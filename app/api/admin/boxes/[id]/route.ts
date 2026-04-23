@@ -75,6 +75,7 @@ export async function PATCH(
     rarityWeights?: Array<{ rarity: string; weight?: number }>;
     status?: string;
     image?: string | null;
+    isTutorial?: boolean;
     force?: boolean;
   };
 
@@ -165,7 +166,17 @@ export async function PATCH(
       "rarityWeights",
       "status",
       "image",
+      "isTutorial",
     ] as const;
+
+    // If flipping isTutorial to true, clear it on any other box first so the
+    // partial unique index doesn't reject the save. At-most-one invariant.
+    if (updates.isTutorial === true) {
+      await Box.updateMany(
+        { _id: { $ne: id }, isTutorial: true },
+        { $set: { isTutorial: false } },
+      );
+    }
 
     for (const field of allowedFields) {
       if (updates[field] !== undefined) {
