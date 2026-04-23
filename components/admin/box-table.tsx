@@ -15,7 +15,7 @@ interface AdminBox {
   _id: string;
   name: { de: string; en: string };
   game: string;
-  status: "draft" | "published" | "archived";
+  status: "draft" | "published" | "paused" | "archived";
   priceInCoins: number;
   cardsCount: number;
   packsOpened: number;
@@ -38,12 +38,14 @@ const STATUS_OPTIONS: SelectOption[] = [
   { label: "All statuses", value: "" },
   { label: "Draft", value: "draft" },
   { label: "Published", value: "published" },
+  { label: "Paused", value: "paused" },
   { label: "Archived", value: "archived" },
 ];
 
 function statusBadgeVariant(status: string) {
   if (status === "published") return "success" as const;
   if (status === "draft") return "warning" as const;
+  if (status === "paused") return "info" as const;
   return "user" as const;
 }
 

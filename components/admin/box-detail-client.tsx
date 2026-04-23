@@ -32,6 +32,8 @@ interface BoxData {
   packsOpened: number;
   cardsCount: number;
   isTutorial?: boolean;
+  pausedAt?: string | null;
+  pausedReason?: { cardId: string; cardName: string; at: string } | null;
   createdAt: string;
 }
 
@@ -70,6 +72,19 @@ function statusBadgeVariant(status: string) {
   if (status === "draft") return "warning" as const;
   if (status === "paused") return "info" as const;
   return "user" as const;
+}
+
+function formatPausedAt(iso: string, lang: string): string {
+  try {
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleString(lang === "de" ? "de-DE" : "en-US", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return iso;
+  }
 }
 
 export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps) {
@@ -166,7 +181,11 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
       }
 
       setShowPublishWarnings(false);
-      setBox((prev) => ({ ...prev, status: newStatus as BoxData["status"] }));
+      setBox((prev) => ({
+        ...prev,
+        status: newStatus as BoxData["status"],
+        ...(newStatus === "published" ? { pausedAt: null, pausedReason: null } : {}),
+      }));
       toast({
         type: "success",
         title: isDe ? `Status geändert: ${newStatus}` : `Status changed to: ${newStatus}`,
@@ -389,6 +408,22 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
           )}
         </div>
       </div>
+
+      {box.status === "paused" && box.pausedReason && (
+        <div className="flex items-start gap-3 p-4 rounded-[14px] border border-amber-500/40 bg-amber-500/10">
+          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="text-sm text-text-primary">
+            <p className="font-semibold">
+              {isDe ? "Box automatisch pausiert" : "Box auto-paused"}
+            </p>
+            <p className="text-text-secondary mt-1">
+              {isDe
+                ? `Am ${formatPausedAt(box.pausedAt ?? box.pausedReason.at, lang)} hat die Karte „${box.pausedReason.cardName}" den Bestand 0 erreicht. Bitte prüfen und Bestand auffüllen oder Karte ersetzen, dann reaktivieren.`
+                : `On ${formatPausedAt(box.pausedAt ?? box.pausedReason.at, lang)}, the card "${box.pausedReason.cardName}" ran out of stock. Please review, restock or replace the card, then reactivate.`}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Bento grid: stacked on mobile, 2-column on xl */}
       <div className="xl:grid xl:grid-cols-[1fr_420px] xl:gap-5 space-y-6 xl:space-y-0">

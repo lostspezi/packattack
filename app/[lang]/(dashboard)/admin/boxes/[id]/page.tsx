@@ -18,6 +18,8 @@ interface BoxData {
   rarityWeights: Array<{ rarity: string; weight: number }>;
   packsOpened: number;
   cardsCount: number;
+  pausedAt: string | null;
+  pausedReason: { cardId: string; cardName: string; at: string } | null;
   createdAt: string;
 }
 
@@ -42,6 +44,14 @@ async function getBox(id: string): Promise<BoxData | null> {
       })),
       packsOpened: box.packsOpened ?? 0,
       cardsCount: Array.isArray(box.cards) ? box.cards.length : 0,
+      pausedAt: box.pausedAt ? new Date(box.pausedAt as Date).toISOString() : null,
+      pausedReason: box.pausedReason
+        ? {
+            cardId: box.pausedReason.cardId.toString(),
+            cardName: box.pausedReason.cardName,
+            at: new Date(box.pausedReason.at as Date).toISOString(),
+          }
+        : null,
       createdAt: box.createdAt ? new Date(box.createdAt as Date).toISOString() : "",
     };
   } catch (err) {
