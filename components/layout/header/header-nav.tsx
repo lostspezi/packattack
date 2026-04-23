@@ -32,14 +32,6 @@ export function HeaderNav({
     onOpenSection(section, e.currentTarget);
   }
 
-  function labelClassNameFor(item: NavItem): string | undefined {
-    // Hide label at xl–3xl crunch for items that carry enough visual context
-    // without the word (Dashboard's icon + logo route, Cart when filled).
-    if (item.key === "dashboard") return "xl:hidden 3xl:inline";
-    if (item.key === "cart" && cartState.cartCount > 0) return "xl:hidden 3xl:inline";
-    return undefined;
-  }
-
   function renderChildren(item: NavItem) {
     if (item.hasEventCountdown) {
       return <EventCountdownBadge />;
@@ -78,7 +70,7 @@ export function HeaderNav({
               disabled={item.disabled}
               icon={<Icon className="h-4 w-4 shrink-0" />}
               label={dict[item.labelKey] ?? item.labelFallback}
-              labelClassName={labelClassNameFor(item)}
+              labelClassName="hidden lg:inline"
               megaMenuActive={megaMenuActive}
               aria-haspopup={item.hasMegaMenu ? "true" : undefined}
               aria-expanded={item.hasMegaMenu ? megaMenuActive : undefined}
