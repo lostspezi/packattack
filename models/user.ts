@@ -24,6 +24,24 @@ export interface IUser extends Document {
     totalBattles: number;
     battlesCreated: number;
   };
+  level: number;
+  xp: number;
+  lastXpGainAt: Date | null;
+  stats: {
+    counters: {
+      boxesOpened: number;
+      cardsConverted: number;
+      battlesPlayed: number;
+      battlesWon: number;
+      coinsSpent: number;
+      loginDays: number;
+    };
+    loginStreak: {
+      current: number;
+      best: number;
+      lastLoginDay: string | null;
+    };
+  };
   stripeCustomerId: string | null;
   stripeIdentityVerificationId: string | null;
   identityVerified: boolean;
@@ -201,6 +219,40 @@ const UserSchema = new Schema<IUser>(
       bestStreak: { type: Number, default: 0 },
       totalBattles: { type: Number, default: 0 },
       battlesCreated: { type: Number, default: 0 },
+    },
+    level: { type: Number, default: 1, min: 1, max: 100, index: true },
+    xp: { type: Number, default: 0, min: 0 },
+    lastXpGainAt: { type: Date, default: null },
+    stats: {
+      type: new Schema(
+        {
+          counters: {
+            boxesOpened: { type: Number, default: 0 },
+            cardsConverted: { type: Number, default: 0 },
+            battlesPlayed: { type: Number, default: 0 },
+            battlesWon: { type: Number, default: 0 },
+            coinsSpent: { type: Number, default: 0 },
+            loginDays: { type: Number, default: 0 },
+          },
+          loginStreak: {
+            current: { type: Number, default: 0 },
+            best: { type: Number, default: 0 },
+            lastLoginDay: { type: String, default: null },
+          },
+        },
+        { _id: false }
+      ),
+      default: () => ({
+        counters: {
+          boxesOpened: 0,
+          cardsConverted: 0,
+          battlesPlayed: 0,
+          battlesWon: 0,
+          coinsSpent: 0,
+          loginDays: 0,
+        },
+        loginStreak: { current: 0, best: 0, lastLoginDay: null },
+      }),
     },
     stripeCustomerId: { type: String, default: null },
     stripeIdentityVerificationId: { type: String, default: null },
