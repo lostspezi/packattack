@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 import connectDB from "@/lib/db";
-import PackPull from "@/models/pack-pull";
+import CartItem from "@/models/cart-item";
 import Battle from "@/models/battle";
 import QuizEvent from "@/models/quiz-event";
 import QuizParticipant from "@/models/quiz-participant";
@@ -24,10 +24,10 @@ export async function getHeroAction(userId: string): Promise<HeroAction> {
   await connectDB();
   const uid = new Types.ObjectId(userId);
 
-  const [pendingCount, activeBattle, activeQuiz] = await Promise.all([
-    PackPull.countDocuments({
+  const [cartCount, activeBattle, activeQuiz] = await Promise.all([
+    CartItem.countDocuments({
       userId: uid,
-      status: { $in: ["pending", "reserved"] },
+      status: "reserved",
     }),
     Battle.findOne({
       "players.user": uid,
@@ -38,14 +38,14 @@ export async function getHeroAction(userId: string): Promise<HeroAction> {
     QuizEvent.findOne({ status: "active" }).select("slug startsAt").lean(),
   ]);
 
-  if (pendingCount > 0) {
+  if (cartCount > 0) {
     return {
       kind: "pending_pulls",
-      primaryLabel: `${pendingCount} ${pendingCount === 1 ? "Pull" : "Pulls"} finalisieren`,
+      primaryLabel: `${cartCount} ${cartCount === 1 ? "Karte" : "Karten"} im Warenkorb`,
       primaryHref: "/cart",
       secondaryLabel: "Pack öffnen",
       secondaryHref: "/packs",
-      context: { pendingCount },
+      context: { cartCount },
     };
   }
 

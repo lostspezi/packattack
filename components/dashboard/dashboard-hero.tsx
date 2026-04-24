@@ -12,7 +12,7 @@ interface DashboardHeroProps {
 
 const KIND_BLURB: Record<HeroAction["kind"], string> = {
   pending_pulls:
-    "Du hast noch offene Pulls. Schließ sie ab, dann geht's weiter.",
+    "Du hast Karten im Warenkorb. Checkout abschließen, bevor die Reservierung abläuft.",
   active_battle: "Dein Battle läuft. Spring zurück rein, bevor's eng wird.",
   active_quiz: "Ein Quiz ist live. Mach mit und sicher dir ein Badge.",
   default: "Willkommen zurück. Was machen wir heute?",
