@@ -45,7 +45,7 @@ export default async function DashboardPage({
 
       <PushSubscriptionPrompt />
 
-      <DashboardStatsStrip stats={stats} />
+      <DashboardStatsStrip lang={lang} stats={stats} />
 
       <Suspense fallback={<NewsStripSkeleton />}>
         <DashboardNewsStrip lang={lang} limit={3} />

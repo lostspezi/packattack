@@ -105,7 +105,7 @@ function battleToActivities(
     kind: "battle",
     createdAt: (battle.result.completedAt ?? battle.updatedAt).toISOString(),
     title: won ? "Battle gewonnen" : "Battle verloren",
-    detail: elo ? `Elo ${sign}${eloDelta}` : "",
+    detail: elo ? `Prestige ${sign}${eloDelta}` : "",
     tone,
     meta: {
       battleId: String(battle._id),

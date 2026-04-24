@@ -7,7 +7,6 @@ export interface DashboardStats {
   coins: number;
   pullsTotal: number;
   pullsThisWeek: number;
-  collectionScore: number;
   battle: {
     wins: number;
     losses: number;
@@ -33,25 +32,15 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
   const userObjectId = new Types.ObjectId(userId);
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  const [user, pullsTotal, pullsThisWeek, scoreAgg] = await Promise.all([
+  const [user, pullsTotal, pullsThisWeek] = await Promise.all([
     User.findById(userObjectId).select("coins elo battleStats").lean(),
     PackPull.countDocuments({ userId: userObjectId }),
     PackPull.countDocuments({
       userId: userObjectId,
       createdAt: { $gte: oneWeekAgo },
     }),
-    PackPull.aggregate([
-      {
-        $match: {
-          userId: userObjectId,
-          status: { $in: ["claimed", "converted"] },
-        },
-      },
-      { $group: { _id: null, total: { $sum: "$coinValue" } } },
-    ]),
   ]);
 
-  const collectionScore = (scoreAgg[0]?.total as number) ?? 0;
   const battleStats =
     (user?.battleStats as Partial<typeof ZERO_BATTLE_STATS>) ?? {};
 
@@ -59,7 +48,6 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
     coins: user?.coins ?? 0,
     pullsTotal,
     pullsThisWeek,
-    collectionScore,
     battle: {
       wins: battleStats.wins ?? ZERO_BATTLE_STATS.wins,
       losses: battleStats.losses ?? ZERO_BATTLE_STATS.losses,
