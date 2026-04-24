@@ -32,6 +32,7 @@ interface BoxData {
   packsOpened: number;
   cardsCount: number;
   isTutorial?: boolean;
+  isAchievementBox?: boolean;
   pausedAt?: string | null;
   pausedReason?: { cardId: string; cardName: string; at: string } | null;
   createdAt: string;
@@ -225,6 +226,41 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
     });
   }, [box._id, isDe, toast]);
 
+  const handleToggleAchievementBox = useCallback(async () => {
+    const next = !box.isAchievementBox;
+    setBox((prev) => ({ ...prev, isAchievementBox: next }));
+    try {
+      const res = await fetch(`/api/admin/boxes/${box._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isAchievementBox: next }),
+      });
+      if (!res.ok) {
+        setBox((prev) => ({ ...prev, isAchievementBox: !next }));
+        const body = await res.json().catch(() => ({}));
+        toast({
+          type: "error",
+          title:
+            (body as { error?: string }).error ?? "Failed to update achievement-box flag",
+        });
+        return;
+      }
+      toast({
+        type: "success",
+        title: next
+          ? isDe
+            ? "Als Achievement-Box markiert"
+            : "Marked as achievement box"
+          : isDe
+            ? "Achievement-Box-Flag entfernt"
+            : "Achievement box flag removed",
+      });
+    } catch {
+      setBox((prev) => ({ ...prev, isAchievementBox: !next }));
+      toast({ type: "error", title: "Network error" });
+    }
+  }, [box._id, box.isAchievementBox, isDe, toast]);
+
   const handleToggleTutorial = useCallback(async () => {
     const next = !box.isTutorial;
     setBox((prev) => ({ ...prev, isTutorial: next }));
@@ -356,6 +392,25 @@ export function BoxDetailClient({ lang, dict, initialBox }: BoxDetailClientProps
               : isDe
                 ? "Als Tutorial setzen"
                 : "Set as Tutorial"}
+          </Button>
+          <Button
+            type="button"
+            variant={box.isAchievementBox ? "primary" : "secondary"}
+            size="md"
+            onClick={() => void handleToggleAchievementBox()}
+            title={
+              isDe
+                ? "Diese Box als Achievement-Box markieren — sie taucht dann im Reward-Auswahl Box freischalten auf"
+                : "Mark this box as an achievement box — it shows up in the unlock-box reward picker"
+            }
+          >
+            {box.isAchievementBox
+              ? isDe
+                ? "✓ Achievement-Box"
+                : "✓ Achievement Box"
+              : isDe
+                ? "Als Achievement-Box setzen"
+                : "Mark as Achievement Box"}
           </Button>
           <Button
             type="button"

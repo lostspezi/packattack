@@ -10,6 +10,9 @@ import {
   type BattleEventType,
 } from "@/lib/battle-events";
 import { scheduleBattleJob } from "@/lib/battle-jobs";
+import { grantXp, incrementCounter } from "@/lib/level/grant-xp";
+import { XP_RATES } from "@/lib/level/xp-rates";
+import { fireOnceEvent } from "@/lib/level/grant-xp";
 
 export const SELECT_DEADLINE_MS = 30 * 1000;
 
@@ -222,6 +225,31 @@ async function prepareFinishBattle(
   // Losers: +1 losses, streak reset to 0.
   // Draws: +1 totalBattles only, streak reset to 0, ELO unchanged.
   return async () => {
+    // Level-System: XP + counters + once-event pro Spieler. Fehler
+    // protokolliert und ignoriert — der ELO-Pfad bleibt die maßgebliche
+    // Wahrheit für das Battle-Ergebnis. Wir nutzen allSettled statt all,
+    // damit ein Fehler bei Spieler A die XP-Vergabe für Spieler B nicht
+    // abbricht.
+    const awardLevelRewards = async () => {
+      const results = await Promise.allSettled(
+        playerIds.map(async (playerId) => {
+          const isWinner = !!winnerId && playerId === winnerId;
+          const xp = isWinner ? XP_RATES.BATTLE_WIN : XP_RATES.BATTLE_PARTICIPATE;
+          await grantXp(playerId, xp, isWinner ? "battle_win" : "battle_participate");
+          await incrementCounter(playerId, "battlesPlayed", 1);
+          if (isWinner) {
+            await incrementCounter(playerId, "battlesWon", 1);
+          }
+          await fireOnceEvent(playerId, "first_battle");
+        }),
+      );
+      for (const result of results) {
+        if (result.status === "rejected") {
+          console.error("[battle-flow xp-hooks]", result.reason);
+        }
+      }
+    };
+
     if (!winnerId) {
       // Draw path — still bump totalBattles so stats stay consistent, and
       // reset any ongoing streak since the battle didn't resolve as a win.
@@ -232,6 +260,7 @@ async function prepareFinishBattle(
           $set: { "battleStats.streak": 0 },
         },
       );
+      await awardLevelRewards();
       return;
     }
 
@@ -285,6 +314,8 @@ async function prepareFinishBattle(
         }
       }),
     );
+
+    await awardLevelRewards();
   };
 }
 

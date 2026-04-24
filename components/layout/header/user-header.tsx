@@ -8,6 +8,7 @@ import { LanguageSwitcher } from "../language-switcher";
 import { NotificationBell } from "../notification-bell";
 import { UserDropdown } from "../user-dropdown";
 import { CoinBalance } from "../coin-balance";
+import { useMe } from "../me-provider";
 import { HeaderNav } from "./header-nav";
 import { MegaMenu, type MegaMenuSection } from "./mega-menu";
 import { MobileDrawer } from "./mobile-drawer";
@@ -37,6 +38,9 @@ export function UserHeader({
   const userMenuButtonRef = useRef<HTMLButtonElement>(null);
   const cartState = useCartState();
   const { refreshCart } = cartState;
+  const me = useMe();
+  const userLevel = me?.level ?? 1;
+  const userTitle = me?.title ?? null;
 
   // --- Mega-menu state (lifted here so header + panel share one hover zone) ---
   const [megaMenuSection, setMegaMenuSection] = useState<MegaMenuSection>(null);
@@ -197,7 +201,9 @@ export function UserHeader({
                 />
                 <div className="hidden text-left 3xl:block">
                   <p className="leading-tight text-sm font-medium text-text-primary">{userName}</p>
-                  <p className="leading-tight text-xs text-text-muted">{levelLabel} 1</p>
+                  <p className="leading-tight text-xs text-text-muted">
+                    {userTitle ?? `${levelLabel} ${userLevel}`}
+                  </p>
                 </div>
                 <ChevronDown className="hidden h-4 w-4 text-text-muted 3xl:block" />
               </button>

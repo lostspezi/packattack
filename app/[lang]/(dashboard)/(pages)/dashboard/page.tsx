@@ -8,6 +8,7 @@ import { DashboardHero } from "@/components/dashboard/dashboard-hero";
 import { DashboardStatsStrip } from "@/components/dashboard/dashboard-stats-strip";
 import { DashboardNewsStrip } from "@/components/dashboard/dashboard-news-strip";
 import { DashboardQuickActions } from "@/components/dashboard/dashboard-quick-actions";
+import { DashboardProgressionCard } from "@/components/dashboard/dashboard-progression-card";
 import { DashboardActivityFeed } from "@/components/dashboard/dashboard-activity-feed";
 import { DashboardLiveSidebar } from "@/components/dashboard/dashboard-live-sidebar";
 import { DashboardBadgesShowcase } from "@/components/dashboard/dashboard-badges-showcase";
@@ -52,6 +53,8 @@ export default async function DashboardPage({
       </Suspense>
 
       <DashboardQuickActions lang={lang} />
+
+      <DashboardProgressionCard lang={lang} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">

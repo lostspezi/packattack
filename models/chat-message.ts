@@ -30,6 +30,12 @@ interface IChatAuthorSnapshot {
   profileBadges: IChatProfileBadge[];
   avatarUrl: string | null;
   identityVerified: boolean;
+  /**
+   * Vom Author zum Sendezeitpunkt aktiver Cosmetic-Titel. Snapshot wie der
+   * Username — alte Nachrichten behalten den damaligen Titel, auch wenn der
+   * User später wechselt.
+   */
+  title: string | null;
 }
 
 interface IChatModerationSummary {
@@ -146,6 +152,7 @@ const ChatAuthorSnapshotSchema = new Schema<IChatAuthorSnapshot>(
     profileBadges: { type: [ChatProfileBadgeSchema], default: [] },
     avatarUrl: { type: String, default: null, maxlength: 500 },
     identityVerified: { type: Boolean, default: false },
+    title: { type: String, default: null, maxlength: 64 },
   },
   { _id: false }
 );

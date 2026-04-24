@@ -5,6 +5,7 @@ import type { Locale } from "@/lib/i18n";
 import { Card } from "@/components/ui/card";
 import { SettingsForm } from "@/components/settings/settings-form";
 import { PushNotificationSettings } from "@/components/settings/push-notification-settings";
+import { TitleSection } from "@/components/settings/title-section";
 import { ShopApplyForm } from "@/components/shop/shop-apply-form";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
@@ -52,6 +53,8 @@ export default async function SettingsPage({
           initialSettings={initialSettings}
         />
       </Card>
+
+      <TitleSection lang={lang} />
 
       {/* Browser-Push */}
       <Card variant="soft" className="p-4 md:p-6">

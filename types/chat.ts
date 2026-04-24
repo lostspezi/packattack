@@ -48,6 +48,8 @@ export interface ChatAuthorSummary {
   profileBadges: ChatBadgeSummary[];
   avatarUrl: string | null;
   identityVerified: boolean;
+  /** Cosmetic-Titel zum Sendezeitpunkt; null wenn nicht gesetzt. */
+  title: string | null;
 }
 
 export interface ChatOnlineUserSummary {

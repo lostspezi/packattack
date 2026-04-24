@@ -6,6 +6,9 @@ import CartItem from "@/models/cart-item";
 import PackPull from "@/models/pack-pull";
 import QuizEvent from "@/models/quiz-event";
 import { TOUR_DEFAULTS, type TourState } from "@/lib/packi/tour-validation";
+import { isLevelSystemActive } from "@/lib/level/feature-gate";
+import { getUserEffects } from "@/lib/achievements/effects";
+import { resolveDisplayTitle } from "@/lib/achievements/titles";
 
 function normalizeTour(tour: {
   completed?: boolean;
@@ -49,8 +52,8 @@ export async function GET() {
   try {
     await connectDB();
 
-    const [user, cartItems, hasPending, currentEvent] = await Promise.all([
-      User.findById(userId).select("coins role tour").lean(),
+    const [user, cartItems, hasPending, currentEvent, levelSystemActive] = await Promise.all([
+      User.findById(userId).select("coins role tour level xp equippedTitle").lean(),
       CartItem.find({ userId, status: "reserved" })
         .select("expiresAt")
         .lean(),
@@ -59,6 +62,7 @@ export async function GET() {
         .select("startsAt status")
         .sort({ status: 1, startsAt: 1 })
         .lean(),
+      isLevelSystemActive(),
     ]);
 
     const now = Date.now();
@@ -74,6 +78,12 @@ export async function GET() {
     return NextResponse.json({
       coins: user?.coins ?? 0,
       role: user?.role ?? "user",
+      level: typeof user?.level === "number" ? user.level : 1,
+      xp: typeof user?.xp === "number" ? user.xp : 0,
+      levelSystemActive,
+      title: levelSystemActive
+        ? resolveDisplayTitle(await getUserEffects(userId), user?.equippedTitle ?? null)
+        : null,
       cart: {
         totalItems: cartItems.length,
         cartExpiresInSeconds,

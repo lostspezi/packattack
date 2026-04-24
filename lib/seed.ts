@@ -325,6 +325,10 @@ async function doRunSeed() {
   await syncEmailTemplates();
   await migrateBoxSlugs();
   await seedOP12Box();
+  // Achievements werden bewusst NICHT beim Boot geseedet. Andernfalls würde
+  // jedes Deployment 16 Default-Achievements aktivieren und das XP-Feature-
+  // Gate sofort öffnen. Stattdessen legt der Admin sie selbst im Panel an
+  // (oder ruft `seedAchievements` aus `@/seed/achievements` per Skript auf).
 
   const duration = (performance.now() - start).toFixed(0);
   console.log(`[seed] Seed complete in ${duration}ms.`);

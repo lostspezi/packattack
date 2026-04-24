@@ -443,6 +443,7 @@ export function serializeChatMessage(
           profileBadges,
           avatarUrl: message.authorSnapshot.avatarUrl,
           identityVerified: message.authorSnapshot.identityVerified,
+          title: message.authorSnapshot.title ?? null,
         }
       : null,
     mentionTargets: (message.mentionTargets ?? []).map((target) => toMentionTargetSummary(target)),

@@ -27,6 +27,8 @@ import {
 import { escapeMentionRegex, extractMentionUsernames } from "@/lib/chat-mentions";
 import { containsChatLink, normalizeChatBody } from "@/lib/chat-links";
 import { getLegacyBadgeSummaries, getUserBadgeSummariesForUsers } from "@/lib/badges";
+import { getUserEffects } from "@/lib/achievements/effects";
+import { resolveDisplayTitle } from "@/lib/achievements/titles";
 import { sanitizeIncomingChatGif } from "@/lib/giphy";
 import { moderateChatMessage } from "@/lib/chat-moderation";
 import { assertChatSubmissionAllowed } from "@/lib/chat-rate-limit";
@@ -349,6 +351,21 @@ export async function POST(req: NextRequest) {
     const profileBadges =
       badgeMap.get(normalizedUser._id.toString()) ??
       getLegacyBadgeSummaries(normalizedUser as never);
+
+    // Cosmetic-Titel zum Sendezeitpunkt einfrieren — gleiches Snapshot-Pattern
+    // wie für username/roleBadge. Kein aktives Achievement-System ⇒ titles-Liste
+    // ist leer ⇒ resolveDisplayTitle returnt null ⇒ kein Titel im Snapshot.
+    let snapshotTitle: string | null = null;
+    try {
+      const effects = await getUserEffects(normalizedUser._id);
+      snapshotTitle = resolveDisplayTitle(
+        effects,
+        (normalizedUser as { equippedTitle?: string | null }).equippedTitle ?? null,
+      );
+    } catch (err) {
+      console.error("[chat author title]", err);
+    }
+
     const message = await ChatMessage.create({
       roomId: room._id,
       roomSlug: room.slug,
@@ -379,6 +396,7 @@ export async function POST(req: NextRequest) {
         })),
         avatarUrl: normalizedUser.image ?? null,
         identityVerified: Boolean(normalizedUser.identityVerified),
+        title: snapshotTitle,
       },
       bodyOriginal: normalizedBody,
       bodyNormalized: normalizedBody.toLowerCase(),

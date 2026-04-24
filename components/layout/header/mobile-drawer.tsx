@@ -6,6 +6,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown } from "lucide-react";
 import { LanguageSwitcher } from "../language-switcher";
+import { useMe } from "../me-provider";
 import type { CartState } from "./use-cart-state";
 import { NAV_ITEMS, type NavItem, isNavItemActive } from "./nav-config";
 import { EventCountdownBadge } from "@/components/events/event-countdown-badge";
@@ -34,6 +35,8 @@ export function MobileDrawer({
   levelLabel,
 }: MobileDrawerProps) {
   const pathname = usePathname();
+  const me = useMe();
+  const userLevel = me?.level ?? 1;
 
   const [expandedKey, setExpandedKey] = useState<string | null>(null);
 
@@ -221,7 +224,9 @@ export function MobileDrawer({
             />
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-text-primary">{userName}</p>
-              <p className="text-xs text-text-muted">{levelLabel} 1</p>
+              <p className="text-xs text-text-muted truncate">
+                {me?.title ?? `${levelLabel} ${userLevel}`}
+              </p>
             </div>
           </div>
         </div>

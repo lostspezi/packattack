@@ -7,6 +7,7 @@ import { MeProvider } from "@/components/layout/me-provider";
 import { PendingPullsGuard } from "@/components/packs/pending-pulls-guard";
 import { PackiProvider } from "@/components/packi/packi-provider";
 import { TourProvider } from "@/components/tour/tour-provider";
+import { LevelUpModal } from "@/components/level/level-up-modal";
 import { ONBOARDING_STEPS } from "@/lib/tour/steps/onboarding";
 import { auth } from "@/lib/auth";
 import { getActiveLanguages, getDictionary } from "@/lib/i18n";
@@ -59,6 +60,7 @@ export default async function DashboardLayout({
               userRole={userRole}
             />
             <Footer lang={lang} dict={footerDict} />
+            <LevelUpModal />
           </DashboardShell>
         </PackiProvider>
       </TourProvider>
