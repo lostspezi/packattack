@@ -4,6 +4,22 @@ import PackPull from "@/models/pack-pull";
 import { drawBattleHand, type BoxCardForBattle } from "@/lib/battle-engine";
 import type { IVirtualCard } from "@/models/battle";
 
+// ---------- Box card cache ----------
+
+// Loading a Box with populated cards is the single most expensive query in
+// the battle hot path — it fires for every round, every time. Caching the
+// prepared card array for a short window cuts 7 identical populate()
+// queries per 7-round battle down to 1.
+const BOX_CARD_CACHE_TTL_MS = 5 * 60 * 1000;
+const boxCardCache = new Map<
+  string,
+  { cards: BoxCardForBattle[]; expiresAt: number }
+>();
+
+export function invalidateBoxCardCache(boxId: string): void {
+  boxCardCache.delete(boxId);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function prepareBoxCardsForBattle(box: any): BoxCardForBattle[] {
   const cards = (box.cards ?? []) as Array<{
@@ -33,6 +49,32 @@ export function prepareBoxCardsForBattle(box: any): BoxCardForBattle[] {
         stock: c.stock,
       };
     });
+}
+
+/**
+ * Load box cards ready for battle drawing, caching the prepared array so
+ * subsequent rounds in the same battle skip the Mongo populate.
+ *
+ * The returned array is a fresh copy — callers may mutate `stock` freely
+ * (drawBattleHandCards does) without poisoning the cache.
+ */
+export async function loadBattleBoxCards(
+  boxId: string | mongoose.Types.ObjectId,
+): Promise<BoxCardForBattle[]> {
+  const key = boxId.toString();
+  const cached = boxCardCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.cards.map((c) => ({ ...c }));
+  }
+
+  const box = await Box.findById(boxId)
+    .populate("cards.card", "name image rarity internalPrice marketPrice")
+    .lean();
+  if (!box) throw new Error(`Box ${key} not found`);
+
+  const cards = prepareBoxCardsForBattle(box);
+  boxCardCache.set(key, { cards, expiresAt: Date.now() + BOX_CARD_CACHE_TTL_MS });
+  return cards.map((c) => ({ ...c }));
 }
 
 /**
