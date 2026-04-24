@@ -41,7 +41,7 @@ interface SendResult {
   failed: number;
 }
 
-async function sendToSubscriptions(
+export async function sendPushToSubscriptions(
   subs: IPushSubscription[],
   payload: PushPayload
 ): Promise<SendResult> {
@@ -97,13 +97,13 @@ export async function sendPushToUser(
 ): Promise<SendResult> {
   await connectDB();
   const subs = await PushSubscription.find({ userId }).lean();
-  return sendToSubscriptions(subs as unknown as IPushSubscription[], payload);
+  return sendPushToSubscriptions(subs as unknown as IPushSubscription[], payload);
 }
 
 export async function sendPushBroadcast(payload: PushPayload): Promise<SendResult> {
   await connectDB();
   const subs = await PushSubscription.find().lean();
-  return sendToSubscriptions(subs as unknown as IPushSubscription[], payload);
+  return sendPushToSubscriptions(subs as unknown as IPushSubscription[], payload);
 }
 
 export function isPushConfigured(): boolean {

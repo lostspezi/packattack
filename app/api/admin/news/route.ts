@@ -6,6 +6,7 @@ import connectDB from "@/lib/db";
 import User from "@/models/user";
 import NewsPost, { type NewsPostType } from "@/models/news-post";
 import { deleteNewsImage, uploadNewsImage } from "@/lib/gridfs-news";
+import { notifyNewsPublished } from "@/lib/push/notify-news";
 
 const VALID_TYPES: NewsPostType[] = ["release", "event", "community"];
 const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -125,6 +126,13 @@ export async function POST(req: NextRequest) {
         publishedAt: status === "published" ? now : null,
         authorId: session.user.id,
       });
+
+      if (post.status === "published") {
+        // Fire-and-forget; don't block the admin response on broadcast errors.
+        notifyNewsPublished(post).catch((err) => {
+          console.error("[admin/news POST] notify failed:", err);
+        });
+      }
 
       return NextResponse.json(
         {

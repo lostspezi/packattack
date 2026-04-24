@@ -6,6 +6,7 @@ import connectDB from "@/lib/db";
 import User from "@/models/user";
 import NewsPost, { type NewsPostType } from "@/models/news-post";
 import { deleteNewsImage, uploadNewsImage } from "@/lib/gridfs-news";
+import { notifyNewsPublished } from "@/lib/push/notify-news";
 
 const VALID_TYPES: NewsPostType[] = ["release", "event", "community"];
 const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -117,6 +118,7 @@ export async function PATCH(
     }
 
     const status = form.get("status");
+    let publishTriggered = false;
     if (typeof status === "string") {
       if (status !== "draft" && status !== "published") {
         return NextResponse.json({ error: "invalid_status" }, { status: 400 });
@@ -125,6 +127,7 @@ export async function PATCH(
       post.status = status;
       if (status === "published" && !wasPublished) {
         post.publishedAt = new Date();
+        publishTriggered = true;
       }
       if (status === "draft") {
         post.publishedAt = null;
@@ -180,6 +183,13 @@ export async function PATCH(
     if (previousImageId && (newImageId || removeImage)) {
       await deleteNewsImage(previousImageId).catch(() => {
         /* best-effort */
+      });
+    }
+
+    if (publishTriggered) {
+      // Fire-and-forget broadcast.
+      notifyNewsPublished(post).catch((err) => {
+        console.error("[admin/news/[id] PATCH] notify failed:", err);
       });
     }
 
