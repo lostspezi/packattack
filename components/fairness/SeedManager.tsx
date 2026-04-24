@@ -2,9 +2,24 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CLIENT_SEED_PATTERN } from "@/lib/fairness";
+import { CLIENT_SEED_PATTERN, randomHex } from "@/lib/fairness";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+
+type SeedState =
+  | { kind: "empty" }
+  | { kind: "too_short"; missing: number }
+  | { kind: "too_long"; over: number }
+  | { kind: "bad_chars" }
+  | { kind: "ok" };
+
+function seedState(v: string): SeedState {
+  if (v.length === 0) return { kind: "empty" };
+  if (v.length < 8) return { kind: "too_short", missing: 8 - v.length };
+  if (v.length > 64) return { kind: "too_long", over: v.length - 64 };
+  if (!/^[A-Za-z0-9_-]+$/.test(v)) return { kind: "bad_chars" };
+  return { kind: "ok" };
+}
 
 export interface FairnessStateProps {
   clientSeed: string | null;
@@ -42,6 +57,15 @@ export default function SeedManager(props: FairnessStateProps) {
   const [revealData, setRevealData] = useState<RevealModalData | null>(null);
 
   const seedValid = CLIENT_SEED_PATTERN.test(clientSeed);
+  const state = seedState(clientSeed);
+
+  function generateClientSeed() {
+    // randomHex is the same helper the server uses for auto-init, so
+    // users who hit "Zufällig" land on an equivalent byte-strength seed.
+    setClientSeed(randomHex(16));
+    setSeedSaveNote(null);
+    setSeedSaveError(null);
+  }
 
   async function saveClientSeed() {
     setSavingSeed(true);
@@ -135,19 +159,33 @@ export default function SeedManager(props: FairnessStateProps) {
           8 bis 64 Zeichen: Buchstaben, Ziffern, Bindestrich, Unterstrich.
         </p>
         <div className="flex flex-col gap-2">
-          <input
-            type="text"
-            value={clientSeed}
-            onChange={(e) => setClientSeed(e.target.value)}
-            className="bg-white/3 border border-white/8 rounded-[10px] px-3 py-2 font-mono text-sm"
-            placeholder="z.B. my-lucky-seed-2026"
-            spellCheck={false}
-          />
-          <div className="flex items-center justify-between">
-            <span className="text-xs text-text-secondary">
-              {clientSeed ? (seedValid ? "Format OK" : "Ungültiges Format") : "Leer"}
-            </span>
-            <Button size="sm" onClick={saveClientSeed} disabled={!seedValid || savingSeed} loading={savingSeed}>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={clientSeed}
+              onChange={(e) => setClientSeed(e.target.value)}
+              className="flex-1 bg-white/3 border border-white/8 rounded-[10px] px-3 py-2 font-mono text-sm"
+              placeholder="Eigenen Seed tippen oder 'Zufällig' nutzen"
+              spellCheck={false}
+            />
+            <Button
+              size="sm"
+              variant="secondary"
+              type="button"
+              onClick={generateClientSeed}
+              title="Einen zufälligen, kryptographisch sicheren Seed erzeugen"
+            >
+              Zufällig
+            </Button>
+          </div>
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <SeedStatusIndicator state={state} length={clientSeed.length} />
+            <Button
+              size="sm"
+              onClick={saveClientSeed}
+              disabled={!seedValid || savingSeed}
+              loading={savingSeed}
+            >
               Speichern
             </Button>
           </div>
@@ -222,5 +260,43 @@ export default function SeedManager(props: FairnessStateProps) {
         )}
       </Card>
     </div>
+  );
+}
+
+function SeedStatusIndicator({ state, length }: { state: SeedState; length: number }) {
+  let dotClass = "bg-white/20";
+  let label = "Noch nichts eingegeben";
+  let tone = "text-text-secondary";
+
+  switch (state.kind) {
+    case "empty":
+      break;
+    case "too_short":
+      dotClass = "bg-error";
+      tone = "text-error-light";
+      label = `Zu kurz — noch ${state.missing} Zeichen fehlen (mind. 8)`;
+      break;
+    case "too_long":
+      dotClass = "bg-error";
+      tone = "text-error-light";
+      label = `Zu lang — ${state.over} Zeichen zu viel (max. 64)`;
+      break;
+    case "bad_chars":
+      dotClass = "bg-error";
+      tone = "text-error-light";
+      label = "Ungültige Zeichen — erlaubt: A–Z, a–z, 0–9, - _";
+      break;
+    case "ok":
+      dotClass = "bg-pa-green";
+      tone = "text-pa-green";
+      label = `Gültig · ${length} Zeichen`;
+      break;
+  }
+
+  return (
+    <span className={`inline-flex items-center gap-2 text-xs ${tone}`}>
+      <span className={`inline-block w-2 h-2 rounded-full ${dotClass}`} aria-hidden="true" />
+      {label}
+    </span>
   );
 }
