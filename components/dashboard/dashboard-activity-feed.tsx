@@ -107,12 +107,12 @@ export function DashboardActivityFeed({ initialItems }: DashboardActivityFeedPro
           </p>
         </Card>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2" aria-live="polite" aria-relevant="additions">
           {items.map((item) => {
             const Icon = KIND_ICON[item.kind] ?? Package;
             const isNew = highlight === item.id;
             return (
-              <li key={item.id}>
+              <li key={item.id} className={isNew ? "animate-activity-fade-in" : ""}>
                 <Card
                   variant="soft"
                   className={`p-3 flex items-center gap-3 transition-colors ${

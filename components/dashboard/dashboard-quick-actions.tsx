@@ -67,13 +67,17 @@ export function DashboardQuickActions({ lang }: DashboardQuickActionsProps) {
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {tiles.map((tile) => (
-          <Link key={tile.href} href={`/${lang}${tile.href}`}>
+          <Link
+            key={tile.href}
+            href={`/${lang}${tile.href}`}
+            className="group focus:outline-none focus-visible:ring-2 focus-visible:ring-pa-green/40 rounded-[14px]"
+          >
             <Card
               variant="soft"
-              className="p-4 h-full transition-colors hover:bg-white/6 cursor-pointer"
+              className="p-4 h-full transition-all duration-200 group-hover:bg-white/6 group-hover:border-pa-green/20 group-hover:-translate-y-0.5 group-hover:shadow-[0_0_24px_-8px_rgba(155,255,0,0.35)] cursor-pointer"
             >
               <div className="flex flex-col gap-2">
-                <div className="w-10 h-10 rounded-lg bg-pa-green/10 flex items-center justify-center text-pa-green">
+                <div className="w-10 h-10 rounded-lg bg-pa-green/10 flex items-center justify-center text-pa-green transition-colors group-hover:bg-pa-green/20">
                   {tile.icon}
                 </div>
                 <p className="text-text-primary font-semibold text-sm">
