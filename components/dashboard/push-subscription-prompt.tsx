@@ -1,180 +1,45 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Bell, BellOff } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bell, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { usePushSubscription } from "@/lib/push/use-push-subscription";
 
-type PromptState =
-  | "loading"
-  | "unsupported"
-  | "denied"
-  | "subscribed"
-  | "available";
-
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = atob(base64);
-  const output = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; i += 1) {
-    output[i] = rawData.charCodeAt(i);
-  }
-  return output;
-}
-
-async function getActiveSubscription(): Promise<PushSubscription | null> {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
-  const reg = await navigator.serviceWorker.ready;
-  return reg.pushManager.getSubscription();
-}
+const DISMISS_STORAGE_KEY = "packattack:push-prompt-dismissed";
 
 export function PushSubscriptionPrompt() {
-  const [state, setState] = useState<PromptState>("loading");
-  const [working, setWorking] = useState(false);
-
-  const evaluate = useCallback(async () => {
-    if (typeof window === "undefined") return;
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      setState("unsupported");
-      return;
-    }
-    if (Notification.permission === "denied") {
-      setState("denied");
-      return;
-    }
-    const sub = await getActiveSubscription();
-    setState(sub ? "subscribed" : "available");
-  }, []);
+  const { state, working, subscribe } = usePushSubscription();
+  const [dismissed, setDismissed] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      if (typeof window === "undefined") return;
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        setState("unsupported");
-        return;
-      }
-      // Don't register the SW eagerly — registration happens on user opt-in
-      // (the Aktivieren button). This avoids a fresh SW install racing with
-      // Next.js RSC prefetches on the dashboard.
-      const existing = await navigator.serviceWorker.getRegistration("/sw.js");
-      if (!existing) {
-        if (!cancelled) {
-          setState(Notification.permission === "denied" ? "denied" : "available");
-        }
-        return;
-      }
-      if (!cancelled) await evaluate();
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [evaluate]);
-
-  const subscribe = async () => {
-    setWorking(true);
+    // One-shot hydration from localStorage. The rule generally guards against
+    // re-render loops, but here the effect runs exactly once on mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHydrated(true);
     try {
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        setState(permission === "denied" ? "denied" : "available");
-        return;
-      }
-
-      const keyRes = await fetch("/api/push/vapid-public-key");
-      if (!keyRes.ok) throw new Error("vapid_unavailable");
-      const { key } = (await keyRes.json()) as { key: string };
-
-      // Register SW on opt-in (idempotent — getRegistration returns existing one).
-      let reg = await navigator.serviceWorker.getRegistration("/sw.js");
-      if (!reg) {
-        reg = await navigator.serviceWorker.register("/sw.js");
-      }
-      await navigator.serviceWorker.ready;
-
-      const keyBytes = urlBase64ToUint8Array(key);
-      const sub = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: keyBytes.buffer.slice(
-          keyBytes.byteOffset,
-          keyBytes.byteOffset + keyBytes.byteLength
-        ) as ArrayBuffer,
-      });
-
-      const subJson = sub.toJSON();
-      const res = await fetch("/api/push/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          endpoint: subJson.endpoint,
-          keys: subJson.keys,
-          userAgent: navigator.userAgent,
-        }),
-      });
-      if (!res.ok) throw new Error("subscribe_failed");
-      setState("subscribed");
-    } catch (err) {
-      console.warn("[push] subscribe failed:", err);
-      await evaluate();
-    } finally {
-      setWorking(false);
+      setDismissed(localStorage.getItem(DISMISS_STORAGE_KEY) === "1");
+    } catch {
+      /* localStorage blocked — show the banner */
     }
+  }, []);
+
+  const dismiss = () => {
+    try {
+      localStorage.setItem(DISMISS_STORAGE_KEY, "1");
+    } catch {
+      /* ignore */
+    }
+    setDismissed(true);
   };
 
-  const unsubscribe = async () => {
-    setWorking(true);
-    try {
-      const sub = await getActiveSubscription();
-      if (!sub) {
-        setState("available");
-        return;
-      }
-      const endpoint = sub.endpoint;
-      await sub.unsubscribe();
-      await fetch(`/api/push/subscribe?endpoint=${encodeURIComponent(endpoint)}`, {
-        method: "DELETE",
-      });
-      setState("available");
-    } catch (err) {
-      console.warn("[push] unsubscribe failed:", err);
-      await evaluate();
-    } finally {
-      setWorking(false);
-    }
-  };
-
-  if (state === "loading" || state === "unsupported") return null;
-
-  if (state === "denied") {
-    return (
-      <Card variant="soft" className="p-3 text-sm text-text-muted flex items-center gap-2">
-        <BellOff className="w-4 h-4 shrink-0" />
-        <span>
-          Browser-Benachrichtigungen sind blockiert. Du kannst sie in den
-          Browser-Einstellungen wieder erlauben.
-        </span>
-      </Card>
-    );
-  }
-
-  if (state === "subscribed") {
-    return (
-      <Card variant="soft" className="p-3 text-sm flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-text-secondary">
-          <Bell className="w-4 h-4 text-pa-green" />
-          <span>News landen direkt im Browser.</span>
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={unsubscribe}
-          loading={working}
-        >
-          Abbestellen
-        </Button>
-      </Card>
-    );
-  }
+  // Only show the nudge while we are eligible to subscribe AND the user has
+  // not asked us to stop nagging. Subscribed / denied / unsupported states
+  // belong on the settings page.
+  if (!hydrated) return null;
+  if (dismissed) return null;
+  if (state !== "available") return null;
 
   return (
     <Card variant="topline" className="p-4 flex items-center justify-between gap-3">
@@ -188,13 +53,23 @@ export function PushSubscriptionPrompt() {
           </p>
           <p className="text-text-secondary text-xs mt-0.5">
             Erlaube Browser-Benachrichtigungen, um neue Releases und Events sofort
-            zu sehen.
+            zu sehen. Kannst du jederzeit in den Einstellungen ändern.
           </p>
         </div>
       </div>
-      <Button onClick={subscribe} loading={working} size="sm">
-        Aktivieren
-      </Button>
+      <div className="flex items-center gap-2 shrink-0">
+        <Button onClick={subscribe} loading={working} size="sm">
+          Aktivieren
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={dismiss}
+          aria-label="Banner ausblenden"
+        >
+          <X className="w-4 h-4" />
+        </Button>
+      </div>
     </Card>
   );
 }

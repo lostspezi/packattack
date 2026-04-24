@@ -41,9 +41,9 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-8" data-tour="dashboard-welcome">
-      <DashboardHero lang={lang} userName={userName} hero={hero} />
-
       <PushSubscriptionPrompt />
+
+      <DashboardHero lang={lang} userName={userName} hero={hero} />
 
       <DashboardStatsStrip lang={lang} stats={stats} />
 
