@@ -10,7 +10,15 @@ import PackPull from "@/models/pack-pull";
 import PackOpenSession from "@/models/pack-open-session";
 import CoinTransaction from "@/models/coin-transaction";
 import Notification from "@/models/notification";
-import { drawPacks, type PackCard } from "@/lib/pack-engine";
+import PackOpenCommitment from "@/models/pack-open-commitment";
+import { drawPacksWithFairness, type PackCard } from "@/lib/pack-engine";
+import {
+  computePoolHash,
+  createFairnessRng,
+  scaleWeight,
+  type PoolEntry,
+} from "@/lib/fairness";
+import { ensureClientSeed, reserveNonces } from "@/lib/fairness-server";
 
 export async function POST(
   req: NextRequest,
@@ -41,6 +49,11 @@ export async function POST(
   // Hoisted so the outer catch can clean up the session mutex if anything
   // between `PackOpenSession.create` and the success response throws.
   let heldSessionKey: string | null = null;
+  // Track how many coins we deducted so the outer catch can refund them if
+  // the draw or persistence step fails after the atomic $inc. Without this
+  // a transient Mongo error between coin-deduct and PackPull.insertMany
+  // would silently burn the user's coins.
+  let deductedCoins = 0;
 
   try {
     await connectDB();
@@ -100,6 +113,7 @@ export async function POST(
       await PackOpenSession.deleteOne({ userId, packGroupId });
       return NextResponse.json({ error: "Insufficient coins" }, { status: 400 });
     }
+    deductedCoins = totalCost;
 
     // 4. Build card pool from box
     const cardEntries = box.cards as Array<{
@@ -132,21 +146,66 @@ export async function POST(
     if (packCards.length === 0) {
       // Refund coins + release session — no cards available
       await User.findByIdAndUpdate(userId, { $inc: { coins: totalCost } });
+      deductedCoins = 0;
       await PackOpenSession.deleteOne({ userId, packGroupId });
       return NextResponse.json({ error: "No available cards in this box" }, { status: 400 });
     }
 
-    // 5. Draw cards
-    const result = drawPacks(
+    // 5. Fairness wiring — auto-init client seed, reserve nonce range,
+    // snapshot the pool, commit BEFORE any mutating draw step so every
+    // downstream record has an immutable hash chain back to the seed.
+    const totalDraws = packCount * box.cardsPerPack;
+    const clientSeed = await ensureClientSeed(userId);
+    const { seed: reservedSeed, nonceStart } = await reserveNonces(userId, totalDraws);
+    const nonceEnd = nonceStart + totalDraws;
+
+    const poolEntries: PoolEntry[] = packCards.map((c) => ({
+      cardId: c.cardId,
+      weight: scaleWeight(c.weight),
+      stock: c.stock,
+    }));
+    const poolHash = await computePoolHash(poolEntries);
+
+    const commitment = await PackOpenCommitment.create({
+      userId,
+      packGroupId,
+      boxId: realBoxId,
+      serverSeedId: reservedSeed._id,
+      serverSeedHashAtOpen: reservedSeed.serverSeedHash,
+      clientSeed,
+      nonceStart,
+      nonceEnd,
+      poolSnapshot: poolEntries.map((e) => ({
+        cardId: new Types.ObjectId(e.cardId),
+        weight: e.weight,
+        stockAtOpen: e.stock,
+      })),
+      poolHash,
+    });
+
+    // 6. Draw cards
+    const rng = createFairnessRng({
+      serverSeed: reservedSeed.serverSeed,
+      clientSeed,
+      nonceStart,
+      poolHash,
+    });
+    const result = await drawPacksWithFairness(
       packCards,
       box.cardsPerPack,
       packCount,
       box.priceInCoins,
+      rng,
     );
 
     if (result.drawnCards.length === 0) {
-      // Refund coins + release session — couldn't draw
+      // Refund coins + release session. The commitment remains as a
+      // deliberate audit trail: the nonce range is "burned" (FairnessSeed
+      // already advanced) so user-side verification sees a commitment with
+      // zero pulls — rare, but honest. /api/fairness/commitment treats
+      // zero-pull commitments as a valid abandoned-draw state.
       await User.findByIdAndUpdate(userId, { $inc: { coins: totalCost } });
+      deductedCoins = 0;
       await PackOpenSession.deleteOne({ userId, packGroupId });
       return NextResponse.json({ error: "Could not draw cards" }, { status: 400 });
     }
@@ -176,8 +235,14 @@ export async function POST(
       ipAddress: ip,
       userAgent: ua,
       expiresAt: pullExpiresAt,
+      fairnessCommitmentId: commitment._id,
+      fairnessNonce: nonceStart + i,
     }));
     await PackPull.insertMany(pullDocs);
+    // Pulls are durable — from here on a server error is recoverable by the
+    // user-facing decide flow, not by a coin refund, so stop tracking the
+    // deduction for catch-path cleanup.
+    deductedCoins = 0;
 
     // 8. Atomically reduce stock per drawn card (race-condition safe)
     const stockUpdates: Record<string, number> = {};
@@ -277,6 +342,11 @@ export async function POST(
       totalCost,
       newBalance: user.coins,
       cards: result.drawnCards,
+      fairnessProof: {
+        commitmentId: commitment._id.toString(),
+        nonceStart,
+        nonceEnd,
+      },
     });
   } catch (err) {
     console.error("[packs/[id]/open POST]", err);
@@ -284,6 +354,12 @@ export async function POST(
     // 5-minute TTL after a server error between session-create and response.
     if (heldSessionKey) {
       await PackOpenSession.deleteOne({ userId, packGroupId: heldSessionKey }).catch(() => {});
+    }
+    // Refund any coins we had deducted but hadn't yet compensated with real
+    // PackPulls — a transient Mongo error between coin-deduct and pull-write
+    // would otherwise silently consume the user's balance.
+    if (deductedCoins > 0) {
+      await User.updateOne({ _id: userId }, { $inc: { coins: deductedCoins } }).catch(() => {});
     }
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }

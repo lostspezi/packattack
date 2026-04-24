@@ -266,10 +266,18 @@ export function createFairnessRng(args: {
 /**
  * Math.random()-based RNG, used by the battle hand path. Kept here so the
  * walk-pool contract is shared across every draw-site in the codebase.
+ * Asserts totalWeight fits in a safe integer — see mathRandomBucket in
+ * pack-engine for the same guard.
  */
+const MAX_SAFE_RNG_TOTAL = BigInt(Number.MAX_SAFE_INTEGER);
+
 export function createMathRandomRng(): RngStep {
   return async (totalWeight: bigint) => {
-    const tw = Number(totalWeight);
-    return BigInt(Math.floor(Math.random() * tw));
+    if (totalWeight > MAX_SAFE_RNG_TOTAL) {
+      throw new Error(
+        `createMathRandomRng: totalWeight ${totalWeight} exceeds Number.MAX_SAFE_INTEGER`,
+      );
+    }
+    return BigInt(Math.floor(Math.random() * Number(totalWeight)));
   };
 }
