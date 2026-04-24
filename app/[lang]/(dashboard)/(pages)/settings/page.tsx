@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
@@ -49,6 +50,38 @@ export default async function SettingsPage({
           lang={lang}
           initialSettings={initialSettings}
         />
+      </Card>
+
+      {/* Fairness & History */}
+      <Card variant="soft" className="p-4 md:p-6">
+        <h3 className="text-base font-semibold text-text-primary mb-1">
+          {lang === "de" ? "Fairness & History" : "Fairness & History"}
+        </h3>
+        <p className="text-sm text-text-secondary mb-4">
+          {lang === "de"
+            ? "Verwalte deine Provably-Fair-Seeds und sieh dir deine komplette Pull-History an."
+            : "Manage your provably-fair seeds and review your entire pull history."}
+        </p>
+        <div className="flex flex-wrap gap-3 text-sm">
+          <Link
+            href={`/${lang}/account/fairness`}
+            className="bg-white/5 border border-white/10 rounded-[10px] px-4 py-2 hover:border-pa-green/40"
+          >
+            {lang === "de" ? "Fairness & Seeds" : "Fairness & seeds"}
+          </Link>
+          <Link
+            href={`/${lang}/account/history`}
+            className="bg-white/5 border border-white/10 rounded-[10px] px-4 py-2 hover:border-pa-green/40"
+          >
+            {lang === "de" ? "Pull-History" : "Pull history"}
+          </Link>
+          <Link
+            href={`/${lang}/provably-fair`}
+            className="bg-white/5 border border-white/10 rounded-[10px] px-4 py-2 hover:border-pa-green/40 text-pa-green"
+          >
+            {lang === "de" ? "Wie funktioniert das?" : "How does it work?"}
+          </Link>
+        </div>
       </Card>
 
       {/* Als Shop bewerben */}
