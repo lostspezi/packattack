@@ -32,6 +32,7 @@ export interface PushPayload {
   url?: string;
   tag?: string;
   icon?: string;
+  image?: string;
 }
 
 interface SendResult {

@@ -29,8 +29,14 @@ function buildExcerpt(post: Pick<INewsPost, "excerpt" | "body">): string {
   return source.length > 200 ? `${source.slice(0, 199)}…` : source;
 }
 
+function absoluteUrl(path: string): string {
+  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/+$/, "");
+  if (!base) return path;
+  return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+}
+
 export async function notifyNewsPublished(
-  post: Pick<INewsPost, "_id" | "title" | "type" | "excerpt" | "body">
+  post: Pick<INewsPost, "_id" | "title" | "type" | "excerpt" | "body" | "imageId">
 ): Promise<NotifyResult> {
   await connectDB();
 
@@ -121,6 +127,9 @@ export async function notifyNewsPublished(
     body: message,
     url: BROADCAST_URL,
     tag: `news:${entityId}`,
+    image: post.imageId
+      ? absoluteUrl(`/api/news/images/${String(post.imageId)}`)
+      : undefined,
   });
 
   return {
