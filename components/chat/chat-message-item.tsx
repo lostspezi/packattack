@@ -130,6 +130,11 @@ function ChatMessageItemImpl({
                       </span>
                     ) : null}
                   </div>
+                  {message.author.title ? (
+                    <span className="block truncate text-[11px] leading-tight text-text-muted">
+                      {message.author.title}
+                    </span>
+                  ) : null}
                 </div>
               </button>
               {message.author.profileBadges.length ? (
