@@ -34,7 +34,7 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
   const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
   const [user, pullsTotal, pullsThisWeek, scoreAgg] = await Promise.all([
-    User.findById(userObjectId).select("coins battleStats").lean(),
+    User.findById(userObjectId).select("coins elo battleStats").lean(),
     PackPull.countDocuments({ userId: userObjectId }),
     PackPull.countDocuments({
       userId: userObjectId,
@@ -52,7 +52,8 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
   ]);
 
   const collectionScore = (scoreAgg[0]?.total as number) ?? 0;
-  const battleStats = (user?.battleStats as Partial<typeof ZERO_BATTLE_STATS>) ?? {};
+  const battleStats =
+    (user?.battleStats as Partial<typeof ZERO_BATTLE_STATS>) ?? {};
 
   return {
     coins: user?.coins ?? 0,
@@ -65,7 +66,7 @@ export async function getDashboardStats(userId: string): Promise<DashboardStats>
       streak: battleStats.streak ?? ZERO_BATTLE_STATS.streak,
       bestStreak: battleStats.bestStreak ?? ZERO_BATTLE_STATS.bestStreak,
       totalBattles: battleStats.totalBattles ?? ZERO_BATTLE_STATS.totalBattles,
-      elo: battleStats.elo ?? ZERO_BATTLE_STATS.elo,
+      elo: (user?.elo as number | undefined) ?? ZERO_BATTLE_STATS.elo,
     },
   };
 }
