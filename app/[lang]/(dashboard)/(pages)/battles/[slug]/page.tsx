@@ -237,7 +237,12 @@ export default function BattleDetailPage() {
   }[]>([]);
   // Queue next round data so reveal animation can finish
   const pendingRoundRef = useRef<{ hand: VirtualCard[] | null; deadline: string; roundNumber: number } | null>(null);
+  // Timer holding the 4 s reveal animation — checked by other branches to
+  // know whether a reveal is currently on screen.
   const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Separate timer for the short debounce after round_start, so it cannot be
+  // confused with an active reveal animation.
+  const roundStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revealPayloadRef = useRef<{
     roundNumber: number;
     players: { userId: string; username: string; card: { name: string; image: string; coinValue: number } }[];
@@ -289,6 +294,10 @@ export default function BattleDetailPage() {
         pendingRoundRef.current = null;
 
         if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+        if (roundStartTimerRef.current) {
+          clearTimeout(roundStartTimerRef.current);
+          roundStartTimerRef.current = null;
+        }
         revealTimerRef.current = setTimeout(() => {
           revealTimerRef.current = null;
           activeRevealRef.current = null;
@@ -338,6 +347,7 @@ export default function BattleDetailPage() {
             setRevealData(null);
             // Clear any stale timers/pending data
             if (revealTimerRef.current) { clearTimeout(revealTimerRef.current); revealTimerRef.current = null; }
+            if (roundStartTimerRef.current) { clearTimeout(roundStartTimerRef.current); roundStartTimerRef.current = null; }
             pendingRoundRef.current = null;
             activeRevealRef.current = null;
           }
@@ -347,6 +357,7 @@ export default function BattleDetailPage() {
           setRevealData(null);
           setSelectedCardIndex(null);
           if (revealTimerRef.current) { clearTimeout(revealTimerRef.current); revealTimerRef.current = null; }
+          if (roundStartTimerRef.current) { clearTimeout(roundStartTimerRef.current); roundStartTimerRef.current = null; }
           pendingRoundRef.current = null;
           activeRevealRef.current = null;
         }
@@ -393,10 +404,8 @@ export default function BattleDetailPage() {
           break;
 
         case "round_start": {
-          // Server sends one round_start per player:
-          // - own event has hand[] (cards to pick from)
-          // - opponent events have no hand (just round notification)
-          // Only update pending if this event has hand data, OR if nothing is pending yet
+          // Server sends one broadcast round_start; the SSE route already
+          // extracted this client's hand (null if spectator / other player).
           const incomingHand = event.data.hand as VirtualCard[] | null;
           const existing = pendingRoundRef.current;
 
@@ -408,11 +417,12 @@ export default function BattleDetailPage() {
             };
           }
 
-          // If no reveal is playing, apply after a short delay
-          // (500ms gives time for both per-player round_start events to arrive)
-          if (!revealTimerRef.current) {
-            revealTimerRef.current = setTimeout(() => {
-              revealTimerRef.current = null;
+          // Apply pending round after a short debounce (handles first round
+          // when no reveal precedes it). Uses a dedicated ref so round_reveal
+          // can distinguish "short round_start debounce" from "active reveal".
+          if (!revealTimerRef.current && !roundStartTimerRef.current) {
+            roundStartTimerRef.current = setTimeout(() => {
+              roundStartTimerRef.current = null;
               const pending = pendingRoundRef.current;
               if (!pending) return;
               setRevealData(null);
@@ -474,9 +484,16 @@ export default function BattleDetailPage() {
           }
           setMyHand(null);
 
+          // Cancel any pending round_start debounce — the reveal takes priority.
+          if (roundStartTimerRef.current) {
+            clearTimeout(roundStartTimerRef.current);
+            roundStartTimerRef.current = null;
+          }
+
           // If a previous reveal timer is still active, flush its data to history NOW
           if (revealTimerRef.current) {
             clearTimeout(revealTimerRef.current);
+            revealTimerRef.current = null;
             const previousReveal = activeRevealRef.current;
             if (previousReveal) {
               setRoundHistory((prev) => {
@@ -518,9 +535,13 @@ export default function BattleDetailPage() {
 
         case "battle_end":
         case "battle_finished":
+          // A round_start debounce is irrelevant once the battle ends.
+          if (roundStartTimerRef.current) {
+            clearTimeout(roundStartTimerRef.current);
+            roundStartTimerRef.current = null;
+          }
           // Wait for reveal animation to finish before fetching final state
           if (revealTimerRef.current) {
-            // A reveal is playing — wait for it, then fetch
             const existingTimer = revealTimerRef.current;
             clearTimeout(existingTimer);
             revealTimerRef.current = setTimeout(() => {
@@ -541,10 +562,11 @@ export default function BattleDetailPage() {
   const handleReconnect = useCallback(() => fetchBattle(true), [fetchBattle]);
   useBattleSSE(battle?._id ?? null, handleSSEEvent, handleReconnect);
 
-  // Cleanup reveal timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+      if (roundStartTimerRef.current) clearTimeout(roundStartTimerRef.current);
     };
   }, []);
 

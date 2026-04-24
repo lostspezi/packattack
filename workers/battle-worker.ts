@@ -67,7 +67,7 @@ async function processAutoSelect(battleId: string, roundNumber: number) {
     },
     { $set: { "rounds.$[r].status": "revealing" } },
     {
-      arrayFilters: [{ "r.roundNumber": roundNumber }],
+      arrayFilters: [{ "r.roundNumber": roundNumber, "r.status": "selecting" }],
       new: true,
     },
   );
@@ -87,17 +87,20 @@ async function processAutoSelect(battleId: string, roundNumber: number) {
     }
   }
 
-  // resolveRound persists before publishing, so client refetches are safe.
-  await resolveRound(battle, battleId);
-
-  // player_selected events go out after the DB write, mirroring the manual
-  // select path so clients observe events in a consistent order.
+  // Emit player_selected BEFORE resolveRound so clients receive the natural
+  // order: "these AFK players picked" → "round reveal". The atomic claim
+  // above already transitioned the round to "revealing", so any client that
+  // refetches between these events sees a consistent DB state.
   for (const playerId of autoSelectedPlayers) {
     await publishBattleEvent(battleId, "player_selected", {
       player: playerId,
       auto: true,
     });
   }
+
+  // resolveRound persists before publishing round_reveal, so client refetches
+  // after that point also see a consistent state.
+  await resolveRound(battle, battleId);
 
   console.log(
     `[battle-worker] Auto-selected ${autoSelectedPlayers.length} AFK players in battle ${battleId} round ${roundNumber}`,

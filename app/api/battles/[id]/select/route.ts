@@ -56,7 +56,12 @@ export async function POST(
       const allSelected = currentRound.hands.every((h) => h.selectedCardIndex !== null);
 
       if (allSelected) {
-        // resolveRound persists the battle and fires all follow-up events.
+        // Publish player_selected BEFORE resolveRound so clients receive the
+        // natural order: "this player picked" → "round reveal". resolveRound
+        // will persist + publish round_reveal/round_start right after.
+        await publishBattleEvent(id, "player_selected", {
+          player: session.user.id,
+        });
         await resolveRound(battle, id);
       } else {
         // Minimal, surgical update — avoids serializing the whole battle doc
@@ -72,13 +77,10 @@ export async function POST(
           },
           { arrayFilters: [{ "h.player": new mongoose.Types.ObjectId(session.user!.id) }] },
         );
+        await publishBattleEvent(id, "player_selected", {
+          player: session.user.id,
+        });
       }
-
-      // player_selected only goes out AFTER the DB write so any refetching
-      // client observes the updated hand.
-      await publishBattleEvent(id, "player_selected", {
-        player: session.user.id,
-      });
 
       return NextResponse.json({ selected: true, allSelected });
     });

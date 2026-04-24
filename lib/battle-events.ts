@@ -64,9 +64,11 @@ export async function publishBattleEvent(
 
     if (streamId) {
       event.streamId = streamId;
-      // Refresh TTL on every publish — keeps the stream alive during the
-      // battle but lets it expire shortly after the last event.
-      await redis.expire(key, STREAM_TTL_SECONDS);
+      // Best-effort TTL refresh — a transient error here must not block the
+      // publish, otherwise live subscribers miss the event entirely.
+      redis.expire(key, STREAM_TTL_SECONDS).catch((err) => {
+        console.warn(`[battle-events] expire failed for ${battleId}:`, err);
+      });
     }
 
     await redis.publish(channelKey(battleId), JSON.stringify(event));
