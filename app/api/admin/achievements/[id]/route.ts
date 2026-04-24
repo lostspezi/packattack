@@ -4,8 +4,10 @@ import { ObjectId } from "mongodb";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
-import Achievement from "@/models/achievement";
+import Achievement, { type AchievementReward } from "@/models/achievement";
 import UserAchievement from "@/models/user-achievement";
+import Box from "@/models/box";
+import Badge from "@/models/badge";
 import Translation from "@/models/translation";
 import { detectImageMime } from "@/lib/image-magic-bytes";
 import {
@@ -17,6 +19,7 @@ import {
   sanitizeAchievementPayload,
   serializeAchievement,
   upsertAchievementTranslations,
+  verifyRewardReferences,
   ALLOWED_IMAGE_TYPES,
   MAX_ICON_SIZE,
 } from "@/lib/admin/achievement-payload";
@@ -109,6 +112,24 @@ export async function PATCH(
     const payload = sanitizeAchievementPayload(raw, { requireKey: false });
     if (!payload.ok) {
       return NextResponse.json({ error: payload.error }, { status: 400 });
+    }
+
+    const missing = await verifyRewardReferences(
+      payload.data.rewards as AchievementReward[],
+      Box as unknown as Parameters<typeof verifyRewardReferences>[1],
+      Badge as unknown as Parameters<typeof verifyRewardReferences>[2],
+    );
+    if (missing?.missingBoxSlug) {
+      return NextResponse.json(
+        { error: "unknown_box_slug", slug: missing.missingBoxSlug },
+        { status: 400 },
+      );
+    }
+    if (missing?.missingBadgeKey) {
+      return NextResponse.json(
+        { error: "unknown_badge_key", key: missing.missingBadgeKey },
+        { status: 400 },
+      );
     }
 
     let newIconId: ObjectId | null = null;

@@ -9,6 +9,12 @@ import type { ITranslation } from "@/models/translation";
 
 export const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
 export const MAX_ICON_SIZE = 2 * 1024 * 1024;
+/**
+ * Obergrenze für einen einzelnen Coin-Reward. Schützt die Ökonomie davor,
+ * dass ein kompromittierter Admin-Account mit einer einzigen Achievement-
+ * Konfiguration Millionen Coins pro User verschenkt.
+ */
+export const MAX_COIN_REWARD = 100_000;
 
 const VALID_CATEGORIES: AchievementCategory[] = [
   "level",
@@ -176,6 +182,8 @@ function validateTrigger(raw: unknown): AchievementTrigger | null {
   }
 }
 
+const BOX_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,79}$/;
+
 function validateRewards(raw: unknown): AchievementReward[] | null {
   if (!Array.isArray(raw)) return null;
   const out: AchievementReward[] = [];
@@ -189,7 +197,9 @@ function validateRewards(raw: unknown): AchievementReward[] | null {
     switch (r.type) {
       case "coins": {
         const amount = Number(params.amount);
-        if (!Number.isFinite(amount) || amount <= 0) return null;
+        if (!Number.isFinite(amount) || amount <= 0 || amount > MAX_COIN_REWARD) {
+          return null;
+        }
         out.push({ type: "coins", params: { amount: Math.trunc(amount) } });
         break;
       }
@@ -200,8 +210,12 @@ function validateRewards(raw: unknown): AchievementReward[] | null {
         break;
       }
       case "unlock_box": {
-        const slug = String(params.boxSlug ?? "").trim();
-        if (!slug) return null;
+        const slug = String(params.boxSlug ?? "").trim().toLowerCase();
+        // Existenz gegen die Box-Collection prüfen wir in der Route
+        // (asynchron). Hier fangen wir nur Format-Invalides ab, damit
+        // `unlockedBoxSlugs.includes(box.slug)` später nie an verbogenen
+        // Eingaben scheitert.
+        if (!slug || !BOX_SLUG_PATTERN.test(slug)) return null;
         out.push({ type: "unlock_box", params: { boxSlug: slug } });
         break;
       }
@@ -337,6 +351,33 @@ export async function upsertAchievementTranslations(
     descriptions,
     updatedByUserId,
   );
+}
+
+/**
+ * Validiert Referenzen in Rewards gegen die Datenbank (Boxen, Badges).
+ * Gibt den fehlenden Slug/Key zurück, damit die Route einen klaren Fehler
+ * werfen kann.
+ */
+export async function verifyRewardReferences(
+  rewards: AchievementReward[],
+  boxModel: Model<{ slug?: string | null }>,
+  badgeModel: Model<{ key: string }>,
+): Promise<{ missingBoxSlug?: string; missingBadgeKey?: string } | null> {
+  for (const reward of rewards) {
+    if (reward.type === "unlock_box") {
+      const slug = String((reward.params as { boxSlug?: string }).boxSlug ?? "");
+      if (!slug) continue;
+      const exists = await boxModel.exists({ slug });
+      if (!exists) return { missingBoxSlug: slug };
+    }
+    if (reward.type === "grant_badge") {
+      const key = String((reward.params as { badgeKey?: string }).badgeKey ?? "");
+      if (!key) continue;
+      const exists = await badgeModel.exists({ key });
+      if (!exists) return { missingBadgeKey: key };
+    }
+  }
+  return null;
 }
 
 export function serializeAchievement(a: Partial<IAchievement> & { _id: Types.ObjectId | string }) {
