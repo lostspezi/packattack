@@ -687,6 +687,15 @@ function RewardFields({
   );
 }
 
+interface UserSearchResult {
+  _id: string;
+  username: string | null;
+  name: string | null;
+  email: string | null;
+  image: string | null;
+  level: number;
+}
+
 function ManualGrantDialog({
   achievement,
   onClose,
@@ -694,27 +703,76 @@ function ManualGrantDialog({
   achievement: Achievement;
   onClose: () => void;
 }) {
-  const [userId, setUserId] = useState("");
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<UserSearchResult[]>([]);
+  const [selected, setSelected] = useState<UserSearchResult | null>(null);
+  const [searching, setSearching] = useState(false);
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<string | null>(null);
 
+  // Debounced search
+  useEffect(() => {
+    if (selected || query.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/admin/users/search?q=${encodeURIComponent(query.trim())}`, {
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        setResults(Array.isArray(data.users) ? data.users : []);
+      } catch {
+        /* aborted or network error */
+      } finally {
+        setSearching(false);
+      }
+    }, 250);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, selected]);
+
+  const pick = (u: UserSearchResult) => {
+    setSelected(u);
+    setQuery(u.username ?? u.email ?? u._id);
+    setResults([]);
+  };
+
+  const clearSelection = () => {
+    setSelected(null);
+    setQuery("");
+  };
+
   const submit = async () => {
+    if (!selected) return;
     setSending(true);
     setResult(null);
     try {
       const res = await fetch(`/api/admin/achievements/${achievement._id}/grant`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: userId.trim(), note: note.trim() || undefined }),
+        body: JSON.stringify({ userId: selected._id, note: note.trim() || undefined }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setResult(`Fehler: ${data.error ?? "unbekannt"}`);
+        if (res.status === 429) {
+          setResult(
+            `Rate-Limit: max. ${data.limit ?? 30} Grants pro Minute. Bitte ${data.retryAfterSeconds ?? 60}s warten.`,
+          );
+        } else {
+          setResult(`Fehler: ${data.error ?? "unbekannt"}`);
+        }
       } else if (data.wasNewUnlock) {
-        setResult("Achievement erfolgreich verliehen.");
+        setResult(`Achievement an ${selected.username ?? selected.email ?? "User"} verliehen.`);
       } else {
-        setResult("Der User hatte das Achievement bereits.");
+        setResult(`${selected.username ?? "Der User"} hatte das Achievement bereits.`);
       }
     } finally {
       setSending(false);
@@ -728,10 +786,62 @@ function ManualGrantDialog({
         <p className="text-xs text-secondary">
           {achievement.key} · {achievement.trigger.type}
         </p>
-        <label className="text-sm space-y-1 block">
-          <span className="text-secondary">User-ID (ObjectId)</span>
-          <Input value={userId} onChange={(e) => setUserId(e.target.value)} placeholder="65a1b2c3..." />
-        </label>
+
+        <div className="relative">
+          <label className="text-sm space-y-1 block">
+            <span className="text-secondary">User suchen (Username, Name oder E-Mail)</span>
+            <div className="flex gap-2">
+              <Input
+                value={query}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  if (selected) setSelected(null);
+                }}
+                placeholder="z.B. jaja"
+              />
+              {selected && (
+                <Button variant="secondary" size="sm" onClick={clearSelection}>
+                  Ändern
+                </Button>
+              )}
+            </div>
+          </label>
+          {!selected && results.length > 0 && (
+            <div className="absolute z-10 left-0 right-0 mt-1 bg-background border border-border rounded shadow max-h-64 overflow-y-auto">
+              {results.map((u) => (
+                <button
+                  key={u._id}
+                  type="button"
+                  className="flex items-center gap-2 w-full px-2 py-2 hover:bg-surface text-left"
+                  onClick={() => pick(u)}
+                >
+                  {u.image ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={u.image} alt="" className="w-6 h-6 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full bg-surface" />
+                  )}
+                  <span className="flex-1 min-w-0">
+                    <span className="text-sm text-primary block truncate">
+                      {u.username ?? u.name ?? "(ohne Name)"}
+                    </span>
+                    <span className="text-xs text-secondary block truncate">{u.email}</span>
+                  </span>
+                  <span className="text-xs text-secondary">Lvl {u.level}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {!selected && !searching && query.trim().length >= 2 && results.length === 0 && (
+            <div className="text-xs text-secondary mt-1">Keine Treffer.</div>
+          )}
+          {selected && (
+            <div className="text-xs text-secondary mt-1">
+              Ausgewählt: {selected.username ?? selected.email} (Lvl {selected.level})
+            </div>
+          )}
+        </div>
+
         <label className="text-sm space-y-1 block">
           <span className="text-secondary">Notiz (optional)</span>
           <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Kontext / Grund" />
@@ -739,7 +849,7 @@ function ManualGrantDialog({
         {result && <div className="text-sm text-secondary">{result}</div>}
         <div className="flex justify-end gap-2">
           <Button variant="secondary" onClick={onClose} disabled={sending}>Schließen</Button>
-          <Button onClick={submit} disabled={sending || !userId.trim()}>
+          <Button onClick={submit} disabled={sending || !selected}>
             {sending ? "Sende…" : "Verleihen"}
           </Button>
         </div>

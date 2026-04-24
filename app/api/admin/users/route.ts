@@ -3,6 +3,7 @@ import { Types } from "mongoose";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
+import UserAchievement from "@/models/user-achievement";
 
 function getCreatedAt(user: { _id: unknown; createdAt?: Date | string }): string | null {
   if (user.createdAt) return new Date(user.createdAt as string).toISOString();
@@ -58,13 +59,25 @@ export async function GET(req: NextRequest) {
 
     const [users, total] = await Promise.all([
       User.find(query)
-        .select("_id name username email role emailVerified image createdAt")
+        .select("_id name username email role emailVerified image createdAt level xp")
         .skip((page - 1) * limit)
         .limit(limit)
         .sort({ createdAt: -1 })
         .lean(),
       User.countDocuments(query),
     ]);
+
+    // Achievement-Counts in einer Runde statt N+1 pro User.
+    const userIds = users.map((u) => u._id);
+    const achievementCounts = userIds.length
+      ? await UserAchievement.aggregate<{ _id: Types.ObjectId; count: number }>([
+          { $match: { userId: { $in: userIds }, completed: true } },
+          { $group: { _id: "$userId", count: { $sum: 1 } } },
+        ])
+      : [];
+    const countByUser = new Map(
+      achievementCounts.map((c) => [c._id.toString(), c.count]),
+    );
 
     const totalPages = Math.ceil(total / limit);
 
@@ -78,6 +91,9 @@ export async function GET(req: NextRequest) {
         emailVerified: u.emailVerified ?? null,
         image: u.image ?? null,
         createdAt: getCreatedAt(u),
+        level: typeof u.level === "number" ? u.level : 1,
+        xp: typeof u.xp === "number" ? u.xp : 0,
+        achievementCount: countByUser.get(u._id.toString()) ?? 0,
       })),
       total,
       page,

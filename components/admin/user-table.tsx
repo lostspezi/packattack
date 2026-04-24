@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { Award, Trash2 } from "lucide-react";
+import { LevelChip } from "@/components/user/level-chip";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,9 @@ interface AdminUser {
   emailVerified: string | null;
   image: string | null;
   createdAt: string;
+  level?: number;
+  xp?: number;
+  achievementCount?: number;
 }
 
 interface ApiResponse {
@@ -237,6 +241,12 @@ export function UserTable({
                 Verified
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                Level
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
+                Achievements
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-text-secondary uppercase tracking-wider">
                 Registered
               </th>
               <th className="px-4 py-3 w-28" aria-label="Actions" />
@@ -246,7 +256,7 @@ export function UserTable({
             {loading ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={9}
                   className="px-4 py-8 text-center text-text-muted text-sm"
                 >
                   Loading…
@@ -255,7 +265,7 @@ export function UserTable({
             ) : users.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={9}
                   className="px-4 py-8 text-center text-text-muted text-sm"
                 >
                   No users found.
@@ -313,6 +323,16 @@ export function UserTable({
                       ) : (
                         <Badge variant="warning">Unverified</Badge>
                       )}
+                    </td>
+
+                    {/* Level */}
+                    <td className="px-4 py-3">
+                      <LevelChip level={user.level ?? 1} />
+                    </td>
+
+                    {/* Achievements */}
+                    <td className="px-4 py-3 text-sm text-text-secondary tabular-nums">
+                      {user.achievementCount ?? 0}
                     </td>
 
                     {/* Registered */}

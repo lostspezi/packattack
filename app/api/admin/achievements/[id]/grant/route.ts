@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
 import { grantAchievementManually } from "@/lib/achievements/engine";
+import { checkAdminGrantRate } from "@/lib/admin/grant-rate-limit";
 
 function isAdmin(role?: string | null) {
   return role === "admin" || role === "super_admin";
@@ -28,6 +29,21 @@ export async function POST(
     const { id: achievementId } = await params;
     if (!Types.ObjectId.isValid(achievementId)) {
       return NextResponse.json({ error: "invalid_id" }, { status: 400 });
+    }
+
+    const rate = await checkAdminGrantRate(session.user.id);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        {
+          error: "rate_limited",
+          limit: rate.limit,
+          retryAfterSeconds: rate.retryAfterSeconds,
+        },
+        {
+          status: 429,
+          headers: { "Retry-After": String(rate.retryAfterSeconds) },
+        },
+      );
     }
 
     const body = (await req.json()) as { userId?: string; note?: string };
