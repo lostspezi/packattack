@@ -241,9 +241,11 @@ async function prepareFinishBattle(
       eloChanges.map(async (change) => {
         const isWinner = change.id === winnerId;
         if (isWinner) {
-          // Use an aggregation-pipeline update so streak/bestStreak can be
-          // computed in a single roundtrip without a read-then-write.
-          await User.updateOne({ _id: change.id }, [
+          // Aggregation-pipeline update so streak/bestStreak can be computed
+          // in a single roundtrip without a read-then-write. Mongoose 8
+          // requires bypassing its query API for pipeline updates — we go
+          // through the native driver via `collection.updateOne`.
+          await User.collection.updateOne({ _id: new mongoose.Types.ObjectId(change.id) }, [
             {
               $set: {
                 elo: change.newElo,
