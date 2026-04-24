@@ -1,11 +1,23 @@
-/* PACKATTACK Service Worker — handles Web Push notifications */
+/* PACKATTACK Service Worker — handles Web Push notifications.
+ *
+ * Intentionally lightweight: no skipWaiting / clients.claim so an updated
+ * SW takes effect on the next page load instead of grabbing live tabs
+ * mid-session (which can break Next.js RSC prefetches).
+ */
 
 self.addEventListener("install", () => {
-  self.skipWaiting();
+  // Default lifecycle — wait for old SW to be released.
 });
 
-self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+self.addEventListener("activate", () => {
+  // No clients.claim; controller stays with the previous SW for current tabs.
+});
+
+// Explicit pass-through. Without a fetch listener the browser still passes
+// requests to the network, but having one makes the no-intercept contract
+// explicit and avoids edge-case behavior in some Chromium builds.
+self.addEventListener("fetch", () => {
+  return;
 });
 
 self.addEventListener("push", (event) => {

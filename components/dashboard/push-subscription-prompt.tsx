@@ -50,15 +50,19 @@ export function PushSubscriptionPrompt() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      if (!("serviceWorker" in navigator)) {
+      if (typeof window === "undefined") return;
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
         setState("unsupported");
         return;
       }
-      try {
-        await navigator.serviceWorker.register("/sw.js");
-      } catch (err) {
-        console.warn("[push] SW register failed:", err);
-        if (!cancelled) setState("unsupported");
+      // Don't register the SW eagerly — registration happens on user opt-in
+      // (the Aktivieren button). This avoids a fresh SW install racing with
+      // Next.js RSC prefetches on the dashboard.
+      const existing = await navigator.serviceWorker.getRegistration("/sw.js");
+      if (!existing) {
+        if (!cancelled) {
+          setState(Notification.permission === "denied" ? "denied" : "available");
+        }
         return;
       }
       if (!cancelled) await evaluate();
@@ -81,7 +85,13 @@ export function PushSubscriptionPrompt() {
       if (!keyRes.ok) throw new Error("vapid_unavailable");
       const { key } = (await keyRes.json()) as { key: string };
 
-      const reg = await navigator.serviceWorker.ready;
+      // Register SW on opt-in (idempotent — getRegistration returns existing one).
+      let reg = await navigator.serviceWorker.getRegistration("/sw.js");
+      if (!reg) {
+        reg = await navigator.serviceWorker.register("/sw.js");
+      }
+      await navigator.serviceWorker.ready;
+
       const keyBytes = urlBase64ToUint8Array(key);
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
