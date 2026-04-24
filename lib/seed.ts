@@ -325,6 +325,15 @@ async function doRunSeed() {
   await syncEmailTemplates();
   await migrateBoxSlugs();
   await seedOP12Box();
+  try {
+    const { seedAchievements } = await import("@/seed/achievements");
+    const result = await seedAchievements();
+    console.log(
+      `[seed] Achievements: ${result.created} created, ${result.updated} updated.`,
+    );
+  } catch (err) {
+    console.error("[seed] Achievement seed failed:", err);
+  }
 
   const duration = (performance.now() - start).toFixed(0);
   console.log(`[seed] Seed complete in ${duration}ms.`);

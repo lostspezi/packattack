@@ -63,6 +63,14 @@ export async function POST() {
         console.error("[me/tour/complete ledger]", ledgerErr);
       }
 
+      // Achievement-Once-Event: idempotent, egal ob bereits gefeuert.
+      try {
+        const { fireOnceEvent } = await import("@/lib/level/grant-xp");
+        await fireOnceEvent(userId, "tour_completed");
+      } catch (achievementErr) {
+        console.error("[me/tour/complete achievement]", achievementErr);
+      }
+
       return NextResponse.json({
         reward: TOUR_REWARD_COINS,
         coins: granted.coins ?? 0,
