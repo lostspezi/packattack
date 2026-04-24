@@ -22,7 +22,7 @@ import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import type { ChatDictionary } from "@/lib/chat-i18n";
 import { getChatUiCopy } from "@/lib/chat-i18n";
-import { mergeChatMessageSummaries } from "@/lib/chat-message-summary";
+import { capChatMessageSummaries, mergeChatMessageSummaries } from "@/lib/chat-message-summary";
 import type {
   ChatActionLogResponse,
   ChatActiveRestrictionSummary,
@@ -217,7 +217,7 @@ export function AdminChatConsole({
       throw new Error("load_failed");
     }
     const payload = (await res.json()) as ChatAdminOverviewResponse;
-    setData(payload);
+    setData({ ...payload, messages: capChatMessageSummaries(payload.messages) });
     setRoomMode(payload.room.mode);
     setSlowModeSeconds(String(payload.room.slowModeSeconds));
     setRestrictionCounts(payload.restrictionCounts);

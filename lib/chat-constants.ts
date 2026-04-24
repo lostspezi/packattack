@@ -2,6 +2,10 @@
 export const CHAT_ROOM_TITLE = "Globaler Chat";
 export const CHAT_MAX_MESSAGE_LENGTH = 500;
 export const CHAT_HISTORY_PAGE_SIZE = 60;
+// Hard cap on how many messages the dock keeps in client state. SSE appends
+// forever otherwise — over a long-lived session the array grows into the
+// thousands and pushes Chrome RAM past 1 GB.
+export const CHAT_CLIENT_BUFFER_LIMIT = 300;
 
 export const CHAT_ROOM_MODES = [
   "open",

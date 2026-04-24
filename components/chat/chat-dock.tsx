@@ -37,7 +37,7 @@ import {
   type QuickModerationAction,
 } from "@/components/chat/chat-message-item";
 import { messageMentionsViewer } from "@/lib/chat-mentions";
-import { mergeChatMessageSummaries } from "@/lib/chat-message-summary";
+import { capChatMessageSummaries, mergeChatMessageSummaries } from "@/lib/chat-message-summary";
 import type { ChatDictionary } from "@/lib/chat-i18n";
 import { getChatUiCopy } from "@/lib/chat-i18n";
 import type {
@@ -423,14 +423,15 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
         throw new Error("load_failed");
       }
       const payload = (await res.json()) as ChatOverviewResponse;
+      const cappedMessages = capChatMessageSummaries(payload.messages);
       setRoom(payload.room);
-      setMessages(payload.messages);
+      setMessages(cappedMessages);
       setMessagesVersion((v) => v + 1);
       setReadState(payload.readState);
       setPermissions(payload.permissions);
       setSelfUsername(payload.selfUsername);
       setPendingMentionCount(
-        payload.messages.filter(
+        cappedMessages.filter(
           (message) =>
             (message.visibleSeq ?? 0) > payload.readState.lastReadVisibleSeq &&
             isMentionForCurrentUserRef.current(message, payload.selfUsername ?? undefined)
