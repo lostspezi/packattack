@@ -687,15 +687,26 @@ export default function BattleDetailPage() {
   async function handleSelect(cardIndex: number) {
     if (!battle || selectedCardIndex !== null) return;
     setSelectedCardIndex(cardIndex);
-    try {
-      const res = await fetch(`/api/battles/${battle._id}/select`, {
+
+    const send = () =>
+      fetch(`/api/battles/${battle._id}/select`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cardIndex }),
       });
+
+    try {
+      let res = await send();
+      // 429 = lock contention (another player's select is being processed).
+      // The server already retries internally for ~500 ms; one more client-
+      // side retry after a short wait absorbs any burst that slipped through.
+      if (res.status === 429) {
+        await new Promise((r) => setTimeout(r, 300));
+        res = await send();
+      }
       if (!res.ok) {
         setSelectedCardIndex(null);
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         toast({ title: data.error || "Error", type: "error" });
       }
     } catch {

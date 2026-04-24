@@ -144,9 +144,18 @@ export function subscribeToBattle(
 
 // ---------- Distributed Lock ----------
 
+// 15 s TTL gives resolveRound (which can touch several User docs + publish
+// events) plenty of room before the lock auto-expires. The retry loop below
+// handles short-term contention between two players clicking at the same
+// time, so the TTL only needs to cover the worst case for a single caller.
+const BATTLE_LOCK_TTL_SECONDS = 15;
+const BATTLE_LOCK_RETRY_DELAY_MS = 50;
+const BATTLE_LOCK_MAX_RETRIES = 10; // up to 500 ms of blocking wait
+
 /**
- * Simple Redis lock for battle operations (join, start, select).
- * Prevents race conditions.
+ * Redis lock for battle operations (join, start, select). If the lock is
+ * already held, we briefly retry before giving up — two players clicking
+ * Select within the same tick is common and shouldn't surface as a 429.
  */
 export async function withBattleLock<T>(
   battleId: string,
@@ -157,8 +166,15 @@ export async function withBattleLock<T>(
   const redis = getRedis();
   const lockValue = `${Date.now()}-${Math.random()}`;
 
-  // Try to acquire lock (5 second TTL)
-  const acquired = await redis.set(lockKey, lockValue, "EX", 5, "NX");
+  let acquired: "OK" | null = null;
+  for (let attempt = 0; attempt <= BATTLE_LOCK_MAX_RETRIES; attempt++) {
+    acquired = await redis.set(lockKey, lockValue, "EX", BATTLE_LOCK_TTL_SECONDS, "NX");
+    if (acquired) break;
+    if (attempt < BATTLE_LOCK_MAX_RETRIES) {
+      await new Promise((resolve) => setTimeout(resolve, BATTLE_LOCK_RETRY_DELAY_MS));
+    }
+  }
+
   if (!acquired) {
     throw new Error("Operation in progress, please try again");
   }
