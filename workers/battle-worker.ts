@@ -68,7 +68,7 @@ async function processAutoSelect(battleId: string, roundNumber: number) {
     { $set: { "rounds.$[r].status": "revealing" } },
     {
       arrayFilters: [{ "r.roundNumber": roundNumber, "r.status": "selecting" }],
-      new: true,
+      returnDocument: "after",
     },
   );
 
@@ -98,9 +98,22 @@ async function processAutoSelect(battleId: string, roundNumber: number) {
     });
   }
 
-  // resolveRound persists before publishing round_reveal, so client refetches
-  // after that point also see a consistent state.
-  await resolveRound(battle, battleId);
+  try {
+    // resolveRound persists before publishing round_reveal, so client
+    // refetches after that point also see a consistent state.
+    await resolveRound(battle, battleId);
+  } catch (err) {
+    // If resolveRound failed before persisting the round as "completed",
+    // revert the atomic claim so a BullMQ retry (or a late user-select) can
+    // re-enter. The arrayFilter only matches rounds still in "revealing",
+    // so a successful save before the failure leaves this as a no-op.
+    await Battle.updateOne(
+      { _id: battleId },
+      { $set: { "rounds.$[r].status": "selecting" } },
+      { arrayFilters: [{ "r.roundNumber": roundNumber, "r.status": "revealing" }] },
+    ).catch(() => {});
+    throw err;
+  }
 
   console.log(
     `[battle-worker] Auto-selected ${autoSelectedPlayers.length} AFK players in battle ${battleId} round ${roundNumber}`,

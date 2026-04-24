@@ -220,8 +220,22 @@ async function prepareFinishBattle(
   // Return a callback that applies all User updates in parallel.
   // Winners: +1 wins, streak+1, bestStreak = max(prev, streak+1).
   // Losers: +1 losses, streak reset to 0.
+  // Draws: +1 totalBattles only, streak reset to 0, ELO unchanged.
   return async () => {
-    if (!winnerId || eloChanges.length === 0) return;
+    if (!winnerId) {
+      // Draw path — still bump totalBattles so stats stay consistent, and
+      // reset any ongoing streak since the battle didn't resolve as a win.
+      await User.updateMany(
+        { _id: { $in: playerIds } },
+        {
+          $inc: { "battleStats.totalBattles": 1 },
+          $set: { "battleStats.streak": 0 },
+        },
+      );
+      return;
+    }
+
+    if (eloChanges.length === 0) return;
 
     await Promise.all(
       eloChanges.map(async (change) => {

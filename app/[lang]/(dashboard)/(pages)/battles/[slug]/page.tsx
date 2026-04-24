@@ -183,11 +183,18 @@ function useBattleSSE(
       };
 
       eventSource.onerror = () => {
-        eventSource?.close();
         if (cancelled) return;
-        if (retryCount < 10) {
-          retryCount++;
-          retryTimeout = setTimeout(connect, Math.min(1000 * retryCount, 10000));
+        // Let the browser reconnect natively whenever possible — it ships the
+        // `Last-Event-ID` header automatically so the server's Redis-Stream
+        // replay can fill in whatever we missed during the gap. If the
+        // readyState is CLOSED, the browser gave up (e.g. 5xx, stream kill)
+        // and we have to reopen manually; in that case Last-Event-ID is gone,
+        // but onReconnect's fetchBattle() is the fallback recovery.
+        if (eventSource?.readyState === EventSource.CLOSED) {
+          if (retryCount < 10) {
+            retryCount++;
+            retryTimeout = setTimeout(connect, Math.min(1000 * retryCount, 10000));
+          }
         }
       };
     }
@@ -386,7 +393,7 @@ export default function BattleDetailPage() {
           fetchBattle();
           break;
 
-        case "ready_check_started":
+        case "ready_check":
           setBattle((prev) =>
             prev ? { ...prev, status: "ready_check", readyCheckExpiresAt: event.data.expiresAt as string } : prev,
           );
@@ -397,10 +404,6 @@ export default function BattleDetailPage() {
               icon: "/icon-192x192.png",
             });
           }
-          break;
-
-        case "countdown_started":
-          setBattle((prev) => (prev ? { ...prev, status: "countdown" } : prev));
           break;
 
         case "round_start": {
