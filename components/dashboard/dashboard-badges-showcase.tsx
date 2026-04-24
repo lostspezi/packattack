@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { Types } from "mongoose";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
@@ -29,7 +30,7 @@ function badgeVariantForTone(tone: string) {
   }
 }
 
-async function loadBadges(userId: string): Promise<BadgeRow[]> {
+const loadBadges = cache(async (userId: string): Promise<BadgeRow[]> => {
   try {
     await connectDB();
     const user = await User.findById(new Types.ObjectId(userId))
@@ -56,7 +57,7 @@ async function loadBadges(userId: string): Promise<BadgeRow[]> {
     console.error("[dashboard-badges-showcase] loadBadges failed:", err);
     return [];
   }
-}
+});
 
 export async function DashboardBadgesShowcase({ userId }: DashboardBadgesShowcaseProps) {
   const badges = await loadBadges(userId);

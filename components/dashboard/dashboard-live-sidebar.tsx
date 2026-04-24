@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cache } from "react";
 import { Types } from "mongoose";
 import { Swords, Zap } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -18,7 +19,7 @@ interface SidebarData {
 
 const EMPTY_DATA: SidebarData = { activeBattles: [], activeQuiz: null };
 
-async function loadSidebarData(userId: string): Promise<SidebarData> {
+const loadSidebarData = cache(async (userId: string): Promise<SidebarData> => {
   try {
     await connectDB();
     const uid = new Types.ObjectId(userId);
@@ -58,7 +59,7 @@ async function loadSidebarData(userId: string): Promise<SidebarData> {
     console.error("[dashboard-live-sidebar] loadSidebarData failed:", err);
     return EMPTY_DATA;
   }
-}
+});
 
 const STATUS_LABEL: Record<string, string> = {
   waiting: "Wartet auf Spieler",
