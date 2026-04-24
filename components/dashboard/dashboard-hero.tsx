@@ -30,8 +30,11 @@ export function DashboardHero({ lang, userName, hero }: DashboardHeroProps) {
           <p className="text-text-muted text-xs uppercase tracking-wider font-semibold">
             Hi {userName}
           </p>
+          {/* h1 is intentionally static so the LCP element matches the
+              skeleton and paints on first byte. The dynamic CTA lives on
+              the button below. */}
           <h1 className="text-3xl md:text-4xl font-bold text-text-primary">
-            {hero.primaryLabel}
+            Willkommen zurück.
           </h1>
           <p className="text-text-secondary text-sm md:text-base max-w-xl">
             {KIND_BLURB[hero.kind]}
