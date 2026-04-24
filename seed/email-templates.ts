@@ -45,8 +45,8 @@ const footerStyle = `
 
 function buildEmail(content: { de: string; en: string }): { de: string; en: string } {
   return {
-    de: `<html><body style="${baseStyle}"><div style="${containerStyle}"><div style="${headerStyle}"><h1 style="margin:0;color:#9BFF00;font-size:24px;">PackAttack.gg</h1></div><div style="${bodyStyle}">${content.de}</div><div style="${footerStyle}">© PackAttack.gg — Alle Rechte vorbehalten</div></div></body></html>`,
-    en: `<html><body style="${baseStyle}"><div style="${containerStyle}"><div style="${headerStyle}"><h1 style="margin:0;color:#9BFF00;font-size:24px;">PackAttack.gg</h1></div><div style="${bodyStyle}">${content.en}</div><div style="${footerStyle}">© PackAttack.gg — All rights reserved</div></div></body></html>`,
+    de: `<html><body style="${baseStyle}"><div style="${containerStyle}"><div style="${headerStyle}"><h1 style="margin:0;color:#9BFF00;font-size:24px;">PACKATTACK.gg</h1></div><div style="${bodyStyle}">${content.de}</div><div style="${footerStyle}">© PACKATTACK.gg — Alle Rechte vorbehalten</div></div></body></html>`,
+    en: `<html><body style="${baseStyle}"><div style="${containerStyle}"><div style="${headerStyle}"><h1 style="margin:0;color:#9BFF00;font-size:24px;">PACKATTACK.gg</h1></div><div style="${bodyStyle}">${content.en}</div><div style="${footerStyle}">© PACKATTACK.gg — All rights reserved</div></div></body></html>`,
   };
 }
 
@@ -55,14 +55,14 @@ export const emailTemplateSeedData = [
     slug: "welcome",
     name: "Welcome Email",
     subject: {
-      de: "Willkommen bei PackAttack.gg!",
-      en: "Welcome to PackAttack.gg!",
+      de: "Willkommen bei PACKATTACK.gg!",
+      en: "Welcome to PACKATTACK.gg!",
     },
     body: buildEmail({
       de: `
         <h2 style="color:#ffffff;">Hallo {{username}},</h2>
         <p style="color:#cccccc;line-height:1.6;">
-          Willkommen bei PackAttack.gg! Wir freuen uns, dich in unserer Community begrüßen zu dürfen.
+          Willkommen bei PACKATTACK.gg! Wir freuen uns, dich in unserer Community begrüßen zu dürfen.
           Dein Account wurde erfolgreich erstellt.
         </p>
         <p style="color:#cccccc;line-height:1.6;">
@@ -76,7 +76,7 @@ export const emailTemplateSeedData = [
       en: `
         <h2 style="color:#ffffff;">Hello {{username}},</h2>
         <p style="color:#cccccc;line-height:1.6;">
-          Welcome to PackAttack.gg! We're excited to have you in our community.
+          Welcome to PACKATTACK.gg! We're excited to have you in our community.
           Your account has been created successfully.
         </p>
         <p style="color:#cccccc;line-height:1.6;">
@@ -173,7 +173,7 @@ export const emailTemplateSeedData = [
       de: `
         <h2 style="color:#ffffff;">Hallo {{username}},</h2>
         <p style="color:#cccccc;line-height:1.6;">
-          Wir haben unsere Nutzungsbedingungen aktualisiert. Um PackAttack.gg weiterhin nutzen zu können,
+          Wir haben unsere Nutzungsbedingungen aktualisiert. Um PACKATTACK.gg weiterhin nutzen zu können,
           bitten wir dich, die aktualisierten {{type}} zu akzeptieren.
         </p>
         <p style="color:#cccccc;line-height:1.6;">
@@ -187,7 +187,7 @@ export const emailTemplateSeedData = [
       en: `
         <h2 style="color:#ffffff;">Hello {{username}},</h2>
         <p style="color:#cccccc;line-height:1.6;">
-          We have updated our terms. To continue using PackAttack.gg,
+          We have updated our terms. To continue using PACKATTACK.gg,
           please accept the updated {{type}}.
         </p>
         <p style="color:#cccccc;line-height:1.6;">

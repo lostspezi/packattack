@@ -22,14 +22,14 @@ export default async function AuthLayout({
         {/* Mobile: logo left, switch right */}
         <div className="flex sm:hidden items-center justify-between mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/logo.svg" alt="PackAttack.gg" className="h-6 w-auto" />
+          <img src="/images/logo.svg" alt="PACKATTACK.gg" className="h-6 w-auto" />
           <LanguageSwitcher lang={lang} languages={languages} />
         </div>
 
         {/* Desktop: logo centered */}
         <div className="hidden sm:flex justify-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/logo.svg" alt="PackAttack.gg" className="h-7 w-auto" />
+          <img src="/images/logo.svg" alt="PACKATTACK.gg" className="h-7 w-auto" />
         </div>
 
         {children}

@@ -39,7 +39,7 @@ export function ErrorPage({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/logo.svg"
-          alt="PackAttack.gg"
+          alt="PACKATTACK.gg"
           className="h-7 w-auto opacity-80"
         />
 

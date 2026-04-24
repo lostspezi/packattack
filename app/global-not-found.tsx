@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "404 — PackAttack.gg",
+  title: "404 — PACKATTACK.gg",
 };
 
 export default function GlobalNotFound() {
@@ -10,7 +10,7 @@ export default function GlobalNotFound() {
       <body style={{ background: "#12111A", color: "#C8C8D0", margin: 0, minHeight: "100vh", display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", padding: "3rem 1rem", fontFamily: "-apple-system, BlinkMacSystemFont, sans-serif" }}>
         {/* Logo */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/images/logo.svg" alt="PackAttack.gg" style={{ height: 28, marginBottom: 32, opacity: 0.8 }} />
+        <img src="/images/logo.svg" alt="PACKATTACK.gg" style={{ height: 28, marginBottom: 32, opacity: 0.8 }} />
 
         {/* Pack SVG */}
         <div style={{ width: 140, height: 185, marginBottom: 32 }}>

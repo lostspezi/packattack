@@ -133,7 +133,7 @@ function PackFaceDesign({ cardCount, offsetY = 0 }: { cardCount: number; offsetY
       {/* Bottom URL */}
       <div className="absolute left-0 right-0 flex justify-center" style={{ bottom: 24, zIndex: 2 }}>
         <span className="text-[6px] uppercase tracking-[2px]" style={{ color: "rgba(155,255,0,0.18)" }}>
-          packattack.gg
+          PACKATTACK.gg
         </span>
       </div>
 

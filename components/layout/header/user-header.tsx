@@ -154,7 +154,7 @@ export function UserHeader({
 
             <Link href={dashboardHref} className="shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/logo.svg" alt="PackAttack.gg" className="h-5 w-auto lg:h-6" />
+              <img src="/images/logo.svg" alt="PACKATTACK.gg" className="h-5 w-auto lg:h-6" />
             </Link>
 
             <HeaderNav

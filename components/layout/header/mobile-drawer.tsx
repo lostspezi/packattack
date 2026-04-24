@@ -192,7 +192,7 @@ export function MobileDrawer({
       >
         <div className="flex h-16 shrink-0 items-center border-b border-border px-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/images/logo.svg" alt="PackAttack.gg" className="h-5 w-auto" />
+          <img src="/images/logo.svg" alt="PACKATTACK.gg" className="h-5 w-auto" />
         </div>
 
         <nav className="flex-1 space-y-1 px-3 py-4">

@@ -17,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PackAttack.gg",
-  description: "PackAttack.gg — deine Pack-Opening-Plattform",
+  title: "PACKATTACK.gg",
+  description: "PACKATTACK.gg — deine Pack-Opening-Plattform",
   icons: {
     icon: "/favicon.png",
   },

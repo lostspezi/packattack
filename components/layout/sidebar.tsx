@@ -224,7 +224,7 @@ function SidebarContent({
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/logo.svg"
-          alt="PackAttack.gg"
+          alt="PACKATTACK.gg"
           className="h-5 w-auto"
         />
       </div>

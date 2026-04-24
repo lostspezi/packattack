@@ -14,7 +14,7 @@ const SAMPLE_DATA: Record<string, string> = {
   verifyUrl: "https://example.com/verify?token=sample",
   resetUrl: "https://example.com/reset?token=sample",
   loginUrl: "https://example.com/login",
-  appName: "PackAttack",
+  appName: "PACKATTACK",
   tosUrl: "https://example.com/tos",
   privacyUrl: "https://example.com/privacy",
 };

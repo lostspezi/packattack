@@ -64,8 +64,8 @@ export function CheckoutConfirmationModal({
           />
           <span className="text-text-secondary text-xs leading-relaxed">
             {lang === "en"
-              ? "I expressly agree that PackAttack.gg begins delivery of the digital content (Coins) immediately. I acknowledge that I lose my right of withdrawal upon complete delivery of the digital content. I have read the "
-              : "Ich stimme ausdrücklich zu, dass PackAttack.gg sofort mit der Bereitstellung der digitalen Inhalte (Coins) beginnt. Mir ist bekannt, dass ich dadurch mein Widerrufsrecht mit vollständiger Bereitstellung der digitalen Inhalte verliere. Ich habe die "}
+              ? "I expressly agree that PACKATTACK.gg begins delivery of the digital content (Coins) immediately. I acknowledge that I lose my right of withdrawal upon complete delivery of the digital content. I have read the "
+              : "Ich stimme ausdrücklich zu, dass PACKATTACK.gg sofort mit der Bereitstellung der digitalen Inhalte (Coins) beginnt. Mir ist bekannt, dass ich dadurch mein Widerrufsrecht mit vollständiger Bereitstellung der digitalen Inhalte verliere. Ich habe die "}
             <a
               href={`/${lang}/widerrufsbelehrung`}
               target="_blank"
