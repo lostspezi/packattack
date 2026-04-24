@@ -36,13 +36,6 @@ export interface IBattlePlayer {
   roundsWon: number;
 }
 
-export interface IBattleTransfer {
-  from: Types.ObjectId;
-  to: Types.ObjectId;
-  cards: IVirtualCard[];
-  mode: string;
-}
-
 export interface IBattleEloChange {
   player: Types.ObjectId;
   oldElo: number;
@@ -54,12 +47,11 @@ export interface IBattleResult {
   winner: Types.ObjectId | null;
   isDraw: boolean;
   finalScores: { player: Types.ObjectId; roundsWon: number }[];
-  transfers: IBattleTransfer[];
   eloChanges: IBattleEloChange[];
   completedAt: Date;
 }
 
-export type BattleMode = "lowest_card" | "highest_card" | "all_cards";
+export type BattleMode = "lowest_card" | "highest_card";
 export type BattleStatus = "waiting" | "ready_check" | "countdown" | "active" | "sudden_death" | "finished" | "cancelled";
 
 export interface IBattleSettings {
@@ -76,7 +68,6 @@ export interface IBattle extends Document {
   box: Types.ObjectId;
   players: IBattlePlayer[];
   settings: IBattleSettings;
-  entryFee: number;
   status: BattleStatus;
   currentRound: number;
   lobbyExpiresAt: Date;
@@ -141,16 +132,6 @@ const BattlePlayerSchema = new Schema<IBattlePlayer>(
   { _id: false },
 );
 
-const BattleTransferSchema = new Schema<IBattleTransfer>(
-  {
-    from: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    to: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    cards: { type: [VirtualCardSchema], required: true },
-    mode: { type: String, required: true },
-  },
-  { _id: false },
-);
-
 const BattleEloChangeSchema = new Schema<IBattleEloChange>(
   {
     player: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -172,7 +153,6 @@ const BattleResultSchema = new Schema<IBattleResult>(
         _id: false,
       },
     ],
-    transfers: { type: [BattleTransferSchema], default: [] },
     eloChanges: { type: [BattleEloChangeSchema], default: [] },
     completedAt: { type: Date, required: true },
   },
@@ -190,13 +170,12 @@ const BattleSchema = new Schema<IBattle>(
       rounds: { type: Number, enum: [3, 5, 7], required: true },
       mode: {
         type: String,
-        enum: ["lowest_card", "highest_card", "all_cards"],
+        enum: ["lowest_card", "highest_card"],
         required: true,
       },
       isPrivate: { type: Boolean, default: false },
       inviteCode: { type: String, default: null },
     },
-    entryFee: { type: Number, required: true, min: 0 },
     status: {
       type: String,
       enum: ["waiting", "ready_check", "countdown", "active", "sudden_death", "finished", "cancelled"],

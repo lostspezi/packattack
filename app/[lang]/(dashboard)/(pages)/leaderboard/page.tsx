@@ -44,7 +44,7 @@ interface Season {
 }
 
 const SORT_OPTIONS = [
-  { value: "elo", label: { de: "ELO", en: "ELO" } },
+  { value: "elo", label: { de: "Prestige", en: "Prestige" } },
   { value: "wins", label: { de: "Siege", en: "Wins" } },
   { value: "winrate", label: { de: "Winrate", en: "Win Rate" } },
   { value: "streak", label: { de: "Streak", en: "Streak" } },
@@ -219,7 +219,7 @@ export default function LeaderboardPage() {
               <div>
                 <div className="font-bold text-zinc-100">{myStats.username}</div>
                 <div className={`text-xs font-medium ${RANK_COLORS[myStats.eloRank.name] ?? "text-zinc-400"}`}>
-                  {myStats.eloRank.name} — {myStats.elo} ELO
+                  {myStats.eloRank.name} — {myStats.elo} Prestige
                 </div>
               </div>
             </div>
@@ -262,7 +262,7 @@ export default function LeaderboardPage() {
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-zinc-500">
                   {isDe ? "Spieler" : "Player"}
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">ELO</th>
+                <th className="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500">Prestige</th>
                 <th className="hidden px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-zinc-500 sm:table-cell">
                   W/L
                 </th>

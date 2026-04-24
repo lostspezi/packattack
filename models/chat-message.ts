@@ -76,7 +76,6 @@ interface IChatBattleInvite {
   boxName: string;
   boxImage: string | null;
   boxGame: string;
-  entryFee: number;
   rounds: number;
   playerCount: number;
   mode: string;
@@ -224,7 +223,6 @@ const ChatBattleInviteSchema = new Schema<IChatBattleInvite>(
     boxName: { type: String, required: true, maxlength: 200 },
     boxImage: { type: String, default: null, maxlength: 500 },
     boxGame: { type: String, required: true, maxlength: 64 },
-    entryFee: { type: Number, required: true, min: 0 },
     rounds: { type: Number, required: true },
     playerCount: { type: Number, required: true },
     mode: { type: String, required: true, maxlength: 32 },

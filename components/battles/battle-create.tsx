@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Swords, Globe, Lock, Loader2, ArrowDownToLine, ArrowUpToLine, Flame } from "lucide-react";
+import { Swords, Globe, Lock, Loader2, ArrowDownToLine, ArrowUpToLine } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 
 interface BoxOption {
@@ -9,7 +9,6 @@ interface BoxOption {
   name: { de: string; en: string };
   game: string;
   image: string | null;
-  priceInCoins: number;
 }
 
 interface BattleCreateProps {
@@ -21,9 +20,8 @@ interface BattleCreateProps {
 const PLAYER_COUNTS = [2, 3, 4] as const;
 const ROUND_OPTIONS = [3, 5, 7] as const;
 const MODES = [
-  { value: "lowest_card" as const, label: { de: "Niedrigste Karte", en: "Lowest Card" }, icon: <ArrowDownToLine className="h-5 w-5 text-blue-400" />, desc: { de: "Gewinner erhält niedrigste Karte des Verlierers", en: "Winner gets loser's lowest card" } },
-  { value: "highest_card" as const, label: { de: "Höchste Karte", en: "Highest Card" }, icon: <ArrowUpToLine className="h-5 w-5 text-orange-400" />, desc: { de: "Gewinner erhält höchste Karte des Verlierers", en: "Winner gets loser's highest card" } },
-  { value: "all_cards" as const, label: { de: "Alle Karten", en: "All Cards" }, icon: <Flame className="h-5 w-5 text-red-400" />, desc: { de: "Gewinner erhält alle Karten des Verlierers", en: "Winner gets all loser's cards" } },
+  { value: "lowest_card" as const, label: { de: "Niedrigste Karte", en: "Lowest Card" }, icon: <ArrowDownToLine className="h-5 w-5 text-blue-400" />, desc: { de: "Die niedrigste Karte gewinnt die Runde", en: "The lowest card wins the round" } },
+  { value: "highest_card" as const, label: { de: "Höchste Karte", en: "Highest Card" }, icon: <ArrowUpToLine className="h-5 w-5 text-orange-400" />, desc: { de: "Die höchste Karte gewinnt die Runde", en: "The highest card wins the round" } },
 ];
 
 export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {
@@ -36,10 +34,6 @@ export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {
   const [mode, setMode] = useState<string>("lowest_card");
   const [isPrivate, setIsPrivate] = useState(false);
   const [creating, setCreating] = useState(false);
-
-  const selectedBoxData = boxes.find((b) => b._id === selectedBox);
-  const CARDS_PER_HAND = 5;
-  const entryFee = selectedBoxData ? rounds * CARDS_PER_HAND * selectedBoxData.priceInCoins : 0;
 
   async function handleCreate() {
     if (!selectedBox) {
@@ -61,7 +55,6 @@ export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {
         return;
       }
 
-      window.dispatchEvent(new CustomEvent("coin-balance-refresh"));
       onCreated(data.battle);
     } catch {
       toast({ title: isDe ? "Fehler beim Erstellen" : "Error creating battle", type: "error" });
@@ -205,16 +198,6 @@ export function BattleCreate({ boxes, lang, onCreated }: BattleCreateProps) {
           </button>
         </div>
       </div>
-
-      {/* Fee Display */}
-      {selectedBox && (
-        <div className="rounded-lg bg-black/40 px-4 py-3">
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-zinc-500">{isDe ? "Gebühr:" : "Entry Fee:"}</span>
-            <span className="font-bold text-yellow-400">{entryFee} Coins</span>
-          </div>
-        </div>
-      )}
 
       {/* Create Button */}
       <button

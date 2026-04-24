@@ -22,7 +22,6 @@ interface BattleWaitingProps {
       isPrivate: boolean;
       inviteCode: string | null;
     };
-    entryFee: number;
     lobbyExpiresAt: string;
     readyCheckExpiresAt: string | null;
   };
@@ -39,7 +38,6 @@ interface BattleWaitingProps {
 const MODE_LABELS: Record<string, { de: string; en: string }> = {
   lowest_card: { de: "Niedrigste Karte", en: "Lowest Card" },
   highest_card: { de: "Höchste Karte", en: "Highest Card" },
-  all_cards: { de: "Alle Karten", en: "All Cards" },
 };
 
 export function BattleWaiting({
@@ -123,8 +121,6 @@ export function BattleWaiting({
         <span>{battle.settings.rounds} {isDe ? "Runden" : "Rounds"}</span>
         <span className="text-zinc-600">|</span>
         <span>{isDe ? MODE_LABELS[battle.settings.mode]?.de : MODE_LABELS[battle.settings.mode]?.en}</span>
-        <span className="text-zinc-600">|</span>
-        <span className="text-yellow-400">{battle.entryFee} Coins</span>
       </div>
 
       {/* Private Invite Code */}
@@ -175,7 +171,7 @@ export function BattleWaiting({
                 {player.user.username}
               </div>
               {player.user.elo !== undefined && (
-                <div className="text-[10px] text-zinc-500">ELO {player.user.elo}</div>
+                <div className="text-[10px] text-zinc-500">Prestige {player.user.elo}</div>
               )}
               <div className={`mt-2 rounded-full px-3 py-0.5 text-[10px] font-bold uppercase ${
                 player.isReady
@@ -202,7 +198,7 @@ export function BattleWaiting({
           >
             {joining
               ? isDe ? "Trete bei..." : "Joining..."
-              : isDe ? `Beitreten (${battle.entryFee} Coins)` : `Join Battle (${battle.entryFee} Coins)`}
+              : isDe ? "Beitreten" : "Join Battle"}
           </button>
         )}
 

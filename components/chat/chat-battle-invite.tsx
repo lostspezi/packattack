@@ -237,7 +237,6 @@ interface ChatBattleInviteProps {
 const MODE_LABELS: Record<string, Record<string, string>> = {
   lowest_card: { de: "Niedrigste Karte", en: "Lowest Card" },
   highest_card: { de: "Höchste Karte", en: "Highest Card" },
-  all_cards: { de: "Alle Karten", en: "All Cards" },
 };
 
 const STATUS_TEXT: Record<string, Record<BattleStatus, string | null>> = {
@@ -355,10 +354,7 @@ export function ChatBattleInvite({ invite, lang, className }: ChatBattleInvitePr
         )}
 
         <div className="min-w-0 flex-1">
-          <p className="text-[11px] font-extrabold uppercase tracking-[0.16em] text-indigo-200">
-            {invite.entryFee} Coins
-          </p>
-          <p className="mt-0.5 break-words text-sm font-semibold text-text-primary">
+          <p className="break-words text-sm font-semibold text-text-primary">
             {invite.boxName}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-indigo-200/80">

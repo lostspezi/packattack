@@ -7,7 +7,6 @@ import { Swords, Loader2, RefreshCw } from "lucide-react";
 
 import { BattleCreate } from "@/components/battles/battle-create";
 import { BattleCard, type BattleCardData } from "@/components/battles/battle-card";
-import { BattleJoinConfirmModal } from "@/components/battles/battle-join-confirm-modal";
 import { BattleHandbook } from "@/components/battles/battle-handbook";
 import { useToast } from "@/components/ui/toast";
 
@@ -16,7 +15,6 @@ interface BoxOption {
   name: { de: string; en: string };
   game: string;
   image: string | null;
-  priceInCoins: number;
 }
 
 export default function BattlesPage() {
@@ -34,7 +32,6 @@ export default function BattlesPage() {
   const [myBattles, setMyBattles] = useState<BattleCardData[]>([]);
   const [loading, setLoading] = useState(true);
   const [joiningId, setJoiningId] = useState<string | null>(null);
-  const [pendingJoinBattle, setPendingJoinBattle] = useState<BattleCardData | null>(null);
 
   const fetchLobby = useCallback(async () => {
     try {
@@ -86,27 +83,16 @@ export default function BattlesPage() {
     router.push(`/${lang}/battles/${battle.slug}`);
   }
 
-  function handleJoinRequest(battleIdOrSlug: string) {
+  async function handleJoinRequest(battleIdOrSlug: string) {
     // If it's a slug (returning to own battle), navigate directly
     if (battleIdOrSlug.length === 8) {
       router.push(`/${lang}/battles/${battleIdOrSlug}`);
       return;
     }
 
-    // Find the battle and show confirmation modal
-    const battle = [...battles, ...myBattles].find((b) => b._id === battleIdOrSlug);
-    if (battle) {
-      setPendingJoinBattle(battle);
-    }
-  }
-
-  async function handleConfirmJoin() {
-    if (!pendingJoinBattle) return;
-
-    const battleId = pendingJoinBattle._id;
-    setJoiningId(battleId);
+    setJoiningId(battleIdOrSlug);
     try {
-      const res = await fetch(`/api/battles/${battleId}/join`, {
+      const res = await fetch(`/api/battles/${battleIdOrSlug}/join`, {
         method: "POST",
       });
       const data = await res.json();
@@ -122,7 +108,6 @@ export default function BattlesPage() {
       });
     } finally {
       setJoiningId(null);
-      setPendingJoinBattle(null);
     }
   }
 
@@ -217,16 +202,6 @@ export default function BattlesPage() {
         </div>
       </div>
 
-      {/* Join Confirmation Modal */}
-      {pendingJoinBattle && (
-        <BattleJoinConfirmModal
-          battle={pendingJoinBattle}
-          lang={lang}
-          loading={joiningId === pendingJoinBattle._id}
-          onConfirm={handleConfirmJoin}
-          onCancel={() => setPendingJoinBattle(null)}
-        />
-      )}
     </div>
   );
 }

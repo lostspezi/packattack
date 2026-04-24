@@ -3,7 +3,6 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
 import User from "@/models/user";
-import CoinTransaction from "@/models/coin-transaction";
 import { publishBattleEvent } from "@/lib/battle-events";
 
 export async function DELETE(
@@ -33,23 +32,7 @@ export async function DELETE(
       return NextResponse.json({ error: "battle_already_ended" }, { status: 400 });
     }
 
-    // Cancel and refund all players
     battle.status = "cancelled";
-
-    for (const player of battle.players) {
-      await User.updateOne(
-        { _id: player.user },
-        { $inc: { coins: battle.entryFee } },
-      );
-      await CoinTransaction.create({
-        userId: player.user,
-        amount: battle.entryFee,
-        type: "battle_refund",
-        reason: "Battle cancelled by admin",
-        relatedBattleId: battle._id,
-      });
-    }
-
     await battle.save();
     await publishBattleEvent(id, "battle_cancelled", { reason: "admin_cancelled" });
 

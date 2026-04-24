@@ -3,8 +3,7 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
 import User from "@/models/user";
-import CoinTransaction from "@/models/coin-transaction";
-import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
+import { BattleLockError, publishBattleEvent, withBattleLock } from "@/lib/battle-events";
 import { scheduleBattleJob, removeBattleJob } from "@/lib/battle-jobs";
 
 const READY_CHECK_DURATION_MS = 30 * 1000; // 30 seconds
@@ -62,24 +61,10 @@ export async function POST(
         return NextResponse.json({ error: "already_in_battle" }, { status: 409 });
       }
 
-      // Reserve coins
-      const user = await User.findOneAndUpdate(
-        { _id: session.user!.id, coins: { $gte: battle.entryFee } },
-        { $inc: { coins: -battle.entryFee } },
-        { returnDocument: "after" },
-      );
-
+      const user = await User.findById(session.user!.id).select("_id username");
       if (!user) {
-        return NextResponse.json({ error: "insufficient_coins" }, { status: 400 });
+        return NextResponse.json({ error: "user_not_found" }, { status: 404 });
       }
-
-      await CoinTransaction.create({
-        userId: session.user!.id,
-        amount: -battle.entryFee,
-        type: "battle_entry",
-        reason: `Battle entry fee`,
-        relatedBattleId: battle._id,
-      });
 
       // Add player
       battle.players.push({
@@ -116,15 +101,16 @@ export async function POST(
 
       return NextResponse.json({
         joined: true,
-        newBalance: user.coins,
         status: battle.status,
         battle: { slug: battle.slug },
       });
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "server_error";
-    if (message === "Operation in progress, please try again") {
-      return NextResponse.json({ error: message }, { status: 429 });
+    if (err instanceof BattleLockError) {
+      return NextResponse.json(
+        { error: "Operation in progress, please try again" },
+        { status: 429 },
+      );
     }
     console.error("[battles/[id]/join] POST error:", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

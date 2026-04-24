@@ -1,19 +1,25 @@
-/**
- * Battle card drawing — real cards with stock tracking.
- * Uses the same weighted engine as pack opening, creates PackPull entries,
- * and decrements box stock atomically.
- */
-
 import mongoose from "mongoose";
-import { randomUUID } from "crypto";
 import Box from "@/models/box";
 import PackPull from "@/models/pack-pull";
 import { drawBattleHand, type BoxCardForBattle } from "@/lib/battle-engine";
 import type { IVirtualCard } from "@/models/battle";
 
-/**
- * Prepare box cards for battle drawing.
- */
+// ---------- Box card cache ----------
+
+// Loading a Box with populated cards is the single most expensive query in
+// the battle hot path — it fires for every round, every time. Caching the
+// prepared card array for a short window cuts 7 identical populate()
+// queries per 7-round battle down to 1.
+const BOX_CARD_CACHE_TTL_MS = 5 * 60 * 1000;
+const boxCardCache = new Map<
+  string,
+  { cards: BoxCardForBattle[]; expiresAt: number }
+>();
+
+export function invalidateBoxCardCache(boxId: string): void {
+  boxCardCache.delete(boxId);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function prepareBoxCardsForBattle(box: any): BoxCardForBattle[] {
   const cards = (box.cards ?? []) as Array<{
@@ -46,133 +52,53 @@ export function prepareBoxCardsForBattle(box: any): BoxCardForBattle[] {
 }
 
 /**
- * Draw a battle hand for a player:
- * 1. Draw 5 cards using weighted engine (respects stock)
- * 2. Create PackPull entries (status "pending", linked to battle)
- * 3. Decrement box stock atomically
+ * Load box cards ready for battle drawing, caching the prepared array so
+ * subsequent rounds in the same battle skip the Mongo populate.
  *
- * Returns IVirtualCard[] with pullId references.
+ * The returned array is a fresh copy — callers may mutate `stock` freely
+ * (drawBattleHandCards does) without poisoning the cache.
  */
-export async function drawAndPersistBattleHand(
-  boxId: string,
-  boxCards: BoxCardForBattle[],
-  playerId: string,
-  battleId: string,
-): Promise<IVirtualCard[]> {
-  const { cards, stockDeltas } = drawBattleHand(boxCards);
-
-  const packGroupId = `battle-${battleId}-${playerId}-${randomUUID().slice(0, 8)}`;
-
-  // Create PackPull entries (expiresAt set when battle finishes)
-  const pullDocs = cards.map((c, i) => ({
-    userId: new mongoose.Types.ObjectId(playerId),
-    boxId: new mongoose.Types.ObjectId(boxId),
-    cardId: new mongoose.Types.ObjectId(c.cardId),
-    rarity: c.rarity,
-    coinValue: c.coinValue,
-    conversionValue: c.conversionValue,
-    status: "pending" as const,
-    decidedAt: null,
-    packGroupId,
-    packIndex: 0,
-    cardIndex: i,
-    ipAddress: "battle",
-    userAgent: "battle",
-    battleId: new mongoose.Types.ObjectId(battleId),
-    expiresAt: null, // Set when battle finishes
-  }));
-
-  const insertedPulls = await PackPull.insertMany(pullDocs);
-
-  // Decrement stock atomically
-  for (const [cardId, count] of Object.entries(stockDeltas)) {
-    const cardObjectId = new mongoose.Types.ObjectId(cardId);
-    await Box.updateOne(
-      { _id: boxId, "cards.card": cardObjectId, "cards.stock": { $gte: count } },
-      { $inc: { "cards.$.stock": -count } },
-    );
+export async function loadBattleBoxCards(
+  boxId: string | mongoose.Types.ObjectId,
+): Promise<BoxCardForBattle[]> {
+  const key = boxId.toString();
+  const cached = boxCardCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.cards.map((c) => ({ ...c }));
   }
 
-  // Update local boxCards stock so subsequent draws for other players are accurate
+  const box = await Box.findById(boxId)
+    .populate("cards.card", "name image rarity internalPrice marketPrice")
+    .lean();
+  if (!box) throw new Error(`Box ${key} not found`);
+
+  const cards = prepareBoxCardsForBattle(box);
+  boxCardCache.set(key, { cards, expiresAt: Date.now() + BOX_CARD_CACHE_TTL_MS });
+  return cards.map((c) => ({ ...c }));
+}
+
+/**
+ * Draw a virtual battle hand. Battles don't persist anything — cards exist
+ * only inside the battle document. The shared `boxCards` array is mutated
+ * in-memory so later hands in the same round see the adjusted stock.
+ */
+export function drawBattleHandCards(boxCards: BoxCardForBattle[]): IVirtualCard[] {
+  const { cards, stockDeltas } = drawBattleHand(boxCards);
+
   for (const [cardId, count] of Object.entries(stockDeltas)) {
     const card = boxCards.find((c) => c.cardId === cardId);
     if (card) card.stock = Math.max(0, card.stock - count);
   }
 
-  // Build IVirtualCard array with pullId references
-  return cards.map((c, i) => ({
+  return cards.map((c) => ({
     cardId: new mongoose.Types.ObjectId(c.cardId) as unknown as mongoose.Types.ObjectId,
     name: c.name,
     image: c.image,
     rarity: c.rarity,
     coinValue: c.coinValue,
     conversionValue: c.conversionValue,
-    pullId: insertedPulls[i]._id as mongoose.Types.ObjectId,
+    pullId: null,
   }));
-}
-
-/**
- * Transfer card ownership by updating PackPull userId.
- * Used at the end of a battle when the mode dictates card redistribution.
- */
-export async function transferCardOwnership(
-  pullId: string,
-  newOwnerId: string,
-): Promise<void> {
-  await PackPull.updateOne(
-    { _id: pullId },
-    { $set: { userId: new mongoose.Types.ObjectId(newOwnerId) } },
-  );
-}
-
-/**
- * Set expiresAt on all pending battle pulls when a battle finishes.
- * Gives players 5 minutes to decide claim/convert.
- */
-export async function activateBattlePullExpiry(battleId: string): Promise<void> {
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-  await PackPull.updateMany(
-    { battleId: new mongoose.Types.ObjectId(battleId), status: "pending", expiresAt: null },
-    { $set: { expiresAt } },
-  );
-}
-
-/**
- * Clean up unselected battle cards after a battle finishes.
- * Each round draws 5 cards but only 1 is selected — the other 4 must be
- * returned to stock and marked as converted.
- *
- * @param battleId  The battle that just finished
- * @param selectedPullIds  Set of pullId strings for the cards that were actually played
- */
-export async function cleanupUnselectedBattlePulls(
-  battleId: string,
-  selectedPullIds: Set<string>,
-): Promise<void> {
-  const battleObjectId = new mongoose.Types.ObjectId(battleId);
-
-  // Find all pending pulls for this battle that were NOT selected
-  const unselected = await PackPull.find({
-    battleId: battleObjectId,
-    status: "pending",
-    _id: { $nin: [...selectedPullIds].map((id) => new mongoose.Types.ObjectId(id)) },
-  }).lean();
-
-  if (unselected.length === 0) return;
-
-  // Return stock for each unselected card
-  for (const pull of unselected) {
-    await Box.updateOne(
-      { _id: pull.boxId, "cards.card": pull.cardId },
-      { $inc: { "cards.$.stock": 1 } },
-    );
-  }
-
-  // Mark all as converted (no coins awarded — they were never played)
-  await PackPull.updateMany(
-    { _id: { $in: unselected.map((p) => p._id) } },
-    { $set: { status: "converted", decidedAt: new Date() } },
-  );
 }
 
 /**

@@ -19,6 +19,9 @@ export interface BattleEvent {
   type: BattleEventType;
   data: Record<string, unknown>;
   timestamp: number;
+  /** Redis Stream entry ID — populated on publish so SSE clients can use it
+   *  as the SSE `id:` field and replay missed events after reconnect. */
+  streamId?: string;
 }
 
 // ---------- Channel ----------
@@ -26,6 +29,15 @@ export interface BattleEvent {
 function channelKey(battleId: string): string {
   return `battle:${battleId}`;
 }
+
+export function streamKey(battleId: string): string {
+  return `battle:events:${battleId}`;
+}
+
+// Stream retention: ~500 entries per battle, whole key expires after 10 min.
+// A full battle (7 rounds × 4 players × events-per-round) stays well under 500.
+const STREAM_MAXLEN = 500;
+const STREAM_TTL_SECONDS = 600;
 
 // ---------- Publish ----------
 
@@ -35,10 +47,62 @@ export async function publishBattleEvent(
   data: Record<string, unknown>,
 ): Promise<void> {
   const event: BattleEvent = { type, data, timestamp: Date.now() };
+  const redis = getRedis();
+  const key = streamKey(battleId);
+
   try {
-    await getRedis().publish(channelKey(battleId), JSON.stringify(event));
+    // XADD first so the stream ID is known when we broadcast it.
+    const streamId = (await redis.xadd(
+      key,
+      "MAXLEN",
+      "~",
+      STREAM_MAXLEN,
+      "*",
+      "data",
+      JSON.stringify(event),
+    )) as string | null;
+
+    if (streamId) {
+      event.streamId = streamId;
+      // Best-effort TTL refresh — a transient error here must not block the
+      // publish, otherwise live subscribers miss the event entirely.
+      redis.expire(key, STREAM_TTL_SECONDS).catch((err) => {
+        console.warn(`[battle-events] expire failed for ${battleId}:`, err);
+      });
+    }
+
+    await redis.publish(channelKey(battleId), JSON.stringify(event));
   } catch (err) {
     console.warn(`[battle-events] publish failed for ${battleId}:`, err);
+  }
+}
+
+/**
+ * Replay events from the Redis Stream that occurred after `afterStreamId`.
+ * Used by the SSE route when a client reconnects with a Last-Event-ID header.
+ * Returns entries as [streamId, rawEventJson] tuples in chronological order.
+ */
+export async function replayBattleEventsAfter(
+  battleId: string,
+  afterStreamId: string,
+): Promise<Array<{ streamId: string; rawData: string }>> {
+  const redis = getRedis();
+  try {
+    // `(id` makes the range exclusive of the caller's last seen ID.
+    const entries = (await redis.xrange(
+      streamKey(battleId),
+      `(${afterStreamId}`,
+      "+",
+    )) as Array<[string, string[]]>;
+
+    return entries.map(([id, fields]) => {
+      const dataIdx = fields.indexOf("data");
+      const rawData = dataIdx >= 0 ? fields[dataIdx + 1] : "";
+      return { streamId: id, rawData };
+    });
+  } catch (err) {
+    console.warn(`[battle-events] replay failed for ${battleId}:`, err);
+    return [];
   }
 }
 
@@ -80,9 +144,27 @@ export function subscribeToBattle(
 
 // ---------- Distributed Lock ----------
 
+// 15 s TTL gives resolveRound (which can touch several User docs + publish
+// events) plenty of room before the lock auto-expires. The retry loop below
+// handles short-term contention between two players clicking at the same
+// time, so the TTL only needs to cover the worst case for a single caller.
+const BATTLE_LOCK_TTL_SECONDS = 15;
+const BATTLE_LOCK_RETRY_DELAY_MS = 50;
+const BATTLE_LOCK_MAX_RETRIES = 10; // up to 500 ms of blocking wait
+
+/** Thrown by `withBattleLock` when the lock is still held after all retries.
+ *  Callers can `instanceof`-check instead of matching on a brittle message. */
+export class BattleLockError extends Error {
+  constructor(battleId: string, operation: string) {
+    super(`battle lock "${operation}" unavailable for ${battleId}`);
+    this.name = "BattleLockError";
+  }
+}
+
 /**
- * Simple Redis lock for battle operations (join, start, select).
- * Prevents race conditions.
+ * Redis lock for battle operations (join, start, select). If the lock is
+ * already held, we briefly retry before giving up — two players clicking
+ * Select within the same tick is common and shouldn't surface as a 429.
  */
 export async function withBattleLock<T>(
   battleId: string,
@@ -93,10 +175,17 @@ export async function withBattleLock<T>(
   const redis = getRedis();
   const lockValue = `${Date.now()}-${Math.random()}`;
 
-  // Try to acquire lock (5 second TTL)
-  const acquired = await redis.set(lockKey, lockValue, "EX", 5, "NX");
+  let acquired: "OK" | null = null;
+  for (let attempt = 0; attempt <= BATTLE_LOCK_MAX_RETRIES; attempt++) {
+    acquired = await redis.set(lockKey, lockValue, "EX", BATTLE_LOCK_TTL_SECONDS, "NX");
+    if (acquired) break;
+    if (attempt < BATTLE_LOCK_MAX_RETRIES) {
+      await new Promise((resolve) => setTimeout(resolve, BATTLE_LOCK_RETRY_DELAY_MS));
+    }
+  }
+
   if (!acquired) {
-    throw new Error("Operation in progress, please try again");
+    throw new BattleLockError(battleId, operation);
   }
 
   try {

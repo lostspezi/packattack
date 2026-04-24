@@ -1,5 +1,5 @@
 import type { Types } from "mongoose";
-import type { IVirtualCard } from "@/models/battle";
+import type { BattleMode, IVirtualCard } from "@/models/battle";
 import { drawPacks, type PackCard } from "@/lib/pack-engine";
 
 // ---------- Types ----------
@@ -93,17 +93,20 @@ export function drawBattleHand(boxCards: BoxCardForBattle[]): {
 // ---------- Round evaluation ----------
 
 /**
- * Evaluate a round: highest coinValue wins. Tie = null winner.
+ * Evaluate a round based on the battle mode.
+ * - highest_card: card with the highest coinValue wins
+ * - lowest_card: card with the lowest coinValue wins
+ * Tie on the target value = null winner.
  */
-export function evaluateRound(selections: RoundSelection[]): RoundResult {
-  const maxValue = Math.max(...selections.map((s) => s.card.coinValue));
-  const topPlayers = selections.filter((s) => s.card.coinValue === maxValue);
+export function evaluateRound(selections: RoundSelection[], mode: BattleMode): RoundResult {
+  const values = selections.map((s) => s.card.coinValue);
+  const targetValue = mode === "lowest_card" ? Math.min(...values) : Math.max(...values);
+  const topPlayers = selections.filter((s) => s.card.coinValue === targetValue);
 
   if (topPlayers.length === 1) {
     return { winner: topPlayers[0].player };
   }
 
-  // Multiple players with same max value = tie
   return { winner: null };
 }
 

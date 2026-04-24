@@ -2,12 +2,16 @@ import { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
-import { subscribeToBattle, type BattleEvent } from "@/lib/battle-events";
+import {
+  subscribeToBattle,
+  replayBattleEventsAfter,
+  type BattleEvent,
+} from "@/lib/battle-events";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const session = await auth();
@@ -27,47 +31,101 @@ export async function GET(
 
   const userId = session.user.id;
   const battleId = battle._id.toString();
+  const lastEventId = req.headers.get("last-event-id");
 
   let cleanup: (() => void) | null = null;
 
   const stream = new ReadableStream({
-    start(controller) {
+    async start(controller) {
       const encoder = new TextEncoder();
+      const sentStreamIds = new Set<string>();
+      let replayDone = false;
+      const liveBuffer: Array<{ streamId: string | null; payload: string }> = [];
 
-      function send(data: string) {
+      function enqueue(streamId: string | null, payload: string) {
+        if (streamId) {
+          if (sentStreamIds.has(streamId)) return;
+          sentStreamIds.add(streamId);
+        }
         try {
-          controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+          const idLine = streamId ? `id: ${streamId}\n` : "";
+          controller.enqueue(encoder.encode(`${idLine}data: ${payload}\n\n`));
         } catch {
           // Stream closed
         }
       }
 
-      // Send initial connection event
-      send(JSON.stringify({ type: "connected", battleId }));
-
-      // Subscribe to battle events
-      const { unsubscribe } = subscribeToBattle(battleId, (event: BattleEvent) => {
-        // Filter round_start events — only send the player's own hand
+      // Returns the serialized payload for a BattleEvent. round_start is
+      // published as a single broadcast carrying every player's hand; we
+      // pick the current user's hand here so the SSE event the client sees
+      // matches the shape of the old per-player publish.
+      function serializeForUser(event: BattleEvent): string | null {
         if (event.type === "round_start") {
-          const eventPlayerId = event.data.playerId as string;
-          if (eventPlayerId !== userId) {
-            // Send a stripped version (just notification that round started)
-            send(JSON.stringify({
-              type: "round_start",
-              data: {
-                roundNumber: event.data.roundNumber,
-                selectDeadline: event.data.selectDeadline,
-                // Other players don't see the hand
-              },
-              timestamp: event.timestamp,
-            }));
-            return;
-          }
+          const handsByUser = event.data.hands as
+            | Record<string, unknown[]>
+            | undefined;
+          const myHand = handsByUser?.[userId] ?? null;
+          return JSON.stringify({
+            type: event.type,
+            data: {
+              roundNumber: event.data.roundNumber,
+              selectDeadline: event.data.selectDeadline,
+              hand: myHand,
+            },
+            timestamp: event.timestamp,
+            streamId: event.streamId,
+          });
         }
-        send(JSON.stringify(event));
+        return JSON.stringify(event);
+      }
+
+      // Initial connection marker — no stream ID so it doesn't overwrite the
+      // browser's lastEventId.
+      try {
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ type: "connected", battleId })}\n\n`),
+        );
+      } catch {
+        // already closed
+      }
+
+      // Subscribe first so events that fire during replay are buffered, not lost.
+      const { unsubscribe } = subscribeToBattle(battleId, (event: BattleEvent) => {
+        const payload = serializeForUser(event);
+        if (!payload) return;
+        const streamId = event.streamId ?? null;
+        if (!replayDone) {
+          liveBuffer.push({ streamId, payload });
+        } else {
+          enqueue(streamId, payload);
+        }
       });
 
-      // Heartbeat every 15 seconds
+      // Replay events the client missed during disconnect. Redis Stream entries
+      // are in chronological order, so we can forward them one by one.
+      if (lastEventId) {
+        const missed = await replayBattleEventsAfter(battleId, lastEventId);
+        for (const entry of missed) {
+          try {
+            const event = JSON.parse(entry.rawData) as BattleEvent;
+            event.streamId = entry.streamId;
+            const payload = serializeForUser(event);
+            if (payload) enqueue(entry.streamId, payload);
+          } catch {
+            // skip malformed entry
+          }
+        }
+      }
+
+      replayDone = true;
+
+      // Flush anything that arrived via pub/sub while we were replaying.
+      // sentStreamIds dedups overlaps between replay and live.
+      for (const buffered of liveBuffer) {
+        enqueue(buffered.streamId, buffered.payload);
+      }
+      liveBuffer.length = 0;
+
       const heartbeat = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(": ping\n\n"));
@@ -77,14 +135,12 @@ export async function GET(
         }
       }, 15000);
 
-      // Store cleanup so cancel() can also call it
       cleanup = () => {
         clearInterval(heartbeat);
         unsubscribe();
       };
 
-      // Cleanup on close
-      _req.signal.addEventListener("abort", () => {
+      req.signal.addEventListener("abort", () => {
         cleanup?.();
         cleanup = null;
         try {

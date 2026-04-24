@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Loader2, ArrowLeft, ArrowRight, ArrowUpRight, ArrowDownLeft } from "lucide-react";
+import { Loader2, ArrowLeft, ArrowRight } from "lucide-react";
 import { GiTrophyCup, GiCrossedSwords, GiScales, GiLaurelCrown, GiPodiumWinner, GiPodiumSecond, GiPodiumThird, GiSandsOfTime, GiScrollUnfurled, GiRoundStar } from "react-icons/gi";
 
 import { BattleWaiting } from "@/components/battles/battle-waiting";
@@ -43,18 +43,13 @@ interface BattleRound {
   winner: string | null;
   status: "selecting" | "revealing" | "completed";
   selectDeadline: string | null;
+  revealedAt: string | null;
 }
 
 interface BattleResult {
   winner: string | null;
   isDraw: boolean;
   finalScores: { player: string; roundsWon: number }[];
-  transfers: {
-    from: string;
-    to: string;
-    cards: VirtualCard[];
-    mode: string;
-  }[];
   eloChanges: {
     player: string;
     oldElo: number;
@@ -77,7 +72,6 @@ interface BattleData {
     isPrivate: boolean;
     inviteCode: string | null;
   };
-  entryFee: number;
   currentRound: number;
   lobbyExpiresAt: string;
   readyCheckExpiresAt: string | null;
@@ -95,62 +89,53 @@ type RoundHistoryEntry = {
   winnerId: string | null;
 };
 
+// How long a reveal stays on screen before folding into history.
+const REVEAL_DURATION_MS = 4000;
+
 /**
- * For each player, compute which of their played cards is currently the
- * transfer candidate based on the battle mode.
- * Returns a Map of "{roundNumber}-{userId}" → leaderId (who would receive the card).
- *
- * - all_cards: every card from every non-leading player → all are at risk
- * - lowest_card: the single lowest-value card per non-leading player
- * - highest_card: the single highest-value card per non-leading player
+ * Scan from the latest round backwards and return the most recent `completed`
+ * round whose reveal is still within the display window. Any `selecting`
+ * rounds after it are skipped — they sit on top of the round being revealed.
  */
-function computeTransferPreviews(
-  history: RoundHistoryEntry[],
-  mode: string,
-  scores: Map<string, number>,
-): Map<string, string> {
-  const atRisk = new Map<string, string>();
-  if (history.length === 0) return atRisk;
-
-  // Find leading player(s)
-  let maxScore = 0;
-  for (const s of scores.values()) if (s > maxScore) maxScore = s;
-  const leaders = new Set<string>();
-  let leaderId = "";
-  for (const [id, s] of scores.entries()) {
-    if (s === maxScore) { leaders.add(id); leaderId = id; }
+function findRecentRevealRound(rounds: BattleRound[]): BattleRound | null {
+  for (let i = rounds.length - 1; i >= 0; i--) {
+    const r = rounds[i];
+    if (r.status === "selecting") continue;
+    if (r.status !== "completed" || !r.revealedAt) return null;
+    const elapsed = Date.now() - new Date(r.revealedAt).getTime();
+    return elapsed < REVEAL_DURATION_MS ? r : null;
   }
-  // If everyone is tied, no transfers yet
-  if (leaders.size === scores.size) return atRisk;
-  // If multiple leaders tied, pick first one for display
-  if (leaders.size > 1) leaderId = [...leaders][0];
+  return null;
+}
 
-  // Collect played cards per player with round reference
-  const playerCards = new Map<string, { roundNumber: number; coinValue: number }[]>();
-  for (const round of history) {
-    for (const p of round.players) {
-      if (!playerCards.has(p.userId)) playerCards.set(p.userId, []);
-      playerCards.get(p.userId)!.push({ roundNumber: round.roundNumber, coinValue: p.card.coinValue });
-    }
+function buildRevealFromRound(
+  round: BattleRound,
+  playerNameMap: Map<string, string>,
+): RoundHistoryEntry {
+  const players = round.hands
+    .filter((h) => h.selectedCardIndex !== null && h.selectedCardIndex >= 0)
+    .map((h) => ({
+      userId: String(h.player),
+      username: playerNameMap.get(String(h.player)) ?? "???",
+      card: h.cards[h.selectedCardIndex!],
+    }));
+  return {
+    roundNumber: round.roundNumber,
+    players,
+    winnerId: round.winner ? String(round.winner) : null,
+  };
+}
+
+function buildRoundHistory(b: BattleData): RoundHistoryEntry[] {
+  const playerNameMap = new Map(
+    b.players.map((p) => [String(p.user._id), p.user.username]),
+  );
+  const history: RoundHistoryEntry[] = [];
+  for (const round of b.rounds) {
+    if (round.status !== "completed") continue;
+    history.push(buildRevealFromRound(round, playerNameMap));
   }
-
-  for (const [userId, cards] of playerCards.entries()) {
-    if (leaders.has(userId)) continue; // leaders don't lose cards
-
-    if (mode === "all_cards") {
-      for (const c of cards) atRisk.set(`${c.roundNumber}-${userId}`, leaderId);
-    } else if (mode === "lowest_card") {
-      const min = Math.min(...cards.map((c) => c.coinValue));
-      const target = cards.find((c) => c.coinValue === min);
-      if (target) atRisk.set(`${target.roundNumber}-${userId}`, leaderId);
-    } else if (mode === "highest_card") {
-      const max = Math.max(...cards.map((c) => c.coinValue));
-      const target = cards.find((c) => c.coinValue === max);
-      if (target) atRisk.set(`${target.roundNumber}-${userId}`, leaderId);
-    }
-  }
-
-  return atRisk;
+  return history;
 }
 
 /* ------------------------------------------------------------------ */
@@ -198,11 +183,18 @@ function useBattleSSE(
       };
 
       eventSource.onerror = () => {
-        eventSource?.close();
         if (cancelled) return;
-        if (retryCount < 10) {
-          retryCount++;
-          retryTimeout = setTimeout(connect, Math.min(1000 * retryCount, 10000));
+        // Let the browser reconnect natively whenever possible — it ships the
+        // `Last-Event-ID` header automatically so the server's Redis-Stream
+        // replay can fill in whatever we missed during the gap. If the
+        // readyState is CLOSED, the browser gave up (e.g. 5xx, stream kill)
+        // and we have to reopen manually; in that case Last-Event-ID is gone,
+        // but onReconnect's fetchBattle() is the fallback recovery.
+        if (eventSource?.readyState === EventSource.CLOSED) {
+          if (retryCount < 10) {
+            retryCount++;
+            retryTimeout = setTimeout(connect, Math.min(1000 * retryCount, 10000));
+          }
         }
       };
     }
@@ -239,6 +231,11 @@ export default function BattleDetailPage() {
   const [myHand, setMyHand] = useState<VirtualCard[] | null>(null);
   const [selectDeadline, setSelectDeadline] = useState<string | null>(null);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
+  // Which opponents have already picked this round — populated from
+  // player_selected events, cleared whenever a new round starts.
+  const [playersWhoSelected, setPlayersWhoSelected] = useState<Set<string>>(
+    () => new Set<string>(),
+  );
   const [revealData, setRevealData] = useState<{
     roundNumber: number;
     players: { userId: string; username: string; card: { name: string; image: string; coinValue: number } }[];
@@ -252,40 +249,21 @@ export default function BattleDetailPage() {
   }[]>([]);
   // Queue next round data so reveal animation can finish
   const pendingRoundRef = useRef<{ hand: VirtualCard[] | null; deadline: string; roundNumber: number } | null>(null);
+  // Timer holding the 4 s reveal animation — checked by other branches to
+  // know whether a reveal is currently on screen.
   const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const revealPayloadRef = useRef<{
-    roundNumber: number;
-    players: { userId: string; username: string; card: { name: string; image: string; coinValue: number } }[];
-    winnerId: string | null;
-  } | null>(null);
+  // Separate timer for the short debounce after round_start, so it cannot be
+  // confused with an active reveal animation.
+  const roundStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Always-current battle snapshot; the SSE callback closes over a memoized
+  // handler whose dep list cannot include `battle` without respawning SSE on
+  // every state change, so we read via ref for name lookups.
+  const battleRef = useRef<BattleData | null>(null);
+  battleRef.current = battle;
   // Track the currently displayed reveal so it can be flushed to history if a new reveal arrives early
   const activeRevealRef = useRef<RoundHistoryEntry | null>(null);
   // Guard against concurrent fetchBattle calls
   const fetchingRef = useRef(false);
-
-  // Helper: rebuild round history from battle data
-  function buildRoundHistory(b: BattleData): RoundHistoryEntry[] {
-    const playerNameMap = new Map(
-      b.players.map((p) => [String(p.user._id), p.user.username]),
-    );
-    const history: RoundHistoryEntry[] = [];
-    for (const round of b.rounds) {
-      if (round.status !== "completed") continue;
-      const players = round.hands
-        .filter((h) => h.selectedCardIndex !== null)
-        .map((h) => ({
-          userId: String(h.player),
-          username: playerNameMap.get(String(h.player)) ?? "???",
-          card: h.cards[h.selectedCardIndex!],
-        }));
-      history.push({
-        roundNumber: round.roundNumber,
-        players,
-        winnerId: round.winner ? String(round.winner) : null,
-      });
-    }
-    return history;
-  }
 
   // Fetch battle state — isRecovery=true suppresses redirects on error
   const fetchBattle = useCallback(async (isRecovery = false) => {
@@ -303,7 +281,66 @@ export default function BattleDetailPage() {
       const b = battleData.battle as BattleData;
       setBattle(b);
 
-      // Rebuild round history from completed rounds
+      // Check for a recently revealed round so we can play the reveal even
+      // when the SSE event was missed. `revealedAt` is stamped server-side
+      // right before `resolveRound` persists the battle.
+      const playerNameMap = new Map(
+        b.players.map((p) => [String(p.user._id), p.user.username]),
+      );
+      const recentReveal = findRecentRevealRound(b.rounds);
+
+      if (recentReveal) {
+        const revealEntry = buildRevealFromRound(recentReveal, playerNameMap);
+        const elapsed = Date.now() - new Date(recentReveal.revealedAt!).getTime();
+        const remaining = Math.max(0, REVEAL_DURATION_MS - elapsed);
+
+        // History omits the round being revealed — the timer below adds it
+        // when the animation finishes (mirrors the live SSE path).
+        setRoundHistory(
+          buildRoundHistory(b).filter((r) => r.roundNumber !== revealEntry.roundNumber),
+        );
+        setRevealData(revealEntry);
+        setMyHand(null);
+        setSelectedCardIndex(null);
+        activeRevealRef.current = revealEntry;
+        pendingRoundRef.current = null;
+
+        if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+        if (roundStartTimerRef.current) {
+          clearTimeout(roundStartTimerRef.current);
+          roundStartTimerRef.current = null;
+        }
+        revealTimerRef.current = setTimeout(() => {
+          revealTimerRef.current = null;
+          activeRevealRef.current = null;
+          setRoundHistory((prev) => {
+            if (prev.some((r) => r.roundNumber === revealEntry.roundNumber)) return prev;
+            return [...prev, revealEntry];
+          });
+          setRevealData(null);
+          // If the next round is already selecting server-side, activate it now.
+          const followUp = b.rounds[b.rounds.length - 1];
+          if (
+            followUp &&
+            followUp.roundNumber !== recentReveal.roundNumber &&
+            followUp.status === "selecting" &&
+            currentUserId
+          ) {
+            const myHandData = followUp.hands.find(
+              (h: BattleHand_) => h.player === currentUserId,
+            );
+            if (myHandData) {
+              setMyHand(myHandData.cards);
+              setSelectDeadline(followUp.selectDeadline);
+              setSelectedCardIndex(myHandData.selectedCardIndex);
+            }
+          }
+        }, remaining);
+
+        return;
+      }
+
+      // Rebuild round history from completed rounds (no recent reveal in flight)
       if (b.rounds.length > 0) {
         setRoundHistory(buildRoundHistory(b));
       }
@@ -313,8 +350,14 @@ export default function BattleDetailPage() {
         const lastRound = b.rounds[b.rounds.length - 1];
 
         if (lastRound.status === "selecting" && currentUserId) {
-          // Round in progress — restore hand
+          // Round in progress — restore hand + opponent pick indicators
           const myHandData = lastRound.hands.find((h: BattleHand_) => h.player === currentUserId);
+          const alreadyPicked = new Set(
+            lastRound.hands
+              .filter((h: BattleHand_) => h.selectedCardIndex !== null)
+              .map((h: BattleHand_) => String(h.player)),
+          );
+          setPlayersWhoSelected(alreadyPicked);
           if (myHandData) {
             setMyHand(myHandData.cards);
             setSelectDeadline(lastRound.selectDeadline);
@@ -322,16 +365,20 @@ export default function BattleDetailPage() {
             setRevealData(null);
             // Clear any stale timers/pending data
             if (revealTimerRef.current) { clearTimeout(revealTimerRef.current); revealTimerRef.current = null; }
+            if (roundStartTimerRef.current) { clearTimeout(roundStartTimerRef.current); roundStartTimerRef.current = null; }
             pendingRoundRef.current = null;
             activeRevealRef.current = null;
           }
         } else if (lastRound.status === "completed") {
-          // Last round just completed (missed the reveal) — clear stale state
-          // SSE will deliver the next round_start, or the stuck-state recovery will refetch
+          // Reveal window already expired — fall back to clearing state.
           setMyHand(null);
           setRevealData(null);
           setSelectedCardIndex(null);
+          // The next round_start clears this too, but if the user reconnects
+          // here the stale set would briefly mark last-round picks as ready.
+          setPlayersWhoSelected(new Set());
           if (revealTimerRef.current) { clearTimeout(revealTimerRef.current); revealTimerRef.current = null; }
+          if (roundStartTimerRef.current) { clearTimeout(roundStartTimerRef.current); roundStartTimerRef.current = null; }
           pendingRoundRef.current = null;
           activeRevealRef.current = null;
         }
@@ -360,7 +407,7 @@ export default function BattleDetailPage() {
           fetchBattle();
           break;
 
-        case "ready_check_started":
+        case "ready_check":
           setBattle((prev) =>
             prev ? { ...prev, status: "ready_check", readyCheckExpiresAt: event.data.expiresAt as string } : prev,
           );
@@ -373,15 +420,23 @@ export default function BattleDetailPage() {
           }
           break;
 
-        case "countdown_started":
-          setBattle((prev) => (prev ? { ...prev, status: "countdown" } : prev));
+        case "player_selected": {
+          // Track opponent picks so "Wählt..." flips to "Bereit" live.
+          const playerId = event.data.player as string | undefined;
+          if (playerId) {
+            setPlayersWhoSelected((prev) => {
+              if (prev.has(playerId)) return prev;
+              const next = new Set(prev);
+              next.add(playerId);
+              return next;
+            });
+          }
           break;
+        }
 
         case "round_start": {
-          // Server sends one round_start per player:
-          // - own event has hand[] (cards to pick from)
-          // - opponent events have no hand (just round notification)
-          // Only update pending if this event has hand data, OR if nothing is pending yet
+          // Server sends one broadcast round_start; the SSE route already
+          // extracted this client's hand (null if spectator / other player).
           const incomingHand = event.data.hand as VirtualCard[] | null;
           const existing = pendingRoundRef.current;
 
@@ -393,11 +448,16 @@ export default function BattleDetailPage() {
             };
           }
 
-          // If no reveal is playing, apply after a short delay
-          // (500ms gives time for both per-player round_start events to arrive)
-          if (!revealTimerRef.current) {
-            revealTimerRef.current = setTimeout(() => {
-              revealTimerRef.current = null;
+          // Fresh round — clear any opponent-picked indicators from the
+          // previous round so the status row starts clean.
+          setPlayersWhoSelected(new Set());
+
+          // Apply pending round after a short debounce (handles first round
+          // when no reveal precedes it). Uses a dedicated ref so round_reveal
+          // can distinguish "short round_start debounce" from "active reveal".
+          if (!revealTimerRef.current && !roundStartTimerRef.current) {
+            roundStartTimerRef.current = setTimeout(() => {
+              roundStartTimerRef.current = null;
               const pending = pendingRoundRef.current;
               if (!pending) return;
               setRevealData(null);
@@ -419,49 +479,58 @@ export default function BattleDetailPage() {
             card: { name: string; image: string; coinValue: number };
           }[];
 
-          // Build reveal data using current battle state for player names
-          setBattle((prev) => {
-            if (!prev) return prev;
-            const playerNameMap = new Map(prev.players.map((p) => [String(p.user._id), p.user.username]));
-            // Store reveal data in ref first, then set state outside this callback
-            revealPayloadRef.current = {
-              roundNumber: event.data.roundNumber as number,
-              players: selections.map((s) => {
-                const id = s.playerId ?? s.player;
-                return {
-                  userId: id,
-                  username: s.username ?? playerNameMap.get(id) ?? "???",
-                  card: s.card,
-                };
-              }),
-              winnerId: ((event.data.winner ?? event.data.roundWinner) as string) ?? null,
-            };
-
-            // Update scores inline
-            if (event.data.scores) {
-              const scores = event.data.scores as Record<string, number>;
+          // Build reveal data synchronously from the latest battle snapshot.
+          // (The previous version stashed it inside a setState updater and
+          // read it back immediately — React runs updaters later, so the
+          // ref was still null at read time and the reveal UI never showed.)
+          const currentBattle = battleRef.current;
+          const playerNameMap = new Map(
+            (currentBattle?.players ?? []).map((p) => [String(p.user._id), p.user.username]),
+          );
+          const revealSnapshot: RoundHistoryEntry = {
+            roundNumber: event.data.roundNumber as number,
+            players: selections.map((s) => {
+              const id = s.playerId ?? s.player;
               return {
-                ...prev,
-                players: prev.players.map((p) => ({
-                  ...p,
-                  roundsWon: scores[String(p.user._id)] ?? p.roundsWon,
-                })),
+                userId: id,
+                username: s.username ?? playerNameMap.get(id) ?? "???",
+                card: s.card,
               };
-            }
-            return prev;
-          });
+            }),
+            winnerId: ((event.data.winner ?? event.data.roundWinner) as string) ?? null,
+          };
 
-          // Apply reveal data outside the setBattle callback
-          const revealSnapshot = revealPayloadRef.current;
-          if (revealSnapshot) {
-            setRevealData(revealSnapshot);
-            revealPayloadRef.current = null;
+          // Score update — pure updater, no side effects.
+          if (event.data.scores) {
+            const scores = event.data.scores as Record<string, number>;
+            setBattle((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    players: prev.players.map((p) => ({
+                      ...p,
+                      roundsWon: scores[String(p.user._id)] ?? p.roundsWon,
+                    })),
+                  }
+                : prev,
+            );
           }
+
+          setRevealData(revealSnapshot);
           setMyHand(null);
+          // New round will start fresh — clear opponent-picked indicators.
+          setPlayersWhoSelected(new Set());
+
+          // Cancel any pending round_start debounce — the reveal takes priority.
+          if (roundStartTimerRef.current) {
+            clearTimeout(roundStartTimerRef.current);
+            roundStartTimerRef.current = null;
+          }
 
           // If a previous reveal timer is still active, flush its data to history NOW
           if (revealTimerRef.current) {
             clearTimeout(revealTimerRef.current);
+            revealTimerRef.current = null;
             const previousReveal = activeRevealRef.current;
             if (previousReveal) {
               setRoundHistory((prev) => {
@@ -479,14 +548,11 @@ export default function BattleDetailPage() {
           revealTimerRef.current = setTimeout(() => {
             revealTimerRef.current = null;
             activeRevealRef.current = null;
-            // Add to round history AFTER the flip animation
-            if (revealSnapshot) {
-              setRoundHistory((prev) => {
-                const exists = prev.some((r) => r.roundNumber === revealSnapshot.roundNumber);
-                if (exists) return prev;
-                return [...prev, revealSnapshot];
-              });
-            }
+            setRoundHistory((prev) => {
+              const exists = prev.some((r) => r.roundNumber === revealSnapshot.roundNumber);
+              if (exists) return prev;
+              return [...prev, revealSnapshot];
+            });
             const pending = pendingRoundRef.current;
             if (pending) {
               setRevealData(null);
@@ -503,9 +569,13 @@ export default function BattleDetailPage() {
 
         case "battle_end":
         case "battle_finished":
+          // A round_start debounce is irrelevant once the battle ends.
+          if (roundStartTimerRef.current) {
+            clearTimeout(roundStartTimerRef.current);
+            roundStartTimerRef.current = null;
+          }
           // Wait for reveal animation to finish before fetching final state
           if (revealTimerRef.current) {
-            // A reveal is playing — wait for it, then fetch
             const existingTimer = revealTimerRef.current;
             clearTimeout(existingTimer);
             revealTimerRef.current = setTimeout(() => {
@@ -526,10 +596,11 @@ export default function BattleDetailPage() {
   const handleReconnect = useCallback(() => fetchBattle(true), [fetchBattle]);
   useBattleSSE(battle?._id ?? null, handleSSEEvent, handleReconnect);
 
-  // Cleanup reveal timer on unmount
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (revealTimerRef.current) clearTimeout(revealTimerRef.current);
+      if (roundStartTimerRef.current) clearTimeout(roundStartTimerRef.current);
     };
   }, []);
 
@@ -604,7 +675,6 @@ export default function BattleDetailPage() {
     try {
       const res = await fetch(`/api/battles/${battle._id}/join`, { method: "POST" });
       if (res.ok) {
-        window.dispatchEvent(new CustomEvent("coin-balance-refresh"));
         await fetchBattle();
       } else {
         const data = await res.json();
@@ -620,15 +690,30 @@ export default function BattleDetailPage() {
   async function handleSelect(cardIndex: number) {
     if (!battle || selectedCardIndex !== null) return;
     setSelectedCardIndex(cardIndex);
-    try {
-      const res = await fetch(`/api/battles/${battle._id}/select`, {
+
+    // Snapshot the round number at click time. The retry path below must not
+    // submit this card against a later round if resolveRound advanced state
+    // while we were waiting on the lock.
+    const roundAtClick = battle.currentRound;
+    const send = () =>
+      fetch(`/api/battles/${battle._id}/select`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardIndex }),
+        body: JSON.stringify({ cardIndex, roundNumber: roundAtClick }),
       });
+
+    try {
+      let res = await send();
+      // 429 = lock contention (another player's select is being processed).
+      // The server already retries internally for ~500 ms; one more client-
+      // side retry after a short wait absorbs any burst that slipped through.
+      if (res.status === 429) {
+        await new Promise((r) => setTimeout(r, 300));
+        res = await send();
+      }
       if (!res.ok) {
         setSelectedCardIndex(null);
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         toast({ title: data.error || "Error", type: "error" });
       }
     } catch {
@@ -649,10 +734,6 @@ export default function BattleDetailPage() {
   const isPreGame = ["waiting", "ready_check", "countdown"].includes(battle.status);
   const isActive = battle.status === "active" || battle.status === "sudden_death";
   const isFinished = battle.status === "finished" || battle.status === "cancelled";
-
-  // Compute transfer preview for in-game round history
-  const scoreMap = new Map(battle.players.map((p) => [String(p.user._id), p.roundsWon]));
-  const atRiskCards = computeTransferPreviews(roundHistory, battle.settings.mode, scoreMap);
 
   return (
     <div className={`mx-auto w-full px-4 py-6 ${isFinished ? "max-w-[1600px]" : isActive ? "max-w-[1400px]" : "max-w-5xl"}`}>
@@ -738,28 +819,13 @@ export default function BattleDetailPage() {
                         <div className="flex items-center gap-2">
                           {round.players.map((rp) => {
                             const isWin = rp.userId === round.winnerId;
-                            const atRiskTo = atRiskCards.get(`${round.roundNumber}-${rp.userId}`);
-                            const isAtRisk = !!atRiskTo;
-                            const leaderName = atRiskTo ? battle.players.find((p) => String(p.user._id) === atRiskTo)?.user.username : null;
                             return (
-                              <div key={rp.userId} className="flex flex-col items-center gap-0.5">
-                                <div className="flex items-center gap-1">
-                                  <div className="relative">
-                                    <div className={`overflow-hidden rounded border ${isAtRisk ? "border-red-500/60 ring-1 ring-red-500/30" : isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "28px", aspectRatio: "2/3" }}>
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
-                                    </div>
-                                    {isAtRisk && (
-                                      <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-500 text-white">
-                                        <ArrowUpRight className="h-2.5 w-2.5" />
-                                      </span>
-                                    )}
-                                  </div>
-                                  <span className={`text-[10px] font-bold tabular-nums ${isAtRisk ? "text-red-400" : isWin ? "text-yellow-400" : "text-zinc-500"}`}>{rp.card.coinValue}</span>
+                              <div key={rp.userId} className="flex items-center gap-1">
+                                <div className={`overflow-hidden rounded border ${isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "28px", aspectRatio: "2/3" }}>
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
                                 </div>
-                                {isAtRisk && leaderName && (
-                                  <span className="max-w-[60px] truncate text-[8px] text-red-400/80">{isDe ? "an" : "to"} {leaderName}</span>
-                                )}
+                                <span className={`text-[10px] font-bold tabular-nums ${isWin ? "text-yellow-400" : "text-zinc-500"}`}>{rp.card.coinValue}</span>
                               </div>
                             );
                           })}
@@ -823,12 +889,12 @@ export default function BattleDetailPage() {
                 {battle.players
                   .filter((p) => p.user._id !== currentUserId)
                   .map((opponent) => {
-                    const hasLocalUserSelected = selectedCardIndex !== null;
+                    const opponentHasSelected = playersWhoSelected.has(opponent.user._id);
                     return (
                       <div key={opponent.user._id} className="flex flex-col items-center gap-1.5">
                         <span className="text-[11px] font-bold text-zinc-400">{opponent.user.username}</span>
                         <div className="flex items-center gap-2">
-                          {hasLocalUserSelected ? (
+                          {opponentHasSelected ? (
                             <div className="overflow-hidden rounded-lg border border-zinc-700/60 shadow-lg shadow-black/30" style={{ width: "clamp(50px, 12vw, 70px)", aspectRatio: "2/3" }}>
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src="/images/card-back.jpg" alt="" className="h-full w-full object-cover" draggable={false} />
@@ -897,7 +963,9 @@ export default function BattleDetailPage() {
               </div>
               {battle.players.map((player) => {
                 const isMe = player.user._id === currentUserId;
-                const hasSelected = isMe ? selectedCardIndex !== null : false;
+                const hasSelected = isMe
+                  ? selectedCardIndex !== null
+                  : playersWhoSelected.has(player.user._id);
                 return (
                   <div key={player.user._id} className={`flex items-center justify-between rounded-lg px-3 py-1.5 ${isMe ? "bg-yellow-400/5" : ""}`}>
                     <span className={`text-xs ${isMe ? "font-bold text-yellow-400" : "text-zinc-400"}`}>
@@ -921,11 +989,7 @@ export default function BattleDetailPage() {
               <div className="space-y-2 text-[11px]">
                 <div className="flex items-center justify-between">
                   <span className="text-zinc-500">{isDe ? "Modus" : "Mode"}</span>
-                  <span className="font-bold text-zinc-300">{battle.settings.mode === "highest_card" ? (isDe ? "Höchste Karte" : "Highest Card") : battle.settings.mode === "lowest_card" ? (isDe ? "Niedrigste Karte" : "Lowest Card") : battle.settings.mode === "all_cards" ? (isDe ? "Alle Karten" : "All Cards") : battle.settings.mode}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-500">{isDe ? "Einsatz" : "Entry"}</span>
-                  <span className="font-bold text-yellow-400">{battle.entryFee} Coins</span>
+                  <span className="font-bold text-zinc-300">{battle.settings.mode === "highest_card" ? (isDe ? "Höchste Karte" : "Highest Card") : battle.settings.mode === "lowest_card" ? (isDe ? "Niedrigste Karte" : "Lowest Card") : battle.settings.mode}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-zinc-500">{isDe ? "Spieler" : "Players"}</span>
@@ -968,19 +1032,10 @@ export default function BattleDetailPage() {
                       <div className="flex items-center gap-1.5">
                         {round.players.map((rp) => {
                           const isWin = rp.userId === round.winnerId;
-                          const atRiskTo = atRiskCards.get(`${round.roundNumber}-${rp.userId}`);
-                          const isAtRisk = !!atRiskTo;
                           return (
-                            <div key={rp.userId} className="relative">
-                              <div className={`overflow-hidden rounded border ${isAtRisk ? "border-red-500/60" : isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "22px", aspectRatio: "2/3" }}>
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
-                              </div>
-                              {isAtRisk && (
-                                <span className="absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-red-500 text-white">
-                                  <ArrowUpRight className="h-2 w-2" />
-                                </span>
-                              )}
+                            <div key={rp.userId} className={`overflow-hidden rounded border ${isWin ? "border-yellow-400/60" : "border-zinc-700/40"}`} style={{ width: "22px", aspectRatio: "2/3" }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={rp.card.image} alt="" className="h-full w-full object-cover" draggable={false} />
                             </div>
                           );
                         })}
@@ -1108,17 +1163,7 @@ function BattleResultView({
             <div className="border-b border-zinc-800 px-3 py-2">
               <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isDe ? "Rundenverlauf" : "Round History"}</h3>
             </div>
-            <RoundRows rounds={battle.rounds} settings={battle.settings} playerNameMap={playerNameMap} currentUserId={currentUserId} isDe={isDe} transfers={result.transfers} />
-          </div>
-        )}
-
-        {/* Transfers */}
-        {result.transfers.length > 0 && (
-          <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/70 overflow-hidden" style={{animation: "battleFadeUp 0.5s ease-out 320ms both"}}>
-            <div className="border-b border-zinc-800 px-3 py-2">
-              <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isDe ? "Erhaltene Karten" : "Cards Received"}</h3>
-            </div>
-            <TransfersList transfers={result.transfers} players={battle.players} currentUserId={currentUserId} />
+            <RoundRows rounds={battle.rounds} settings={battle.settings} playerNameMap={playerNameMap} currentUserId={currentUserId} isDe={isDe} />
           </div>
         )}
       </div>
@@ -1155,7 +1200,7 @@ function BattleResultView({
               </h1>
               {myEloChange && (
                 <div className="mt-2 flex items-center gap-1.5 text-sm">
-                  <span className="text-zinc-500">ELO</span>
+                  <span className="text-zinc-500">Prestige</span>
                   <span className="font-bold text-zinc-400">{myEloChange.oldElo}</span>
                   <ArrowRight className="h-3 w-3 text-zinc-600" />
                   <span className="font-bold text-zinc-100">{myEloChange.newElo}</span>
@@ -1180,23 +1225,13 @@ function BattleResultView({
             </div>
           </div>
 
-          {/* Transfers — md: col2 row2, lg: col3 row-span-2 (right sidebar) */}
-          {result.transfers.length > 0 && (
-            <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/70 overflow-hidden md:col-span-1 md:row-span-1 lg:col-start-3 lg:row-span-2 lg:row-start-1" style={{animation: "battleFadeUp 0.5s ease-out 160ms both"}}>
-              <div className="border-b border-zinc-800 px-3 py-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isDe ? "Erhaltene Karten" : "Cards Received"}</h3>
-              </div>
-              <TransfersList transfers={result.transfers} players={battle.players} currentUserId={currentUserId} />
-            </div>
-          )}
-
-          {/* Rounds — md: col-span-full or col1, lg: col-span-2 */}
+          {/* Rounds — full width under Banner + Podium */}
           {battle.rounds.length > 0 && (
-            <div className={`rounded-xl border border-zinc-800/80 bg-zinc-900/70 overflow-hidden ${result.transfers.length > 0 ? "md:col-span-1 lg:col-span-2" : "md:col-span-2 lg:col-span-3"}`} style={{animation: "battleFadeUp 0.5s ease-out 240ms both"}}>
+            <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/70 overflow-hidden md:col-span-2 lg:col-span-3" style={{animation: "battleFadeUp 0.5s ease-out 240ms both"}}>
               <div className="border-b border-zinc-800 px-4 py-2">
                 <h3 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">{isDe ? "Rundenverlauf" : "Round History"}</h3>
               </div>
-              <RoundRows rounds={battle.rounds} settings={battle.settings} playerNameMap={playerNameMap} currentUserId={currentUserId} isDe={isDe} transfers={result.transfers} />
+              <RoundRows rounds={battle.rounds} settings={battle.settings} playerNameMap={playerNameMap} currentUserId={currentUserId} isDe={isDe} />
             </div>
           )}
         </div>
@@ -1273,25 +1308,13 @@ function PodiumBlock({ scores, players, currentUserId, eloChanges, isDe }: {
   );
 }
 
-function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe, transfers }: {
+function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe }: {
   rounds: BattleRound[];
   settings: { rounds: number };
   playerNameMap: Map<string, string>;
   currentUserId: string;
   isDe: boolean;
-  transfers?: BattleResult["transfers"];
 }) {
-  // Build a lookup: pullId → { from, to } for transferred cards
-  const transferMap = new Map<string, { from: string; to: string }>();
-  if (transfers) {
-    for (const t of transfers) {
-      if (t.from === t.to) continue;
-      for (const card of t.cards) {
-        if (card.pullId) transferMap.set(String(card.pullId), { from: t.from, to: t.to });
-      }
-    }
-  }
-
   return (
     <div>
       {rounds
@@ -1319,29 +1342,13 @@ function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe, trans
                   const isMe = pid === currentUserId;
                   const isW = pid === winnerId;
                   const card = hand.selectedCardIndex !== null && hand.selectedCardIndex >= 0 ? hand.cards[hand.selectedCardIndex] : null;
-                  const transfer = card?.pullId ? transferMap.get(String(card.pullId)) : null;
-                  const wasTransferred = transfer && transfer.from !== transfer.to;
-                  const lostCard = wasTransferred && transfer.from === pid;
-                  const gainedCard = wasTransferred && transfer.to === pid;
                   return (
                     <React.Fragment key={pid}>
                       {hIdx > 0 && <span className="hidden text-[10px] font-bold text-zinc-600 md:block">vs</span>}
                       <div className={`flex flex-1 items-center gap-2 rounded-lg border p-1.5 ${isW ? "border-yellow-400/20 bg-yellow-400/5" : "border-zinc-800 bg-zinc-800/20"}`}>
                         {card && card.cardId ? (
-                          <div className="relative shrink-0">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img src={card.image} alt="" className={`h-10 w-7 rounded border object-cover ${isW ? "border-yellow-400/50" : "border-zinc-700"}`} />
-                            {lostCard && (
-                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-white" title={isDe ? `Geht an ${playerNameMap.get(transfer.to) ?? "???"}` : `Goes to ${playerNameMap.get(transfer.to) ?? "???"}`}>
-                                <ArrowUpRight className="h-2.5 w-2.5" />
-                              </span>
-                            )}
-                            {gainedCard && (
-                              <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-white" title={isDe ? `Von ${playerNameMap.get(transfer.from) ?? "???"}` : `From ${playerNameMap.get(transfer.from) ?? "???"}`}>
-                                <ArrowDownLeft className="h-2.5 w-2.5" />
-                              </span>
-                            )}
-                          </div>
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={card.image} alt="" className={`h-10 w-7 shrink-0 rounded border object-cover ${isW ? "border-yellow-400/50" : "border-zinc-700"}`} />
                         ) : (
                           <div className="flex h-10 w-7 shrink-0 items-center justify-center rounded border border-zinc-700 bg-zinc-800 text-[10px] text-zinc-600">?</div>
                         )}
@@ -1353,16 +1360,6 @@ function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe, trans
                               <span className={`shrink-0 text-[10px] font-bold ${isW ? "text-yellow-400" : "text-zinc-400"}`}>{card.coinValue}</span>
                             </div>
                           )}
-                          {lostCard && (
-                            <span className="flex items-center gap-0.5 text-[9px] text-red-400">
-                              <ArrowUpRight className="h-2.5 w-2.5" /> {playerNameMap.get(transfer.to) ?? "???"}
-                            </span>
-                          )}
-                          {gainedCard && (
-                            <span className="flex items-center gap-0.5 text-[9px] text-green-400">
-                              <ArrowDownLeft className="h-2.5 w-2.5" /> {playerNameMap.get(transfer.from) ?? "???"}
-                            </span>
-                          )}
                         </div>
                       </div>
                     </React.Fragment>
@@ -1372,40 +1369,6 @@ function RoundRows({ rounds, settings, playerNameMap, currentUserId, isDe, trans
             </div>
           );
         })}
-    </div>
-  );
-}
-
-function TransfersList({ transfers, players, currentUserId }: {
-  transfers: BattleResult["transfers"];
-  players: BattlePlayer[];
-  currentUserId: string;
-}) {
-  return (
-    <div className="divide-y divide-zinc-800/60">
-      {transfers.map((transfer, i) => {
-        const toPlayer = players.find((p) => String(p.user._id) === String(transfer.to));
-        const isMe = String(transfer.to) === currentUserId;
-        const total = transfer.cards.reduce((s, c) => s + c.coinValue, 0);
-        return (
-          <div key={i} className={`p-2.5 ${isMe ? "bg-yellow-400/[0.03]" : ""}`}>
-            <div className="mb-1.5 flex items-center justify-between">
-              <span className={`text-xs font-bold ${isMe ? "text-yellow-400" : "text-zinc-300"}`}>{toPlayer?.user.username ?? "???"}</span>
-              <span className="text-xs font-bold text-yellow-400">{total} Coins</span>
-            </div>
-            <div className="flex flex-col gap-1">
-              {transfer.cards.map((card, j) => (
-                <div key={j} className="flex items-center gap-2 rounded-lg border border-zinc-700/50 bg-zinc-800/50 p-1.5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={card.image} alt="" className="h-8 w-6 shrink-0 rounded object-cover" />
-                  <div className="min-w-0 flex-1 truncate text-[11px] text-zinc-300">{card.name}</div>
-                  <div className="shrink-0 text-[10px] font-bold text-yellow-400">{card.coinValue}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })}
     </div>
   );
 }

@@ -6,7 +6,6 @@ import {
   ChevronDown,
   Swords,
   Clock,
-  Coins,
   Trophy,
   Users,
   Zap,
@@ -105,8 +104,8 @@ export function BattleHandbook({ lang }: { lang: string }) {
           >
             <p className="mb-3">
               {de
-                ? "In Battles trittst du gegen andere Spieler in strategischen Kartenduellen an. Jede Runde ziehst du 5 zufällige Karten aus der gewählten Box und wählst eine davon aus. Die Karte mit dem höchsten Coin-Wert gewinnt die Runde. Wer am Ende die meisten Runden gewonnen hat, gewinnt das Battle und erhält Karten der Verlierer."
-                : "In Battles, you compete against other players in strategic card duels. Each round, you draw 5 random cards from the selected box and choose one. The card with the highest coin value wins the round. Whoever wins the most rounds wins the battle and receives cards from the losers."}
+                ? "In Battles trittst du gegen andere Spieler in strategischen Kartenduellen an. Jede Runde ziehst du 5 zufällige Karten aus der gewählten Box und wählst eine davon aus. Je nach Modus gewinnt die Karte mit dem höchsten oder niedrigsten Coin-Wert die Runde. Wer am Ende die meisten Runden gewonnen hat, gewinnt das Battle und sammelt Prestige im Leaderboard."
+                : "In Battles, you compete against other players in strategic card duels. Each round, you draw 5 random cards from the selected box and choose one. Depending on the mode, the card with the highest or lowest coin value wins the round. Whoever wins the most rounds wins the battle and earns prestige on the leaderboard."}
             </p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               <Stat label={de ? "Spieler" : "Players"} value="2–4" />
@@ -128,15 +127,15 @@ export function BattleHandbook({ lang }: { lang: string }) {
                 <strong className="text-zinc-300">{de ? "Lobby" : "Lobby"} (5 min)</strong>
                 <br />
                 {de
-                  ? "Nach dem Erstellen haben andere Spieler 5 Minuten Zeit beizutreten. Wird die Lobby nicht voll, werden alle Coins erstattet."
-                  : "After creation, other players have 5 minutes to join. If the lobby doesn't fill up, all coins are refunded."}
+                  ? "Nach dem Erstellen haben andere Spieler 5 Minuten Zeit beizutreten. Wird die Lobby nicht voll, wird das Battle automatisch abgebrochen."
+                  : "After creation, other players have 5 minutes to join. If the lobby doesn't fill up, the battle is cancelled automatically."}
               </li>
               <li>
                 <strong className="text-zinc-300">{de ? "Bereitschafts-Check" : "Ready Check"} (30s)</strong>
                 <br />
                 {de
-                  ? "Sobald alle Plätze belegt sind, müssen alle Spieler innerhalb von 30 Sekunden \"Bereit\" bestätigen. Bestätigen nicht alle rechtzeitig, wird das Battle abgebrochen und alle erhalten eine Erstattung."
-                  : "Once all slots are filled, all players must confirm \"Ready\" within 30 seconds. If not everyone confirms in time, the battle is cancelled and everyone is refunded."}
+                  ? "Sobald alle Plätze belegt sind, müssen alle Spieler innerhalb von 30 Sekunden \"Bereit\" bestätigen. Bestätigen nicht alle rechtzeitig, wird das Battle abgebrochen."
+                  : "Once all slots are filled, all players must confirm \"Ready\" within 30 seconds. If not everyone confirms in time, the battle is cancelled."}
               </li>
               <li>
                 <strong className="text-zinc-300">{de ? "Countdown" : "Countdown"} (3 min)</strong>
@@ -171,8 +170,8 @@ export function BattleHandbook({ lang }: { lang: string }) {
           >
             <p className="mb-3">
               {de
-                ? "Der Spielmodus bestimmt, welche Karten der Gewinner von den Verlierern erhält:"
-                : "The battle mode determines which cards the winner receives from the losers:"}
+                ? "Der Spielmodus bestimmt, welche Karte eine Runde gewinnt:"
+                : "The battle mode determines which card wins a round:"}
             </p>
             <div className="space-y-3">
               <div className="rounded-lg bg-zinc-800/40 p-3">
@@ -182,8 +181,8 @@ export function BattleHandbook({ lang }: { lang: string }) {
                 </div>
                 <p>
                   {de
-                    ? "Der Gewinner erhält von jedem Verlierer dessen Karte mit dem niedrigsten Coin-Wert. Geringeres Risiko, da du nur deine schwächste Karte verlierst."
-                    : "The winner receives each loser's lowest coin-value card. Lower risk, as you only lose your weakest card."}
+                    ? "Die Karte mit dem niedrigsten Coin-Wert gewinnt die Runde. Starke Karten sind hier ein Nachteil — spiele lieber deine schwächsten aus."
+                    : "The card with the lowest coin value wins the round. Strong cards are a liability here — save them and play your weakest instead."}
                 </p>
               </div>
               <div className="rounded-lg bg-zinc-800/40 p-3">
@@ -193,60 +192,11 @@ export function BattleHandbook({ lang }: { lang: string }) {
                 </div>
                 <p>
                   {de
-                    ? "Der Gewinner erhält von jedem Verlierer dessen Karte mit dem höchsten Coin-Wert. Höheres Risiko, aber auch höhere Belohnung."
-                    : "The winner receives each loser's highest coin-value card. Higher risk, but also higher reward."}
-                </p>
-              </div>
-              <div className="rounded-lg bg-zinc-800/40 p-3">
-                <div className="mb-1 flex items-center gap-2 text-sm font-semibold text-red-400">
-                  <Flame className="h-3.5 w-3.5" />
-                  {de ? "Alle Karten" : "All Cards"}
-                </div>
-                <p>
-                  {de
-                    ? "Der Gewinner erhält ALLE gespielten Karten der Verlierer. Maximales Risiko, maximale Belohnung — alles oder nichts!"
-                    : "The winner receives ALL played cards from the losers. Maximum risk, maximum reward — all or nothing!"}
+                    ? "Die Karte mit dem höchsten Coin-Wert gewinnt die Runde. Der Klassiker — spiele so stark wie möglich."
+                    : "The card with the highest coin value wins the round. The classic — play as strong as you can."}
                 </p>
               </div>
             </div>
-          </Section>
-
-          {/* -------------------------------------------------------- */}
-          {/*  4. Eintrittsgebühr                                      */}
-          {/* -------------------------------------------------------- */}
-          <Section
-            icon={<Coins className="h-3.5 w-3.5" />}
-            title={de ? "Eintrittsgebühr & Erstattung" : "Entry Fee & Refunds"}
-          >
-            <p className="mb-3">
-              {de
-                ? "Die Eintrittsgebühr wird beim Erstellen oder Beitreten sofort abgezogen. Sie berechnet sich wie folgt:"
-                : "The entry fee is deducted immediately when creating or joining. It's calculated as follows:"}
-            </p>
-            <div className="mb-3 rounded-lg bg-zinc-800/40 p-3 text-center">
-              <div className="text-xs text-zinc-500">{de ? "Formel" : "Formula"}</div>
-              <div className="mt-1 text-sm font-bold text-yellow-400">
-                {de ? "Runden" : "Rounds"} &times; 5 {de ? "Karten" : "Cards"} &times; {de ? "Box-Preis" : "Box Price"}
-              </div>
-              <div className="mt-2 text-xs text-zinc-500">
-                {de ? "Beispiel: 3 Runden × 5 × 50 Coins = " : "Example: 3 Rounds × 5 × 50 Coins = "}
-                <span className="font-bold text-yellow-400">750 Coins</span>
-              </div>
-            </div>
-            <p className="mb-2 font-semibold text-zinc-300">
-              {de ? "Wann bekomme ich meine Coins zurück?" : "When do I get my coins back?"}
-            </p>
-            <ul className="list-inside list-disc space-y-1">
-              <li>{de ? "Die Lobby läuft ab, ohne voll zu werden" : "The lobby expires without filling up"}</li>
-              <li>{de ? "Nicht alle Spieler bestätigen den Bereitschafts-Check" : "Not all players confirm the ready check"}</li>
-              <li>{de ? "Der Ersteller bricht das Battle ab" : "The creator cancels the battle"}</li>
-              <li>{de ? "Du verlässt das Battle vor dem Start" : "You leave the battle before it starts"}</li>
-            </ul>
-            <p className="mt-2 text-xs text-zinc-500">
-              {de
-                ? "Hinweis: Nach Battlestart gibt es keine Erstattung mehr."
-                : "Note: There are no refunds after the battle has started."}
-            </p>
           </Section>
 
           {/* -------------------------------------------------------- */}
@@ -278,8 +228,8 @@ export function BattleHandbook({ lang }: { lang: string }) {
                 <li>
                   <strong className="text-zinc-300">{de ? "Aufdecken" : "Reveal"}</strong>{" — "}
                   {de
-                    ? "Alle Karten werden gleichzeitig aufgedeckt. Der höchste Coin-Wert gewinnt die Runde."
-                    : "All cards are revealed simultaneously. The highest coin value wins the round."}
+                    ? "Alle Karten werden gleichzeitig aufgedeckt. Je nach Modus gewinnt der höchste oder niedrigste Coin-Wert die Runde."
+                    : "All cards are revealed simultaneously. Depending on the mode, the highest or lowest coin value wins the round."}
                 </li>
               </ol>
               <div className="mt-2 rounded-lg bg-zinc-800/40 p-3">
@@ -294,8 +244,8 @@ export function BattleHandbook({ lang }: { lang: string }) {
                 <p className="text-xs">
                   <strong className="text-zinc-300">{de ? "Gleichstand:" : "Tie:"}</strong>{" "}
                   {de
-                    ? "Spielen zwei oder mehr Spieler Karten mit dem gleichen höchsten Wert, gewinnt niemand die Runde."
-                    : "If two or more players play cards with the same highest value, nobody wins the round."}
+                    ? "Spielen zwei oder mehr Spieler Karten mit demselben entscheidenden Wert, gewinnt niemand die Runde."
+                    : "If two or more players play cards with the same deciding value, nobody wins the round."}
                 </p>
               </div>
             </div>
@@ -310,22 +260,22 @@ export function BattleHandbook({ lang }: { lang: string }) {
           >
             <p>
               {de
-                ? "Wenn nach allen regulären Runden zwei oder mehr Spieler gleich viele Runden gewonnen haben, wird eine zusätzliche Sudden-Death-Runde gespielt. Der Gewinner dieser Runde gewinnt das gesamte Battle. Endet auch die Sudden-Death-Runde unentschieden, gilt das Battle als Unentschieden — es gibt dann keine Kartentransfers und keine ELO-Änderungen."
-                : "If two or more players have won the same number of rounds after all regular rounds, an additional sudden death round is played. The winner of this round wins the entire battle. If the sudden death round also ends in a tie, the battle is a draw — no card transfers and no ELO changes occur."}
+                ? "Wenn nach allen regulären Runden zwei oder mehr Spieler gleich viele Runden gewonnen haben, wird eine zusätzliche Sudden-Death-Runde gespielt. Der Gewinner dieser Runde gewinnt das gesamte Battle. Endet auch die Sudden-Death-Runde unentschieden, gilt das Battle als Unentschieden — es gibt dann keine Prestige-Änderungen."
+                : "If two or more players have won the same number of rounds after all regular rounds, an additional sudden death round is played. The winner of this round wins the entire battle. If the sudden death round also ends in a tie, the battle is a draw — no prestige changes occur."}
             </p>
           </Section>
 
           {/* -------------------------------------------------------- */}
-          {/*  7. ELO-System                                           */}
+          {/*  7. Prestige & Ränge                                     */}
           {/* -------------------------------------------------------- */}
           <Section
             icon={<Trophy className="h-3.5 w-3.5" />}
-            title={de ? "ELO-System & Ränge" : "ELO System & Ranks"}
+            title={de ? "Prestige & Ränge" : "Prestige & Ranks"}
           >
             <p className="mb-3">
               {de
-                ? "Dein ELO-Wert zeigt deine Spielstärke an. Jeder Spieler startet bei 1000 ELO. Siege erhöhen dein ELO, Niederlagen verringern es. Je stärker dein Gegner, desto mehr ELO gewinnst du bei einem Sieg."
-                : "Your ELO rating reflects your skill level. Every player starts at 1000 ELO. Wins increase your ELO, losses decrease it. The stronger your opponent, the more ELO you gain from a win."}
+                ? "Dein Prestige zeigt deine Spielstärke an. Jeder Spieler startet bei 1000 Prestige. Siege erhöhen deinen Wert, Niederlagen verringern ihn. Je stärker dein Gegner, desto mehr Prestige gewinnst du bei einem Sieg."
+                : "Your prestige reflects your skill level. Every player starts at 1000 prestige. Wins increase it, losses decrease it. The stronger your opponent, the more prestige you gain from a win."}
             </p>
             <div className="mb-3 space-y-1.5">
               {[
@@ -337,7 +287,7 @@ export function BattleHandbook({ lang }: { lang: string }) {
               ].map((rank) => (
                 <div key={rank.name} className={`flex items-center justify-between rounded-lg ${rank.bg} px-3 py-2`}>
                   <span className={`text-sm font-bold ${rank.color}`}>{rank.name}</span>
-                  <span className="text-xs text-zinc-400">{rank.elo} ELO</span>
+                  <span className="text-xs text-zinc-400">{rank.elo} Prestige</span>
                 </div>
               ))}
             </div>
@@ -345,8 +295,8 @@ export function BattleHandbook({ lang }: { lang: string }) {
               <p>
                 <strong className="text-zinc-300">{de ? "K-Faktor:" : "K-Factor:"}</strong>{" "}
                 {de
-                  ? "Neue Spieler (< 30 Battles) haben einen K-Faktor von 40, erfahrene Spieler von 20. Das bedeutet, dass sich dein ELO am Anfang schneller bewegt und sich später stabilisiert."
-                  : "New players (< 30 battles) have a K-factor of 40, experienced players 20. This means your ELO moves faster at the beginning and stabilizes over time."}
+                  ? "Neue Spieler (< 30 Battles) haben einen K-Faktor von 40, erfahrene Spieler von 20. Dein Prestige bewegt sich am Anfang also schneller und stabilisiert sich mit der Zeit."
+                  : "New players (< 30 battles) have a K-factor of 40, experienced players 20. Your prestige moves faster at the beginning and stabilizes over time."}
               </p>
             </div>
           </Section>
@@ -362,20 +312,20 @@ export function BattleHandbook({ lang }: { lang: string }) {
               <li>
                 <strong className="text-zinc-300">{de ? "Box-Wahl:" : "Box choice:"}</strong>{" "}
                 {de
-                  ? "Teurere Boxen haben oft wertvollere Karten, aber auch eine höhere Eintrittsgebühr. Überlege, ob das Risiko sich lohnt."
-                  : "More expensive boxes often have more valuable cards, but also a higher entry fee. Consider if the risk is worth it."}
+                  ? "Teurere Boxen haben wertvollere Karten in der Hand – das wirkt sich direkt auf die Coin-Werte pro Runde aus."
+                  : "More expensive boxes have more valuable cards in your hand, which directly affects coin values per round."}
               </li>
               <li>
                 <strong className="text-zinc-300">{de ? "Modus beachten:" : "Watch the mode:"}</strong>{" "}
                 {de
-                  ? "Im \"Alle Karten\"-Modus steht deutlich mehr auf dem Spiel als im \"Niedrigste Karte\"-Modus. Wähle den Modus passend zu deiner Risikobereitschaft."
-                  : "\"All Cards\" mode has much more at stake than \"Lowest Card\" mode. Choose the mode based on your risk tolerance."}
+                  ? "Im \"Höchste Karte\"-Modus werden ganz andere Hände gespielt als im \"Niedrigste Karte\"-Modus. Stell dich auf den gewählten Modus ein."
+                  : "\"Highest Card\" mode plays very differently than \"Lowest Card\" mode. Adapt your picks to the selected mode."}
               </li>
               <li>
                 <strong className="text-zinc-300">{de ? "Rundenanzahl:" : "Round count:"}</strong>{" "}
                 {de
-                  ? "Mehr Runden bedeuten weniger Zufall und mehr Skill-Einfluss, aber auch höhere Eintrittskosten."
-                  : "More rounds mean less randomness and more skill influence, but also higher entry costs."}
+                  ? "Mehr Runden bedeuten weniger Zufall und mehr Skill-Einfluss."
+                  : "More rounds mean less randomness and more skill influence."}
               </li>
               <li>
                 <strong className="text-zinc-300">{de ? "Nicht trödeln:" : "Don't dawdle:"}</strong>{" "}
@@ -406,18 +356,8 @@ export function BattleHandbook({ lang }: { lang: string }) {
               </li>
               <li>
                 {de
-                  ? "Alle Kartentransfers sind endgültig. Gewonnene Karten landen in deinem Inventar."
-                  : "All card transfers are final. Won cards go into your inventory."}
-              </li>
-              <li>
-                {de
                   ? "Private Battles benötigen einen Einladungscode zum Beitreten."
                   : "Private battles require an invite code to join."}
-              </li>
-              <li>
-                {de
-                  ? "Bei einem Unentschieden behält jeder Spieler seine eigenen Karten."
-                  : "In case of a draw, each player keeps their own cards."}
               </li>
             </ul>
           </Section>
@@ -434,7 +374,7 @@ export function BattleHandbook({ lang }: { lang: string }) {
               <Stat label={de ? "Bereitschaft" : "Ready Check"} value="30s" />
               <Stat label="Countdown" value="3 min" />
               <Stat label={de ? "Auswahlzeit" : "Pick Time"} value="30s" />
-              <Stat label={de ? "Start-ELO" : "Starting ELO"} value="1000" />
+              <Stat label={de ? "Start-Prestige" : "Starting Prestige"} value="1000" />
               <Stat label={de ? "Max. Spieler" : "Max Players"} value="4" />
             </div>
           </Section>

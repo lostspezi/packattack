@@ -731,7 +731,7 @@ export const translationSeedData = [
   { namespace: "battles", key: "visibility", values: { de: "Sichtbarkeit" } },
   { namespace: "battles", key: "visibility_public", values: { de: "Öffentlich" } },
   { namespace: "battles", key: "visibility_private", values: { de: "Privat" } },
-  { namespace: "battles", key: "min_elo", values: { de: "Mindest-ELO" } },
+  { namespace: "battles", key: "min_elo", values: { de: "Mindest-Prestige" } },
   { namespace: "battles", key: "select_box", values: { de: "Box auswählen" } },
 
   // battles.lobby
@@ -753,7 +753,7 @@ export const translationSeedData = [
   { namespace: "battles.podium", key: "place_2", values: { de: "2. Platz" } },
   { namespace: "battles.podium", key: "place_3", values: { de: "3. Platz" } },
   { namespace: "battles.podium", key: "place_n", values: { de: "{n}. Platz" } },
-  { namespace: "battles.podium", key: "elo_change", values: { de: "ELO: {change}" } },
+  { namespace: "battles.podium", key: "elo_change", values: { de: "Prestige: {change}" } },
   { namespace: "battles.podium", key: "score", values: { de: "{score} Punkte" } },
 
   // battles.decide
@@ -778,7 +778,7 @@ export const translationSeedData = [
 
   // battles.leaderboard
   { namespace: "battles.leaderboard", key: "title", values: { de: "Rangliste" } },
-  { namespace: "battles.leaderboard", key: "category_elo", values: { de: "ELO-Rating" } },
+  { namespace: "battles.leaderboard", key: "category_elo", values: { de: "Prestige" } },
   { namespace: "battles.leaderboard", key: "category_wins", values: { de: "Siege" } },
   { namespace: "battles.leaderboard", key: "category_streak", values: { de: "Beste Serie" } },
   { namespace: "battles.leaderboard", key: "your_rank", values: { de: "Dein Rang: #{rank}" } },

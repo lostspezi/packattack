@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Users, Clock, Swords, LogIn, ArrowDownToLine, ArrowUpToLine, Flame } from "lucide-react";
+import { Users, Clock, Swords, LogIn, ArrowDownToLine, ArrowUpToLine } from "lucide-react";
 
 interface BattleCardPlayer {
   user: { _id: string; username: string };
@@ -28,7 +28,6 @@ export interface BattleCardData {
     mode: string;
     isPrivate: boolean;
   };
-  entryFee: number;
   lobbyExpiresAt: string;
   createdAt: string;
 }
@@ -44,7 +43,6 @@ interface BattleCardProps {
 const MODE_LABELS: Record<string, { de: string; en: string; icon: React.ReactNode }> = {
   lowest_card: { de: "Niedrigste Karte", en: "Lowest Card", icon: <ArrowDownToLine className="inline h-3.5 w-3.5 text-blue-400" /> },
   highest_card: { de: "Höchste Karte", en: "Highest Card", icon: <ArrowUpToLine className="inline h-3.5 w-3.5 text-orange-400" /> },
-  all_cards: { de: "Alle Karten", en: "All Cards", icon: <Flame className="inline h-3.5 w-3.5 text-red-400" /> },
 };
 
 function TimeRemaining({ expiresAt, lang }: { expiresAt: string; lang: string }) {
@@ -137,12 +135,8 @@ export function BattleCard({ battle, lang, currentUserId, onJoin, joining }: Bat
         </span>
       </div>
 
-      {/* Fee + Action */}
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-bold text-yellow-400">
-          {battle.entryFee} Coins
-        </span>
-
+      {/* Action */}
+      <div className="flex items-center justify-end">
         {isInBattle ? (
           <button
             onClick={() => onJoin(battle.slug)}
