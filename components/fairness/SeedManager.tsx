@@ -65,7 +65,12 @@ export default function SeedManager(props: FairnessStateProps) {
   }
 
   async function rotateServerSeed() {
-    if (!confirm("Server-Seed jetzt rotieren? Der aktuelle Seed wird sichtbar, ein neuer wird aktiv.")) return;
+    if (
+      !confirm(
+        "Server-Seed jetzt rotieren? Der vollständige aktive Server-Seed (nicht nur der Hash) wird dir einmalig angezeigt, und ein neuer Seed wird aktiv.",
+      )
+    )
+      return;
     setRotating(true);
     setRotateError(null);
     try {
@@ -91,20 +96,26 @@ export default function SeedManager(props: FairnessStateProps) {
     <div className="flex flex-col gap-4">
       {revealData && (
         <Card variant="accent" className="p-6">
-          <h2 className="text-xl font-bold mb-2">Seed enthüllt</h2>
+          <h2 className="text-xl font-bold mb-2">Server-Seed enthüllt</h2>
           <p className="text-sm text-text-secondary mb-3">
-            Speichere den Server-Seed falls du ihn später auf externen Tools nachrechnen möchtest. Er wird nicht erneut angezeigt.
+            Das ist der vollständige geheime Seed, der zum öffentlichen Hash deines bisherigen
+            Commitments gehört. Speichere ihn, wenn du auf externen Tools nachrechnen möchtest —
+            er wird <strong>nicht</strong> erneut angezeigt.
           </p>
           {revealData.revealedServerSeed && (
             <div className="mb-3">
-              <label className="text-xs text-text-secondary">Enthüllter Server-Seed</label>
+              <label className="text-xs text-text-secondary">
+                Enthüllter Server-Seed (das Geheimnis — ab jetzt öffentlich)
+              </label>
               <div className="font-mono text-sm bg-white/4 rounded-[10px] p-3 break-all">
                 {revealData.revealedServerSeed}
               </div>
             </div>
           )}
           <div className="mb-1">
-            <label className="text-xs text-text-secondary">Neuer aktiver Server-Seed-Hash</label>
+            <label className="text-xs text-text-secondary">
+              Neuer Commitment-Hash (Seed dazu bleibt geheim bis zur nächsten Rotation)
+            </label>
             <div className="font-mono text-sm bg-white/4 rounded-[10px] p-3 break-all">
               {revealData.newServerSeedHash}
             </div>
@@ -146,15 +157,20 @@ export default function SeedManager(props: FairnessStateProps) {
       </Card>
 
       <Card variant="topline" className="p-6">
-        <h2 className="text-xl font-bold mb-2">Server Seed (aktiv)</h2>
+        <h2 className="text-xl font-bold mb-2">Aktiver Server-Seed — Commitment</h2>
+        <p className="text-sm text-text-secondary mb-2">
+          Der vollständige Server-Seed ist ein 64-Zeichen-Geheimnis. Du siehst unten nur den
+          SHA-256-Hash davon als Beweis, dass wir uns <strong>vor</strong> deinen Rolls festgelegt
+          haben.
+        </p>
         <p className="text-sm text-text-secondary mb-4">
-          Wir committen auf den Hash, bevor wir deine Rolls ziehen. Wenn du rotierst, wird der aktuelle
-          Seed enthüllt und ein neuer aktiv.
+          Beim Rotieren zeigen wir dir den vollen Seed, der zu diesem Hash gehört — damit kannst
+          du alle vergangenen Rolls selbst nachrechnen.
         </p>
         {props.activeSeed ? (
           <>
             <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm mb-4">
-              <span className="text-text-secondary">Hash</span>
+              <span className="text-text-secondary">Commitment-Hash (öffentlich)</span>
               <span className="font-mono break-all">{props.activeSeed.serverSeedHash}</span>
               <span className="text-text-secondary">Nonce</span>
               <span className="font-mono">{props.activeSeed.nonce}</span>
@@ -163,7 +179,7 @@ export default function SeedManager(props: FairnessStateProps) {
             </div>
             <div className="flex gap-3">
               <Button onClick={rotateServerSeed} loading={rotating}>
-                Jetzt rotieren
+                Rotieren &amp; Seed enthüllen
               </Button>
               {rotateError && <span className="text-error-light self-center text-sm">{rotateError}</span>}
             </div>
