@@ -88,6 +88,8 @@ export interface IUser extends Document {
     country: "DE" | "AT" | "CH" | null;
   } | null;
   reservationRulesAccepted: Date | null;
+  fairnessClientSeed: string | null;
+  fairnessInitializedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -218,6 +220,8 @@ const UserSchema = new Schema<IUser>(
       default: null,
     },
     reservationRulesAccepted: { type: Date, default: null },
+    fairnessClientSeed: { type: String, default: null },
+    fairnessInitializedAt: { type: Date, default: null },
   },
   { timestamps: true }
 );

@@ -6,7 +6,6 @@ const LINKS = [
 ];
 
 export function Footer({ lang, dict }: { lang: string; dict: Record<string, string> }) {
-  void lang;
   const year = new Date().getFullYear();
 
   return (
@@ -14,6 +13,12 @@ export function Footer({ lang, dict }: { lang: string; dict: Record<string, stri
       <div className="max-w-[1600px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/70">
         <span>&copy; {year} PackAttack.gg</span>
         <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1">
+          <a
+            href={`/${lang}/provably-fair`}
+            className="transition-colors text-pa-green hover:text-pa-green"
+          >
+            Provably Fair
+          </a>
           {LINKS.map((link) => (
             <a
               key={link.key}

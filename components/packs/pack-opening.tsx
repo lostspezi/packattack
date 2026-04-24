@@ -29,6 +29,11 @@ interface OpenResult {
   newBalance: number;
   isRecovery?: boolean;
   cards: DrawnCard[];
+  fairnessProof?: {
+    commitmentId: string;
+    nonceStart: number;
+    nonceEnd: number;
+  };
 }
 
 interface BoxInfo {
@@ -169,6 +174,7 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
             particleRef={particleRef}
             onPlaySound={handlePlaySound}
             onAllRevealed={handleAnimationDone}
+            fairnessCommitmentId={result.fairnessProof?.commitmentId ?? null}
           />
         )}
       </div>

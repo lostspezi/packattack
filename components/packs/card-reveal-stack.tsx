@@ -25,12 +25,14 @@ interface CardRevealStackProps {
   particleRef: React.RefObject<ParticleCanvasHandle | null>;
   onPlaySound: (key: string, volume?: number) => void;
   onAllRevealed: () => void;
+  fairnessCommitmentId?: string | null;
 }
 
 const CARD_W = 150;
 
 export function CardRevealStack({
   cards, packCount, lang, particleRef, onPlaySound, onAllRevealed,
+  fairnessCommitmentId,
 }: CardRevealStackProps) {
   const isDe = lang === "de";
   const prefersReducedMotion = useReducedMotion();
@@ -161,6 +163,14 @@ export function CardRevealStack({
             <CardFront key={origIndex} card={card} tier={getEffectTier(card.coinValue)} />
           ))}
         </div>
+        {fairnessCommitmentId && (
+          <a
+            href={`/${lang}/provably-fair/verify?commitmentId=${fairnessCommitmentId}`}
+            className="block text-center text-pa-green text-sm underline decoration-dotted"
+          >
+            {isDe ? "Öffnung nachrechnen (Provably Fair)" : "Verify this opening (Provably Fair)"}
+          </a>
+        )}
         <Button variant="primary" size="lg" className="w-full" onClick={onAllRevealed}>
           {isDe ? "Weiter zur Übersicht" : "Continue to overview"}
         </Button>
@@ -212,8 +222,16 @@ export function CardRevealStack({
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.3 }}
-          className="w-full max-w-sm"
+          className="w-full max-w-sm flex flex-col gap-3"
         >
+          {fairnessCommitmentId && (
+            <a
+              href={`/${lang}/provably-fair/verify?commitmentId=${fairnessCommitmentId}`}
+              className="block text-center text-pa-green text-sm underline decoration-dotted"
+            >
+              {isDe ? "Öffnung nachrechnen (Provably Fair)" : "Verify this opening (Provably Fair)"}
+            </a>
+          )}
           <Button variant="primary" size="lg" className="w-full" onClick={onAllRevealed}>
             {isDe ? "Weiter zur Übersicht" : "Continue to overview"}
           </Button>

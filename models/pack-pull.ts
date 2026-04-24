@@ -17,6 +17,8 @@ export interface IPackPull extends Document {
   userAgent: string;
   battleId: Types.ObjectId | null;
   expiresAt: Date | null;
+  fairnessCommitmentId: Types.ObjectId | null;
+  fairnessNonce: number | null;
   createdAt: Date;
 }
 
@@ -42,16 +44,24 @@ const PackPullSchema = new Schema<IPackPull>(
     userAgent: { type: String, default: "" },
     battleId: { type: Schema.Types.ObjectId, ref: "Battle", default: null },
     expiresAt: { type: Date, default: null },
+    fairnessCommitmentId: {
+      type: Schema.Types.ObjectId,
+      ref: "PackOpenCommitment",
+      default: null,
+    },
+    fairnessNonce: { type: Number, default: null, min: 0 },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );
 
 PackPullSchema.index({ userId: 1, status: 1 });
 PackPullSchema.index({ userId: 1, packGroupId: 1 });
+PackPullSchema.index({ userId: 1, createdAt: -1, _id: -1 });
 PackPullSchema.index({ boxId: 1, createdAt: -1 });
 PackPullSchema.index({ packGroupId: 1, cardIndex: 1 }, { unique: true });
 PackPullSchema.index({ status: 1, expiresAt: 1 });
 PackPullSchema.index({ battleId: 1, status: 1 });
+PackPullSchema.index({ fairnessCommitmentId: 1, fairnessNonce: 1 });
 
 const PackPull: Model<IPackPull> =
   mongoose.models.PackPull ?? mongoose.model<IPackPull>("PackPull", PackPullSchema);
