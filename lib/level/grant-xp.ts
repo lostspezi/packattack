@@ -96,8 +96,22 @@ export async function grantXp(
   }
 
   let unlockedAchievements: AchievementUnlockOutcome[] = [];
-  if (newLevel > oldLevel) {
+  const leveledUp = newLevel > oldLevel;
+  const isMilestone = leveledUp && isLevelMilestone(newLevel);
+  if (leveledUp) {
     unlockedAchievements = await checkLevelAchievements(objectId, newLevel);
+    try {
+      const { notifyLevelUp } = await import("@/lib/notifications/level-up");
+      await notifyLevelUp({
+        userId: objectId.toString(),
+        oldLevel,
+        newLevel,
+        isMilestone,
+        unlockedAchievements,
+      });
+    } catch (err) {
+      console.error("[grant-xp notifyLevelUp]", err);
+    }
   }
 
   return {
@@ -106,8 +120,8 @@ export async function grantXp(
     newXp,
     oldLevel,
     newLevel,
-    leveledUp: newLevel > oldLevel,
-    isMilestone: newLevel > oldLevel && isLevelMilestone(newLevel),
+    leveledUp,
+    isMilestone,
     source,
     unlockedAchievements,
   };

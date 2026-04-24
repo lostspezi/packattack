@@ -37,6 +37,11 @@ vi.mock("@/lib/achievements/engine", () => ({
   checkOnceAchievement: async () => [],
 }));
 
+vi.mock("@/lib/notifications/level-up", () => ({
+  notifyLevelUp: async () => undefined,
+  notifyAchievementUnlock: async () => undefined,
+}));
+
 vi.mock("@/models/user", () => {
   function applyInc(target: Record<string, unknown>, update: Record<string, unknown>) {
     for (const [path, delta] of Object.entries(update)) {

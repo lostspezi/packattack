@@ -9,7 +9,9 @@ export interface INotification extends Document {
   category: string | null;
   entityType: string | null;
   entityId: string | null;
+  meta: Record<string, unknown> | null;
   read: boolean;
+  acknowledgedAt: Date | null;
   createdAt: Date;
 }
 
@@ -36,7 +38,9 @@ const NotificationSchema = new Schema<INotification>(
     category: { type: String, default: null },
     entityType: { type: String, default: null },
     entityId: { type: String, default: null },
+    meta: { type: Schema.Types.Mixed, default: null },
     read: { type: Boolean, default: false },
+    acknowledgedAt: { type: Date, default: null },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );
