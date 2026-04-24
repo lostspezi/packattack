@@ -27,6 +27,13 @@ export interface IUser extends Document {
   level: number;
   xp: number;
   lastXpGainAt: Date | null;
+  /**
+   * Vom User aus seinen freigeschalteten Cosmetic-Titeln gewählter Titel.
+   * `null` = kein Titel angezeigt. Wird beim Lesen gegen die aktuell
+   * verfügbaren Titel validiert; ungültige Werte fallen auf den neuesten
+   * verfügbaren Titel zurück.
+   */
+  equippedTitle: string | null;
   stats: {
     counters: {
       boxesOpened: number;
@@ -223,6 +230,7 @@ const UserSchema = new Schema<IUser>(
     level: { type: Number, default: 1, min: 1, max: 100, index: true },
     xp: { type: Number, default: 0, min: 0 },
     lastXpGainAt: { type: Date, default: null },
+    equippedTitle: { type: String, default: null, maxlength: 64 },
     stats: {
       type: new Schema(
         {

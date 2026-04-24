@@ -88,7 +88,7 @@ describe("getUserEffects", () => {
     const effects = await getUserEffects(userId);
     expect(effects.convertMultiplier).toBe(1);
     expect(effects.unlockedBoxSlugs).toEqual([]);
-    expect(effects.cosmetics).toEqual({});
+    expect(effects.cosmetics.titles).toEqual([]);
   });
 
   it("multiplies multiple convert_multipliers", async () => {
@@ -160,22 +160,30 @@ describe("getUserEffects", () => {
     expect(second.convertMultiplier).toBe(1);
   });
 
-  it("cosmetic rewards map to the correct slot", async () => {
+  it("cosmetic title rewards stack into the titles list", async () => {
     const userId = new Types.ObjectId();
     const a = {
       _id: new Types.ObjectId(),
       active: true,
       rewards: [
         { type: "cosmetic", params: { slot: "title", value: "PACKATTACK Veteran" } },
+      ],
+    };
+    const b = {
+      _id: new Types.ObjectId(),
+      active: true,
+      rewards: [
+        { type: "cosmetic", params: { slot: "title", value: "Battle-Champion" } },
+        // Slots, die nicht im UI angeboten werden, werden nicht akkumuliert.
         { type: "cosmetic", params: { slot: "chat_color", value: "#ff00aa" } },
       ],
     };
     achievements.set(a._id.toString(), a);
+    achievements.set(b._id.toString(), b);
     userAchievements.push({ userId, achievementId: a._id, completed: true });
+    userAchievements.push({ userId, achievementId: b._id, completed: true });
     const effects = await getUserEffects(userId);
-    expect(effects.cosmetics.title).toBe("PACKATTACK Veteran");
-    expect(effects.cosmetics.chatColor).toBe("#ff00aa");
-    expect(effects.cosmetics.frame).toBeUndefined();
+    expect(effects.cosmetics.titles.sort()).toEqual(["Battle-Champion", "PACKATTACK Veteran"]);
   });
 
   it("silently skips malformed reward params", async () => {

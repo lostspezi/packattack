@@ -224,7 +224,9 @@ export function MobileDrawer({
             />
             <div className="min-w-0">
               <p className="truncate text-sm font-medium text-text-primary">{userName}</p>
-              <p className="text-xs text-text-muted">{levelLabel} {userLevel}</p>
+              <p className="text-xs text-text-muted truncate">
+                {me?.title ?? `${levelLabel} ${userLevel}`}
+              </p>
             </div>
           </div>
         </div>

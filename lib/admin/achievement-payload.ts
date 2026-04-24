@@ -47,7 +47,10 @@ const VALID_REWARD_TYPES = [
   "cosmetic",
   "grant_badge",
 ] as const;
-const VALID_COSMETIC_SLOTS = ["title", "frame", "chat_color"] as const;
+// Aktuell wird nur `title` angezeigt. Frame und Chat-Color sind im Datenmodell
+// vorgesehen, aber bewusst nicht im Admin-Picker, damit keine "toten" Rewards
+// verteilt werden, die der User nirgendwo zu sehen bekommt.
+const VALID_COSMETIC_SLOTS = ["title"] as const;
 
 export interface RawAchievementPayload {
   key?: string;

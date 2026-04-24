@@ -12,11 +12,10 @@ export interface UserEffects {
   convertMultiplier: number;
   /** Slugs von Boxen, die per Achievement freigeschaltet wurden (zusätzlich zum Level-Gate). */
   unlockedBoxSlugs: string[];
-  /** Kosmetische Auswahl pro Slot — der User sieht zuletzt freigeschaltete Werte. */
+  /** Kosmetik. Aktuell nur Titel; weitere Slots sind im Datenmodell vorbereitet. */
   cosmetics: {
-    title?: string;
-    frame?: string;
-    chatColor?: string;
+    /** Alle freigeschalteten Titel in Reihenfolge der Achievement-sortOrder. */
+    titles: string[];
   };
 }
 
@@ -27,7 +26,7 @@ function cacheKey(userId: string): string {
 }
 
 function emptyEffects(): UserEffects {
-  return { convertMultiplier: 1, unlockedBoxSlugs: [], cosmetics: {} };
+  return { convertMultiplier: 1, unlockedBoxSlugs: [], cosmetics: { titles: [] } };
 }
 
 function accumulate(effects: UserEffects, reward: AchievementReward): void {
@@ -53,10 +52,14 @@ function accumulate(effects: UserEffects, reward: AchievementReward): void {
     case "cosmetic": {
       const params = reward.params as { slot?: unknown; value?: unknown };
       if (typeof params?.value !== "string") break;
-      const value = params.value;
-      if (params.slot === "title") effects.cosmetics.title = value;
-      else if (params.slot === "frame") effects.cosmetics.frame = value;
-      else if (params.slot === "chat_color") effects.cosmetics.chatColor = value;
+      const value = params.value.trim();
+      if (!value) break;
+      if (params.slot === "title" && !effects.cosmetics.titles.includes(value)) {
+        effects.cosmetics.titles.push(value);
+      }
+      // frame / chat_color werden absichtlich nicht akkumuliert — keine
+      // Anzeige, kein Effekt. Falls im Datenmodell später freigegeben,
+      // hier ergänzen.
       break;
     }
     case "coins":
@@ -88,16 +91,15 @@ export async function getUserEffects(
     try {
       const parsed = JSON.parse(cached) as Partial<UserEffects> | null;
       if (parsed && typeof parsed === "object" && typeof parsed.convertMultiplier === "number") {
+        const titles = Array.isArray(parsed.cosmetics?.titles)
+          ? parsed.cosmetics.titles.filter((s): s is string => typeof s === "string")
+          : [];
         return {
           convertMultiplier: parsed.convertMultiplier,
           unlockedBoxSlugs: Array.isArray(parsed.unlockedBoxSlugs)
             ? parsed.unlockedBoxSlugs.filter((s): s is string => typeof s === "string")
             : [],
-          cosmetics: {
-            title: typeof parsed.cosmetics?.title === "string" ? parsed.cosmetics.title : undefined,
-            frame: typeof parsed.cosmetics?.frame === "string" ? parsed.cosmetics.frame : undefined,
-            chatColor: typeof parsed.cosmetics?.chatColor === "string" ? parsed.cosmetics.chatColor : undefined,
-          },
+          cosmetics: { titles },
         };
       }
     } catch {

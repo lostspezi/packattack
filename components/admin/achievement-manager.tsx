@@ -593,9 +593,15 @@ function AchievementForm({ form, setForm, errors, saving, isNew, onCancel, onSav
                   <select
                     className="rounded border border-border bg-surface p-2 text-primary text-sm"
                     value={r.type}
-                    onChange={(e) =>
-                      updateReward(i, { type: e.target.value as RewardType, params: {} })
-                    }
+                    onChange={(e) => {
+                      const newType = e.target.value as RewardType;
+                      // Cosmetics defaulten auf den einzig sichtbaren Slot
+                      // ("title"), damit der Server-Side-Sanitizer nicht
+                      // wegen fehlendem Slot ablehnt.
+                      const params: Record<string, unknown> =
+                        newType === "cosmetic" ? { slot: "title" } : {};
+                      updateReward(i, { type: newType, params });
+                    }}
                   >
                     {(Object.keys(REWARD_LABEL) as RewardType[]).map((rt) => (
                       <option key={rt} value={rt}>{REWARD_LABEL[rt]}</option>
@@ -651,26 +657,17 @@ function RewardFields({
     return <UnlockBoxPicker value={String(p.boxSlug ?? "")} onChange={(slug) => set("boxSlug", slug)} />;
   }
   if (reward.type === "cosmetic") {
+    // Slot wird beim Type-Wechsel implizit auf "title" gesetzt (siehe
+    // updateReward unten). Im Form sieht der Admin nur das Wertfeld.
     return (
-      <div className="grid grid-cols-2 gap-3">
-        <label className="text-sm space-y-1">
-          <span className="text-secondary">Slot</span>
-          <select
-            className="w-full rounded border border-border bg-surface p-2 text-primary"
-            value={String(p.slot ?? "")}
-            onChange={(e) => set("slot", e.target.value)}
-          >
-            <option value="">— auswählen —</option>
-            <option value="title">Titel</option>
-            <option value="frame">Avatar-Rahmen</option>
-            <option value="chat_color">Chat-Farbe</option>
-          </select>
-        </label>
-        <label className="text-sm space-y-1">
-          <span className="text-secondary">Wert</span>
-          <Input value={String(p.value ?? "")} onChange={(e) => set("value", e.target.value)} placeholder="z.B. PACKATTACK Veteran" />
-        </label>
-      </div>
+      <label className="text-sm space-y-1 block">
+        <span className="text-secondary">Titel-Text</span>
+        <Input
+          value={String(p.value ?? "")}
+          onChange={(e) => set("value", e.target.value)}
+          placeholder="z.B. PACKATTACK Veteran"
+        />
+      </label>
     );
   }
   // grant_badge
