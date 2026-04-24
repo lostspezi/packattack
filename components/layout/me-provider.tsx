@@ -14,6 +14,8 @@ import type { TourState } from "@/lib/packi/tour-validation";
 export interface MeSnapshot {
   coins: number;
   role: string;
+  level: number;
+  xp: number;
   cart: {
     totalItems: number;
     cartExpiresInSeconds: number;

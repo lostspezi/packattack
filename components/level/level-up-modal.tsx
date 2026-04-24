@@ -82,7 +82,12 @@ export function LevelUpModal() {
   const isLevelUp = visible.meta?.kind === "level_up";
   const isMilestone = visible.meta?.isMilestone === true;
   const newLevel = visible.meta?.newLevel ?? null;
+  const oldLevel = visible.meta?.oldLevel ?? null;
   const unlockedCount = visible.meta?.unlockedCount ?? 0;
+  // Der allererste Level-Up (1 → 2) ist für den User ein „Ah, das passiert
+  // wirklich“-Moment und verdient Konfetti — auch wenn Level 2 technisch kein
+  // Milestone ist. Danach bleibt's reserviert für die großen Stufen.
+  const celebrate = isMilestone || (isLevelUp && oldLevel === 1 && newLevel === 2);
 
   return (
     <div
@@ -90,7 +95,7 @@ export function LevelUpModal() {
       role="dialog"
       aria-modal="true"
     >
-      {isMilestone && <Confetti />}
+      {celebrate && <Confetti />}
       <Card className="relative w-full max-w-md p-6 text-center space-y-4 shadow-xl">
         <button
           type="button"
@@ -104,13 +109,13 @@ export function LevelUpModal() {
         <div className="flex justify-center">
           <div
             className={
-              isMilestone
+              celebrate
                 ? "h-20 w-20 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 grid place-items-center"
                 : "h-16 w-16 rounded-full bg-pa-green/20 grid place-items-center"
             }
           >
             {isLevelUp ? (
-              <Trophy className={isMilestone ? "h-10 w-10 text-white" : "h-8 w-8 text-pa-green"} />
+              <Trophy className={celebrate ? "h-10 w-10 text-white" : "h-8 w-8 text-pa-green"} />
             ) : (
               <Sparkles className="h-8 w-8 text-pa-green" />
             )}

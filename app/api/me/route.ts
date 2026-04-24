@@ -50,7 +50,7 @@ export async function GET() {
     await connectDB();
 
     const [user, cartItems, hasPending, currentEvent] = await Promise.all([
-      User.findById(userId).select("coins role tour").lean(),
+      User.findById(userId).select("coins role tour level xp").lean(),
       CartItem.find({ userId, status: "reserved" })
         .select("expiresAt")
         .lean(),
@@ -74,6 +74,8 @@ export async function GET() {
     return NextResponse.json({
       coins: user?.coins ?? 0,
       role: user?.role ?? "user",
+      level: typeof user?.level === "number" ? user.level : 1,
+      xp: typeof user?.xp === "number" ? user.xp : 0,
       cart: {
         totalItems: cartItems.length,
         cartExpiresInSeconds,
