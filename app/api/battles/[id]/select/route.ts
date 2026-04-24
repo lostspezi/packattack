@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
-import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
+import { BattleLockError, publishBattleEvent, withBattleLock } from "@/lib/battle-events";
 import { resolveRound } from "@/lib/battle-flow";
 
 export async function POST(
@@ -18,7 +18,7 @@ export async function POST(
   try {
     await connectDB();
     const { id } = await params;
-    const { cardIndex } = await req.json();
+    const { cardIndex, roundNumber: clientRoundNumber } = await req.json();
 
     return await withBattleLock(id, "select", async () => {
       const battle = await Battle.findById(id);
@@ -44,6 +44,16 @@ export async function POST(
 
       if (hand.selectedCardIndex !== null) {
         return NextResponse.json({ error: "already_selected" }, { status: 400 });
+      }
+
+      // Guard against stale retries: if the round advanced while we were
+      // waiting on the lock, the cardIndex would target a hand the user
+      // never saw. The client snapshots the round number at click time.
+      if (
+        typeof clientRoundNumber === "number" &&
+        clientRoundNumber !== currentRound.roundNumber
+      ) {
+        return NextResponse.json({ error: "round_mismatch" }, { status: 409 });
       }
 
       if (typeof cardIndex !== "number" || cardIndex < 0 || cardIndex >= hand.cards.length) {
@@ -85,9 +95,11 @@ export async function POST(
       return NextResponse.json({ selected: true, allSelected });
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "server_error";
-    if (message === "Operation in progress, please try again") {
-      return NextResponse.json({ error: message }, { status: 429 });
+    if (err instanceof BattleLockError) {
+      return NextResponse.json(
+        { error: "Operation in progress, please try again" },
+        { status: 429 },
+      );
     }
     console.error("[battles/[id]/select] POST error:", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

@@ -374,6 +374,9 @@ export default function BattleDetailPage() {
           setMyHand(null);
           setRevealData(null);
           setSelectedCardIndex(null);
+          // The next round_start clears this too, but if the user reconnects
+          // here the stale set would briefly mark last-round picks as ready.
+          setPlayersWhoSelected(new Set());
           if (revealTimerRef.current) { clearTimeout(revealTimerRef.current); revealTimerRef.current = null; }
           if (roundStartTimerRef.current) { clearTimeout(roundStartTimerRef.current); roundStartTimerRef.current = null; }
           pendingRoundRef.current = null;
@@ -688,11 +691,15 @@ export default function BattleDetailPage() {
     if (!battle || selectedCardIndex !== null) return;
     setSelectedCardIndex(cardIndex);
 
+    // Snapshot the round number at click time. The retry path below must not
+    // submit this card against a later round if resolveRound advanced state
+    // while we were waiting on the lock.
+    const roundAtClick = battle.currentRound;
     const send = () =>
       fetch(`/api/battles/${battle._id}/select`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardIndex }),
+        body: JSON.stringify({ cardIndex, roundNumber: roundAtClick }),
       });
 
     try {

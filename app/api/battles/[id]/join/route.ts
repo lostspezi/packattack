@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Battle from "@/models/battle";
 import User from "@/models/user";
-import { publishBattleEvent, withBattleLock } from "@/lib/battle-events";
+import { BattleLockError, publishBattleEvent, withBattleLock } from "@/lib/battle-events";
 import { scheduleBattleJob, removeBattleJob } from "@/lib/battle-jobs";
 
 const READY_CHECK_DURATION_MS = 30 * 1000; // 30 seconds
@@ -106,9 +106,11 @@ export async function POST(
       });
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "server_error";
-    if (message === "Operation in progress, please try again") {
-      return NextResponse.json({ error: message }, { status: 429 });
+    if (err instanceof BattleLockError) {
+      return NextResponse.json(
+        { error: "Operation in progress, please try again" },
+        { status: 429 },
+      );
     }
     console.error("[battles/[id]/join] POST error:", err);
     return NextResponse.json({ error: "server_error" }, { status: 500 });

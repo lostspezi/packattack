@@ -152,6 +152,15 @@ const BATTLE_LOCK_TTL_SECONDS = 15;
 const BATTLE_LOCK_RETRY_DELAY_MS = 50;
 const BATTLE_LOCK_MAX_RETRIES = 10; // up to 500 ms of blocking wait
 
+/** Thrown by `withBattleLock` when the lock is still held after all retries.
+ *  Callers can `instanceof`-check instead of matching on a brittle message. */
+export class BattleLockError extends Error {
+  constructor(battleId: string, operation: string) {
+    super(`battle lock "${operation}" unavailable for ${battleId}`);
+    this.name = "BattleLockError";
+  }
+}
+
 /**
  * Redis lock for battle operations (join, start, select). If the lock is
  * already held, we briefly retry before giving up — two players clicking
@@ -176,7 +185,7 @@ export async function withBattleLock<T>(
   }
 
   if (!acquired) {
-    throw new Error("Operation in progress, please try again");
+    throw new BattleLockError(battleId, operation);
   }
 
   try {

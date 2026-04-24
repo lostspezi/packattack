@@ -249,6 +249,10 @@ async function prepareFinishBattle(
             {
               $set: {
                 elo: change.newElo,
+                // Mongoose `timestamps: true` is bypassed by the native
+                // driver path — set updatedAt explicitly so the winner's
+                // doc stays in sync with the loser path.
+                updatedAt: "$$NOW",
                 "battleStats.totalBattles": {
                   $add: [{ $ifNull: ["$battleStats.totalBattles", 0] }, 1],
                 },
