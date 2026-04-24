@@ -5,6 +5,7 @@ import connectDB from "@/lib/db";
 import User from "@/models/user";
 import FairnessSeed from "@/models/fairness-seed";
 import PackOpenCommitment from "@/models/pack-open-commitment";
+import AdminFairnessAccessLog from "@/models/admin-fairness-access-log";
 
 function isAdminRole(role?: string | null) {
   return role === "admin" || role === "super_admin";
@@ -17,8 +18,9 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> },
 ) {
   const session = await auth();
+  const adminId = (session?.user as { id?: string } | undefined)?.id;
   const role = (session?.user as { role?: string } | undefined)?.role ?? null;
-  if (!session?.user || !isAdminRole(role)) {
+  if (!session?.user || !adminId || !isAdminRole(role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -33,6 +35,16 @@ export async function GET(
     await connectDB();
 
     const userObjectId = new Types.ObjectId(userId);
+    // Audit before fetch — the response carries the user's client seed
+    // and seed-chain metadata, same audit discipline as the commitment view.
+    await AdminFairnessAccessLog.create({
+      adminId: new Types.ObjectId(adminId),
+      targetUserId: userObjectId,
+      targetSeedId: null,
+      targetCommitmentId: null,
+      accessType: "view_seed",
+      context: "api admin user fairness overview",
+    });
     const [user, seeds, commitments, totalCommitments] = await Promise.all([
       User.findById(userObjectId)
         .select("_id username email fairnessClientSeed fairnessInitializedAt")

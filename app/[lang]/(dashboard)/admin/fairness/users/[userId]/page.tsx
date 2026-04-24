@@ -6,6 +6,7 @@ import connectDB from "@/lib/db";
 import User from "@/models/user";
 import FairnessSeed from "@/models/fairness-seed";
 import PackOpenCommitment from "@/models/pack-open-commitment";
+import AdminFairnessAccessLog from "@/models/admin-fairness-access-log";
 import { Card } from "@/components/ui/card";
 
 function isAdminRole(role?: string | null) {
@@ -24,8 +25,9 @@ export default async function AdminUserFairnessPage({ params }: PageProps) {
   const { lang, userId } = await params;
 
   const session = await auth();
+  const adminId = (session?.user as { id?: string } | undefined)?.id;
   const role = (session?.user as { role?: string } | undefined)?.role ?? null;
-  if (!session?.user || !isAdminRole(role)) {
+  if (!session?.user || !adminId || !isAdminRole(role)) {
     redirect(`/${lang}/dashboard`);
   }
 
@@ -34,6 +36,17 @@ export default async function AdminUserFairnessPage({ params }: PageProps) {
   await connectDB();
 
   const userObjectId = new Types.ObjectId(userId);
+  // Log before loading data — this page exposes the user's client seed
+  // and seed-chain metadata, which is audit-worthy even though no plain
+  // server seed is displayed here.
+  await AdminFairnessAccessLog.create({
+    adminId: new Types.ObjectId(adminId),
+    targetUserId: userObjectId,
+    targetSeedId: null,
+    targetCommitmentId: null,
+    accessType: "view_seed",
+    context: "admin ui user fairness overview",
+  });
   const [user, seeds, commitments, totalCommits] = await Promise.all([
     User.findById(userObjectId)
       .select("_id username email fairnessClientSeed fairnessInitializedAt")

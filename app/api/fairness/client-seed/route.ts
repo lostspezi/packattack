@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
 import { CLIENT_SEED_PATTERN, isValidClientSeed } from "@/lib/fairness";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 /**
  * Set or change the user's client seed. Takes effect on the next draw; does
@@ -35,6 +36,20 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Per-user cap — a stuffed loop of seed flips would bloat the
+    // updated-at audit without any legitimate use case.
+    const rl = await checkRateLimit({
+      bucket: `fairness:client-seed:${userId}`,
+      limit: 10,
+      windowSeconds: 60,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "rate_limited", retryAfterSeconds: rl.retryAfterSeconds },
+        { status: 429, headers: { "retry-after": String(rl.retryAfterSeconds) } },
+      );
+    }
+
     await connectDB();
     const res = await User.updateOne(
       { _id: userId },

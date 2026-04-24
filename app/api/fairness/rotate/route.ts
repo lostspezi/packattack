@@ -4,6 +4,7 @@ import connectDB from "@/lib/db";
 import FairnessSeed from "@/models/fairness-seed";
 import PackOpenSession from "@/models/pack-open-session";
 import { randomHex, sha256Hex } from "@/lib/fairness";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 /**
  * Rotate the user's active server seed. The current active seed is flipped
@@ -21,6 +22,20 @@ export async function POST() {
   }
 
   try {
+    // Rotate is a user-initiated rare action. Cap at 10/hour per user so
+    // a hostile session can't bloat the user's seed chain or audit log.
+    const rl = await checkRateLimit({
+      bucket: `fairness:rotate:${userId}`,
+      limit: 10,
+      windowSeconds: 3600,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "rate_limited", retryAfterSeconds: rl.retryAfterSeconds },
+        { status: 429, headers: { "retry-after": String(rl.retryAfterSeconds) } },
+      );
+    }
+
     await connectDB();
 
     const pending = await PackOpenSession.findOne({ userId }).select("_id").lean();

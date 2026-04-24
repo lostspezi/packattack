@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import PackPull from "@/models/pack-pull";
 import Card from "@/models/card";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 // Hard upper bound on rows per export request. Matches what fits comfortably
 // in a browser download; if we ever need more we'll ship streaming.
@@ -40,6 +41,20 @@ export async function GET(req: NextRequest) {
   const query = url.searchParams.get("q")?.trim() ?? "";
 
   try {
+    // Each export scans up to 10k PackPulls with two $lookups — expensive
+    // enough that we cap hard at 2/min per user.
+    const rl = await checkRateLimit({
+      bucket: `account:history-export:${userId}`,
+      limit: 2,
+      windowSeconds: 60,
+    });
+    if (!rl.allowed) {
+      return NextResponse.json(
+        { error: "rate_limited", retryAfterSeconds: rl.retryAfterSeconds },
+        { status: 429, headers: { "retry-after": String(rl.retryAfterSeconds) } },
+      );
+    }
+
     await connectDB();
 
     const match: Record<string, unknown> = {
