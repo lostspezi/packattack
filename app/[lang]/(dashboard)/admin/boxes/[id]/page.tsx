@@ -18,6 +18,8 @@ interface BoxData {
   rarityWeights: Array<{ rarity: string; weight: number }>;
   packsOpened: number;
   cardsCount: number;
+  isTutorial: boolean;
+  isAchievementBox: boolean;
   pausedAt: string | null;
   pausedReason: { cardId: string; cardName: string; at: string } | null;
   createdAt: string;
@@ -44,6 +46,8 @@ async function getBox(id: string): Promise<BoxData | null> {
       })),
       packsOpened: box.packsOpened ?? 0,
       cardsCount: Array.isArray(box.cards) ? box.cards.length : 0,
+      isTutorial: Boolean(box.isTutorial),
+      isAchievementBox: Boolean(box.isAchievementBox),
       pausedAt: box.pausedAt ? new Date(box.pausedAt as Date).toISOString() : null,
       pausedReason: box.pausedReason
         ? {

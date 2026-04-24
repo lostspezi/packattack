@@ -76,6 +76,7 @@ export async function PATCH(
     status?: string;
     image?: string | null;
     isTutorial?: boolean;
+    isAchievementBox?: boolean;
     force?: boolean;
   };
 
@@ -185,6 +186,7 @@ export async function PATCH(
       "status",
       "image",
       "isTutorial",
+      "isAchievementBox",
     ] as const;
 
     // If flipping isTutorial to true, clear it on any other box first so the

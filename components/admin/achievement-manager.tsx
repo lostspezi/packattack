@@ -648,12 +648,7 @@ function RewardFields({
     );
   }
   if (reward.type === "unlock_box") {
-    return (
-      <label className="text-sm space-y-1 block">
-        <span className="text-secondary">Box-Slug</span>
-        <Input value={String(p.boxSlug ?? "")} onChange={(e) => set("boxSlug", e.target.value)} placeholder="z.B. premium-ancient" />
-      </label>
-    );
+    return <UnlockBoxPicker value={String(p.boxSlug ?? "")} onChange={(slug) => set("boxSlug", slug)} />;
   }
   if (reward.type === "cosmetic") {
     return (
@@ -854,6 +849,148 @@ function ManualGrantDialog({
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+interface BoxOption {
+  _id: string;
+  slug: string;
+  name: { de?: string; en?: string };
+  image: string | null;
+  status: string;
+  isAchievementBox: boolean;
+}
+
+function UnlockBoxPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (slug: string) => void;
+}) {
+  const [query, setQuery] = useState(value);
+  const [results, setResults] = useState<BoxOption[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showList, setShowList] = useState(false);
+
+  // Initial-Load: alle markierten Achievement-Boxen, plus aktuell ausgewählter
+  // Slug zur Verifikation.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setSearching(true);
+      try {
+        const res = await fetch("/api/admin/boxes/search?achievementOnly=true", {
+          cache: "no-store",
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setResults(Array.isArray(data.boxes) ? data.boxes : []);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Debounced search
+  useEffect(() => {
+    if (!showList) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const url = `/api/admin/boxes/search?achievementOnly=true${query.trim().length >= 2 ? `&q=${encodeURIComponent(query.trim())}` : ""}`;
+        const res = await fetch(url, { cache: "no-store", signal: controller.signal });
+        if (!res.ok) return;
+        const data = await res.json();
+        setResults(Array.isArray(data.boxes) ? data.boxes : []);
+      } catch {
+        /* aborted */
+      } finally {
+        setSearching(false);
+      }
+    }, 200);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, showList]);
+
+  const selected = results.find((b) => b.slug === value);
+
+  return (
+    <div className="space-y-1">
+      <label className="text-sm space-y-1 block">
+        <span className="text-secondary">Box (markierte Achievement-Boxen)</span>
+        <div className="relative">
+          <Input
+            value={query}
+            onFocus={() => setShowList(true)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setShowList(true);
+            }}
+            placeholder={results.length === 0 ? "Noch keine Achievement-Box markiert" : "Suchen oder klicken zum Auswählen"}
+          />
+          {showList && (
+            <div className="absolute z-10 left-0 right-0 mt-1 bg-background border border-border rounded shadow max-h-64 overflow-y-auto">
+              {searching && (
+                <div className="px-2 py-2 text-xs text-secondary">Lädt…</div>
+              )}
+              {!searching && results.length === 0 && (
+                <div className="px-2 py-2 text-xs text-secondary">
+                  Keine Achievement-Boxen gefunden. Markiere zuerst eine Box im Admin als Achievement-Box.
+                </div>
+              )}
+              {results.map((b) => {
+                const active = b.slug === value;
+                return (
+                  <button
+                    key={b._id}
+                    type="button"
+                    className={`flex items-center gap-2 w-full px-2 py-2 hover:bg-surface text-left ${active ? "bg-surface" : ""}`}
+                    onClick={() => {
+                      onChange(b.slug);
+                      setQuery(b.slug);
+                      setShowList(false);
+                    }}
+                  >
+                    {b.image ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={b.image} alt="" className="w-8 h-8 rounded object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded bg-surface" />
+                    )}
+                    <span className="flex-1 min-w-0">
+                      <span className="text-sm text-primary block truncate">
+                        {b.name.de ?? b.name.en ?? b.slug}
+                      </span>
+                      <span className="text-xs text-secondary block truncate">
+                        {b.slug} · {b.status}
+                      </span>
+                    </span>
+                    {active && <span className="text-xs text-pa-green">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </label>
+      {selected && (
+        <p className="text-xs text-secondary">
+          Gewählt: <span className="font-mono">{selected.slug}</span> ({selected.name.de ?? selected.name.en})
+        </p>
+      )}
+      {!selected && value && (
+        <p className="text-xs text-amber-500">
+          Slug <span className="font-mono">{value}</span> ist nicht (mehr) als Achievement-Box markiert.
+        </p>
+      )}
     </div>
   );
 }

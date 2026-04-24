@@ -46,6 +46,12 @@ export interface IBox extends Document {
    * die Box öffnen. Null oder undefined = keine Beschränkung.
    */
   requiredLevel: number | null;
+  /**
+   * Markiert die Box als "Achievement-Box". Achievements mit Reward-Typ
+   * `unlock_box` listen nur Boxen mit diesem Flag — verhindert, dass Admins
+   * versehentlich reguläre Storefront-Boxen über Achievements freigeben.
+   */
+  isAchievementBox: boolean;
   /** Set when the box was auto-paused because a card hit stock 0. Cleared on reactivate. */
   pausedAt: Date | null;
   pausedReason: IBoxPausedReason | null;
@@ -104,6 +110,7 @@ const BoxSchema = new Schema<IBox>(
     battleFeePerRound: { type: Number, default: 0, min: 0 },
     isTutorial: { type: Boolean, default: false },
     requiredLevel: { type: Number, default: null, min: 1, max: 100 },
+    isAchievementBox: { type: Boolean, default: false, index: true },
     pausedAt: { type: Date, default: null },
     pausedReason: {
       type: new Schema<IBoxPausedReason>(

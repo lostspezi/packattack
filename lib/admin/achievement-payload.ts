@@ -360,14 +360,17 @@ export async function upsertAchievementTranslations(
  */
 export async function verifyRewardReferences(
   rewards: AchievementReward[],
-  boxModel: Model<{ slug?: string | null }>,
+  boxModel: Model<{ slug?: string | null; isAchievementBox?: boolean }>,
   badgeModel: Model<{ key: string }>,
 ): Promise<{ missingBoxSlug?: string; missingBadgeKey?: string } | null> {
   for (const reward of rewards) {
     if (reward.type === "unlock_box") {
       const slug = String((reward.params as { boxSlug?: string }).boxSlug ?? "");
       if (!slug) continue;
-      const exists = await boxModel.exists({ slug });
+      // Strikt: nur Boxen, die als Achievement-Box markiert sind. Verhindert,
+      // dass ein Admin per API-Bypass eine reguläre Storefront-Box als Reward
+      // ausschüttet.
+      const exists = await boxModel.exists({ slug, isAchievementBox: true });
       if (!exists) return { missingBoxSlug: slug };
     }
     if (reward.type === "grant_badge") {
