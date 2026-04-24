@@ -277,6 +277,15 @@ const authConfig: NextAuthConfig = {
               token.picture = user.image ?? null;
             }
             token.onboardingCompleted = dbUser.onboardingCompleted ?? false;
+
+            // Login-Streak: idempotent pro Tag (see lib/engagement/login-streak.ts).
+            // Ein Fehler hier darf den Sign-In nicht kippen.
+            try {
+              const { trackLoginStreak } = await import("@/lib/engagement/login-streak");
+              await trackLoginStreak(dbUser._id.toString());
+            } catch (err) {
+              console.error("[auth.jwt trackLoginStreak]", err);
+            }
           } else {
             // Fallback for brand-new OAuth users created by the adapter
             token.role = "user";

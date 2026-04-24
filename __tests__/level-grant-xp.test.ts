@@ -31,6 +31,12 @@ vi.mock("@/lib/db", () => ({
   connectDB: async () => undefined,
 }));
 
+vi.mock("@/lib/achievements/engine", () => ({
+  checkLevelAchievements: async () => [],
+  checkCounterAchievements: async () => [],
+  checkOnceAchievement: async () => [],
+}));
+
 vi.mock("@/models/user", () => {
   function applyInc(target: Record<string, unknown>, update: Record<string, unknown>) {
     for (const [path, delta] of Object.entries(update)) {
@@ -184,8 +190,9 @@ describe("grantXp", () => {
 describe("incrementCounter", () => {
   it("initialises a fresh counter to the delta", async () => {
     const user = makeUser();
-    const value = await incrementCounter(user._id, "boxesOpened", 1);
-    expect(value).toBe(1);
+    const result = await incrementCounter(user._id, "boxesOpened", 1);
+    expect(result?.newValue).toBe(1);
+    expect(result?.unlockedAchievements).toEqual([]);
     expect(userStore.get(user._id.toString())!.stats.counters.boxesOpened).toBe(1);
   });
 
@@ -193,7 +200,7 @@ describe("incrementCounter", () => {
     const user = makeUser();
     await incrementCounter(user._id, "cardsConverted", 3);
     const next = await incrementCounter(user._id, "cardsConverted", 2);
-    expect(next).toBe(5);
+    expect(next?.newValue).toBe(5);
   });
 
   it("returns null when user missing", async () => {

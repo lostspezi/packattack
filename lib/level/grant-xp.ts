@@ -1,6 +1,16 @@
 import { Types } from "mongoose";
 import connectDB from "@/lib/db";
 import User from "@/models/user";
+import {
+  checkCounterAchievements,
+  checkLevelAchievements,
+  checkOnceAchievement,
+  type AchievementUnlockOutcome,
+} from "@/lib/achievements/engine";
+import type {
+  AchievementCounterMetric,
+  AchievementOnceEvent,
+} from "@/models/achievement";
 import { isLevelMilestone, levelForTotalXp, MAX_LEVEL } from "./config";
 
 export type XpSource =
@@ -21,6 +31,7 @@ export interface XpGrantResult {
   leveledUp: boolean;
   isMilestone: boolean;
   source: XpSource;
+  unlockedAchievements: AchievementUnlockOutcome[];
 }
 
 function coerceUserId(userId: string | Types.ObjectId): Types.ObjectId | null {
@@ -84,6 +95,11 @@ export async function grantXp(
     );
   }
 
+  let unlockedAchievements: AchievementUnlockOutcome[] = [];
+  if (newLevel > oldLevel) {
+    unlockedAchievements = await checkLevelAchievements(objectId, newLevel);
+  }
+
   return {
     userId: objectId.toString(),
     oldXp,
@@ -93,26 +109,26 @@ export async function grantXp(
     leveledUp: newLevel > oldLevel,
     isMilestone: newLevel > oldLevel && isLevelMilestone(newLevel),
     source,
+    unlockedAchievements,
   };
 }
 
-export type CounterMetric =
-  | "boxesOpened"
-  | "cardsConverted"
-  | "battlesPlayed"
-  | "battlesWon"
-  | "coinsSpent"
-  | "loginDays";
+export type CounterMetric = AchievementCounterMetric;
+
+export interface CounterBumpResult {
+  newValue: number;
+  unlockedAchievements: AchievementUnlockOutcome[];
+}
 
 /**
- * Inkrementiert einen Stats-Counter am User atomar und liefert den neuen Wert.
- * Basis für Counter-Achievements (wird in Phase 3 an Events angebunden).
+ * Inkrementiert einen Stats-Counter am User atomar, liefert den neuen Wert
+ * und löst Counter-Achievements aus, deren Ziel jetzt erreicht ist.
  */
 export async function incrementCounter(
   userId: string | Types.ObjectId,
   metric: CounterMetric,
   by = 1,
-): Promise<number | null> {
+): Promise<CounterBumpResult | null> {
   if (!Number.isFinite(by) || by === 0) return null;
   const objectId = coerceUserId(userId);
   if (!objectId) return null;
@@ -127,5 +143,21 @@ export async function incrementCounter(
   ).lean<{ stats?: { counters?: Record<string, number> } }>();
 
   if (!after) return null;
-  return after.stats?.counters?.[metric] ?? null;
+  const newValue = after.stats?.counters?.[metric] ?? 0;
+  const unlockedAchievements = await checkCounterAchievements(objectId, metric, newValue);
+
+  return { newValue, unlockedAchievements };
+}
+
+/**
+ * Thin wrapper, damit Call-Sites nicht direkt in `@/lib/achievements/engine`
+ * greifen müssen. Semantik identisch zu `checkOnceAchievement`.
+ */
+export async function fireOnceEvent(
+  userId: string | Types.ObjectId,
+  event: AchievementOnceEvent,
+): Promise<AchievementUnlockOutcome[]> {
+  const objectId = coerceUserId(userId);
+  if (!objectId) return [];
+  return checkOnceAchievement(objectId, event);
 }

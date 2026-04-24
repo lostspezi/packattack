@@ -20,6 +20,8 @@ import Card from "@/models/card";
 import ChatMessage from "@/models/chat-message";
 import ChatRoom from "@/models/chat-room";
 import CoinTransaction from "@/models/coin-transaction";
+import { grantXp, incrementCounter } from "@/lib/level/grant-xp";
+import { XP_RATES } from "@/lib/level/xp-rates";
 
 const RESERVATION_HOURS = 3;
 const CHAT_JACKPOT_MIN_VALUE = 90;
@@ -288,6 +290,15 @@ export async function POST(req: NextRequest) {
         relatedPullId: pull._id,
         relatedBoxId: pull.boxId,
       });
+
+      // Level-System: fixe XP je Convert + Counter-Inkrement. Fehler dürfen
+      // die User-Response nicht kippen, deshalb gekapselt.
+      try {
+        await grantXp(userId, XP_RATES.CARD_CONVERT, "card_convert");
+        await incrementCounter(userId, "cardsConverted", 1);
+      } catch (err) {
+        console.error("[pulls/decide xp-hooks]", err);
+      }
 
       // Publish SSE live event
       void publishLiveEvent(boxId, userDoc, cardDoc, pull.rarity, pull.coinValue, decision);

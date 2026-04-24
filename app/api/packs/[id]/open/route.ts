@@ -12,6 +12,8 @@ import CoinTransaction from "@/models/coin-transaction";
 import Notification from "@/models/notification";
 import PackOpenCommitment from "@/models/pack-open-commitment";
 import { drawPacksWithFairness, type PackCard } from "@/lib/pack-engine";
+import { grantXp, incrementCounter, fireOnceEvent } from "@/lib/level/grant-xp";
+import { xpForPackPull } from "@/lib/level/xp-rates";
 import {
   computePoolHash,
   createFairnessRng,
@@ -289,6 +291,28 @@ export async function POST(
       type: "pack_purchase",
       relatedBoxId: realBoxId,
     });
+
+    // 9b. Level-System: XP für jede gezogene Karte + Counter-Inkremente +
+    // optional Once-Event "first_pack_opened". Alle Seiteneffekte in einem
+    // try/catch, damit ein Level-Fehler niemals die Pack-Öffnung scheitern
+    // lässt (Coins sind dann ja schon verbucht und die Karten erzeugt).
+    // Hinweis für Phase 4: wenn hier Coin-Rewards (achievement_reward) hinzu
+    // kommen, muss `user.coins` im Response-Feld neu gelesen werden, sonst
+    // zeigt `newBalance` den Stand vor dem Reward-Grant.
+    try {
+      const totalPullXp = result.drawnCards.reduce(
+        (sum, card) => sum + xpForPackPull(card.rarity, card.coinValue),
+        0,
+      );
+      if (totalPullXp > 0) {
+        await grantXp(userId, totalPullXp, "pack_open");
+      }
+      await incrementCounter(userId, "boxesOpened", packCount);
+      await incrementCounter(userId, "coinsSpent", totalCost);
+      await fireOnceEvent(userId, "first_pack_opened");
+    } catch (err) {
+      console.error("[packs/[id]/open xp-hooks]", err);
+    }
 
     // 10. Low-stock warnings for drawn cards. Out-of-stock notifications
     // live with the pause block below so the single request that actually
