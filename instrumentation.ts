@@ -12,5 +12,8 @@ export async function register() {
 
     const { startBattleWorker } = await import("@/workers/battle-worker");
     startBattleWorker();
+
+    // Register Mongoose post-save hooks that publish dashboard activity events.
+    await import("@/lib/dashboard/activity-publisher");
   }
 }
