@@ -36,7 +36,7 @@ export default async function DashboardPage({
   const [stats, hero, activity] = await Promise.all([
     getDashboardStats(userId),
     getHeroAction(userId),
-    getActivitySnapshot(userId, { limit: 20 }),
+    getActivitySnapshot(userId, { limit: 10 }),
   ]);
 
   return (

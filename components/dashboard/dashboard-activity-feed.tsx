@@ -53,7 +53,7 @@ export function DashboardActivityFeed({ initialItems }: DashboardActivityFeedPro
       const item = JSON.parse(data) as ActivityItem;
       if (!item?.id || seenIds.current.has(item.id)) return;
       seenIds.current.add(item.id);
-      setItems((prev) => [item, ...prev].slice(0, 50));
+      setItems((prev) => [item, ...prev].slice(0, 10));
       setHighlight(item.id);
       if (highlightTimer.current) clearTimeout(highlightTimer.current);
       highlightTimer.current = setTimeout(() => {
