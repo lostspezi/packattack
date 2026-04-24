@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LevelChip } from "@/components/user/level-chip";
 import { Trophy, Sparkles, ArrowRight, Target } from "lucide-react";
+import { useMe } from "@/components/layout/me-provider";
 
 interface SummaryAchievement {
   _id: string;
@@ -37,10 +38,16 @@ function pickText(map: Record<string, string>, lang: string, fallback: string): 
 }
 
 export function DashboardProgressionCard({ lang }: { lang: string }) {
+  const me = useMe();
+  const active = me?.levelSystemActive === true;
   const [data, setData] = useState<SummaryData | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!active) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -57,7 +64,11 @@ export function DashboardProgressionCard({ lang }: { lang: string }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [active]);
+
+  // Solange das Level-System nicht scharf geschaltet ist (kein Achievement
+  // existiert), bleibt die Kachel komplett unsichtbar.
+  if (!active) return null;
 
   if (loading) {
     return (

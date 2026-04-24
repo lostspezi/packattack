@@ -16,6 +16,7 @@ export interface MeSnapshot {
   role: string;
   level: number;
   xp: number;
+  levelSystemActive: boolean;
   cart: {
     totalItems: number;
     cartExpiresInSeconds: number;

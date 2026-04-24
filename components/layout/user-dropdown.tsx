@@ -21,6 +21,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
+import { useMe } from "./me-provider";
 
 interface UserDropdownProps {
   lang: string;
@@ -43,6 +44,8 @@ export function UserDropdown({
   const ref = useRef<HTMLDivElement>(null);
   const [style, setStyle] = useState<CSSProperties>({});
   const isAdmin = userRole === "admin" || userRole === "super_admin";
+  const me = useMe();
+  const showAchievements = me?.levelSystemActive === true;
 
   useEffect(() => {
     if (!open) return;
@@ -112,10 +115,16 @@ export function UserDropdown({
         <span>Profil</span>
       </Link>
 
-      <Link href={`/${lang}/profile/achievements`} onClick={onClose} className={itemClass}>
-        <Trophy className="h-4 w-4 shrink-0 text-text-muted" />
-        <span>Achievements</span>
-      </Link>
+      {showAchievements && (
+        <Link
+          href={`/${lang}/profile/achievements`}
+          onClick={onClose}
+          className={itemClass}
+        >
+          <Trophy className="h-4 w-4 shrink-0 text-text-muted" />
+          <span>Achievements</span>
+        </Link>
+      )}
 
       <Link href={`/${lang}/settings`} onClick={onClose} className={itemClass}>
         <Settings className="h-4 w-4 shrink-0 text-text-muted" />
