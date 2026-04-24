@@ -2,7 +2,7 @@
 
 ## Context
 
-PackAttack.gg bietet Usern das Öffnen von TCG-Booster-Packs mit Animationen und Kartenzusammenfassung. Dieses Feature erweitert die Plattform um ein Battle-System, in dem 2–4 Spieler strategisch gegeneinander antreten. Im Gegensatz zu reinen Glücks-Battles (wie bei Pullbox.gg, HypeDrop) hat unser System ein **Strategie-Element**: Spieler sehen 5 Karten und wählen 1 aus.
+PackAttack.gg bietet Usern das Öffnen von TCG-Booster-Packs mit Animationen und Kartenzusammenfassung. Dieses Feature erweitert die Plattform um ein Battle-System, in dem 2–4 Spieler strategisch gegeneinander antreten. Im Gegensatz zu reinen Glücks-Battles hat unser System ein **Strategie-Element**: Spieler sehen 5 Karten und wählen 1 aus.
 
 **Warum Neustart statt bestehendem Code**: Der alte Card-Clash-Code wird gelöscht. Das neue System hat fundamental andere Mechaniken (Kartenauswahl statt reine Zufallsziehung, 4 Modi, Tier-basiertes Ziehen).
 

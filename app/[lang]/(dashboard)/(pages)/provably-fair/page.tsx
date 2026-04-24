@@ -90,8 +90,9 @@ karte  = walk(pool, bucket)                // erste cumulative[i] > bucket`}</pr
           <div>
             <h3 className="font-bold mb-1">Warum fließt ein Pool-Hash in die HMAC ein?</h3>
             <p className="text-text-secondary">
-              Er macht jede Öffnung einzigartig und verhindert, dass wir den Pool zwischen Commit und Prüfen
-              tauschen. Bei Pullbox übernimmt ein Salt diese Rolle — bei uns ist es der Pool selbst, ehrlicher.
+              Er macht jede Öffnung einzigartig und verhindert, dass wir den Kartenpool zwischen
+              Commit und Prüfen tauschen. Der Hash ist die ehrlichste Bindung dafür, weil er
+              direkt auf den tatsächlichen Pool zeigt — nicht auf einen beliebigen Zufallswert.
             </p>
           </div>
           <div>
