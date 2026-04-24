@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         },
         $setOnInsert: { userId: session.user.id },
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, returnDocument: "after", setDefaultsOnInsert: true }
     ).catch((err: unknown) => {
       // Duplicate key on endpoint while owned by someone else: refuse.
       if ((err as { code?: number })?.code === 11000) return null;
