@@ -1,7 +1,9 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  History,
   LayoutGrid,
   Package,
+  ShieldCheck,
   ShoppingCart,
   Swords,
   Trophy,
@@ -59,6 +61,37 @@ export const NAV_ITEMS: readonly NavItem[] = [
     labelFallback: "Packs",
     icon: Package,
     href: (lang) => `/${lang}/packs`,
+    hasMegaMenu: true,
+    children: [
+      {
+        key: "pullHistory",
+        labelKey: "pull_history",
+        labelFallback: "Pull-History",
+        descKey: "pull_history_desc",
+        descFallback: "Jeder Pull, den du je gezogen hast",
+        href: (lang) => `/${lang}/account/history`,
+        icon: History,
+        accent: {
+          bg: "bg-sky-500/10",
+          icon: "text-sky-400",
+          hover: "group-hover:text-sky-400",
+        },
+      },
+      {
+        key: "provablyFair",
+        labelKey: "provably_fair",
+        labelFallback: "Provably Fair",
+        descKey: "provably_fair_desc",
+        descFallback: "So prüfst du jede gezogene Karte selbst",
+        href: (lang) => `/${lang}/provably-fair`,
+        icon: ShieldCheck,
+        accent: {
+          bg: "bg-pa-green/10",
+          icon: "text-pa-green",
+          hover: "group-hover:text-pa-green",
+        },
+      },
+    ],
   },
   {
     key: "battles",
