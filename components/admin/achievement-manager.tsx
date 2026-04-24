@@ -671,12 +671,7 @@ function RewardFields({
     );
   }
   // grant_badge
-  return (
-    <label className="text-sm space-y-1 block">
-      <span className="text-secondary">Badge-Schlüssel</span>
-      <Input value={String(p.badgeKey ?? "")} onChange={(e) => set("badgeKey", e.target.value)} placeholder="z.B. beta_tester" />
-    </label>
-  );
+  return <GrantBadgePicker value={String(p.badgeKey ?? "")} onChange={(key) => set("badgeKey", key)} />;
 }
 
 interface UserSearchResult {
@@ -986,6 +981,139 @@ function UnlockBoxPicker({
       {!selected && value && (
         <p className="text-xs text-amber-500">
           Slug <span className="font-mono">{value}</span> ist nicht (mehr) als Achievement-Box markiert.
+        </p>
+      )}
+    </div>
+  );
+}
+
+interface BadgeOption {
+  _id: string;
+  key: string;
+  slug: string;
+  label: string;
+  iconUrl: string | null;
+  tone: string;
+}
+
+function GrantBadgePicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (key: string) => void;
+}) {
+  const [query, setQuery] = useState(value);
+  const [results, setResults] = useState<BadgeOption[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [showList, setShowList] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setSearching(true);
+      try {
+        const res = await fetch("/api/admin/badges/search", { cache: "no-store" });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled) setResults(Array.isArray(data.badges) ? data.badges : []);
+      } finally {
+        if (!cancelled) setSearching(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!showList) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const url = `/api/admin/badges/search${query.trim().length >= 2 ? `?q=${encodeURIComponent(query.trim())}` : ""}`;
+        const res = await fetch(url, { cache: "no-store", signal: controller.signal });
+        if (!res.ok) return;
+        const data = await res.json();
+        setResults(Array.isArray(data.badges) ? data.badges : []);
+      } catch {
+        /* aborted */
+      } finally {
+        setSearching(false);
+      }
+    }, 200);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, showList]);
+
+  const selected = results.find((b) => b.key === value);
+
+  return (
+    <div className="space-y-1">
+      <label className="text-sm space-y-1 block">
+        <span className="text-secondary">Badge (aktive Definitionen)</span>
+        <div className="relative">
+          <Input
+            value={query}
+            onFocus={() => setShowList(true)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setShowList(true);
+            }}
+            placeholder={results.length === 0 ? "Noch keine aktiven Badges" : "Suchen oder klicken"}
+          />
+          {showList && (
+            <div className="absolute z-10 left-0 right-0 mt-1 bg-background border border-border rounded shadow max-h-64 overflow-y-auto">
+              {searching && (
+                <div className="px-2 py-2 text-xs text-secondary">Lädt…</div>
+              )}
+              {!searching && results.length === 0 && (
+                <div className="px-2 py-2 text-xs text-secondary">
+                  Keine aktiven Badges gefunden. Lege zuerst eines unter „Badges“ an.
+                </div>
+              )}
+              {results.map((b) => {
+                const active = b.key === value;
+                return (
+                  <button
+                    key={b._id}
+                    type="button"
+                    className={`flex items-center gap-2 w-full px-2 py-2 hover:bg-surface text-left ${active ? "bg-surface" : ""}`}
+                    onClick={() => {
+                      onChange(b.key);
+                      setQuery(b.key);
+                      setShowList(false);
+                    }}
+                  >
+                    {b.iconUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={b.iconUrl} alt="" className="w-7 h-7 rounded object-contain" />
+                    ) : (
+                      <div className="w-7 h-7 rounded bg-surface" />
+                    )}
+                    <span className="flex-1 min-w-0">
+                      <span className="text-sm text-primary block truncate">{b.label}</span>
+                      <span className="text-xs text-secondary block truncate font-mono">{b.key}</span>
+                    </span>
+                    {active && <span className="text-xs text-pa-green">✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </label>
+      {selected && (
+        <p className="text-xs text-secondary">
+          Gewählt: <span className="font-mono">{selected.key}</span> ({selected.label})
+        </p>
+      )}
+      {!selected && value && (
+        <p className="text-xs text-amber-500">
+          Badge-Key <span className="font-mono">{value}</span> ist nicht (mehr) aktiv.
         </p>
       )}
     </div>
