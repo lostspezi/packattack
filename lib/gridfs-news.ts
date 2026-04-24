@@ -1,19 +1,11 @@
-import { GridFSBucket, MongoClient, ObjectId } from "mongodb";
+import { GridFSBucket, ObjectId } from "mongodb";
 import sharp from "sharp";
 import type { Readable } from "stream";
+import { getMongoClient } from "@/lib/mongo-client";
 
 const BUCKET_NAME = "news_images";
 const MAX_WIDTH = 1600;
 const WEBP_QUALITY = 85;
-
-let _client: MongoClient | null = null;
-
-function getMongoClient(): MongoClient {
-  if (!_client) {
-    _client = new MongoClient(process.env.MONGODB_URI!);
-  }
-  return _client;
-}
 
 async function getBucket(): Promise<GridFSBucket> {
   const client = getMongoClient();

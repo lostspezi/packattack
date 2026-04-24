@@ -100,16 +100,39 @@ export async function sendPushToUser(
   return sendPushToSubscriptions(subs as unknown as IPushSubscription[], payload);
 }
 
+const BROADCAST_BATCH_SIZE = 100;
+
 /**
- * Naive broadcast: loads every subscription and fires Promise.all over them.
- * NOT for production-scale use — use a batched cursor approach (see notify-news.ts)
- * once you have more than a few hundred subscribers. Kept as a convenience for
- * one-shot admin broadcasts during early-stage testing.
+ * Streams every subscription via cursor and dispatches push notifications in
+ * fixed-size batches so a large subscriber base does not spike memory or fan
+ * out an unbounded number of concurrent HTTPS requests.
  */
 export async function sendPushBroadcast(payload: PushPayload): Promise<SendResult> {
   await connectDB();
-  const subs = await PushSubscription.find().lean();
-  return sendPushToSubscriptions(subs as unknown as IPushSubscription[], payload);
+
+  const cursor = PushSubscription.find().lean().cursor();
+  const totals: SendResult = { attempted: 0, succeeded: 0, removed: 0, failed: 0 };
+  let batch: IPushSubscription[] = [];
+
+  const flush = async () => {
+    if (batch.length === 0) return;
+    const result = await sendPushToSubscriptions(batch, payload);
+    totals.attempted += result.attempted;
+    totals.succeeded += result.succeeded;
+    totals.removed += result.removed;
+    totals.failed += result.failed;
+    batch = [];
+  };
+
+  for await (const sub of cursor) {
+    batch.push(sub as unknown as IPushSubscription);
+    if (batch.length >= BROADCAST_BATCH_SIZE) {
+      await flush();
+    }
+  }
+  await flush();
+
+  return totals;
 }
 
 export function isPushConfigured(): boolean {

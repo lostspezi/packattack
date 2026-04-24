@@ -1,17 +1,6 @@
-import { MongoClient, GridFSBucket, ObjectId } from "mongodb";
+import { GridFSBucket, ObjectId } from "mongodb";
 import type { Readable } from "stream";
-
-// ---------------------------------------------------------------------------
-// Shared MongoClient for GridFS (separate from Mongoose)
-// ---------------------------------------------------------------------------
-let _client: MongoClient | null = null;
-
-function getMongoClient(): MongoClient {
-  if (!_client) {
-    _client = new MongoClient(process.env.MONGODB_URI!);
-  }
-  return _client;
-}
+import { getMongoClient } from "@/lib/mongo-client";
 
 async function getBucket(): Promise<GridFSBucket> {
   const client = getMongoClient();
