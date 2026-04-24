@@ -43,6 +43,7 @@ export const adminNavItems: NavItem[] = [
   { key: "adminOrders", label: "Bestellungen", href: "/admin/orders", icon: "ClipboardList" },
   { key: "adminShipping", label: "Versand", href: "/admin/shipping", icon: "Truck" },
   { key: "adminSeasons", label: "Battle Seasons", href: "/admin/seasons", icon: "Trophy" },
+  { key: "adminAchievements", label: "Achievements", href: "/admin/achievements", icon: "Award" },
   { key: "adminQuizEvents", label: "Quiz Events", href: "/admin/quiz-events", icon: "Zap" },
   { key: "adminPacki", label: "Packi", href: "/admin/packi", icon: "Sparkles" },
   { key: "adminFairness", label: "Fairness", href: "/admin/fairness", icon: "ShieldCheck" },
