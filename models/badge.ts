@@ -1,4 +1,4 @@
-import mongoose, { Document, Model, Schema } from "mongoose";
+import mongoose, { Document, Model, Schema, Types } from "mongoose";
 import type { BadgeTone } from "@/types/badges";
 
 export interface IBadge extends Document {
@@ -6,6 +6,13 @@ export interface IBadge extends Document {
   slug: string;
   label: string;
   iconUrl: string | null;
+  /**
+   * GridFS-Referenz auf ein hochgeladenes Icon (Bucket badge_icons). Wenn
+   * gesetzt, ist `iconUrl` automatisch /api/badges/images/<id>; die ObjectId
+   * ist nötig, um beim Re-Upload oder Delete das alte File aus GridFS zu
+   * räumen.
+   */
+  iconImageId: Types.ObjectId | null;
   description: string | null;
   tone: BadgeTone;
   active: boolean;
@@ -22,6 +29,7 @@ const BadgeSchema = new Schema<IBadge>(
     slug: { type: String, required: true, unique: true, trim: true, maxlength: 80 },
     label: { type: String, required: true, trim: true, maxlength: 64 },
     iconUrl: { type: String, default: null, maxlength: 300 },
+    iconImageId: { type: Schema.Types.ObjectId, default: null },
     description: { type: String, default: null, maxlength: 300 },
     tone: {
       type: String,

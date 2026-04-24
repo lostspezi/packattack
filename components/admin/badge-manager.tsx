@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ interface BadgeRecord {
   slug: string;
   label: string;
   iconUrl: string | null;
+  iconImageId: string | null;
   description: string | null;
   tone: Tone;
   active: boolean;
@@ -32,26 +33,28 @@ interface FormState {
   key: string;
   slug: string;
   label: string;
-  iconUrl: string;
   description: string;
   tone: Tone;
   active: boolean;
   sortOrder: number;
   visibility: Visibility;
   category: string;
+  iconFile: File | null;
+  existingIconUrl: string | null;
 }
 
 const EMPTY_FORM: FormState = {
   key: "",
   slug: "",
   label: "",
-  iconUrl: "",
   description: "",
   tone: "neutral",
   active: true,
   sortOrder: 0,
   visibility: "public",
   category: "",
+  iconFile: null,
+  existingIconUrl: null,
 };
 
 function fromRecord(b: BadgeRecord): FormState {
@@ -59,13 +62,14 @@ function fromRecord(b: BadgeRecord): FormState {
     key: b.key,
     slug: b.slug,
     label: b.label,
-    iconUrl: b.iconUrl ?? "",
     description: b.description ?? "",
     tone: b.tone,
     active: b.active,
     sortOrder: b.sortOrder,
     visibility: b.visibility,
     category: b.category ?? "",
+    iconFile: null,
+    existingIconUrl: b.iconUrl,
   };
 }
 
@@ -136,23 +140,20 @@ export function BadgeManager() {
         ? "/api/admin/badges"
         : `/api/admin/badges/${(view as { badge: BadgeRecord }).badge._id}`;
       const method = isNew ? "POST" : "PATCH";
-      const payload: Record<string, unknown> = {
-        slug: form.slug,
-        label: form.label,
-        iconUrl: form.iconUrl || null,
-        description: form.description || null,
-        tone: form.tone,
-        sortOrder: form.sortOrder,
-        visibility: form.visibility,
-        category: form.category || null,
-        active: form.active,
-      };
-      if (isNew) payload.key = form.key;
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+
+      const body = new FormData();
+      if (isNew) body.append("key", form.key);
+      body.append("slug", form.slug);
+      body.append("label", form.label);
+      body.append("description", form.description);
+      body.append("tone", form.tone);
+      body.append("sortOrder", String(form.sortOrder));
+      body.append("visibility", form.visibility);
+      body.append("category", form.category);
+      body.append("active", String(form.active));
+      if (form.iconFile) body.append("icon", form.iconFile);
+
+      const res = await fetch(url, { method, body });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setError(data.error ?? "save_failed");
@@ -300,24 +301,8 @@ export function BadgeManager() {
 
       <Card className="p-4 space-y-4">
         <h2 className="font-semibold text-text-primary">Darstellung</h2>
+        <BadgeIconUpload form={form} setForm={setForm} />
         <div className="grid md:grid-cols-2 gap-4">
-          <label className="text-sm space-y-1">
-            <span className="text-text-secondary">Icon-URL (z.B. /badges/foo.webp)</span>
-            <Input
-              value={form.iconUrl}
-              onChange={(e) => setForm((f) => ({ ...f, iconUrl: e.target.value }))}
-              placeholder="/badges/champion.webp"
-            />
-          </label>
-          {form.iconUrl && (
-            <div className="flex items-center gap-3">
-              <div className="w-14 h-14 rounded bg-surface border border-border grid place-items-center overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={form.iconUrl} alt="" className="w-full h-full object-contain" />
-              </div>
-              <span className="text-xs text-text-muted">Vorschau</span>
-            </div>
-          )}
           <label className="text-sm space-y-1">
             <span className="text-text-secondary">Tonalität</span>
             <select
@@ -373,6 +358,56 @@ export function BadgeManager() {
           </label>
         </div>
       </Card>
+    </div>
+  );
+}
+
+function BadgeIconUpload({
+  form,
+  setForm,
+}: {
+  form: FormState;
+  setForm: React.Dispatch<React.SetStateAction<FormState>>;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const previewUrl = form.iconFile
+    ? URL.createObjectURL(form.iconFile)
+    : form.existingIconUrl;
+
+  return (
+    <div className="flex items-center gap-4">
+      <div className="w-20 h-20 rounded bg-surface border border-border grid place-items-center overflow-hidden">
+        {previewUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={previewUrl} alt="" className="w-full h-full object-contain" />
+        ) : (
+          <span className="text-xs text-text-muted text-center px-2">kein Icon</span>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        className="hidden"
+        onChange={(e) => setForm((f) => ({ ...f, iconFile: e.target.files?.[0] ?? null }))}
+      />
+      <div className="flex flex-col gap-2">
+        <Button variant="secondary" onClick={() => inputRef.current?.click()}>
+          Icon hochladen
+        </Button>
+        {form.iconFile && (
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setForm((f) => ({ ...f, iconFile: null }))}
+          >
+            Auswahl löschen
+          </Button>
+        )}
+        <span className="text-xs text-text-muted">
+          PNG / JPG / WebP / SVG, max. 2 MB. Bild wird auf 256x256 WebP normalisiert.
+        </span>
+      </div>
     </div>
   );
 }
