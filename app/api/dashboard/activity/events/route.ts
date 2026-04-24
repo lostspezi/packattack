@@ -53,8 +53,19 @@ export async function GET(req: NextRequest) {
         }
       }, 25_000);
 
+      // Hard-close the stream after 30 minutes so the client reconnects and
+      // re-runs auth(). Avoids serving live events to expired/revoked sessions.
+      const maxLifetime = setTimeout(() => {
+        try {
+          controller.close();
+        } catch {
+          /* already closed */
+        }
+      }, 30 * 60 * 1000);
+
       req.signal.addEventListener("abort", () => {
         clearInterval(keepalive);
+        clearTimeout(maxLifetime);
         if (subscriberRedis) {
           subscriberRedis.unsubscribe(channel).catch(() => {});
           subscriberRedis.disconnect();

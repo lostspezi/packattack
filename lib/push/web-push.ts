@@ -100,6 +100,12 @@ export async function sendPushToUser(
   return sendPushToSubscriptions(subs as unknown as IPushSubscription[], payload);
 }
 
+/**
+ * Naive broadcast: loads every subscription and fires Promise.all over them.
+ * NOT for production-scale use — use a batched cursor approach (see notify-news.ts)
+ * once you have more than a few hundred subscribers. Kept as a convenience for
+ * one-shot admin broadcasts during early-stage testing.
+ */
 export async function sendPushBroadcast(payload: PushPayload): Promise<SendResult> {
   await connectDB();
   const subs = await PushSubscription.find().lean();

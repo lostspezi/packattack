@@ -7,6 +7,7 @@ import User from "@/models/user";
 import NewsPost, { type NewsPostType } from "@/models/news-post";
 import { deleteNewsImage, uploadNewsImage } from "@/lib/gridfs-news";
 import { notifyNewsPublished } from "@/lib/push/notify-news";
+import { detectImageMime } from "@/lib/image-magic-bytes";
 
 const VALID_TYPES: NewsPostType[] = ["release", "event", "community"];
 const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
@@ -155,7 +156,11 @@ export async function PATCH(
         return NextResponse.json({ error: "image_too_large" }, { status: 400 });
       }
       const buf = Buffer.from(await blob.arrayBuffer());
-      const result = await uploadNewsImage(buf, blob.type);
+      const sniffed = detectImageMime(buf);
+      if (!sniffed) {
+        return NextResponse.json({ error: "invalid_image_type" }, { status: 400 });
+      }
+      const result = await uploadNewsImage(buf, sniffed);
       newImageId = result.id;
       post.imageId = new Types.ObjectId(result.id.toHexString());
     } else if (removeImage) {
