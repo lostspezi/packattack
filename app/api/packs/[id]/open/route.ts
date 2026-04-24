@@ -14,6 +14,7 @@ import PackOpenCommitment from "@/models/pack-open-commitment";
 import { drawPacksWithFairness, type PackCard } from "@/lib/pack-engine";
 import { grantXp, incrementCounter, fireOnceEvent } from "@/lib/level/grant-xp";
 import { xpForPackPull } from "@/lib/level/xp-rates";
+import { getUserEffects } from "@/lib/achievements/effects";
 import {
   computePoolHash,
   createFairnessRng,
@@ -75,6 +76,28 @@ export async function POST(
         { error: "tutorial_box_not_openable" },
         { status: 403 },
       );
+    }
+
+    // Level-Gate: wenn die Box ein requiredLevel hat, muss der User es
+    // erreicht haben — oder ein Achievement muss die Box explizit unlocken.
+    if (box.requiredLevel != null && box.requiredLevel > 1) {
+      const levelDoc = await User.findById(userId)
+        .select("level")
+        .lean<{ level?: number } | null>();
+      const userLevel = levelDoc?.level ?? 1;
+      if (userLevel < box.requiredLevel) {
+        const effects = await getUserEffects(userId);
+        if (!effects.unlockedBoxSlugs.includes(box.slug ?? "")) {
+          return NextResponse.json(
+            {
+              error: "level_locked",
+              requiredLevel: box.requiredLevel,
+              currentLevel: userLevel,
+            },
+            { status: 403 },
+          );
+        }
+      }
     }
 
     const realBoxId = box._id;
@@ -296,9 +319,7 @@ export async function POST(
     // optional Once-Event "first_pack_opened". Alle Seiteneffekte in einem
     // try/catch, damit ein Level-Fehler niemals die Pack-Öffnung scheitern
     // lässt (Coins sind dann ja schon verbucht und die Karten erzeugt).
-    // Hinweis für Phase 4: wenn hier Coin-Rewards (achievement_reward) hinzu
-    // kommen, muss `user.coins` im Response-Feld neu gelesen werden, sonst
-    // zeigt `newBalance` den Stand vor dem Reward-Grant.
+    let finalBalance = user.coins;
     try {
       const totalPullXp = result.drawnCards.reduce(
         (sum, card) => sum + xpForPackPull(card.rarity, card.coinValue),
@@ -310,6 +331,10 @@ export async function POST(
       await incrementCounter(userId, "boxesOpened", packCount);
       await incrementCounter(userId, "coinsSpent", totalCost);
       await fireOnceEvent(userId, "first_pack_opened");
+      // Achievement-Rewards können Coins gutgeschrieben haben — einmal kurz
+      // nachlesen, damit das Response-Feld `newBalance` nicht verwaist.
+      const refreshed = await User.findById(userId).select("coins").lean<{ coins?: number }>();
+      if (refreshed?.coins != null) finalBalance = refreshed.coins;
     } catch (err) {
       console.error("[packs/[id]/open xp-hooks]", err);
     }
@@ -364,7 +389,7 @@ export async function POST(
       packGroupId,
       packCount,
       totalCost,
-      newBalance: user.coins,
+      newBalance: finalBalance,
       cards: result.drawnCards,
       fairnessProof: {
         commitmentId: commitment._id.toString(),

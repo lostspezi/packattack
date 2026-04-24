@@ -22,6 +22,7 @@ import ChatRoom from "@/models/chat-room";
 import CoinTransaction from "@/models/coin-transaction";
 import { grantXp, incrementCounter } from "@/lib/level/grant-xp";
 import { XP_RATES } from "@/lib/level/xp-rates";
+import { getUserEffects } from "@/lib/achievements/effects";
 
 const RESERVATION_HOURS = 3;
 const CHAT_JACKPOT_MIN_VALUE = 90;
@@ -270,9 +271,23 @@ export async function POST(req: NextRequest) {
         newBalance: user?.coins ?? 0,
       });
     } else {
+      // Convert-Multiplikator aus Achievement-Effekten. Runden auf ganze
+      // Coins, damit die CoinTransaction integer bleibt. Fehler beim
+      // Effekt-Lesen fällt auf Faktor 1.0 zurück (kein Bonus).
+      let multiplier = 1;
+      try {
+        const effects = await getUserEffects(userId);
+        if (Number.isFinite(effects.convertMultiplier) && effects.convertMultiplier > 0) {
+          multiplier = effects.convertMultiplier;
+        }
+      } catch (err) {
+        console.error("[pulls/decide effects]", err);
+      }
+      const effectiveValue = Math.max(1, Math.round(pull.conversionValue * multiplier));
+
       const user = await User.findByIdAndUpdate(
         userId,
-        { $inc: { coins: pull.conversionValue } },
+        { $inc: { coins: effectiveValue } },
         { returnDocument: "after" }
       );
 
@@ -285,8 +300,12 @@ export async function POST(req: NextRequest) {
 
       await CoinTransaction.create({
         userId,
-        amount: pull.conversionValue,
+        amount: effectiveValue,
         type: "card_conversion",
+        reason:
+          multiplier !== 1
+            ? `convert_multiplier:${multiplier.toFixed(2)}`
+            : null,
         relatedPullId: pull._id,
         relatedBoxId: pull.boxId,
       });

@@ -6,6 +6,7 @@ import Achievement, {
   type IAchievement,
 } from "@/models/achievement";
 import UserAchievement from "@/models/user-achievement";
+import { applyRewardsForUnlock } from "./rewards";
 
 export interface AchievementUnlockOutcome {
   userId: string;
@@ -26,10 +27,13 @@ function coerceObjectId(id: string | Types.ObjectId): Types.ObjectId | null {
 /**
  * Upsert + Unlock eines Achievements für einen User.
  *
- * Idempotent: Wenn der Eintrag bereits `completed=true` ist, gibt die Funktion
- * `wasNewUnlock=false` zurück und überschreibt keine Felder. Der Caller
- * (Reward-Engine in Phase 4) nutzt `wasNewUnlock` um zu entscheiden, ob er
- * Rewards anwenden und Benachrichtigungen auslösen darf.
+ * Race-sicher: Nur der Thread, der den atomaren Flip `completed:false→true`
+ * gewinnt, meldet `wasNewUnlock=true` und lässt Rewards anwenden. Parallele
+ * Caller für denselben User+Achievement bekommen `wasNewUnlock=false` zurück.
+ *
+ * Der ursprüngliche `unlockedAt`-Timestamp wird einmalig gesetzt und danach
+ * nie überschrieben — wichtig für den Audit-Trail, wenn später ein Counter
+ * erneut am bereits entsperrten Achievement vorbeikommt.
  */
 export async function unlockAchievement(
   userId: string | Types.ObjectId,
@@ -50,6 +54,31 @@ export async function unlockAchievement(
   await connectDB();
 
   const now = new Date();
+
+  // Fast-path: Wenn bereits completed, überspringen wir jede Mutation. Das
+  // verhindert, dass `unlockedAt` oder `progress` bei Folge-Events überschrieben
+  // werden.
+  const existing = await UserAchievement.findOne({
+    userId: userObjectId,
+    achievementId: achievement._id,
+  })
+    .select("completed unlockedAt")
+    .lean<{ completed?: boolean; unlockedAt?: Date | null }>();
+
+  if (existing?.completed === true) {
+    return {
+      userId: userObjectId.toString(),
+      achievementId: achievement._id.toString(),
+      achievementKey: achievement.key,
+      wasNewUnlock: false,
+      completedAt: existing.unlockedAt ?? now,
+    };
+  }
+
+  // Atomarer Flip: findOneAndUpdate mit `completed: { $ne: true }` matcht nur
+  // nicht-entsperrte Zeilen. Bei Race gewinnt genau einer den Update; der
+  // andere läuft in einen duplicate-key-Error beim Upsert-Insert und erkennt
+  // daran, dass er zu spät kam.
   const update: Record<string, unknown> = {
     $setOnInsert: {
       userId: userObjectId,
@@ -66,20 +95,38 @@ export async function unlockAchievement(
     },
   };
 
-  const before = await UserAchievement.findOneAndUpdate(
-    { userId: userObjectId, achievementId: achievement._id },
-    update,
-    { upsert: true, new: false, projection: { completed: 1, unlockedAt: 1 } },
-  ).lean<{ completed?: boolean; unlockedAt?: Date | null }>();
+  try {
+    await UserAchievement.findOneAndUpdate(
+      { userId: userObjectId, achievementId: achievement._id, completed: { $ne: true } },
+      update,
+      { upsert: true, new: true },
+    );
+  } catch (err) {
+    if ((err as { code?: number })?.code === 11000) {
+      // Paralleler Unlock hat gewonnen — kein Double-Grant, kein Error.
+      return {
+        userId: userObjectId.toString(),
+        achievementId: achievement._id.toString(),
+        achievementKey: achievement.key,
+        wasNewUnlock: false,
+        completedAt: now,
+      };
+    }
+    throw err;
+  }
 
-  const wasAlreadyCompleted = before?.completed === true;
+  try {
+    await applyRewardsForUnlock(userObjectId, achievement._id);
+  } catch (err) {
+    console.error("[achievements unlock applyRewards]", err);
+  }
 
   return {
     userId: userObjectId.toString(),
     achievementId: achievement._id.toString(),
     achievementKey: achievement.key,
-    wasNewUnlock: !wasAlreadyCompleted,
-    completedAt: wasAlreadyCompleted && before?.unlockedAt ? before.unlockedAt : now,
+    wasNewUnlock: true,
+    completedAt: now,
   };
 }
 

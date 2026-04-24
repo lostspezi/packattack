@@ -41,6 +41,11 @@ export interface IBox extends Document {
    * this flag at a time — see the partial unique index below.
    */
   isTutorial: boolean;
+  /**
+   * Optional gate: wenn gesetzt, darf nur ein User mit level >= requiredLevel
+   * die Box öffnen. Null oder undefined = keine Beschränkung.
+   */
+  requiredLevel: number | null;
   /** Set when the box was auto-paused because a card hit stock 0. Cleared on reactivate. */
   pausedAt: Date | null;
   pausedReason: IBoxPausedReason | null;
@@ -98,6 +103,7 @@ const BoxSchema = new Schema<IBox>(
     ],
     battleFeePerRound: { type: Number, default: 0, min: 0 },
     isTutorial: { type: Boolean, default: false },
+    requiredLevel: { type: Number, default: null, min: 1, max: 100 },
     pausedAt: { type: Date, default: null },
     pausedReason: {
       type: new Schema<IBoxPausedReason>(

@@ -54,6 +54,10 @@ vi.mock("@/lib/db", () => ({
   connectDB: async () => undefined,
 }));
 
+vi.mock("@/lib/achievements/rewards", () => ({
+  applyRewardsForUnlock: async () => undefined,
+}));
+
 vi.mock("@/models/achievement", () => {
   const Achievement = {
     find: (query: Record<string, unknown>) => {
@@ -71,16 +75,46 @@ vi.mock("@/models/achievement", () => {
 
 vi.mock("@/models/user-achievement", () => {
   const UserAchievement = {
+    findOne: (filter: { userId: Types.ObjectId; achievementId: Types.ObjectId }) => {
+      const userIdStr = filter.userId.toString();
+      const achievementIdStr = filter.achievementId.toString();
+      const entry = userAchievementStore.find(
+        (e) =>
+          e.userId.toString() === userIdStr && e.achievementId.toString() === achievementIdStr,
+      );
+      return {
+        select: () => ({
+          lean: async () => (entry ? { ...entry } : null),
+        }),
+      };
+    },
     findOneAndUpdate: (
-      filter: { userId: Types.ObjectId; achievementId: Types.ObjectId },
+      filter: {
+        userId: Types.ObjectId;
+        achievementId: Types.ObjectId;
+        completed?: { $ne?: boolean };
+      },
       update: { $setOnInsert?: Partial<FakeUserAchievement>; $set?: Partial<FakeUserAchievement> },
       opts: { upsert?: boolean; new?: boolean } = {},
     ) => {
       const userIdStr = filter.userId.toString();
       const achievementIdStr = filter.achievementId.toString();
-      let entry = userAchievementStore.find(
+      const entryByKey = userAchievementStore.find(
         (e) => e.userId.toString() === userIdStr && e.achievementId.toString() === achievementIdStr,
       );
+
+      const needsNotCompleted = filter.completed?.$ne === true;
+      const matches = !!entryByKey && (!needsNotCompleted || entryByKey.completed !== true);
+
+      // Simuliert Mongo: Filter matched nicht, aber Row existiert, Upsert
+      // versucht Insert und stirbt am Unique-Index.
+      if (!matches && entryByKey && opts.upsert) {
+        throw Object.assign(new Error("E11000 duplicate key error simulated"), {
+          code: 11000,
+        });
+      }
+
+      let entry = matches ? entryByKey : undefined;
       const before = entry ? { ...entry } : null;
 
       if (!entry && opts.upsert) {
@@ -363,5 +397,40 @@ describe("unlockAchievement direct", () => {
     const second = await unlockAchievement(userId, achievement);
     expect(first?.wasNewUnlock).toBe(true);
     expect(second?.wasNewUnlock).toBe(false);
+  });
+
+  it("preserves the original unlockedAt on repeat calls (audit trail)", async () => {
+    const achievement = addAchievement({
+      key: "once",
+      active: true,
+      trigger: { type: "manual", params: {} },
+    });
+    const userId = new Types.ObjectId();
+    const first = await unlockAchievement(userId, achievement);
+    const firstUnlock = userAchievementStore.find((e) => e.userId.equals(userId))!.unlockedAt;
+    expect(firstUnlock).toBeInstanceOf(Date);
+
+    await new Promise((r) => setTimeout(r, 5));
+    await unlockAchievement(userId, achievement);
+    const afterRetry = userAchievementStore.find((e) => e.userId.equals(userId))!.unlockedAt;
+    expect(afterRetry?.getTime()).toBe(firstUnlock?.getTime());
+    expect(first?.wasNewUnlock).toBe(true);
+  });
+
+  it("parallel unlocks for the same user+achievement only grant once", async () => {
+    const achievement = addAchievement({
+      key: "race",
+      active: true,
+      trigger: { type: "manual", params: {} },
+    });
+    const userId = new Types.ObjectId();
+    const outcomes = await Promise.all([
+      unlockAchievement(userId, achievement),
+      unlockAchievement(userId, achievement),
+      unlockAchievement(userId, achievement),
+    ]);
+    const newUnlocks = outcomes.filter((o) => o?.wasNewUnlock === true);
+    expect(newUnlocks).toHaveLength(1);
+    expect(userAchievementStore.filter((e) => e.userId.equals(userId))).toHaveLength(1);
   });
 });
