@@ -65,16 +65,16 @@ export const NAV_ITEMS: readonly NavItem[] = [
     children: [
       {
         key: "packsOverview",
-        labelKey: "packs",
+        labelKey: "packs_overview",
         labelFallback: "Alle Packs",
         descKey: "packs_overview_desc",
         descFallback: "Alle verfügbaren Packs durchstöbern",
         href: (lang) => `/${lang}/packs`,
         icon: Package,
         accent: {
-          bg: "bg-pa-lila/15",
-          icon: "text-pa-lila",
-          hover: "group-hover:text-pa-lila",
+          bg: "bg-fuchsia-500/15",
+          icon: "text-fuchsia-300",
+          hover: "group-hover:text-fuchsia-300",
         },
       },
       {
@@ -117,16 +117,16 @@ export const NAV_ITEMS: readonly NavItem[] = [
     children: [
       {
         key: "battlesOverview",
-        labelKey: "battles",
+        labelKey: "battles_overview",
         labelFallback: "Alle Battles",
         descKey: "battles_overview_desc",
         descFallback: "Offene Battles beitreten oder starten",
         href: (lang) => `/${lang}/battles`,
         icon: Swords,
         accent: {
-          bg: "bg-rose-500/10",
-          icon: "text-rose-400",
-          hover: "group-hover:text-rose-400",
+          bg: "bg-rose-500/15",
+          icon: "text-rose-300",
+          hover: "group-hover:text-rose-300",
         },
       },
       {
