@@ -18,6 +18,7 @@ import {
   LogOut,
   Bell,
   MessageSquareMore,
+  Trophy,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
@@ -109,6 +110,11 @@ export function UserDropdown({
       <Link href={`/${lang}/profile`} onClick={onClose} className={itemClass}>
         <User className="h-4 w-4 shrink-0 text-text-muted" />
         <span>Profil</span>
+      </Link>
+
+      <Link href={`/${lang}/profile/achievements`} onClick={onClose} className={itemClass}>
+        <Trophy className="h-4 w-4 shrink-0 text-text-muted" />
+        <span>Achievements</span>
       </Link>
 
       <Link href={`/${lang}/settings`} onClick={onClose} className={itemClass}>

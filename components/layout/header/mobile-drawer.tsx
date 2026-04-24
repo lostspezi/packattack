@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown } from "lucide-react";
 import { LanguageSwitcher } from "../language-switcher";
 import { useMe } from "../me-provider";
-import { LevelChip } from "@/components/user/level-chip";
 import type { CartState } from "./use-cart-state";
 import { NAV_ITEMS, type NavItem, isNavItemActive } from "./nav-config";
 import { EventCountdownBadge } from "@/components/events/event-countdown-badge";
@@ -224,10 +223,7 @@ export function MobileDrawer({
               }}
             />
             <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="truncate text-sm font-medium text-text-primary">{userName}</p>
-                <LevelChip level={userLevel} compact />
-              </div>
+              <p className="truncate text-sm font-medium text-text-primary">{userName}</p>
               <p className="text-xs text-text-muted">{levelLabel} {userLevel}</p>
             </div>
           </div>
