@@ -20,7 +20,14 @@ export interface SafeLink {
 }
 
 export function classifyLink(rawHref: string): SafeLink | null {
-  if (rawHref.startsWith("/")) {
+  // Internal absolute paths only. Reject protocol-relative `//foo`
+  // (would resolve as cross-origin) and anything containing a scheme.
+  if (
+    rawHref.startsWith("/") &&
+    !rawHref.startsWith("//") &&
+    !rawHref.includes("://") &&
+    !rawHref.includes(":")
+  ) {
     return { href: rawHref, external: false };
   }
   if (rawHref.startsWith("http://") || rawHref.startsWith("https://")) {

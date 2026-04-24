@@ -25,6 +25,9 @@ export async function getHeroAction(userId: string): Promise<HeroAction> {
   const uid = new Types.ObjectId(userId);
 
   const [cartCount, activeBattle, activeQuiz] = await Promise.all([
+    // Match what /api/cart shows: only "reserved" items. checked_out is a
+    // transient state during the order placement flow and items are removed
+    // from the cart immediately after; expired items are also out of scope.
     CartItem.countDocuments({
       userId: uid,
       status: "reserved",

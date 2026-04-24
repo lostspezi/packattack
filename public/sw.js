@@ -13,12 +13,10 @@ self.addEventListener("activate", () => {
   // No clients.claim; controller stays with the previous SW for current tabs.
 });
 
-// Explicit pass-through. Without a fetch listener the browser still passes
-// requests to the network, but having one makes the no-intercept contract
-// explicit and avoids edge-case behavior in some Chromium builds.
-self.addEventListener("fetch", () => {
-  return;
-});
+// No fetch listener registered: without one, the browser bypasses the SW
+// entirely for every navigation/asset, which is exactly what we want here.
+// (A no-op listener still marks each request as SW-handled and can cause
+// odd cache behavior in Firefox.)
 
 self.addEventListener("push", (event) => {
   let payload = { title: "PACKATTACK", body: "", url: "/dashboard" };

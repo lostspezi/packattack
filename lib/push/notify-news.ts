@@ -29,9 +29,9 @@ function buildExcerpt(post: Pick<INewsPost, "excerpt" | "body">): string {
   return source.length > 200 ? `${source.slice(0, 199)}…` : source;
 }
 
-function absoluteUrl(path: string): string {
+function absoluteUrl(path: string): string | null {
   const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/+$/, "");
-  if (!base) return path;
+  if (!base) return null;
   return `${base}${path.startsWith("/") ? "" : "/"}${path}`;
 }
 
@@ -122,14 +122,25 @@ export async function notifyNewsPublished(
     userId: { $in: [...eligibleUserIds] },
   }).lean()) as unknown as IPushSubscription[];
 
+  // Push services fetch the image themselves (not the recipient browser),
+  // so the URL must be absolute. If NEXT_PUBLIC_APP_URL is missing the field
+  // is omitted entirely instead of silently shipping a path that the push
+  // worker can't resolve.
+  const imageUrl = post.imageId
+    ? absoluteUrl(`/api/news/images/${String(post.imageId)}`)
+    : null;
+  if (post.imageId && !imageUrl) {
+    console.warn(
+      "[notifyNewsPublished] NEXT_PUBLIC_APP_URL not set — skipping push image"
+    );
+  }
+
   const pushResult = await sendPushToSubscriptions(subs, {
     title: post.title,
     body: message,
     url: BROADCAST_URL,
     tag: `news:${entityId}`,
-    image: post.imageId
-      ? absoluteUrl(`/api/news/images/${String(post.imageId)}`)
-      : undefined,
+    image: imageUrl ?? undefined,
   });
 
   return {

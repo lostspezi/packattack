@@ -23,6 +23,14 @@ describe("classifyLink", () => {
     expect(classifyLink("packs")).toBeNull();
     expect(classifyLink("../secret")).toBeNull();
   });
+
+  it("rejects protocol-relative URLs (//evil.com)", () => {
+    expect(classifyLink("//evil.example.com/x")).toBeNull();
+  });
+
+  it("rejects internal paths containing a scheme", () => {
+    expect(classifyLink("/redirect?to=https://evil.com")).toBeNull();
+  });
 });
 
 describe("renderNewsMarkdown", () => {
@@ -63,6 +71,11 @@ describe("renderNewsMarkdown", () => {
     const out = html("Klick [hier](javascript:alert(1))");
     expect(out).not.toContain("<a");
     expect(out).toContain("[hier](javascript:alert(1))");
+  });
+
+  it("does not render protocol-relative // links as anchor", () => {
+    const out = html("Klick [hier](//evil.example.com)");
+    expect(out).not.toContain("<a");
   });
 
   it("renders unordered lists", () => {
