@@ -26,6 +26,7 @@ import {
   ALLOWED_IMAGE_TYPES,
   MAX_ICON_SIZE,
 } from "@/lib/admin/achievement-payload";
+import { invalidateLevelSystemGate } from "@/lib/level/feature-gate";
 
 function isAdmin(role?: string | null) {
   return role === "admin" || role === "super_admin";
@@ -149,6 +150,11 @@ export async function POST(req: NextRequest) {
         payload.data.descriptions,
         session.user.id,
       );
+
+      // Sobald das erste aktive Achievement existiert, scharfschalten:
+      // grantXp und incrementCounter cachen den Status 60s in Redis und
+      // schauen erst nach Invalidation wieder in die DB.
+      await invalidateLevelSystemGate();
 
       return NextResponse.json(
         { achievement: serializeAchievement(created.toObject()) },

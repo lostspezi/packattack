@@ -37,6 +37,12 @@ vi.mock("@/lib/achievements/engine", () => ({
   checkOnceAchievement: async () => [],
 }));
 
+const featureGateActive = { value: true };
+vi.mock("@/lib/level/feature-gate", () => ({
+  isLevelSystemActive: async () => featureGateActive.value,
+  invalidateLevelSystemGate: async () => undefined,
+}));
+
 vi.mock("@/lib/notifications/level-up", () => ({
   notifyLevelUp: async () => undefined,
   notifyAchievementUnlock: async () => undefined,
@@ -110,6 +116,7 @@ import { MAX_LEVEL, totalXpForLevel } from "@/lib/level/config";
 
 beforeEach(() => {
   userStore.clear();
+  featureGateActive.value = true;
 });
 
 describe("grantXp", () => {
@@ -173,6 +180,14 @@ describe("grantXp", () => {
     const result = await grantXp(user._id, 3.7, "card_convert");
     expect(result!.newXp).toBe(4);
     expect(userStore.get(user._id.toString())!.xp).toBe(4);
+  });
+
+  it("returns null when the feature gate is closed (no active achievements)", async () => {
+    const user = makeUser();
+    featureGateActive.value = false;
+    const result = await grantXp(user._id, 100, "pack_open");
+    expect(result).toBeNull();
+    expect(userStore.get(user._id.toString())!.xp).toBe(0);
   });
 
   it("parallel grants end with correct final level (no regression)", async () => {

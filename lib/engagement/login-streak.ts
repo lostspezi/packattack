@@ -4,6 +4,7 @@ import User from "@/models/user";
 import { grantXp } from "@/lib/level/grant-xp";
 import { dayKey, isConsecutiveDay, XP_RATES } from "@/lib/level/xp-rates";
 import { incrementCounter } from "@/lib/level/grant-xp";
+import { isLevelSystemActive } from "@/lib/level/feature-gate";
 import type { AchievementUnlockOutcome } from "@/lib/achievements/engine";
 
 export interface LoginStreakResult {
@@ -36,6 +37,7 @@ export async function trackLoginStreak(
         ? new Types.ObjectId(userId)
         : null;
   if (!objectId) return null;
+  if (!(await isLevelSystemActive())) return null;
 
   await connectDB();
 

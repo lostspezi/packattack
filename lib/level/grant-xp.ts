@@ -12,6 +12,7 @@ import type {
   AchievementOnceEvent,
 } from "@/models/achievement";
 import { isLevelMilestone, levelForTotalXp, MAX_LEVEL } from "./config";
+import { isLevelSystemActive } from "./feature-gate";
 
 export type XpSource =
   | "pack_open"
@@ -66,6 +67,10 @@ export async function grantXp(
   if (!Number.isFinite(amount) || amount <= 0) return null;
   const objectId = coerceUserId(userId);
   if (!objectId) return null;
+
+  // Gate: ohne aktives Achievement zählt kein XP. Verhindert stille Farms
+  // vor Launch und retroaktive Counter-Unlocks.
+  if (!(await isLevelSystemActive())) return null;
 
   const rounded = Math.round(amount);
 
@@ -146,6 +151,7 @@ export async function incrementCounter(
   if (!Number.isFinite(by) || by === 0) return null;
   const objectId = coerceUserId(userId);
   if (!objectId) return null;
+  if (!(await isLevelSystemActive())) return null;
 
   await connectDB();
 
@@ -173,5 +179,6 @@ export async function fireOnceEvent(
 ): Promise<AchievementUnlockOutcome[]> {
   const objectId = coerceUserId(userId);
   if (!objectId) return [];
+  if (!(await isLevelSystemActive())) return [];
   return checkOnceAchievement(objectId, event);
 }

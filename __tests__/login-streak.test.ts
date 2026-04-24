@@ -26,6 +26,11 @@ vi.mock("@/lib/db", () => ({
   connectDB: async () => undefined,
 }));
 
+vi.mock("@/lib/level/feature-gate", () => ({
+  isLevelSystemActive: async () => true,
+  invalidateLevelSystemGate: async () => undefined,
+}));
+
 const grantXpCalls: Array<{ amount: number; source: string }> = [];
 const incrementCounterCalls: Array<{ metric: string; by: number }> = [];
 

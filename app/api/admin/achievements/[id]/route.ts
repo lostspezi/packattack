@@ -24,6 +24,7 @@ import {
   MAX_ICON_SIZE,
 } from "@/lib/admin/achievement-payload";
 import { invalidateUserEffects } from "@/lib/achievements/effects";
+import { invalidateLevelSystemGate } from "@/lib/level/feature-gate";
 
 function isAdmin(role?: string | null) {
   return role === "admin" || role === "super_admin";
@@ -189,6 +190,9 @@ export async function PATCH(
       .lean<Array<{ userId: Types.ObjectId }>>();
     await Promise.all(holders.map((h) => invalidateUserEffects(h.userId)));
 
+    // active könnte gewechselt haben → System-Gate neu auswerten.
+    await invalidateLevelSystemGate();
+
     return NextResponse.json({ achievement: serializeAchievement(existing.toObject()) });
   } catch (err) {
     console.error("[admin/achievements/[id] PATCH]", err);
@@ -233,6 +237,10 @@ export async function DELETE(
     }
 
     await Promise.all(holders.map((h) => invalidateUserEffects(h.userId)));
+
+    // Letztes aktives Achievement deaktiviert? → Gate flippt auf inactive
+    // beim nächsten isLevelSystemActive()-Lookup.
+    await invalidateLevelSystemGate();
 
     return NextResponse.json({ success: true });
   } catch (err) {
