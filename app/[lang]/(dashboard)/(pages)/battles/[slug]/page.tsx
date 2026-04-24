@@ -231,6 +231,11 @@ export default function BattleDetailPage() {
   const [myHand, setMyHand] = useState<VirtualCard[] | null>(null);
   const [selectDeadline, setSelectDeadline] = useState<string | null>(null);
   const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
+  // Which opponents have already picked this round — populated from
+  // player_selected events, cleared whenever a new round starts.
+  const [playersWhoSelected, setPlayersWhoSelected] = useState<Set<string>>(
+    () => new Set<string>(),
+  );
   const [revealData, setRevealData] = useState<{
     roundNumber: number;
     players: { userId: string; username: string; card: { name: string; image: string; coinValue: number } }[];
@@ -250,11 +255,11 @@ export default function BattleDetailPage() {
   // Separate timer for the short debounce after round_start, so it cannot be
   // confused with an active reveal animation.
   const roundStartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const revealPayloadRef = useRef<{
-    roundNumber: number;
-    players: { userId: string; username: string; card: { name: string; image: string; coinValue: number } }[];
-    winnerId: string | null;
-  } | null>(null);
+  // Always-current battle snapshot; the SSE callback closes over a memoized
+  // handler whose dep list cannot include `battle` without respawning SSE on
+  // every state change, so we read via ref for name lookups.
+  const battleRef = useRef<BattleData | null>(null);
+  battleRef.current = battle;
   // Track the currently displayed reveal so it can be flushed to history if a new reveal arrives early
   const activeRevealRef = useRef<RoundHistoryEntry | null>(null);
   // Guard against concurrent fetchBattle calls
@@ -345,8 +350,14 @@ export default function BattleDetailPage() {
         const lastRound = b.rounds[b.rounds.length - 1];
 
         if (lastRound.status === "selecting" && currentUserId) {
-          // Round in progress — restore hand
+          // Round in progress — restore hand + opponent pick indicators
           const myHandData = lastRound.hands.find((h: BattleHand_) => h.player === currentUserId);
+          const alreadyPicked = new Set(
+            lastRound.hands
+              .filter((h: BattleHand_) => h.selectedCardIndex !== null)
+              .map((h: BattleHand_) => String(h.player)),
+          );
+          setPlayersWhoSelected(alreadyPicked);
           if (myHandData) {
             setMyHand(myHandData.cards);
             setSelectDeadline(lastRound.selectDeadline);
@@ -406,6 +417,20 @@ export default function BattleDetailPage() {
           }
           break;
 
+        case "player_selected": {
+          // Track opponent picks so "Wählt..." flips to "Bereit" live.
+          const playerId = event.data.player as string | undefined;
+          if (playerId) {
+            setPlayersWhoSelected((prev) => {
+              if (prev.has(playerId)) return prev;
+              const next = new Set(prev);
+              next.add(playerId);
+              return next;
+            });
+          }
+          break;
+        }
+
         case "round_start": {
           // Server sends one broadcast round_start; the SSE route already
           // extracted this client's hand (null if spectator / other player).
@@ -419,6 +444,10 @@ export default function BattleDetailPage() {
               roundNumber: event.data.roundNumber as number,
             };
           }
+
+          // Fresh round — clear any opponent-picked indicators from the
+          // previous round so the status row starts clean.
+          setPlayersWhoSelected(new Set());
 
           // Apply pending round after a short debounce (handles first round
           // when no reveal precedes it). Uses a dedicated ref so round_reveal
@@ -447,45 +476,47 @@ export default function BattleDetailPage() {
             card: { name: string; image: string; coinValue: number };
           }[];
 
-          // Build reveal data using current battle state for player names
-          setBattle((prev) => {
-            if (!prev) return prev;
-            const playerNameMap = new Map(prev.players.map((p) => [String(p.user._id), p.user.username]));
-            // Store reveal data in ref first, then set state outside this callback
-            revealPayloadRef.current = {
-              roundNumber: event.data.roundNumber as number,
-              players: selections.map((s) => {
-                const id = s.playerId ?? s.player;
-                return {
-                  userId: id,
-                  username: s.username ?? playerNameMap.get(id) ?? "???",
-                  card: s.card,
-                };
-              }),
-              winnerId: ((event.data.winner ?? event.data.roundWinner) as string) ?? null,
-            };
-
-            // Update scores inline
-            if (event.data.scores) {
-              const scores = event.data.scores as Record<string, number>;
+          // Build reveal data synchronously from the latest battle snapshot.
+          // (The previous version stashed it inside a setState updater and
+          // read it back immediately — React runs updaters later, so the
+          // ref was still null at read time and the reveal UI never showed.)
+          const currentBattle = battleRef.current;
+          const playerNameMap = new Map(
+            (currentBattle?.players ?? []).map((p) => [String(p.user._id), p.user.username]),
+          );
+          const revealSnapshot: RoundHistoryEntry = {
+            roundNumber: event.data.roundNumber as number,
+            players: selections.map((s) => {
+              const id = s.playerId ?? s.player;
               return {
-                ...prev,
-                players: prev.players.map((p) => ({
-                  ...p,
-                  roundsWon: scores[String(p.user._id)] ?? p.roundsWon,
-                })),
+                userId: id,
+                username: s.username ?? playerNameMap.get(id) ?? "???",
+                card: s.card,
               };
-            }
-            return prev;
-          });
+            }),
+            winnerId: ((event.data.winner ?? event.data.roundWinner) as string) ?? null,
+          };
 
-          // Apply reveal data outside the setBattle callback
-          const revealSnapshot = revealPayloadRef.current;
-          if (revealSnapshot) {
-            setRevealData(revealSnapshot);
-            revealPayloadRef.current = null;
+          // Score update — pure updater, no side effects.
+          if (event.data.scores) {
+            const scores = event.data.scores as Record<string, number>;
+            setBattle((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    players: prev.players.map((p) => ({
+                      ...p,
+                      roundsWon: scores[String(p.user._id)] ?? p.roundsWon,
+                    })),
+                  }
+                : prev,
+            );
           }
+
+          setRevealData(revealSnapshot);
           setMyHand(null);
+          // New round will start fresh — clear opponent-picked indicators.
+          setPlayersWhoSelected(new Set());
 
           // Cancel any pending round_start debounce — the reveal takes priority.
           if (roundStartTimerRef.current) {
@@ -514,14 +545,11 @@ export default function BattleDetailPage() {
           revealTimerRef.current = setTimeout(() => {
             revealTimerRef.current = null;
             activeRevealRef.current = null;
-            // Add to round history AFTER the flip animation
-            if (revealSnapshot) {
-              setRoundHistory((prev) => {
-                const exists = prev.some((r) => r.roundNumber === revealSnapshot.roundNumber);
-                if (exists) return prev;
-                return [...prev, revealSnapshot];
-              });
-            }
+            setRoundHistory((prev) => {
+              const exists = prev.some((r) => r.roundNumber === revealSnapshot.roundNumber);
+              if (exists) return prev;
+              return [...prev, revealSnapshot];
+            });
             const pending = pendingRoundRef.current;
             if (pending) {
               setRevealData(null);
@@ -843,12 +871,12 @@ export default function BattleDetailPage() {
                 {battle.players
                   .filter((p) => p.user._id !== currentUserId)
                   .map((opponent) => {
-                    const hasLocalUserSelected = selectedCardIndex !== null;
+                    const opponentHasSelected = playersWhoSelected.has(opponent.user._id);
                     return (
                       <div key={opponent.user._id} className="flex flex-col items-center gap-1.5">
                         <span className="text-[11px] font-bold text-zinc-400">{opponent.user.username}</span>
                         <div className="flex items-center gap-2">
-                          {hasLocalUserSelected ? (
+                          {opponentHasSelected ? (
                             <div className="overflow-hidden rounded-lg border border-zinc-700/60 shadow-lg shadow-black/30" style={{ width: "clamp(50px, 12vw, 70px)", aspectRatio: "2/3" }}>
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src="/images/card-back.jpg" alt="" className="h-full w-full object-cover" draggable={false} />
@@ -917,7 +945,9 @@ export default function BattleDetailPage() {
               </div>
               {battle.players.map((player) => {
                 const isMe = player.user._id === currentUserId;
-                const hasSelected = isMe ? selectedCardIndex !== null : false;
+                const hasSelected = isMe
+                  ? selectedCardIndex !== null
+                  : playersWhoSelected.has(player.user._id);
                 return (
                   <div key={player.user._id} className={`flex items-center justify-between rounded-lg px-3 py-1.5 ${isMe ? "bg-yellow-400/5" : ""}`}>
                     <span className={`text-xs ${isMe ? "font-bold text-yellow-400" : "text-zinc-400"}`}>
