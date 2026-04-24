@@ -66,7 +66,13 @@ export async function DashboardNewsStrip({ lang, limit = 3 }: DashboardNewsStrip
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {items.map((post) => (
-          <NewsCard key={post._id} post={post} />
+          <Link
+            key={post._id}
+            href={`/${lang}/news/${post.slug}`}
+            className="block transition-transform hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-pa-green/40 rounded-[14px]"
+          >
+            <NewsCard post={post} />
+          </Link>
         ))}
       </div>
     </div>
