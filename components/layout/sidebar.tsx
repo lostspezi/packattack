@@ -3,9 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { Menu, X } from "lucide-react";
+import { Menu, X, ChevronDown } from "lucide-react";
 import * as LucideIcons from "lucide-react";
-import { mainNavItems, adminNavItems, shopNavItems, soonNavItems, type NavItem } from "./sidebar-nav";
+import {
+  mainNavItems,
+  adminPinnedItems,
+  adminNavGroups,
+  shopNavItems,
+  soonNavItems,
+  type NavItem,
+  type AdminNavGroup,
+} from "./sidebar-nav";
 
 interface SidebarProps {
   lang: string;
@@ -92,6 +100,113 @@ function NavLink({
   );
 }
 
+const ADMIN_GROUP_STORAGE_PREFIX = "pa.admin.nav.";
+
+function CollapsibleAdminGroup({
+  group,
+  lang,
+  dict,
+  badges,
+  badgeTitleFor,
+  isActiveItem,
+  onNavClick,
+}: {
+  group: AdminNavGroup;
+  lang: string;
+  dict: Record<string, string>;
+  badges?: Record<string, number>;
+  badgeTitleFor: (key: string, count: number) => string | undefined;
+  isActiveItem: (item: NavItem) => boolean;
+  onNavClick?: () => void;
+}) {
+  const containsActive = group.items.some((item) => isActiveItem(item));
+  const storageKey = `${ADMIN_GROUP_STORAGE_PREFIX}${group.key}`;
+
+  // Initial state: open if route is inside this group; otherwise closed.
+  // Stored preference is layered on top after mount.
+  const [userOpen, setUserOpen] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(storageKey);
+      if (stored === "1" || stored === "0") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setUserOpen(stored === "1");
+      }
+    } catch {
+      // localStorage unavailable — keep initial null
+    }
+  }, [storageKey]);
+
+  const isOpen = containsActive || userOpen === true;
+
+  function toggle() {
+    const next = !isOpen;
+    setUserOpen(next);
+    try {
+      window.localStorage.setItem(storageKey, next ? "1" : "0");
+    } catch {
+      // ignore
+    }
+  }
+
+  const groupBadgeTotal = group.items.reduce(
+    (sum, item) => sum + (badges?.[item.key] ?? 0),
+    0,
+  );
+  const showCollapsedBadge = !isOpen && groupBadgeTotal > 0;
+  const groupLabel = dict[group.key] ?? group.label;
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={isOpen}
+        aria-controls={`admin-group-${group.key}`}
+        className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-text-muted hover:text-text-primary transition-colors"
+      >
+        <NavIcon name={group.icon} className="w-4 h-4 shrink-0" />
+        <span className="flex-1 text-left">{groupLabel}</span>
+        {showCollapsedBadge && (
+          <span
+            aria-label={`${groupBadgeTotal} offen`}
+            className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/40"
+          >
+            {groupBadgeTotal > 99 ? "99+" : groupBadgeTotal}
+          </span>
+        )}
+        <ChevronDown
+          className={[
+            "w-4 h-4 shrink-0 transition-transform",
+            isOpen ? "rotate-0" : "-rotate-90",
+          ].join(" ")}
+        />
+      </button>
+      {isOpen && (
+        <ul id={`admin-group-${group.key}`} className="mt-1 ml-4 pl-3 border-l border-white/6 space-y-1">
+          {group.items.map((item) => {
+            const badgeCount = badges?.[item.key];
+            return (
+              <li key={item.key}>
+                <NavLink
+                  item={item}
+                  lang={lang}
+                  dict={dict}
+                  isActive={isActiveItem(item)}
+                  badgeCount={badgeCount}
+                  badgeTitle={badgeCount ? badgeTitleFor(item.key, badgeCount) : undefined}
+                  onClick={onNavClick}
+                />
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </li>
+  );
+}
+
 function SidebarContent({
   lang,
   dict,
@@ -140,7 +255,7 @@ function SidebarContent({
             {adminLabel}
           </p>
           <ul className="space-y-1">
-            {adminNavItems.map((item) => {
+            {adminPinnedItems.map((item) => {
               const badgeCount = badges?.[item.key];
               return (
                 <li key={item.key}>
@@ -156,6 +271,18 @@ function SidebarContent({
                 </li>
               );
             })}
+            {adminNavGroups.map((group) => (
+              <CollapsibleAdminGroup
+                key={group.key}
+                group={group}
+                lang={lang}
+                dict={adminDict}
+                badges={badges}
+                badgeTitleFor={badgeTitleFor}
+                isActiveItem={isActiveItem}
+                onNavClick={onNavClick}
+              />
+            ))}
           </ul>
         </nav>
 
@@ -261,7 +388,7 @@ function SidebarContent({
               {adminLabel}
             </p>
             <ul className="space-y-1">
-              {adminNavItems.map((item) => {
+              {adminPinnedItems.map((item) => {
                 const badgeCount = badges?.[item.key];
                 return (
                   <li key={item.key}>
@@ -277,6 +404,18 @@ function SidebarContent({
                   </li>
                 );
               })}
+              {adminNavGroups.map((group) => (
+                <CollapsibleAdminGroup
+                  key={group.key}
+                  group={group}
+                  lang={lang}
+                  dict={adminDict}
+                  badges={badges}
+                  badgeTitleFor={badgeTitleFor}
+                  isActiveItem={isActiveItem}
+                  onNavClick={onNavClick}
+                />
+              ))}
             </ul>
           </div>
         )}

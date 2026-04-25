@@ -1,4 +1,4 @@
-﻿export type NavItem = {
+export type NavItem = {
   key: string;
   label: string;
   href: string;
@@ -6,6 +6,13 @@
   adminOnly?: boolean;
   /** Show a "Soon" badge. If true, non-admins cannot click the link. */
   soon?: boolean;
+};
+
+export type AdminNavGroup = {
+  key: string;
+  label: string;
+  icon: string;
+  items: NavItem[];
 };
 
 export const mainNavItems: NavItem[] = [
@@ -24,31 +31,82 @@ export const mainNavItems: NavItem[] = [
   { key: "balance", label: "Guthaben", href: "/balance", icon: "Wallet" },
 ];
 
-export const adminNavItems: NavItem[] = [
+export const adminPinnedItems: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/admin", icon: "BarChart3" },
-  { key: "users", label: "Benutzer", href: "/admin/users", icon: "Users" },
-  { key: "platform", label: "Plattform", href: "/admin/platform", icon: "Cog" },
-  { key: "notifications", label: "Benachrichtigungen", href: "/admin/notifications", icon: "Bell" },
-  { key: "chat", label: "Chat", href: "/admin/chat", icon: "MessagesSquare" },
-  { key: "feedback", label: "Feedback", href: "/admin/feedback", icon: "MessageSquareMore" },
-  { key: "emailTemplates", label: "E-Mail-Vorlagen", href: "/admin/email-templates", icon: "Mail" },
-  { key: "translations", label: "Übersetzungen", href: "/admin/translations", icon: "Languages" },
-  { key: "languages", label: "Sprachen", href: "/admin/languages", icon: "Globe" },
-  { key: "boxes", label: "Boxen", href: "/admin/boxes", icon: "Package" },
-  { key: "coins", label: "Coins", href: "/admin/coins", icon: "Coins" },
-  { key: "shops", label: "Shops", href: "/admin/shops", icon: "Store" },
-  { key: "adminInventory", label: "Inventar", href: "/admin/inventory", icon: "Layers" },
-  { key: "inventoryOverview", label: "Inventar-Übersicht", href: "/admin/inventory/overview", icon: "Eye" },
-  { key: "coinPackages", label: "Coin-Pakete", href: "/admin/coin-packages", icon: "CreditCard" },
-  { key: "adminOrders", label: "Bestellungen", href: "/admin/orders", icon: "ClipboardList" },
-  { key: "adminShipping", label: "Versand", href: "/admin/shipping", icon: "Truck" },
-  { key: "adminSeasons", label: "Battle Seasons", href: "/admin/seasons", icon: "Trophy" },
-  { key: "adminAchievements", label: "Achievements", href: "/admin/achievements", icon: "Award" },
-  { key: "adminBadges", label: "Badges", href: "/admin/badges", icon: "Medal" },
-  { key: "adminQuizEvents", label: "Quiz Events", href: "/admin/quiz-events", icon: "Zap" },
-  { key: "adminPacki", label: "Packi", href: "/admin/packi", icon: "Sparkles" },
-  { key: "adminFairness", label: "Fairness", href: "/admin/fairness", icon: "ShieldCheck" },
-  { key: "adminNews", label: "News", href: "/admin/news", icon: "Newspaper" },
+];
+
+export const adminNavGroups: AdminNavGroup[] = [
+  {
+    key: "groupPackEconomy",
+    label: "Pack Economy",
+    icon: "Package",
+    items: [
+      { key: "boxes", label: "Boxen", href: "/admin/boxes", icon: "Package" },
+      { key: "adminInventory", label: "Inventar", href: "/admin/inventory", icon: "Layers" },
+      { key: "inventoryOverview", label: "Inventar-Übersicht", href: "/admin/inventory/overview", icon: "Eye" },
+      { key: "adminFairness", label: "Fairness", href: "/admin/fairness", icon: "ShieldCheck" },
+    ],
+  },
+  {
+    key: "groupShop",
+    label: "Shop & Fulfillment",
+    icon: "ShoppingBag",
+    items: [
+      { key: "shops", label: "Shops", href: "/admin/shops", icon: "Store" },
+      { key: "adminOrders", label: "Bestellungen", href: "/admin/orders", icon: "ClipboardList" },
+      { key: "adminShipping", label: "Versand", href: "/admin/shipping", icon: "Truck" },
+      { key: "coinPackages", label: "Coin-Pakete", href: "/admin/coin-packages", icon: "CreditCard" },
+      { key: "coins", label: "Coins", href: "/admin/coins", icon: "Coins" },
+    ],
+  },
+  {
+    key: "groupLiveOps",
+    label: "Live Ops",
+    icon: "Sparkles",
+    items: [
+      { key: "adminSeasons", label: "Battle Seasons", href: "/admin/seasons", icon: "Trophy" },
+      { key: "adminQuizEvents", label: "Quiz Events", href: "/admin/quiz-events", icon: "Zap" },
+      { key: "adminAchievements", label: "Achievements", href: "/admin/achievements", icon: "Award" },
+      { key: "adminBadges", label: "Badges", href: "/admin/badges", icon: "Medal" },
+      { key: "adminNews", label: "News", href: "/admin/news", icon: "Newspaper" },
+    ],
+  },
+  {
+    key: "groupCommunity",
+    label: "Community",
+    icon: "Users",
+    items: [
+      { key: "users", label: "Benutzer", href: "/admin/users", icon: "Users" },
+      { key: "chat", label: "Chat", href: "/admin/chat", icon: "MessagesSquare" },
+      { key: "feedback", label: "Feedback", href: "/admin/feedback", icon: "MessageSquareMore" },
+      { key: "notifications", label: "Benachrichtigungen", href: "/admin/notifications", icon: "Bell" },
+    ],
+  },
+  {
+    key: "groupContent",
+    label: "Content & i18n",
+    icon: "Globe",
+    items: [
+      { key: "emailTemplates", label: "E-Mail-Vorlagen", href: "/admin/email-templates", icon: "Mail" },
+      { key: "translations", label: "Übersetzungen", href: "/admin/translations", icon: "Languages" },
+      { key: "languages", label: "Sprachen", href: "/admin/languages", icon: "Globe" },
+      { key: "adminPacki", label: "Packi", href: "/admin/packi", icon: "Sparkles" },
+    ],
+  },
+  {
+    key: "groupSystem",
+    label: "System",
+    icon: "Cog",
+    items: [
+      { key: "platform", label: "Plattform", href: "/admin/platform", icon: "Cog" },
+    ],
+  },
+];
+
+/** Flattened admin nav (pinned + grouped) — kept for code that needs the full list. */
+export const adminNavItems: NavItem[] = [
+  ...adminPinnedItems,
+  ...adminNavGroups.flatMap((g) => g.items),
 ];
 
 export const shopNavItems: NavItem[] = [
