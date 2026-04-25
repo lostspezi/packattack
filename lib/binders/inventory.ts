@@ -10,24 +10,37 @@ export interface InventoryCard {
   createdAt: string;
 }
 
-export async function fetchInventory(): Promise<InventoryCard[]> {
-  const url = "/api/collection?onlyFree=1";
-  const out: InventoryCard[] = [];
-  let cursor: string | null = null;
-  let safety = 0;
-  do {
-    const next: string = cursor
-      ? `${url}&cursor=${encodeURIComponent(cursor)}`
-      : url;
-    const res = await fetch(next);
-    if (!res.ok) break;
-    const data = (await res.json()) as {
-      items: InventoryCard[];
-      nextCursor: string | null;
-    };
-    out.push(...data.items);
-    cursor = data.nextCursor;
-    safety += 1;
-  } while (cursor && safety < 50);
-  return out;
+export interface CollectionMeta {
+  games: string[];
+  setsByGame: Record<string, string[]>;
+  rarities: string[];
+}
+
+export interface InventoryPageParams {
+  cursor?: string | null;
+  game?: string;
+  set?: string;
+  rarity?: string;
+  q?: string;
+}
+
+export async function fetchInventoryPage(
+  params: InventoryPageParams = {},
+): Promise<{ items: InventoryCard[]; nextCursor: string | null }> {
+  const url = new URL("/api/collection", window.location.origin);
+  url.searchParams.set("onlyFree", "1");
+  if (params.cursor) url.searchParams.set("cursor", params.cursor);
+  if (params.game) url.searchParams.set("game", params.game);
+  if (params.set) url.searchParams.set("set", params.set);
+  if (params.rarity) url.searchParams.set("rarity", params.rarity);
+  if (params.q) url.searchParams.set("q", params.q);
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error("inventory fetch failed");
+  return res.json() as Promise<{ items: InventoryCard[]; nextCursor: string | null }>;
+}
+
+export async function fetchCollectionMeta(): Promise<CollectionMeta> {
+  const res = await fetch("/api/collection/meta");
+  if (!res.ok) throw new Error("meta fetch failed");
+  return res.json() as Promise<CollectionMeta>;
 }
