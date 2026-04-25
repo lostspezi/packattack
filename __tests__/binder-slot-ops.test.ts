@@ -112,7 +112,7 @@ describe("placeCard", () => {
       coord: { pageIndex: 0, slotPosition: 3 },
       packPullId: "pp-A",
     });
-    expect(again.displacedPackPullId).toBe("pp-A");
+    expect(again.displacedPackPullId).toBeNull();
     expect(again.pages[0].slots[3].packPullId).toBe("pp-A");
   });
 
@@ -178,6 +178,22 @@ describe("removeCard", () => {
     expect(() =>
       removeCard({ pages, coord: { pageIndex: 0, slotPosition: 0 } }),
     ).toThrow(SlotOpError);
+  });
+
+  it("throws EXPECTED_PRESENT_MISMATCH when expectedCurrent does not match", () => {
+    let pages = fillPages(1);
+    pages = placeCard({
+      pages,
+      coord: { pageIndex: 0, slotPosition: 4 },
+      packPullId: "pp-A",
+    }).pages;
+    expect(() =>
+      removeCard({
+        pages,
+        coord: { pageIndex: 0, slotPosition: 4 },
+        expectedCurrent: "pp-OTHER",
+      }),
+    ).toThrow(/EXPECTED_PRESENT_MISMATCH|expected/);
   });
 });
 

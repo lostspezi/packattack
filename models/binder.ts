@@ -1,5 +1,9 @@
 import mongoose, { Document, Model, Schema, Types } from "mongoose";
 import { generateUniqueSlug } from "@/lib/slug";
+import { SLOTS_PER_PAGE } from "@/lib/binders/slot-ops";
+import { MAX_PAGES } from "@/lib/binders/auto-grow";
+
+export { SLOTS_PER_PAGE, MAX_PAGES };
 
 export const BINDER_TYPES = ["free", "set-template"] as const;
 export type BinderType = (typeof BINDER_TYPES)[number];
@@ -12,9 +16,6 @@ export const BINDER_THEMES = [
   "ozean",
 ] as const;
 export type BinderTheme = (typeof BINDER_THEMES)[number];
-
-export const SLOTS_PER_PAGE = 9;
-export const MAX_PAGES = 200;
 
 export interface IBinderSlot {
   position: number;

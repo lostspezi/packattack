@@ -124,15 +124,16 @@ export function placeCard(args: PlaceArgs): PlaceResult {
   if (allPullIds.has(args.packPullId)) {
     const found = findSlotOf(pages, args.packPullId);
     if (
-      !found ||
-      found.pageIndex !== args.coord.pageIndex ||
-      found.slotPosition !== args.coord.slotPosition
+      found &&
+      found.pageIndex === args.coord.pageIndex &&
+      found.slotPosition === args.coord.slotPosition
     ) {
-      throw new SlotOpError(
-        "CARD_ALREADY_IN_BINDER",
-        `pack pull ${args.packPullId} already occupies another slot`,
-      );
+      return { pages, displacedPackPullId: null };
     }
+    throw new SlotOpError(
+      "CARD_ALREADY_IN_BINDER",
+      `pack pull ${args.packPullId} already occupies another slot`,
+    );
   }
 
   const slot = getSlot(pages, args.coord);
