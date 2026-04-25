@@ -52,7 +52,10 @@ export const InventoryDrawer = forwardRef<
   const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
   const [debouncedQ, setDebouncedQ] = useState("");
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const didInit = useRef(false);
+  const isLoadingRef = useRef(false);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeFilters: InventoryPageParams = {
     ...(filters.game ? { game: filters.game } : {}),
@@ -65,6 +68,7 @@ export const InventoryDrawer = forwardRef<
 
   const loadPage = useCallback(
     async (params: InventoryPageParams, append: boolean) => {
+      isLoadingRef.current = true;
       setIsLoading(true);
       setHasError(false);
       try {
@@ -76,6 +80,7 @@ export const InventoryDrawer = forwardRef<
         setHasError(true);
       } finally {
         setIsLoading(false);
+        isLoadingRef.current = false;
       }
     },
     [onCardsLoaded],
@@ -84,7 +89,11 @@ export const InventoryDrawer = forwardRef<
   // Debounce search field
   useEffect(() => {
     const t = setTimeout(() => setDebouncedQ(filters.q), 300);
-    return () => clearTimeout(t);
+    debounceTimerRef.current = t;
+    return () => {
+      clearTimeout(t);
+      debounceTimerRef.current = null;
+    };
   }, [filters.q]);
 
   // Fetch page 1 whenever active filters (including debounced q) change
@@ -113,22 +122,26 @@ export const InventoryDrawer = forwardRef<
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && nextCursor && !isLoading) {
+        if (entry.isIntersecting && nextCursor && !isLoadingRef.current) {
           loadPage({ ...activeFilters, cursor: nextCursor }, true);
         }
       },
-      { threshold: 0.1 },
+      { root: scrollContainerRef.current, threshold: 0.1 },
     );
     observer.observe(el);
     return () => observer.disconnect();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nextCursor, isLoading, loadPage, filters.game, filters.set, filters.rarity, debouncedQ]);
+  }, [nextCursor, loadPage, filters.game, filters.set, filters.rarity, debouncedQ]);
 
   useImperativeHandle(ref, () => ({
     removeCard(packPullId: string) {
       setItems((prev) => prev.filter((c) => c.packPullId !== packPullId));
     },
     refresh() {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
       setItems([]);
       setNextCursor(null);
       setFilters(EMPTY_FILTERS);
@@ -250,7 +263,7 @@ export const InventoryDrawer = forwardRef<
           </div>
 
           {/* Card grid */}
-          <div className="max-h-[40vh] overflow-y-auto">
+          <div ref={scrollContainerRef} className="max-h-[40vh] overflow-y-auto">
             {isLoading && items.length === 0 ? (
               <div className="py-8 text-center">
                 <Loader2 className="w-5 h-5 animate-spin mx-auto text-pa-green" />
@@ -280,7 +293,10 @@ export const InventoryDrawer = forwardRef<
                     {" "}
                     <button
                       type="button"
-                      onClick={() => setFilters(EMPTY_FILTERS)}
+                      onClick={() => {
+                        setFilters(EMPTY_FILTERS);
+                        setDebouncedQ("");
+                      }}
                       className="underline"
                     >
                       {isDe ? "Filter zurücksetzen" : "Reset filters"}
