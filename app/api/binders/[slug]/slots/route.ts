@@ -14,6 +14,7 @@ import {
 } from "@/lib/binders/slot-ops";
 import { autoGrowIfNeeded } from "@/lib/binders/auto-grow";
 import { serializeBinder } from "@/lib/binders/serialize";
+import { withTxnOrSequential } from "@/lib/binders/with-transaction";
 
 function toPlainPages(pages: IBinderPage[]): PlainPage[] {
   return pages.map((p) => ({
@@ -191,27 +192,44 @@ export async function PATCH(
   }
 
   const binderObjId = binder._id;
-  if (plan.cardsToUnbind.length > 0) {
-    await PackPull.updateMany(
-      {
-        _id: { $in: plan.cardsToUnbind.map((id) => new Types.ObjectId(id)) },
-        binderId: binderObjId,
-      },
-      { $set: { binderId: null } },
-    );
-  }
-  if (plan.cardsToBind.length > 0) {
-    const bindResult = await PackPull.updateMany(
-      {
-        _id: { $in: plan.cardsToBind.map((id) => new Types.ObjectId(id)) },
-        userId: binder.userId,
-        status: "claimed",
-        $or: [{ binderId: null }, { binderId: binderObjId }],
-      },
-      { $set: { binderId: binderObjId } },
-    );
-    if (bindResult.matchedCount !== plan.cardsToBind.length) {
-      // Roll back unbinds so the previous state holds
+  try {
+    await withTxnOrSequential(async (txn) => {
+      if (plan.cardsToUnbind.length > 0) {
+        await PackPull.updateMany(
+          {
+            _id: {
+              $in: plan.cardsToUnbind.map((id) => new Types.ObjectId(id)),
+            },
+            binderId: binderObjId,
+          },
+          { $set: { binderId: null } },
+          txn ? { session: txn } : {},
+        );
+      }
+      if (plan.cardsToBind.length > 0) {
+        const bindResult = await PackPull.updateMany(
+          {
+            _id: {
+              $in: plan.cardsToBind.map((id) => new Types.ObjectId(id)),
+            },
+            userId: binder.userId,
+            status: "claimed",
+            $or: [{ binderId: null }, { binderId: binderObjId }],
+          },
+          { $set: { binderId: binderObjId } },
+          txn ? { session: txn } : {},
+        );
+        if (bindResult.matchedCount !== plan.cardsToBind.length) {
+          throw new ConcurrentChangeError();
+        }
+      }
+      binder.pages = fromPlainPages(nextPages);
+      binder.markModified("pages");
+      await binder.save(txn ? { session: txn } : undefined);
+    });
+  } catch (err) {
+    if (err instanceof ConcurrentChangeError) {
+      // Best-effort rollback for the no-transaction fallback path.
       if (plan.cardsToUnbind.length > 0) {
         await PackPull.updateMany(
           {
@@ -229,11 +247,15 @@ export async function PATCH(
         { status: 409 },
       );
     }
+    throw err;
   }
 
-  binder.pages = fromPlainPages(nextPages);
-  binder.markModified("pages");
-  await binder.save();
-
   return NextResponse.json({ binder: serializeBinder(binder) });
+}
+
+class ConcurrentChangeError extends Error {
+  constructor() {
+    super("pack_pull_concurrent_change");
+    this.name = "ConcurrentChangeError";
+  }
 }

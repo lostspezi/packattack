@@ -9,6 +9,7 @@ import Card from "@/models/card";
 import { updateBinderSchema } from "@/lib/binders/validations";
 import { resolveAccess } from "@/lib/binders/public-access";
 import { serializeBinder } from "@/lib/binders/serialize";
+import { withTxnOrSequential } from "@/lib/binders/with-transaction";
 
 export async function GET(
   _req: NextRequest,
@@ -204,12 +205,18 @@ export async function DELETE(
     return NextResponse.json({ error: "forbidden" }, { status: 403 });
   }
 
-  await PackPull.updateMany(
-    { binderId: binder._id, userId: binder.userId },
-    { $set: { binderId: null } },
-  );
-  await BinderLike.deleteMany({ binderId: binder._id });
-  await binder.deleteOne();
+  await withTxnOrSequential(async (txn) => {
+    await PackPull.updateMany(
+      { binderId: binder._id, userId: binder.userId },
+      { $set: { binderId: null } },
+      txn ? { session: txn } : {},
+    );
+    await BinderLike.deleteMany(
+      { binderId: binder._id },
+      txn ? { session: txn } : {},
+    );
+    await binder.deleteOne(txn ? { session: txn } : undefined);
+  });
 
   return NextResponse.json({ success: true });
 }
