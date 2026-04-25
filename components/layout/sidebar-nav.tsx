@@ -19,6 +19,8 @@ export const mainNavItems: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/dashboard", icon: "LayoutGrid" },
   { key: "packs", label: "Packs", href: "/packs", icon: "Package" },
   { key: "battles", label: "Battles", href: "/battles", icon: "Swords" },
+  { key: "collection", label: "Sammlung", href: "/collection", icon: "Library" },
+  { key: "binders", label: "Binder", href: "/binders", icon: "BookOpen" },
   { key: "leaderboard", label: "Bestenliste", href: "/leaderboard", icon: "Trophy" },
   { key: "events", label: "Events", href: "/events", icon: "Zap" },
 
