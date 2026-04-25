@@ -1,6 +1,7 @@
 "use client";
 
 import { useDraggable } from "@dnd-kit/core";
+import { motion, AnimatePresence } from "motion/react";
 import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import type { InventoryCard } from "@/lib/binders/inventory";
 
@@ -52,9 +53,11 @@ export function InventoryDrawer({
             </p>
           ) : (
             <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-10 gap-2">
-              {inventory.map((c) => (
-                <DraggableInventoryTile key={c.packPullId} card={c} />
-              ))}
+              <AnimatePresence initial={false}>
+                {inventory.map((c) => (
+                  <DraggableInventoryTile key={c.packPullId} card={c} />
+                ))}
+              </AnimatePresence>
             </div>
           )}
         </div>
@@ -69,33 +72,42 @@ function DraggableInventoryTile({ card }: { card: InventoryCard }) {
     data: { kind: "inventory", card },
   });
   return (
-    <button
-      ref={setNodeRef}
-      type="button"
-      {...attributes}
-      {...listeners}
+    <motion.div
+      layoutId={`card-${card.packPullId}`}
+      initial={{ scale: 0.85, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0.6, opacity: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 26 }}
       className={[
-        "relative aspect-[5/7] rounded-md overflow-hidden bg-black/20 ring-1 ring-white/10 cursor-grab active:cursor-grabbing touch-none",
+        "relative aspect-[5/7] rounded-md overflow-hidden bg-black/20 ring-1 ring-white/10",
         isDragging ? "opacity-30" : "hover:ring-pa-green/40",
       ].join(" ")}
-      title={card.name}
     >
-      {card.image ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          src={card.image}
-          alt={card.name}
-          className="object-cover w-full h-full"
-          draggable={false}
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center text-[9px] text-white/60 px-1 text-center">
-          {card.name}
-        </div>
-      )}
-      <span className="absolute bottom-0.5 left-0.5 px-1 py-0 rounded text-[8px] font-bold uppercase tracking-wider bg-black/70 text-white border border-white/15">
+      <button
+        ref={setNodeRef}
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="absolute inset-0 cursor-grab active:cursor-grabbing touch-none"
+        title={card.name}
+      >
+        {card.image ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={card.image}
+            alt={card.name}
+            className="object-cover w-full h-full"
+            draggable={false}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-[9px] text-white/60 px-1 text-center">
+            {card.name}
+          </div>
+        )}
+      </button>
+      <span className="pointer-events-none absolute bottom-0.5 left-0.5 px-1 py-0 rounded text-[8px] font-bold uppercase tracking-wider bg-black/70 text-white border border-white/15">
         {card.rarity}
       </span>
-    </button>
+    </motion.div>
   );
 }

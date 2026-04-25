@@ -1,6 +1,7 @@
 "use client";
 
 import { useDroppable, useDraggable } from "@dnd-kit/core";
+import { motion } from "motion/react";
 import { Layers } from "lucide-react";
 import type { CSSProperties } from "react";
 import type { InventoryCard } from "@/lib/binders/inventory";
@@ -194,30 +195,37 @@ function SlotDraggableCard({
     } as SpreadDragSource & { kind: "slot" },
   });
   return (
-    <button
-      ref={setNodeRef}
-      type="button"
-      {...attributes}
-      {...listeners}
+    <motion.div
+      layoutId={`card-${packPullId}`}
+      initial={false}
+      transition={{ type: "spring", stiffness: 300, damping: 26 }}
       className={[
-        "absolute inset-0 rounded-md overflow-hidden cursor-grab active:cursor-grabbing touch-none",
+        "absolute inset-0 rounded-md overflow-hidden",
         isDragging ? "opacity-30" : "",
       ].join(" ")}
-      title={card.name}
     >
-      {card.image ? (
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
-          src={card.image}
-          alt={card.name}
-          className="object-cover w-full h-full"
-          draggable={false}
-        />
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-[10px] text-white/60 px-1 text-center">
-          {card.name}
-        </div>
-      )}
-    </button>
+      <button
+        ref={setNodeRef}
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="absolute inset-0 rounded-md overflow-hidden cursor-grab active:cursor-grabbing touch-none"
+        title={card.name}
+      >
+        {card.image ? (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={card.image}
+            alt={card.name}
+            className="object-cover w-full h-full"
+            draggable={false}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-[10px] text-white/60 px-1 text-center">
+            {card.name}
+          </div>
+        )}
+      </button>
+    </motion.div>
   );
 }
