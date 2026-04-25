@@ -1,4 +1,5 @@
-﻿import { redirect } from "next/navigation";
+﻿import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { ChatDock } from "@/components/chat/chat-dock";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Footer } from "@/components/layout/footer";
@@ -8,6 +9,7 @@ import { PendingPullsGuard } from "@/components/packs/pending-pulls-guard";
 import { PackiProvider } from "@/components/packi/packi-provider";
 import { TourProvider } from "@/components/tour/tour-provider";
 import { LevelUpModal } from "@/components/level/level-up-modal";
+import { UpvoteTopBanner } from "@/components/votes/upvote-top-banner";
 import { ONBOARDING_STEPS } from "@/lib/tour/steps/onboarding";
 import { auth } from "@/lib/auth";
 import { getActiveLanguages, getDictionary } from "@/lib/i18n";
@@ -42,6 +44,9 @@ export default async function DashboardLayout({
       <TourProvider steps={ONBOARDING_STEPS}>
         <PackiProvider>
           <DashboardShell style={{ background: "linear-gradient(135deg, var(--color-pa-lila) 30%, var(--color-pa-blue) 80%)" }}>
+            <Suspense fallback={null}>
+              <UpvoteTopBanner lang={lang} userId={session.user.id!} />
+            </Suspense>
             <UserHeader
               lang={lang}
               dict={commonDict}

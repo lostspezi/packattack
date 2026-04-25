@@ -893,6 +893,7 @@ export const translationSeedData = [
   { namespace: "votes", key: "voteSavedHint", values: { de: "Du kannst deine Auswahl jederzeit ändern, solange die Abstimmung läuft.", en: "You can change your pick anytime while the vote is live." } },
   { namespace: "votes", key: "voterCountSingular", values: { de: "1 Person hat abgestimmt", en: "1 voter" } },
   { namespace: "votes", key: "voterCountPlural", values: { de: "{{count}} Personen haben abgestimmt", en: "{{count}} voters" } },
+  { namespace: "votes", key: "topBannerDismiss", values: { de: "Ausblenden", en: "Dismiss" } },
 ];
 
 
