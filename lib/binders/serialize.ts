@@ -66,7 +66,9 @@ export function serializeBinder(binder: IBinder): BinderDTO {
     name: binder.name,
     description: binder.description,
     type: binder.type,
-    setTemplate: binder.setTemplate ?? null,
+    setTemplate: binder.setTemplate
+      ? { game: binder.setTemplate.game, set: binder.setTemplate.set }
+      : null,
     theme: binder.theme,
     coverPackPullId: binder.coverPackPullId
       ? binder.coverPackPullId.toString()
@@ -115,7 +117,9 @@ export function serializeBinderSummary(binder: IBinder): BinderSummaryDTO {
     name: binder.name,
     description: binder.description,
     type: binder.type,
-    setTemplate: binder.setTemplate ?? null,
+    setTemplate: binder.setTemplate
+      ? { game: binder.setTemplate.game, set: binder.setTemplate.set }
+      : null,
     theme: binder.theme,
     coverPackPullId: binder.coverPackPullId
       ? binder.coverPackPullId.toString()
