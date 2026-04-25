@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Trash2 } from "lucide-react";
+import { Copy, Loader2, Trash2 } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import type { BinderDTO, PlacedCardDTO } from "./binder-editor";
@@ -166,24 +166,29 @@ export function BinderSettingsSheet({
           />
         </div>
 
-        <label className="flex items-start gap-3 p-3 bg-white/3 rounded-lg cursor-pointer">
-          <input
-            type="checkbox"
-            checked={isPublic}
-            onChange={(e) => setIsPublic(e.target.checked)}
-            className="mt-1 accent-pa-green"
-          />
-          <span className="text-sm">
-            <span className="font-medium text-text-primary">
-              {isDe ? "Öffentlich" : "Public"}
+        <div className="space-y-2">
+          <label className="flex items-start gap-3 p-3 bg-white/3 rounded-lg cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => setIsPublic(e.target.checked)}
+              className="mt-1 accent-pa-green"
+            />
+            <span className="text-sm">
+              <span className="font-medium text-text-primary">
+                {isDe ? "Öffentlich" : "Public"}
+              </span>
+              <span className="block text-xs text-text-muted">
+                {isDe
+                  ? "Andere können den Binder über einen Link öffnen und in der Galerie entdecken."
+                  : "Others can open this binder via link and find it in the gallery."}
+              </span>
             </span>
-            <span className="block text-xs text-text-muted">
-              {isDe
-                ? "Andere können den Binder über einen Link öffnen und in der Galerie entdecken."
-                : "Others can open this binder via link and find it in the gallery."}
-            </span>
-          </span>
-        </label>
+          </label>
+          {isPublic && (
+            <ShareLinkRow lang={lang} slug={binder.slug} isDe={isDe} />
+          )}
+        </div>
 
         <div className="flex items-center justify-between pt-3 border-t border-border">
           <button
@@ -291,3 +296,61 @@ function CoverPicker({
 }
 
 void BINDER_THEMES;
+
+function ShareLinkRow({
+  lang,
+  slug,
+  isDe,
+}: {
+  lang: string;
+  slug: string;
+  isDe: boolean;
+}) {
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+  const path = `/${lang}/b/${slug}`;
+  const fullUrl =
+    typeof window !== "undefined" ? `${window.location.origin}${path}` : path;
+  return (
+    <div className="bg-white/3 rounded-lg p-3 flex items-center gap-2">
+      <input
+        type="text"
+        readOnly
+        value={fullUrl}
+        onFocus={(e) => e.currentTarget.select()}
+        className="flex-1 bg-transparent text-xs text-text-secondary outline-none"
+      />
+      <button
+        type="button"
+        onClick={async () => {
+          try {
+            await navigator.clipboard.writeText(fullUrl);
+            setCopied(true);
+            toast({
+              type: "success",
+              title: isDe ? "Link kopiert." : "Link copied.",
+            });
+            setTimeout(() => setCopied(false), 2000);
+          } catch {
+            toast({
+              type: "error",
+              title: isDe
+                ? "Konnte nicht kopieren."
+                : "Could not copy.",
+            });
+          }
+        }}
+        className="text-xs px-3 py-1.5 rounded-md bg-pa-green/15 text-pa-green hover:bg-pa-green/25 inline-flex items-center gap-1.5"
+      >
+        <Copy className="w-3.5 h-3.5" />
+        {copied
+          ? isDe
+            ? "Kopiert"
+            : "Copied"
+          : isDe
+            ? "Kopieren"
+            : "Copy"}
+      </button>
+    </div>
+  );
+}
