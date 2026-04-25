@@ -4,8 +4,9 @@ import { useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { MegaMenuBattles } from "./mega-menu-battles";
 import { MegaMenuPacks } from "./mega-menu-packs";
+import { MegaMenuCollection } from "./mega-menu-collection";
 
-export type MegaMenuSection = "battles" | "packs" | null;
+export type MegaMenuSection = "battles" | "packs" | "collection" | null;
 
 interface MegaMenuProps {
   activeSection: MegaMenuSection;
@@ -54,6 +55,9 @@ export function MegaMenu({
             )}
             {activeSection === "packs" && (
               <MegaMenuPacks lang={lang} dict={dict} onClose={onClose} />
+            )}
+            {activeSection === "collection" && (
+              <MegaMenuCollection lang={lang} dict={dict} onClose={onClose} />
             )}
           </div>
         </motion.div>

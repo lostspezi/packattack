@@ -113,9 +113,10 @@ export const binderTranslationSeed = [
   { namespace: "common", key: "navCollection", values: { de: "Sammlung", en: "Collection" } },
   { namespace: "common", key: "navBinders", values: { de: "Binder", en: "Binders" } },
 
-  // Header mega-menu (Packs sub-items)
+  // Header top-level + mega-menu items
   { namespace: "common", key: "collection", values: { de: "Sammlung", en: "Collection" } },
-  { namespace: "common", key: "collection_desc", values: { de: "Alle Karten, die dir gehören", en: "Every card you own" } },
+  { namespace: "common", key: "my_collection", values: { de: "Meine Sammlung", en: "My collection" } },
+  { namespace: "common", key: "my_collection_desc", values: { de: "Alle Karten, die dir gehören", en: "Every card you own" } },
   { namespace: "common", key: "binders", values: { de: "Binder", en: "Binders" } },
   { namespace: "common", key: "binders_desc", values: { de: "Sammelalben aus deinen Karten", en: "Albums built from your cards" } },
   { namespace: "common", key: "binders_explore", values: { de: "Binder-Galerie", en: "Binder gallery" } },
