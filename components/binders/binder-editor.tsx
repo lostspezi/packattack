@@ -114,6 +114,7 @@ export function BinderEditor({
   const [inventoryLoading, setInventoryLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [spreadIndex, setSpreadIndex] = useState(0);
+  const [flipDirection, setFlipDirection] = useState(0);
   const [savingOp, setSavingOp] = useState(false);
   const [activeDrag, setActiveDrag] = useState<DragSource | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -207,10 +208,18 @@ export function BinderEditor({
   const rightPageIndex = leftPageIndex + 1;
 
   const goPrev = useCallback(() => {
-    setSpreadIndex((i) => Math.max(0, i - 1));
+    setSpreadIndex((i) => {
+      if (i === 0) return i;
+      setFlipDirection(-1);
+      return i - 1;
+    });
   }, []);
   const goNext = useCallback(() => {
-    setSpreadIndex((i) => Math.min(totalSpreads - 1, i + 1));
+    setSpreadIndex((i) => {
+      if (i >= totalSpreads - 1) return i;
+      setFlipDirection(1);
+      return i + 1;
+    });
   }, [totalSpreads]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
@@ -431,6 +440,8 @@ export function BinderEditor({
           rightPage={binder.pages[rightPageIndex] ?? null}
           leftPageIndex={leftPageIndex}
           rightPageIndex={rightPageIndex}
+          spreadIndex={spreadIndex}
+          flipDirection={flipDirection}
           cardLookup={cardLookup}
           expectedLookup={(id) => expectedById.get(id)}
           binderSlug={binder.slug}

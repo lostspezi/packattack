@@ -1,7 +1,7 @@
 "use client";
 
 import { useDroppable, useDraggable } from "@dnd-kit/core";
-import { motion } from "motion/react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { Layers } from "lucide-react";
 import type { CSSProperties } from "react";
 import type { InventoryCard } from "@/lib/binders/inventory";
@@ -38,6 +38,8 @@ interface BinderSpreadProps {
   rightPage: BinderPageDTO | null;
   leftPageIndex: number;
   rightPageIndex: number;
+  spreadIndex: number;
+  flipDirection: number;
   cardLookup: (packPullId: string) => InventoryCard | undefined;
   expectedLookup?: (cardId: string) => ExpectedCardDTO | undefined;
   binderSlug?: string;
@@ -47,12 +49,26 @@ interface BinderSpreadProps {
   onPageTitleSaved?: (pageIndex: number, nextTitle: string | null) => void;
 }
 
+const flipVariants = {
+  enter: (direction: number) => ({
+    rotateY: direction >= 0 ? -90 : 90,
+    opacity: 0,
+  }),
+  center: { rotateY: 0, opacity: 1 },
+  exit: (direction: number) => ({
+    rotateY: direction >= 0 ? 90 : -90,
+    opacity: 0,
+  }),
+} as const;
+
 export function BinderSpread({
   theme,
   leftPage,
   rightPage,
   leftPageIndex,
   rightPageIndex,
+  spreadIndex,
+  flipDirection,
   cardLookup,
   expectedLookup,
   binderSlug,
@@ -61,45 +77,69 @@ export function BinderSpread({
   onSlotClick,
   onPageTitleSaved,
 }: BinderSpreadProps) {
+  const direction = flipDirection;
+  const reduced = useReducedMotion();
+
+  const containerStyle: CSSProperties = {
+    perspective: reduced ? undefined : 1800,
+    ["--binder-accent" as never]: theme.accent,
+  };
+
   return (
     <div
       className="bg-surface border border-border rounded-2xl p-4 md:p-6"
-      style={{ ["--binder-accent" as never]: theme.accent } as CSSProperties}
+      style={containerStyle}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-        {leftPage ? (
-          <Page
-            page={leftPage}
-            pageIndex={leftPageIndex}
-            theme={theme}
-            cardLookup={cardLookup}
-            expectedLookup={expectedLookup}
-            binderSlug={binderSlug}
-            isDe={isDe}
-            ownerView={ownerView}
-            onSlotClick={onSlotClick}
-            onPageTitleSaved={onPageTitleSaved}
-          />
-        ) : (
-          <div />
-        )}
-        {rightPage ? (
-          <Page
-            page={rightPage}
-            pageIndex={rightPageIndex}
-            theme={theme}
-            cardLookup={cardLookup}
-            expectedLookup={expectedLookup}
-            binderSlug={binderSlug}
-            isDe={isDe}
-            ownerView={ownerView}
-            onSlotClick={onSlotClick}
-            onPageTitleSaved={onPageTitleSaved}
-          />
-        ) : (
-          <div className="hidden md:block" />
-        )}
-      </div>
+      <AnimatePresence mode="wait" custom={direction} initial={false}>
+        <motion.div
+          key={spreadIndex}
+          custom={direction}
+          variants={reduced ? undefined : flipVariants}
+          initial={reduced ? { opacity: 0 } : "enter"}
+          animate={reduced ? { opacity: 1 } : "center"}
+          exit={reduced ? { opacity: 0 } : "exit"}
+          transition={
+            reduced
+              ? { duration: 0.18 }
+              : { type: "spring", stiffness: 110, damping: 18 }
+          }
+          style={{ transformStyle: reduced ? undefined : "preserve-3d" }}
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6"
+        >
+          {leftPage ? (
+            <Page
+              page={leftPage}
+              pageIndex={leftPageIndex}
+              theme={theme}
+              cardLookup={cardLookup}
+              expectedLookup={expectedLookup}
+              binderSlug={binderSlug}
+              isDe={isDe}
+              ownerView={ownerView}
+              onSlotClick={onSlotClick}
+              onPageTitleSaved={onPageTitleSaved}
+            />
+          ) : (
+            <div />
+          )}
+          {rightPage ? (
+            <Page
+              page={rightPage}
+              pageIndex={rightPageIndex}
+              theme={theme}
+              cardLookup={cardLookup}
+              expectedLookup={expectedLookup}
+              binderSlug={binderSlug}
+              isDe={isDe}
+              ownerView={ownerView}
+              onSlotClick={onSlotClick}
+              onPageTitleSaved={onPageTitleSaved}
+            />
+          ) : (
+            <div className="hidden md:block" />
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

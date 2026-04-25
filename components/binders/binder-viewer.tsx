@@ -33,6 +33,7 @@ export function BinderViewer({
   const [liked, setLiked] = useState(false);
   const [busy, setBusy] = useState(false);
   const [spreadIndex, setSpreadIndex] = useState(0);
+  const [flipDirection, setFlipDirection] = useState(0);
   const cards = useMemo(() => {
     const map = new Map<string, PlacedCardDTO>();
     for (const c of placedCards) map.set(c.packPullId, c);
@@ -146,6 +147,8 @@ export function BinderViewer({
         rightPage={binder.pages[rightPageIndex] ?? null}
         leftPageIndex={leftPageIndex}
         rightPageIndex={rightPageIndex}
+        spreadIndex={spreadIndex}
+        flipDirection={flipDirection}
         cardLookup={(id) => cards.get(id)}
         expectedLookup={(id) => expectedById.get(id)}
       />
@@ -153,7 +156,13 @@ export function BinderViewer({
       <div className="flex items-center justify-center gap-4">
         <button
           type="button"
-          onClick={() => setSpreadIndex((i) => Math.max(0, i - 1))}
+          onClick={() =>
+            setSpreadIndex((i) => {
+              if (i === 0) return i;
+              setFlipDirection(-1);
+              return i - 1;
+            })
+          }
           disabled={spreadIndex === 0}
           className="bg-surface border border-border rounded-lg px-3 py-1.5 hover:border-pa-green/30 disabled:opacity-40"
         >
@@ -165,7 +174,11 @@ export function BinderViewer({
         <button
           type="button"
           onClick={() =>
-            setSpreadIndex((i) => Math.min(totalSpreads - 1, i + 1))
+            setSpreadIndex((i) => {
+              if (i >= totalSpreads - 1) return i;
+              setFlipDirection(1);
+              return i + 1;
+            })
           }
           disabled={spreadIndex >= totalSpreads - 1}
           className="bg-surface border border-border rounded-lg px-3 py-1.5 hover:border-pa-green/30 disabled:opacity-40"
