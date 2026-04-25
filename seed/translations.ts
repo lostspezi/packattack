@@ -828,7 +828,7 @@ export const translationSeedData = [
   { namespace: "admin", key: "upvoteCampaigns_actionClose", values: { de: "Beenden", en: "Close" } },
   { namespace: "admin", key: "upvoteCampaigns_actionDuplicate", values: { de: "Als Vorlage duplizieren", en: "Duplicate as template" } },
   { namespace: "admin", key: "upvoteCampaigns_actionDelete", values: { de: "Löschen", en: "Delete" } },
-  { namespace: "admin", key: "upvoteCampaigns_confirmActivate", values: { de: "Kampagne wirklich aktivieren? Karten und Top-N können danach nicht mehr geändert werden.", en: "Activate campaign? Cards and Top-N cannot be changed afterwards." } },
+  { namespace: "admin", key: "upvoteCampaigns_confirmActivate", values: { de: "Kampagne wirklich aktivieren? Karten und Top-N können danach nicht mehr geändert werden. Alle eingeloggten User mit Push-Erlaubnis bekommen eine Browser-Benachrichtigung.", en: "Activate campaign? Cards and Top-N cannot be changed afterwards. All signed-in users with push permission will get a browser notification." } },
   { namespace: "admin", key: "upvoteCampaigns_confirmClose", values: { de: "Kampagne wirklich beenden? Sie kann danach nicht wieder geöffnet werden.", en: "Close campaign? It cannot be reopened afterwards." } },
   { namespace: "admin", key: "upvoteCampaigns_confirmDelete", values: { de: "Diese Kampagne dauerhaft löschen?", en: "Permanently delete this campaign?" } },
   { namespace: "admin", key: "upvoteCampaigns_pickerTabPool", values: { de: "Aus Pool", en: "From pool" } },

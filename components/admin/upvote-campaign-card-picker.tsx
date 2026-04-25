@@ -1,7 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, X, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
+import { GripVertical, Search, X } from "lucide-react";
+import {
+  DndContext,
+  PointerSensor,
+  KeyboardSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -44,6 +61,10 @@ interface Props {
   disabled?: boolean;
 }
 
+function pickerKey(card: PickerCard): string {
+  return `${card.source}:${card.internalCardId ?? card.justTcgId ?? card.name}`;
+}
+
 export function UpvoteCampaignCardPicker({
   lang,
   dict,
@@ -56,6 +77,11 @@ export function UpvoteCampaignCardPicker({
   const [tab, setTab] = useState<"pool" | "justtcg">("pool");
   const [games, setGames] = useState<JustTCGGame[]>([]);
   const [game, setGame] = useState("");
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
   useEffect(() => {
     fetch("/api/justtcg/games")
@@ -78,6 +104,12 @@ export function UpvoteCampaignCardPicker({
     () => existingJustTcgIds.filter(Boolean),
     [existingJustTcgIds]
   );
+
+  const cardsWithKeys = useMemo(
+    () => cards.map((c, idx) => ({ key: `${pickerKey(c)}#${idx}`, card: c })),
+    [cards]
+  );
+  const sortableIds = useMemo(() => cardsWithKeys.map((c) => c.key), [cardsWithKeys]);
 
   const addInternal = useCallback(
     (pc: PoolCard) => {
@@ -135,15 +167,17 @@ export function UpvoteCampaignCardPicker({
     [cards, onChange]
   );
 
-  const move = useCallback(
-    (idx: number, dir: -1 | 1) => {
-      const next = [...cards];
-      const target = idx + dir;
-      if (target < 0 || target >= next.length) return;
-      [next[idx], next[target]] = [next[target], next[idx]];
-      onChange(next);
+  const handleDragEnd = useCallback(
+    (e: DragEndEvent) => {
+      if (disabled) return;
+      const { active, over } = e;
+      if (!over || active.id === over.id) return;
+      const fromIdx = sortableIds.indexOf(active.id as string);
+      const toIdx = sortableIds.indexOf(over.id as string);
+      if (fromIdx < 0 || toIdx < 0) return;
+      onChange(arrayMove(cards, fromIdx, toIdx));
     },
-    [cards, onChange]
+    [cards, disabled, onChange, sortableIds]
   );
 
   const gameOptions: SelectOption[] = [
@@ -221,80 +255,122 @@ export function UpvoteCampaignCardPicker({
       <div className="space-y-2">
         <h3 className="text-sm font-medium text-text-primary">
           {isDe ? "Karten in der Kampagne" : "Cards in this campaign"} ({cards.length})
+          {!disabled && cards.length > 1 && (
+            <span className="ml-2 text-xs font-normal text-text-muted">
+              {isDe
+                ? "Reihenfolge per Drag-and-Drop ändern."
+                : "Drag to reorder."}
+            </span>
+          )}
         </h3>
         {cards.length === 0 ? (
           <p className="text-sm text-text-muted">
             {dict["upvoteCampaigns_pickerEmpty"] ?? "No cards in this campaign."}
           </p>
         ) : (
-          <ul className="space-y-2">
-            {cards.map((card, idx) => (
-              <li
-                key={`${card.source}:${card.internalCardId ?? card.justTcgId}:${idx}`}
-                className="flex items-center gap-3 p-3 bg-surface rounded-lg border border-border"
-              >
-                <span className="text-xs text-text-muted w-6 text-right">{idx + 1}</span>
-                {card.image ? (
-                  <img
-                    src={card.image}
-                    alt=""
-                    className="w-10 h-14 object-cover rounded bg-surface-2"
-                  />
-                ) : (
-                  <div className="w-10 h-14 bg-surface-2 rounded flex items-center justify-center text-xs text-text-muted">
-                    ?
-                  </div>
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-text-primary truncate">
-                    {card.name}
-                  </div>
-                  <div className="text-xs text-text-muted truncate">
-                    {card.setName} · <Badge variant="info">{card.rarity}</Badge>{" "}
-                    <Badge variant={card.source === "internal" ? "success" : "warning"}>
-                      {card.source === "internal"
-                        ? isDe
-                          ? "Pool"
-                          : "Pool"
-                        : "JustTCG"}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => move(idx, -1)}
-                    disabled={disabled || idx === 0}
-                    title={dict["upvoteCampaigns_pickerMoveUp"] ?? "Move up"}
-                    className="p-1.5 rounded hover:bg-surface-2 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <ArrowUp className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => move(idx, 1)}
-                    disabled={disabled || idx === cards.length - 1}
-                    title={dict["upvoteCampaigns_pickerMoveDown"] ?? "Move down"}
-                    className="p-1.5 rounded hover:bg-surface-2 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <ArrowDown className="w-4 h-4" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => removeAt(idx)}
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+              <ul className="space-y-2">
+                {cardsWithKeys.map(({ key, card }, idx) => (
+                  <SortableCardRow
+                    key={key}
+                    sortableId={key}
+                    card={card}
+                    index={idx}
                     disabled={disabled}
-                    title={dict["upvoteCampaigns_pickerRemove"] ?? "Remove"}
-                    className="p-1.5 rounded hover:bg-surface-2 text-red-400 disabled:opacity-30 disabled:cursor-not-allowed"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+                    isDe={isDe}
+                    dict={dict}
+                    onRemove={() => removeAt(idx)}
+                  />
+                ))}
+              </ul>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
     </div>
+  );
+}
+
+interface SortableCardRowProps {
+  sortableId: string;
+  card: PickerCard;
+  index: number;
+  disabled?: boolean;
+  isDe: boolean;
+  dict: Record<string, string>;
+  onRemove: () => void;
+}
+
+function SortableCardRow({
+  sortableId,
+  card,
+  index,
+  disabled,
+  isDe,
+  dict,
+  onRemove,
+}: SortableCardRowProps) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: sortableId, disabled });
+
+  const style: CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    position: isDragging ? "relative" : undefined,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.85 : 1,
+  };
+
+  return (
+    <li
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 p-3 bg-surface rounded-lg border ${
+        isDragging ? "border-pa-green/50 shadow-lg" : "border-border"
+      } touch-none`}
+    >
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        disabled={disabled}
+        title={isDe ? "Zum Sortieren ziehen" : "Drag to reorder"}
+        className="p-1 text-text-muted hover:text-text-primary cursor-grab active:cursor-grabbing disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        <GripVertical className="w-4 h-4" />
+      </button>
+      <span className="text-xs text-text-muted w-6 text-right tabular-nums">{index + 1}</span>
+      {card.image ? (
+        <img src={card.image} alt="" className="w-10 h-14 object-cover rounded bg-surface-2" />
+      ) : (
+        <div className="w-10 h-14 bg-surface-2 rounded flex items-center justify-center text-xs text-text-muted">
+          ?
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-medium text-text-primary truncate">{card.name}</div>
+        <div className="text-xs text-text-muted truncate">
+          {card.setName} · <Badge variant="info">{card.rarity}</Badge>{" "}
+          <Badge variant={card.source === "internal" ? "success" : "warning"}>
+            {card.source === "internal" ? "Pool" : "JustTCG"}
+          </Badge>
+        </div>
+      </div>
+      <button
+        type="button"
+        onClick={onRemove}
+        disabled={disabled}
+        title={dict["upvoteCampaigns_pickerRemove"] ?? "Remove"}
+        className="p-1.5 rounded hover:bg-surface-2 text-red-400 disabled:opacity-30 disabled:cursor-not-allowed"
+      >
+        <X className="w-4 h-4" />
+      </button>
+    </li>
   );
 }
 

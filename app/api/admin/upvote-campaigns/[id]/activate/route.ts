@@ -5,6 +5,7 @@ import connectDB from "@/lib/db";
 import UpvoteCampaign from "@/models/upvote-campaign";
 import { gateAdmin } from "@/lib/admin/upvote-campaign-helpers";
 import { canTransition } from "@/lib/votes/lifecycle";
+import { notifyUpvoteCampaignActivated } from "@/lib/push/notify-upvote-campaign";
 
 export async function POST(
   _req: NextRequest,
@@ -35,6 +36,14 @@ export async function POST(
 
     campaign.status = "active";
     await campaign.save();
+
+    // Fire-and-forget Notification + Push. Wenn die Push-Pipeline aus
+    // irgendeinem Grund hängt, soll das Activate trotzdem erfolgreich
+    // zurückkommen — der Status ist bereits persistent.
+    notifyUpvoteCampaignActivated(campaign).catch((err) => {
+      console.error("[activate] notify upvote campaign failed:", err);
+    });
+
     return NextResponse.json({ ok: true, status: campaign.status });
   } catch (err) {
     console.error("[admin/upvote-campaigns/:id/activate]", err);
