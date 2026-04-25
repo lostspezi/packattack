@@ -36,7 +36,7 @@ export async function DELETE(
 
     await PackPull.updateOne(
       { _id: item.pullId, status: "reserved" },
-      { status: "converted" }
+      { $set: { status: "converted", binderId: null } }
     );
 
     const user = await User.findByIdAndUpdate(

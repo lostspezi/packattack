@@ -86,9 +86,21 @@ function planSlotOp(pages: PlainPage[], op: SlotOpInput): PlanResult {
     };
   }
 
-  // swap
+  // swap — both packPullIds (if any) stay in this binder, but defensively
+  // re-bind them so any drift (e.g. a slot referencing a packPull whose
+  // binderId got nulled by a prior failed bind) is corrected on the next
+  // user action.
   const nextPages = swapSlots({ pages, from: op.from, to: op.to });
-  return { nextPages, cardsToBind: [], cardsToUnbind: [] };
+  const fromSlot = nextPages[op.from.pageIndex]?.slots.find(
+    (s) => s.position === op.from.slotPosition,
+  );
+  const toSlot = nextPages[op.to.pageIndex]?.slots.find(
+    (s) => s.position === op.to.slotPosition,
+  );
+  const cardsToBind: string[] = [];
+  if (fromSlot?.packPullId) cardsToBind.push(fromSlot.packPullId);
+  if (toSlot?.packPullId) cardsToBind.push(toSlot.packPullId);
+  return { nextPages, cardsToBind, cardsToUnbind: [] };
 }
 
 export async function PATCH(
