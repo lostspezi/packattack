@@ -12,14 +12,7 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
-import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Layers,
-  Loader2,
-  Settings,
-} from "lucide-react";
+import { ArrowLeft, Layers, Loader2, Settings } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { fetchInventory, type InventoryCard } from "@/lib/binders/inventory";
 import { BINDER_THEMES } from "./theme-picker";
@@ -114,7 +107,6 @@ export function BinderEditor({
   const [inventoryLoading, setInventoryLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [spreadIndex, setSpreadIndex] = useState(0);
-  const [flipDirection, setFlipDirection] = useState(0);
   const [savingOp, setSavingOp] = useState(false);
   const [activeDrag, setActiveDrag] = useState<DragSource | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -203,24 +195,13 @@ export function BinderEditor({
     useSensor(KeyboardSensor),
   );
 
+  // Clamp spreadIndex when pages shrink (e.g. after a page delete).
   const totalSpreads = Math.max(1, Math.ceil(binder.pages.length / 2));
-  const leftPageIndex = spreadIndex * 2;
-  const rightPageIndex = leftPageIndex + 1;
-
-  const goPrev = useCallback(() => {
-    setSpreadIndex((i) => {
-      if (i === 0) return i;
-      setFlipDirection(-1);
-      return i - 1;
-    });
-  }, []);
-  const goNext = useCallback(() => {
-    setSpreadIndex((i) => {
-      if (i >= totalSpreads - 1) return i;
-      setFlipDirection(1);
-      return i + 1;
-    });
-  }, [totalSpreads]);
+  useEffect(() => {
+    if (spreadIndex > totalSpreads - 1) {
+      setSpreadIndex(Math.max(0, totalSpreads - 1));
+    }
+  }, [spreadIndex, totalSpreads]);
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     const data = event.active.data.current as DragSource | undefined;
@@ -436,12 +417,9 @@ export function BinderEditor({
 
         <BinderSpread
           theme={theme}
-          leftPage={binder.pages[leftPageIndex] ?? null}
-          rightPage={binder.pages[rightPageIndex] ?? null}
-          leftPageIndex={leftPageIndex}
-          rightPageIndex={rightPageIndex}
+          pages={binder.pages}
           spreadIndex={spreadIndex}
-          flipDirection={flipDirection}
+          onSpreadChange={setSpreadIndex}
           cardLookup={cardLookup}
           expectedLookup={(id) => expectedById.get(id)}
           binderSlug={binder.slug}
@@ -450,34 +428,6 @@ export function BinderEditor({
           onSlotClick={handleSlotClick}
           onPageTitleSaved={handlePageTitleSaved}
         />
-
-        <div className="flex items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={goPrev}
-            disabled={spreadIndex === 0}
-            className="bg-surface border border-border rounded-lg p-2 hover:border-pa-green/30 disabled:opacity-40 transition-colors"
-            aria-label={isDe ? "Vorherige Seite" : "Previous page"}
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <span className="text-sm text-text-secondary">
-            {isDe ? "Seite" : "Page"} {leftPageIndex + 1}
-            {rightPageIndex < binder.pages.length
-              ? `–${rightPageIndex + 1}`
-              : ""}{" "}
-            / {binder.pages.length}
-          </span>
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={spreadIndex >= totalSpreads - 1}
-            className="bg-surface border border-border rounded-lg p-2 hover:border-pa-green/30 disabled:opacity-40 transition-colors"
-            aria-label={isDe ? "Nächste Seite" : "Next page"}
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
 
         <InventoryDrawer
           open={drawerOpen}
