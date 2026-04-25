@@ -20,7 +20,6 @@ export async function GET(req: NextRequest) {
   const rarity = url.searchParams.get("rarity");
   const search = url.searchParams.get("q")?.trim();
   const onlyFree = url.searchParams.get("onlyFree") === "1";
-  const sortParam = url.searchParams.get("sort") ?? "recent";
   const cursor = url.searchParams.get("cursor");
 
   const userObjId = new Types.ObjectId(userId);
@@ -47,18 +46,17 @@ export async function GET(req: NextRequest) {
   if (cardIdFilter) pullFilter.cardId = { $in: cardIdFilter };
   if (onlyFree) pullFilter.binderId = null;
 
-  const sort: Record<string, 1 | -1> =
-    sortParam === "name"
-      ? { _id: -1 }
-      : { createdAt: -1, _id: -1 };
+  const sort: Record<string, 1 | -1> = { createdAt: -1, _id: -1 };
 
   if (cursor) {
     const [createdAtIso, id] = cursor.split("_");
-    if (createdAtIso && id) {
+    if (createdAtIso && id && Types.ObjectId.isValid(id)) {
       const parsedTs = new Date(createdAtIso);
       if (!Number.isNaN(parsedTs.getTime())) {
-        pullFilter.createdAt = { $lte: parsedTs };
-        pullFilter._id = { $lt: new Types.ObjectId(id) };
+        pullFilter.$or = [
+          { createdAt: { $lt: parsedTs } },
+          { createdAt: parsedTs, _id: { $lt: new Types.ObjectId(id) } },
+        ];
       }
     }
   }

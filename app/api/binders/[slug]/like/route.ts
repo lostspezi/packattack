@@ -28,10 +28,6 @@ export async function POST(
       binderId: binder._id,
       userId: new Types.ObjectId(userId),
     });
-    await Binder.updateOne(
-      { _id: binder._id },
-      { $inc: { likeCount: 1 } },
-    );
   } catch (err) {
     if ((err as { code?: number }).code === 11000) {
       return NextResponse.json({ ok: true, alreadyLiked: true });
@@ -39,7 +35,12 @@ export async function POST(
     throw err;
   }
 
-  return NextResponse.json({ ok: true });
+  // Recompute the counter from the like collection so a crash between the
+  // create and the increment can't permanently desync the cached count.
+  const likeCount = await BinderLike.countDocuments({ binderId: binder._id });
+  await Binder.updateOne({ _id: binder._id }, { $set: { likeCount } });
+
+  return NextResponse.json({ ok: true, likeCount });
 }
 
 export async function DELETE(
@@ -60,16 +61,13 @@ export async function DELETE(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const removed = await BinderLike.findOneAndDelete({
+  await BinderLike.findOneAndDelete({
     binderId: binder._id,
     userId: new Types.ObjectId(userId),
   });
-  if (removed) {
-    await Binder.updateOne(
-      { _id: binder._id, likeCount: { $gt: 0 } },
-      { $inc: { likeCount: -1 } },
-    );
-  }
 
-  return NextResponse.json({ ok: true });
+  const likeCount = await BinderLike.countDocuments({ binderId: binder._id });
+  await Binder.updateOne({ _id: binder._id }, { $set: { likeCount } });
+
+  return NextResponse.json({ ok: true, likeCount });
 }

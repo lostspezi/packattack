@@ -189,7 +189,7 @@ export async function PATCH(
     );
   }
   if (plan.cardsToBind.length > 0) {
-    await PackPull.updateMany(
+    const bindResult = await PackPull.updateMany(
       {
         _id: { $in: plan.cardsToBind.map((id) => new Types.ObjectId(id)) },
         userId: binder.userId,
@@ -198,6 +198,25 @@ export async function PATCH(
       },
       { $set: { binderId: binderObjId } },
     );
+    if (bindResult.matchedCount !== plan.cardsToBind.length) {
+      // Roll back unbinds so the previous state holds
+      if (plan.cardsToUnbind.length > 0) {
+        await PackPull.updateMany(
+          {
+            _id: {
+              $in: plan.cardsToUnbind.map((id) => new Types.ObjectId(id)),
+            },
+            userId: binder.userId,
+            binderId: null,
+          },
+          { $set: { binderId: binderObjId } },
+        );
+      }
+      return NextResponse.json(
+        { error: "pack_pull_concurrent_change" },
+        { status: 409 },
+      );
+    }
   }
 
   binder.pages = fromPlainPages(nextPages);
