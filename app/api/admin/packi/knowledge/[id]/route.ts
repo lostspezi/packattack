@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest, ctx: RouteContext) {
     const doc = await PackiKnowledge.findByIdAndUpdate(
       id,
       { ...parsed.data, updatedBy: updaterId },
-      { new: true },
+      { returnDocument: "after" },
     ).lean();
     if (!doc) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });

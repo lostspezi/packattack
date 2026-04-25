@@ -99,7 +99,7 @@ export async function unlockAchievement(
     await UserAchievement.findOneAndUpdate(
       { userId: userObjectId, achievementId: achievement._id, completed: { $ne: true } },
       update,
-      { upsert: true, new: true },
+      { upsert: true, returnDocument: "after" },
     );
   } catch (err) {
     if ((err as { code?: number })?.code === 11000) {

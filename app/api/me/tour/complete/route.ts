@@ -45,7 +45,7 @@ export async function POST() {
         },
         $inc: { coins: TOUR_REWARD_COINS },
       },
-      { new: true, select: "coins tour" },
+      { returnDocument: "after", select: "coins tour" },
     ).lean();
 
     if (granted) {
@@ -82,7 +82,7 @@ export async function POST() {
     const replay = await User.findByIdAndUpdate(
       userId,
       { $set: { "tour.completed": true, "tour.skippedAt": null } },
-      { new: true, select: "coins tour" },
+      { returnDocument: "after", select: "coins tour" },
     ).lean();
 
     if (!replay) {

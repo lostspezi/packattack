@@ -47,8 +47,9 @@ function coerceUserId(userId: string | Types.ObjectId): Types.ObjectId | null {
  * Vergibt XP an einen User, erkennt Level-Ups und persistiert sie.
  *
  * Strategie (zwei-Phasen-Schreibvorgang):
- *   1. Atomares `$inc` auf `xp` + `$set` auf `lastXpGainAt`, mit `new: true` —
- *      wir lesen den *post-increment* XP-Stand. Der atomare Increment stellt
+ *   1. Atomares `$inc` auf `xp` + `$set` auf `lastXpGainAt`, mit
+ *      `returnDocument: "after"` — wir lesen den *post-increment* XP-Stand.
+ *      Der atomare Increment stellt
  *      sicher, dass XP nie verloren geht, selbst wenn mehrere Grants parallel
  *      laufen.
  *   2. Aus dem neuen XP-Stand das Ziel-Level berechnen. Wenn der gecachte
@@ -79,7 +80,7 @@ export async function grantXp(
   const after = await User.findByIdAndUpdate(
     objectId,
     { $inc: { xp: rounded }, $set: { lastXpGainAt: new Date() } },
-    { new: true, projection: { xp: 1, level: 1 } },
+    { returnDocument: "after", projection: { xp: 1, level: 1 } },
   ).lean<{ _id: Types.ObjectId; xp?: number; level?: number }>();
 
   if (!after) return null;
@@ -159,7 +160,7 @@ export async function incrementCounter(
   const after = await User.findByIdAndUpdate(
     objectId,
     { $inc: { [path]: by } },
-    { new: true, projection: { [path]: 1 } },
+    { returnDocument: "after", projection: { [path]: 1 } },
   ).lean<{ stats?: { counters?: Record<string, number> } }>();
 
   if (!after) return null;

@@ -112,7 +112,7 @@ export async function PATCH(req: NextRequest) {
     const updated = await User.findByIdAndUpdate(
       userOrResponse,
       update,
-      { new: true, select: "tour" },
+      { returnDocument: "after", select: "tour" },
     ).lean();
     if (!updated) {
       return NextResponse.json({ error: "not_found" }, { status: 404 });

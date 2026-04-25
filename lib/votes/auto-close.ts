@@ -19,7 +19,7 @@ export async function autoCloseIfExpired<T extends IUpvoteCampaign>(
   const updated = await UpvoteCampaign.findOneAndUpdate(
     { _id: campaign._id, status: "active" },
     { $set: { status: "closed", closedAt: now } },
-    { new: true }
+    { returnDocument: "after" }
   );
 
   if (updated) return updated as T;
