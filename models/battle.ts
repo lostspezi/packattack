@@ -1,4 +1,5 @@
 import mongoose, { Document, Model, Schema, Types } from "mongoose";
+import { generateUniqueSlug } from "@/lib/slug";
 
 // ---------- Sub-interfaces ----------
 
@@ -195,19 +196,8 @@ const BattleSchema = new Schema<IBattle>(
 // Auto-generate slug
 BattleSchema.pre("save", async function () {
   if (this.slug) return;
-
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let slug: string;
   const BattleModel = this.constructor as Model<IBattle>;
-
-   
-  while (true) {
-    slug = Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-    const existing = await BattleModel.findOne({ slug }).select("_id").lean();
-    if (!existing) break;
-  }
-
-  this.slug = slug;
+  this.slug = await generateUniqueSlug(BattleModel);
 });
 
 BattleSchema.index({ slug: 1 }, { unique: true });
