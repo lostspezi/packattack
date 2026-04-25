@@ -1,6 +1,8 @@
 import mongoose from "mongoose";
 import type { IBattle, IVirtualCard } from "@/models/battle";
 import Battle from "@/models/battle";
+import Box from "@/models/box";
+import PackPull from "@/models/pack-pull";
 import User from "@/models/user";
 import { evaluateRound, evaluateBattle } from "@/lib/battle-engine";
 import { loadBattleBoxCards, drawBattleHandCards } from "@/lib/battle-cards";
@@ -225,6 +227,13 @@ async function prepareFinishBattle(
   // Losers: +1 losses, streak reset to 0.
   // Draws: +1 totalBattles only, streak reset to 0, ELO unchanged.
   return async () => {
+    // Persist the cards every round-winner played. Each round can produce
+    // exactly one pull, scoped to packGroupId `battle-<id>` so the unique
+    // (packGroupId, cardIndex) index uses round.roundNumber as cardIndex
+    // without colliding across battles.
+    await persistBattleWinPulls(battle);
+
+
     // Level-System: XP + counters + once-event pro Spieler. Fehler
     // protokolliert und ignoriert — der ELO-Pfad bleibt die maßgebliche
     // Wahrheit für das Battle-Ergebnis. Wir nutzen allSettled statt all,
@@ -317,6 +326,93 @@ async function prepareFinishBattle(
 
     await awardLevelRewards();
   };
+}
+
+async function persistBattleWinPulls(
+  battle: InstanceType<typeof Battle>,
+): Promise<void> {
+  type WinDoc = {
+    userId: mongoose.Types.ObjectId;
+    boxId: mongoose.Types.ObjectId;
+    cardId: mongoose.Types.ObjectId;
+    rarity: string;
+    coinValue: number;
+    conversionValue: number;
+    status: "claimed";
+    decidedAt: Date;
+    packGroupId: string;
+    packIndex: number;
+    cardIndex: number;
+    ipAddress: string;
+    userAgent: string;
+    battleId: mongoose.Types.ObjectId;
+    expiresAt: null;
+    binderId: null;
+  };
+
+  const wonPulls: WinDoc[] = [];
+  const battleId = battle._id as mongoose.Types.ObjectId;
+  const now = new Date();
+
+  for (const round of battle.rounds) {
+    const winner = round.winner;
+    if (!winner) continue;
+    const winnerStr = winner.toString();
+    const winnerHand = round.hands.find(
+      (h) => h.player.toString() === winnerStr,
+    );
+    if (!winnerHand || winnerHand.selectedCardIndex === null) continue;
+    const card = winnerHand.cards[winnerHand.selectedCardIndex];
+    if (!card) continue;
+    wonPulls.push({
+      userId: winner,
+      boxId: battle.box,
+      cardId: card.cardId,
+      rarity: card.rarity,
+      coinValue: card.coinValue,
+      conversionValue: card.conversionValue,
+      status: "claimed",
+      decidedAt: now,
+      packGroupId: `battle-${battleId.toString()}`,
+      packIndex: 0,
+      cardIndex: round.roundNumber,
+      ipAddress: "",
+      userAgent: "",
+      battleId,
+      expiresAt: null,
+      binderId: null,
+    });
+  }
+
+  if (wonPulls.length === 0) return;
+
+  try {
+    await PackPull.insertMany(wonPulls, { ordered: false });
+  } catch (err) {
+    // Ordered:false means partial success — swallow duplicate-key errors so a
+    // retried battle finalize is idempotent. Anything else is logged but does
+    // not block ELO/XP updates that follow.
+    console.error("[battle-flow persistBattleWinPulls insert]", err);
+  }
+
+  // Best-effort stock decrement. The card was virtually drawn from the box
+  // during the round, but the DB stock was never touched (battles are
+  // ephemeral). Now that the card persists, mirror the change in the box.
+  const stockOps = wonPulls.map((p) => ({
+    updateOne: {
+      filter: {
+        _id: p.boxId,
+        "cards.card": p.cardId,
+        "cards.stock": { $gte: 1 },
+      },
+      update: { $inc: { "cards.$.stock": -1 } },
+    },
+  }));
+  try {
+    await Box.bulkWrite(stockOps, { ordered: false });
+  } catch (err) {
+    console.error("[battle-flow persistBattleWinPulls stock]", err);
+  }
 }
 
 /**

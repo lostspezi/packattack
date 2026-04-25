@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, Search, Library, Filter } from "lucide-react";
 
+type PullStatus = "pending" | "claimed" | "converted" | "reserved";
+
 interface CollectionItem {
   packPullId: string;
   cardId: string;
@@ -12,7 +14,9 @@ interface CollectionItem {
   setName: string;
   rarity: string;
   image: string | null;
+  status: PullStatus;
   binderId: string | null;
+  battleId: string | null;
   createdAt: string;
 }
 
@@ -239,23 +243,37 @@ function CollectionCardTile({
   item: CollectionItem;
   isDe: boolean;
 }) {
-  const inBinder = Boolean(item.binderId);
+  const stateBadge = describeStateBadge(item, isDe);
+  const dimmed = item.status === "converted";
   return (
-    <div className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col group hover:border-pa-green/30 transition-colors">
+    <div
+      className={[
+        "bg-surface border border-border rounded-xl overflow-hidden flex flex-col group hover:border-pa-green/30 transition-colors",
+        dimmed ? "opacity-70" : "",
+      ].join(" ")}
+    >
       <div className="relative aspect-[5/7] bg-white/4 flex items-center justify-center">
         {item.image ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={item.image}
             alt={item.name}
-            className="object-contain w-full h-full"
+            className={[
+              "object-contain w-full h-full",
+              dimmed ? "grayscale" : "",
+            ].join(" ")}
           />
         ) : (
           <Library className="w-8 h-8 text-text-muted" />
         )}
-        {inBinder && (
-          <span className="absolute top-1.5 right-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-black/70 text-pa-green border border-pa-green/30">
-            {isDe ? "im Binder" : "in binder"}
+        {stateBadge && (
+          <span
+            className={[
+              "absolute top-1.5 right-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border",
+              stateBadge.tone,
+            ].join(" ")}
+          >
+            {stateBadge.label}
           </span>
         )}
         <span className="absolute top-1.5 left-1.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-black/70 text-text-primary border border-white/10">
@@ -278,4 +296,41 @@ function CollectionCardTile({
       </div>
     </div>
   );
+}
+
+function describeStateBadge(
+  item: CollectionItem,
+  isDe: boolean,
+): { label: string; tone: string } | null {
+  if (item.binderId && item.status === "claimed") {
+    return {
+      label: isDe ? "im Binder" : "in binder",
+      tone: "bg-black/70 text-pa-green border-pa-green/30",
+    };
+  }
+  if (item.status === "pending") {
+    return {
+      label: isDe ? "ausstehend" : "pending",
+      tone: "bg-black/70 text-amber-300 border-amber-400/30",
+    };
+  }
+  if (item.status === "reserved") {
+    return {
+      label: isDe ? "im Versand" : "shipping",
+      tone: "bg-black/70 text-sky-300 border-sky-400/30",
+    };
+  }
+  if (item.status === "converted") {
+    return {
+      label: isDe ? "verkauft" : "sold",
+      tone: "bg-black/70 text-text-muted border-white/15",
+    };
+  }
+  if (item.battleId) {
+    return {
+      label: isDe ? "Battle" : "Battle",
+      tone: "bg-black/70 text-rose-300 border-rose-400/30",
+    };
+  }
+  return null;
 }

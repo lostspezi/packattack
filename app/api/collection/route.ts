@@ -39,12 +39,16 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const pullFilter: Record<string, unknown> = {
-    userId: userObjId,
-    status: "claimed",
-  };
+  // Sammlung is the complete log of every card the user has ever drawn,
+  // independent of what later happened to it (claim / sell-for-coins / cart).
+  // The binder inventory drawer asks for ?onlyFree=1 to narrow down to cards
+  // that are still binder-eligible (claimed and not in any binder yet).
+  const pullFilter: Record<string, unknown> = { userId: userObjId };
+  if (onlyFree) {
+    pullFilter.status = "claimed";
+    pullFilter.binderId = null;
+  }
   if (cardIdFilter) pullFilter.cardId = { $in: cardIdFilter };
-  if (onlyFree) pullFilter.binderId = null;
 
   const sort: Record<string, 1 | -1> = { createdAt: -1, _id: -1 };
 
@@ -96,7 +100,9 @@ export async function GET(req: NextRequest) {
         setName: card.setName,
         rarity: card.rarity,
         image: card.image ?? null,
+        status: p.status,
         binderId: p.binderId ? p.binderId.toString() : null,
+        battleId: p.battleId ? p.battleId.toString() : null,
         createdAt: p.createdAt.toISOString(),
       };
     })
