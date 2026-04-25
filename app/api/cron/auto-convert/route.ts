@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       // Update all pending pulls to converted
       await PackPull.updateMany(
         { packGroupId, userId, status: "pending" },
-        { $set: { status: "converted", decidedAt: new Date(), binderId: null } }
+        { $set: { status: "converted", decidedAt: new Date() } }
       );
 
       // Credit user coins

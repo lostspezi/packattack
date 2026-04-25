@@ -33,7 +33,7 @@ async function processExpiredReservations() {
 
     await PackPull.updateOne(
       { _id: item.pullId, status: "reserved" },
-      { $set: { status: "converted", decidedAt: now, binderId: null } }
+      { $set: { status: "converted", decidedAt: now } }
     );
 
     await User.findByIdAndUpdate(item.userId, {

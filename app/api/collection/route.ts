@@ -42,10 +42,10 @@ export async function GET(req: NextRequest) {
   // Sammlung is the complete log of every card the user has ever drawn,
   // independent of what later happened to it (claim / sell-for-coins / cart).
   // The binder inventory drawer asks for ?onlyFree=1 to narrow down to cards
-  // that are still binder-eligible (claimed and not in any binder yet).
+  // that are not currently placed in any binder — status doesn't matter,
+  // because the binder is a showcase decoupled from the economy.
   const pullFilter: Record<string, unknown> = { userId: userObjId };
   if (onlyFree) {
-    pullFilter.status = "claimed";
     pullFilter.binderId = null;
   }
   if (cardIdFilter) pullFilter.cardId = { $in: cardIdFilter };

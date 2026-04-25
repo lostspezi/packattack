@@ -81,7 +81,7 @@ vi.mock("@/models/user", () => {
     findByIdAndUpdate: (
       id: Types.ObjectId | string,
       update: { $inc?: Record<string, number>; $set?: Record<string, unknown> },
-      opts: { new?: boolean } = {},
+      opts: { new?: boolean; returnDocument?: "before" | "after" } = {},
     ) => {
       const key = id.toString();
       const existing = userStore.get(key);
@@ -89,7 +89,8 @@ vi.mock("@/models/user", () => {
       const snapshot = clone(existing);
       if (update.$inc) applyInc(existing as unknown as Record<string, unknown>, update.$inc);
       if (update.$set) applySet(existing as unknown as Record<string, unknown>, update.$set);
-      const returnDoc = opts.new ? clone(existing) : snapshot;
+      const wantsAfter = opts.new === true || opts.returnDocument === "after";
+      const returnDoc = wantsAfter ? clone(existing) : snapshot;
       return { lean: async () => returnDoc };
     },
     updateOne: async (

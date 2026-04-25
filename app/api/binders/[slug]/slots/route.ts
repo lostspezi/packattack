@@ -142,10 +142,14 @@ export async function PATCH(
   }
 
   if (op.op === "place" || op.op === "move") {
+    // Binders are a gamification showcase, decoupled from the card economy:
+    // every pull the user has ever drawn is placeable, regardless of whether
+    // it's pending, reserved (in cart), claimed (paid), or converted (sold).
+    // The only invariants we still enforce are ownership and one-binder-per-pull.
     const pull = await PackPull.findOne({
       _id: new Types.ObjectId(op.packPullId),
     })
-      .select("userId status binderId")
+      .select("userId binderId")
       .lean();
     if (!pull) {
       return NextResponse.json(
@@ -155,12 +159,6 @@ export async function PATCH(
     }
     if (pull.userId.toString() !== userId) {
       return NextResponse.json({ error: "forbidden" }, { status: 403 });
-    }
-    if (pull.status !== "claimed") {
-      return NextResponse.json(
-        { error: "pack_pull_not_claimed" },
-        { status: 409 },
-      );
     }
     if (
       pull.binderId &&
@@ -213,7 +211,6 @@ export async function PATCH(
               $in: plan.cardsToBind.map((id) => new Types.ObjectId(id)),
             },
             userId: binder.userId,
-            status: "claimed",
             $or: [{ binderId: null }, { binderId: binderObjId }],
           },
           { $set: { binderId: binderObjId } },

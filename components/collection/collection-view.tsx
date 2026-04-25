@@ -244,24 +244,15 @@ function CollectionCardTile({
   isDe: boolean;
 }) {
   const stateBadge = describeStateBadge(item, isDe);
-  const dimmed = item.status === "converted";
   return (
-    <div
-      className={[
-        "bg-surface border border-border rounded-xl overflow-hidden flex flex-col group hover:border-pa-green/30 transition-colors",
-        dimmed ? "opacity-70" : "",
-      ].join(" ")}
-    >
+    <div className="bg-surface border border-border rounded-xl overflow-hidden flex flex-col group hover:border-pa-green/30 transition-colors">
       <div className="relative aspect-[5/7] bg-white/4 flex items-center justify-center">
         {item.image ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
             src={item.image}
             alt={item.name}
-            className={[
-              "object-contain w-full h-full",
-              dimmed ? "grayscale" : "",
-            ].join(" ")}
+            className="object-contain w-full h-full"
           />
         ) : (
           <Library className="w-8 h-8 text-text-muted" />
@@ -302,28 +293,10 @@ function describeStateBadge(
   item: CollectionItem,
   isDe: boolean,
 ): { label: string; tone: string } | null {
-  if (item.binderId && item.status === "claimed") {
+  if (item.binderId) {
     return {
       label: isDe ? "im Binder" : "in binder",
       tone: "bg-black/70 text-pa-green border-pa-green/30",
-    };
-  }
-  if (item.status === "pending") {
-    return {
-      label: isDe ? "ausstehend" : "pending",
-      tone: "bg-black/70 text-amber-300 border-amber-400/30",
-    };
-  }
-  if (item.status === "reserved") {
-    return {
-      label: isDe ? "im Versand" : "shipping",
-      tone: "bg-black/70 text-sky-300 border-sky-400/30",
-    };
-  }
-  if (item.status === "converted") {
-    return {
-      label: isDe ? "verkauft" : "sold",
-      tone: "bg-black/70 text-text-muted border-white/15",
     };
   }
   if (item.battleId) {
