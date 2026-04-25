@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -14,10 +14,10 @@ import {
 } from "@dnd-kit/core";
 import { ArrowLeft, Layers, Loader2, Settings } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
-import { fetchInventory, type InventoryCard } from "@/lib/binders/inventory";
+import type { InventoryCard } from "@/lib/binders/inventory";
 import { BINDER_THEMES } from "./theme-picker";
 import { BinderSpread, type SpreadDragSource } from "./binder-spread";
-import { InventoryDrawer } from "./inventory-drawer";
+import { InventoryDrawer, type InventoryDrawerHandle } from "./inventory-drawer";
 import { CardDragOverlay } from "./card-drag-overlay";
 import { BinderSettingsSheet } from "./binder-settings-sheet";
 import { SlotNotePopover } from "./slot-note-popover";
@@ -103,8 +103,6 @@ export function BinderEditor({
   const { toast } = useToast();
 
   const [binder, setBinder] = useState<BinderDTO>(initialBinder);
-  const [inventory, setInventory] = useState<InventoryCard[]>([]);
-  const [inventoryLoading, setInventoryLoading] = useState(true);
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [spreadIndex, setSpreadIndex] = useState(0);
   const [savingOp, setSavingOp] = useState(false);
@@ -124,11 +122,17 @@ export function BinderEditor({
     },
   );
 
-  const inventoryById = useMemo(() => {
-    const map = new Map<string, InventoryCard>();
-    for (const c of inventory) map.set(c.packPullId, c);
-    return map;
-  }, [inventory]);
+  const drawerRef = useRef<InventoryDrawerHandle>(null);
+
+  const handleCardsLoaded = useCallback((cards: InventoryCard[]) => {
+    setPlacedById((prev) => {
+      const next = new Map(prev);
+      for (const c of cards) {
+        if (!next.has(c.packPullId)) next.set(c.packPullId, c);
+      }
+      return next;
+    });
+  }, []);
 
   const expectedById = useMemo(() => {
     const map = new Map<string, ExpectedCardDTO>();
@@ -155,38 +159,9 @@ export function BinderEditor({
   }, [binder, placedById]);
 
   const cardLookup = useCallback(
-    (packPullId: string): InventoryCard | undefined => {
-      return inventoryById.get(packPullId) ?? placedById.get(packPullId);
-    },
-    [inventoryById, placedById],
+    (packPullId: string) => placedById.get(packPullId),
+    [placedById],
   );
-
-  const reloadInventory = useCallback(async () => {
-    setInventoryLoading(true);
-    try {
-      const items = await fetchInventory();
-      setInventory(items);
-    } finally {
-      setInventoryLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    reloadInventory();
-  }, [reloadInventory]);
-
-  // After every server response, fold the new placed-cards into the local map
-  // so cards moved into a slot via swap remain renderable even if they were
-  // outside both the current inventory and the initial placedCards.
-  useEffect(() => {
-    setPlacedById((prev) => {
-      const next = new Map(prev);
-      for (const c of inventory) {
-        if (!next.has(c.packPullId)) next.set(c.packPullId, c);
-      }
-      return next;
-    });
-  }, [inventory]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -266,9 +241,9 @@ export function BinderEditor({
         pageIndex,
         slotPosition,
       });
-      if (ok) await reloadInventory();
+      if (ok) drawerRef.current?.refresh();
     },
-    [performSlotOp, reloadInventory],
+    [performSlotOp],
   );
 
   const handlePageTitleSaved = useCallback(
@@ -325,7 +300,7 @@ export function BinderEditor({
           expectedCurrent,
         });
         if (ok) {
-          await reloadInventory();
+          drawerRef.current?.removeCard(drag.card.packPullId);
         }
       } else {
         // dragging a slot card to another slot
@@ -348,10 +323,12 @@ export function BinderEditor({
           from: fromCoord,
           to: toCoord,
         });
-        if (ok) await reloadInventory();
+        if (ok) {
+          // slot-to-slot swap does not change inventory
+        }
       }
     },
-    [activeDrag, binder.pages, performSlotOp, reloadInventory],
+    [activeDrag, binder.pages, performSlotOp],
   );
 
   const theme =
@@ -430,11 +407,11 @@ export function BinderEditor({
         />
 
         <InventoryDrawer
+          ref={drawerRef}
           open={drawerOpen}
           onToggle={() => setDrawerOpen((v) => !v)}
-          inventory={inventory}
-          loading={inventoryLoading}
           isDe={isDe}
+          onCardsLoaded={handleCardsLoaded}
         />
       </div>
 
