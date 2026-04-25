@@ -415,14 +415,15 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   const copyLoadErrorRef = useRef(copy.states.loadError);
   copyLoadErrorRef.current = copy.states.loadError;
 
-  const loadOverview = useCallback(async () => {
+  const loadOverview = useCallback(async (signal?: AbortSignal) => {
     try {
       setLoadError(null);
-      const res = await fetch("/api/chat", { cache: "no-store" });
+      const res = await fetch("/api/chat", { cache: "no-store", signal });
       if (!res.ok) {
         throw new Error("load_failed");
       }
       const payload = (await res.json()) as ChatOverviewResponse;
+      if (signal?.aborted) return;
       const cappedMessages = capChatMessageSummaries(payload.messages);
       setRoom(payload.room);
       setMessages(cappedMessages);
@@ -437,17 +438,21 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
             isMentionForCurrentUserRef.current(message, payload.selfUsername ?? undefined)
         ).length
       );
-    } catch {
+    } catch (err) {
+      if ((err as DOMException)?.name === "AbortError") return;
       setLoadError(copyLoadErrorRef.current);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-     
+
   }, []);
 
   useEffect(() => {
-    void loadOverview();
-  }, [loadOverview]);
+    if (hiddenOnRoute) return;
+    const controller = new AbortController();
+    void loadOverview(controller.signal);
+    return () => controller.abort();
+  }, [loadOverview, hiddenOnRoute]);
 
   function triggerLauncherAnimation() {
     if (typeof window === "undefined") return;
@@ -484,6 +489,10 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
   copyReportsErrorRef.current = copy.reports.error;
 
   useEffect(() => {
+    // The /chat and /admin/chat pages render their own chat surface and SSE
+    // connection. Skip the dock's connection there to avoid duplicate streams
+    // hammering the server and inflating client memory.
+    if (hiddenOnRoute) return;
     const source = new EventSource("/api/chat/events");
 
     source.onmessage = (event) => {
@@ -590,8 +599,8 @@ export function ChatDock({ lang, dict, currentUserId, userRole }: ChatDockProps)
     };
 
     return () => source.close();
-     
-  }, [currentUserId]);
+
+  }, [currentUserId, hiddenOnRoute]);
 
   useEffect(() => {
     if (!quoteTarget) return;

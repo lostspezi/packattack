@@ -10,6 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import type { ActivityItem, ActivityKind } from "@/lib/dashboard/activity";
+import { useDocumentVisible } from "@/lib/hooks/use-document-visibility";
 
 const KIND_ICON: Record<ActivityKind, React.ComponentType<{ className?: string }>> = {
   pull: Package,
@@ -65,16 +66,24 @@ export function DashboardActivityFeed({ initialItems }: DashboardActivityFeedPro
     }
   }, []);
 
+  const visible = useDocumentVisible();
+
   useEffect(() => {
+    if (!visible) return;
     const es = new EventSource("/api/dashboard/activity/events");
     es.onopen = () => setConnected(true);
     es.onerror = () => setConnected(false);
     es.onmessage = (event) => handleEvent(event.data);
     return () => {
       es.close();
+      setConnected(false);
       if (highlightTimer.current) clearTimeout(highlightTimer.current);
     };
-  }, [handleEvent]);
+  }, [handleEvent, visible]);
+
+  // Defence in depth: while the tab is hidden the SSE is intentionally
+  // closed, so the badge must not claim "Live" even between renders.
+  const liveConnected = visible && connected;
 
   return (
     <div>
@@ -82,11 +91,11 @@ export function DashboardActivityFeed({ initialItems }: DashboardActivityFeedPro
         <h3 className="text-lg font-semibold text-text-primary">Aktivität</h3>
         <span
           className={`text-xs flex items-center gap-1 ${
-            connected ? "text-pa-green" : "text-text-muted"
+            liveConnected ? "text-pa-green" : "text-text-muted"
           }`}
-          title={connected ? "Live" : "Offline"}
+          title={liveConnected ? "Live" : "Offline"}
         >
-          {connected ? (
+          {liveConnected ? (
             <>
               <span className="w-2 h-2 rounded-full bg-pa-green animate-pulse" />
               Live

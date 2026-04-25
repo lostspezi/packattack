@@ -48,6 +48,17 @@ const MAX_CACHE_SIZE = 50;
 const TERMINAL_CLEANUP_DELAY_MS = 30_000;
 
 const cache = new Map<string, CacheEntry>();
+// Track terminal-cleanup timers per slug so duplicate schedules collapse
+// instead of stacking, and so explicit removal can clear pending ones.
+const cleanupTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function clearCleanupTimer(slug: string) {
+  const timer = cleanupTimers.get(slug);
+  if (timer) {
+    clearTimeout(timer);
+    cleanupTimers.delete(slug);
+  }
+}
 
 function evictOldest() {
   if (cache.size <= MAX_CACHE_SIZE) return;
@@ -58,6 +69,7 @@ function evictOldest() {
       entry.es.close();
       entry.es = null;
     }
+    clearCleanupTimer(slug);
     cache.delete(slug);
   }
 }
@@ -69,16 +81,20 @@ function removeEntry(slug: string) {
     entry.es.close();
     entry.es = null;
   }
+  clearCleanupTimer(slug);
   cache.delete(slug);
 }
 
 function scheduleTerminalCleanup(slug: string) {
-  setTimeout(() => {
+  clearCleanupTimer(slug);
+  const timer = setTimeout(() => {
+    cleanupTimers.delete(slug);
     const entry = cache.get(slug);
     if (!entry) return;
     if (entry.listeners.size > 0) return;
     removeEntry(slug);
   }, TERMINAL_CLEANUP_DELAY_MS);
+  cleanupTimers.set(slug, timer);
 }
 
 function getOrCreateEntry(slug: string): CacheEntry {
@@ -200,6 +216,7 @@ function subscribe(slug: string, sseId: string, listener: Listener): () => void 
       }
       // Immediately remove terminal entries with no listeners
       if (TERMINAL.includes(entry.state.status)) {
+        clearCleanupTimer(slug);
         cache.delete(slug);
       }
     }

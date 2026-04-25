@@ -4,6 +4,7 @@ import { Bell } from "lucide-react";
 import { createPortal } from "react-dom";
 import { useState, useEffect, useCallback, useRef, type CSSProperties } from "react";
 import { NotificationDropdown } from "@/components/notifications/notification-dropdown";
+import { useDocumentVisible } from "@/lib/hooks/use-document-visibility";
 
 interface UnreadResponse {
   unreadCount: number;
@@ -39,8 +40,10 @@ export function NotificationBell() {
   }, [fetchUnreadCount]);
 
   const sseConnectedRef = useRef(false);
+  const visible = useDocumentVisible();
 
   useEffect(() => {
+    if (!visible) return;
     const es = new EventSource("/api/notifications/events");
 
     es.onopen = () => {
@@ -66,7 +69,7 @@ export function NotificationBell() {
       sseConnectedRef.current = false;
       es.close();
     };
-  }, []);
+  }, [visible]);
 
   useEffect(() => {
     function onFocus() {

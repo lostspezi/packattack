@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     globalNotFound: true,
+    // lucide-react and react-icons/* are already optimised by default in
+    // Next 16. motion ships across the dashboard header (mobile-drawer,
+    // mega-menu, header-nav-item) so tree-shaking it cuts the shared
+    // client bundle.
+    optimizePackageImports: ["motion"],
   },
   images: {
     remotePatterns: [
