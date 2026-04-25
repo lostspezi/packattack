@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { Layers } from "lucide-react";
 import type { CSSProperties } from "react";
 import type { InventoryCard } from "@/lib/binders/inventory";
+import { PageTitleEditor } from "./page-title-editor";
 
 export interface SpreadDragSource {
   packPullId: string;
@@ -37,6 +38,11 @@ interface BinderSpreadProps {
   leftPageIndex: number;
   rightPageIndex: number;
   cardLookup: (packPullId: string) => InventoryCard | undefined;
+  binderSlug?: string;
+  isDe?: boolean;
+  ownerView?: boolean;
+  onSlotClick?: (pageIndex: number, slotPosition: number) => void;
+  onPageTitleSaved?: (pageIndex: number, nextTitle: string | null) => void;
 }
 
 export function BinderSpread({
@@ -46,6 +52,11 @@ export function BinderSpread({
   leftPageIndex,
   rightPageIndex,
   cardLookup,
+  binderSlug,
+  isDe = false,
+  ownerView = false,
+  onSlotClick,
+  onPageTitleSaved,
 }: BinderSpreadProps) {
   return (
     <div
@@ -59,6 +70,11 @@ export function BinderSpread({
             pageIndex={leftPageIndex}
             theme={theme}
             cardLookup={cardLookup}
+            binderSlug={binderSlug}
+            isDe={isDe}
+            ownerView={ownerView}
+            onSlotClick={onSlotClick}
+            onPageTitleSaved={onPageTitleSaved}
           />
         ) : (
           <div />
@@ -69,6 +85,11 @@ export function BinderSpread({
             pageIndex={rightPageIndex}
             theme={theme}
             cardLookup={cardLookup}
+            binderSlug={binderSlug}
+            isDe={isDe}
+            ownerView={ownerView}
+            onSlotClick={onSlotClick}
+            onPageTitleSaved={onPageTitleSaved}
           />
         ) : (
           <div className="hidden md:block" />
@@ -83,18 +104,38 @@ function Page({
   pageIndex,
   theme,
   cardLookup,
+  binderSlug,
+  isDe,
+  ownerView,
+  onSlotClick,
+  onPageTitleSaved,
 }: {
   page: BinderPageDTO;
   pageIndex: number;
   theme: ThemeShape;
   cardLookup: (packPullId: string) => InventoryCard | undefined;
+  binderSlug?: string;
+  isDe: boolean;
+  ownerView: boolean;
+  onSlotClick?: (pageIndex: number, slotPosition: number) => void;
+  onPageTitleSaved?: (pageIndex: number, nextTitle: string | null) => void;
 }) {
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between">
-        <h3 className="text-sm font-semibold text-text-secondary">
-          {page.title ?? `—`}
-        </h3>
+        {ownerView && binderSlug && onPageTitleSaved ? (
+          <PageTitleEditor
+            pageIndex={pageIndex}
+            initialTitle={page.title}
+            binderSlug={binderSlug}
+            isDe={isDe}
+            onSaved={(next) => onPageTitleSaved(pageIndex, next)}
+          />
+        ) : (
+          <h3 className="text-sm font-semibold text-text-secondary">
+            {page.title ?? "—"}
+          </h3>
+        )}
         <span className="text-xs text-text-muted">{pageIndex + 1}</span>
       </div>
       <div
@@ -111,6 +152,8 @@ function Page({
               expectedCardId={slot?.expectedCardId ?? null}
               note={slot?.note ?? null}
               cardLookup={cardLookup}
+              ownerView={ownerView}
+              onClick={onSlotClick}
             />
           );
         })}
@@ -125,6 +168,8 @@ function Slot({
   packPullId,
   expectedCardId,
   cardLookup,
+  ownerView,
+  onClick,
 }: {
   pageIndex: number;
   slotPosition: number;
@@ -132,6 +177,8 @@ function Slot({
   expectedCardId: string | null;
   note: string | null;
   cardLookup: (packPullId: string) => InventoryCard | undefined;
+  ownerView: boolean;
+  onClick?: (pageIndex: number, slotPosition: number) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `slot:${pageIndex}:${slotPosition}`,
@@ -160,6 +207,8 @@ function Slot({
           pageIndex={pageIndex}
           slotPosition={slotPosition}
           card={card}
+          ownerView={ownerView}
+          onClick={onClick}
         />
       ) : packPullId ? (
         <div className="w-full h-full flex items-center justify-center bg-black/30 rounded-md">
@@ -179,11 +228,15 @@ function SlotDraggableCard({
   pageIndex,
   slotPosition,
   card,
+  ownerView,
+  onClick,
 }: {
   packPullId: string;
   pageIndex: number;
   slotPosition: number;
   card: InventoryCard;
+  ownerView: boolean;
+  onClick?: (pageIndex: number, slotPosition: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
     id: `slotcard:${pageIndex}:${slotPosition}`,
@@ -193,6 +246,7 @@ function SlotDraggableCard({
       pageIndex,
       slotPosition,
     } as SpreadDragSource & { kind: "slot" },
+    disabled: !ownerView,
   });
   return (
     <motion.div
@@ -204,28 +258,42 @@ function SlotDraggableCard({
         isDragging ? "opacity-30" : "",
       ].join(" ")}
     >
-      <button
-        ref={setNodeRef}
-        type="button"
-        {...attributes}
-        {...listeners}
-        className="absolute inset-0 rounded-md overflow-hidden cursor-grab active:cursor-grabbing touch-none"
-        title={card.name}
-      >
-        {card.image ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={card.image}
-            alt={card.name}
-            className="object-cover w-full h-full"
-            draggable={false}
-          />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-[10px] text-white/60 px-1 text-center">
-            {card.name}
-          </div>
-        )}
-      </button>
+      {ownerView ? (
+        <button
+          ref={setNodeRef}
+          type="button"
+          {...attributes}
+          {...listeners}
+          onClick={() => onClick?.(pageIndex, slotPosition)}
+          className="absolute inset-0 rounded-md overflow-hidden cursor-grab active:cursor-grabbing touch-none"
+          title={card.name}
+        >
+          <CardImage card={card} />
+        </button>
+      ) : (
+        <div className="absolute inset-0 rounded-md overflow-hidden">
+          <CardImage card={card} />
+        </div>
+      )}
     </motion.div>
+  );
+}
+
+function CardImage({ card }: { card: InventoryCard }) {
+  if (card.image) {
+    return (
+      /* eslint-disable-next-line @next/next/no-img-element */
+      <img
+        src={card.image}
+        alt={card.name}
+        className="object-cover w-full h-full"
+        draggable={false}
+      />
+    );
+  }
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-zinc-800 text-[10px] text-white/60 px-1 text-center">
+      {card.name}
+    </div>
   );
 }

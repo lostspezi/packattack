@@ -18,6 +18,7 @@ import {
   ChevronRight,
   Layers,
   Loader2,
+  Settings,
 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { fetchInventory, type InventoryCard } from "@/lib/binders/inventory";
@@ -25,6 +26,8 @@ import { BINDER_THEMES } from "./theme-picker";
 import { BinderSpread, type SpreadDragSource } from "./binder-spread";
 import { InventoryDrawer } from "./inventory-drawer";
 import { CardDragOverlay } from "./card-drag-overlay";
+import { BinderSettingsSheet } from "./binder-settings-sheet";
+import { SlotNotePopover } from "./slot-note-popover";
 
 interface BinderSlotDTO {
   position: number;
@@ -100,6 +103,13 @@ export function BinderEditor({
   const [spreadIndex, setSpreadIndex] = useState(0);
   const [savingOp, setSavingOp] = useState(false);
   const [activeDrag, setActiveDrag] = useState<DragSource | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [noteSlot, setNoteSlot] = useState<{
+    pageIndex: number;
+    slotPosition: number;
+    packPullId: string;
+    note: string | null;
+  } | null>(null);
   const [placedById, setPlacedById] = useState<Map<string, PlacedCardDTO>>(
     () => {
       const map = new Map<string, PlacedCardDTO>();
@@ -206,6 +216,64 @@ export function BinderEditor({
     [binder.slug, toast, isDe],
   );
 
+  const handleSlotClick = useCallback(
+    (pageIndex: number, slotPosition: number) => {
+      const slot = binder.pages[pageIndex]?.slots.find(
+        (s) => s.position === slotPosition,
+      );
+      if (!slot?.packPullId) return;
+      setNoteSlot({
+        pageIndex,
+        slotPosition,
+        packPullId: slot.packPullId,
+        note: slot.note,
+      });
+    },
+    [binder.pages],
+  );
+
+  const handleRemoveCard = useCallback(
+    async (pageIndex: number, slotPosition: number) => {
+      const ok = await performSlotOp({
+        op: "remove",
+        pageIndex,
+        slotPosition,
+      });
+      if (ok) await reloadInventory();
+    },
+    [performSlotOp, reloadInventory],
+  );
+
+  const handlePageTitleSaved = useCallback(
+    (pageIndex: number, nextTitle: string | null) => {
+      setBinder((prev) => {
+        const pages = prev.pages.map((p, i) =>
+          i === pageIndex ? { ...p, title: nextTitle } : p,
+        );
+        return { ...prev, pages };
+      });
+    },
+    [],
+  );
+
+  const handleSlotNoteSaved = useCallback(
+    (pageIndex: number, slotPosition: number, nextNote: string | null) => {
+      setBinder((prev) => {
+        const pages = prev.pages.map((p, i) => {
+          if (i !== pageIndex) return p;
+          return {
+            ...p,
+            slots: p.slots.map((s) =>
+              s.position === slotPosition ? { ...s, note: nextNote } : s,
+            ),
+          };
+        });
+        return { ...prev, pages };
+      });
+    },
+    [],
+  );
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       const drag = activeDrag;
@@ -295,6 +363,14 @@ export function BinderEditor({
                 {isDe ? "Speichert…" : "Saving…"}
               </span>
             )}
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:border-pa-green/30 inline-flex items-center gap-1.5"
+            >
+              <Settings className="w-4 h-4" />
+              {isDe ? "Einstellungen" : "Settings"}
+            </button>
           </div>
         </div>
 
@@ -305,6 +381,11 @@ export function BinderEditor({
           leftPageIndex={leftPageIndex}
           rightPageIndex={rightPageIndex}
           cardLookup={cardLookup}
+          binderSlug={binder.slug}
+          isDe={isDe}
+          ownerView
+          onSlotClick={handleSlotClick}
+          onPageTitleSaved={handlePageTitleSaved}
         />
 
         <div className="flex items-center justify-center gap-4">
@@ -355,6 +436,34 @@ export function BinderEditor({
           />
         ) : null}
       </DragOverlay>
+
+      <BinderSettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        binder={binder}
+        placedCards={Array.from(placedById.values())}
+        lang={lang}
+        onUpdated={(next) => setBinder(next)}
+      />
+
+      {noteSlot && (
+        <SlotNotePopover
+          open
+          onClose={() => setNoteSlot(null)}
+          binderSlug={binder.slug}
+          pageIndex={noteSlot.pageIndex}
+          slotPosition={noteSlot.slotPosition}
+          initialNote={noteSlot.note}
+          cardName={cardLookup(noteSlot.packPullId)?.name ?? ""}
+          isDe={isDe}
+          onSaved={(next) =>
+            handleSlotNoteSaved(noteSlot.pageIndex, noteSlot.slotPosition, next)
+          }
+          onRemoveCard={() =>
+            handleRemoveCard(noteSlot.pageIndex, noteSlot.slotPosition)
+          }
+        />
+      )}
     </DndContext>
   );
 }
