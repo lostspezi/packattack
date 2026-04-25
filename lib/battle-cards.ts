@@ -115,7 +115,7 @@ export async function autoConvertExpiredPulls(userId: string): Promise<number> {
   while (true) {
     const pull = await PackPull.findOneAndUpdate(
       { userId, status: "pending", expiresAt: { $ne: null, $lte: now } },
-      { $set: { status: "converted", decidedAt: now } },
+      { $set: { status: "converted", decidedAt: now, binderId: null } },
       { returnDocument: "before" },
     ).lean();
 

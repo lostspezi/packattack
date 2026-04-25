@@ -5,7 +5,10 @@ import Translation from "@/models/translation";
 import Language from "@/models/language";
 import EmailTemplate from "@/models/email-template";
 import bcrypt from "bcryptjs";
-import { translationSeedData } from "@/seed/translations";
+import { translationSeedData as baseTranslationSeed } from "@/seed/translations";
+import { binderTranslationSeed } from "@/seed/translations-binders";
+
+const translationSeedData = [...baseTranslationSeed, ...binderTranslationSeed];
 import { emailTemplateSeedData } from "@/seed/email-templates";
 import { invalidateTranslationCache, invalidateLanguageCache } from "@/lib/i18n";
 import { op12BoxConfig, op12Cards, op12RarityWeights } from "@/seed/op12-box";

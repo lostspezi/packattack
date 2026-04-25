@@ -1,0 +1,482 @@
+"use client";
+
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
+import { ArrowLeft, Layers, Loader2, Settings } from "lucide-react";
+import { useToast } from "@/components/ui/toast";
+import { fetchInventory, type InventoryCard } from "@/lib/binders/inventory";
+import { BINDER_THEMES } from "./theme-picker";
+import { BinderSpread, type SpreadDragSource } from "./binder-spread";
+import { InventoryDrawer } from "./inventory-drawer";
+import { CardDragOverlay } from "./card-drag-overlay";
+import { BinderSettingsSheet } from "./binder-settings-sheet";
+import { SlotNotePopover } from "./slot-note-popover";
+import { CompletionMeter } from "./completion-meter";
+
+interface BinderSlotDTO {
+  position: number;
+  packPullId: string | null;
+  expectedCardId: string | null;
+  note: string | null;
+}
+interface BinderPageDTO {
+  title: string | null;
+  backgroundId: string | null;
+  slots: BinderSlotDTO[];
+}
+export interface BinderDTO {
+  _id: string;
+  userId: string;
+  slug: string;
+  name: string;
+  description: string;
+  type: "free" | "set-template";
+  setTemplate: { game: string; set: string } | null;
+  theme: string;
+  coverPackPullId: string | null;
+  pages: BinderPageDTO[];
+  isPublic: boolean;
+  publishedAt: string | null;
+  likeCount: number;
+  viewCount: number;
+  cardCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PlacedCardDTO {
+  packPullId: string;
+  cardId: string;
+  name: string;
+  game: string;
+  set: string;
+  setName: string;
+  rarity: string;
+  image: string | null;
+  createdAt: string;
+}
+
+export interface ExpectedCardDTO {
+  cardId: string;
+  name: string;
+  game: string;
+  set: string;
+  setName: string;
+  rarity: string;
+  image: string | null;
+}
+
+interface BinderEditorProps {
+  initialBinder: BinderDTO;
+  placedCards: PlacedCardDTO[];
+  expectedCards: ExpectedCardDTO[];
+  lang: string;
+}
+
+export interface SlotDropTarget {
+  pageIndex: number;
+  slotPosition: number;
+}
+
+export type DragSource =
+  | { kind: "inventory"; card: InventoryCard }
+  | ({ kind: "slot" } & SpreadDragSource);
+
+export function BinderEditor({
+  initialBinder,
+  placedCards,
+  expectedCards,
+  lang,
+}: BinderEditorProps) {
+  const isDe = lang === "de";
+  const router = useRouter();
+  const { toast } = useToast();
+
+  const [binder, setBinder] = useState<BinderDTO>(initialBinder);
+  const [inventory, setInventory] = useState<InventoryCard[]>([]);
+  const [inventoryLoading, setInventoryLoading] = useState(true);
+  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [spreadIndex, setSpreadIndex] = useState(0);
+  const [savingOp, setSavingOp] = useState(false);
+  const [activeDrag, setActiveDrag] = useState<DragSource | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [noteSlot, setNoteSlot] = useState<{
+    pageIndex: number;
+    slotPosition: number;
+    packPullId: string;
+    note: string | null;
+  } | null>(null);
+  const [placedById, setPlacedById] = useState<Map<string, PlacedCardDTO>>(
+    () => {
+      const map = new Map<string, PlacedCardDTO>();
+      for (const c of placedCards) map.set(c.packPullId, c);
+      return map;
+    },
+  );
+
+  const inventoryById = useMemo(() => {
+    const map = new Map<string, InventoryCard>();
+    for (const c of inventory) map.set(c.packPullId, c);
+    return map;
+  }, [inventory]);
+
+  const expectedById = useMemo(() => {
+    const map = new Map<string, ExpectedCardDTO>();
+    for (const c of expectedCards) map.set(c.cardId, c);
+    return map;
+  }, [expectedCards]);
+
+  const completion = useMemo(() => {
+    if (binder.type !== "set-template") {
+      return { matched: 0, expected: 0 };
+    }
+    let matched = 0;
+    let expected = 0;
+    for (const page of binder.pages) {
+      for (const slot of page.slots) {
+        if (!slot.expectedCardId) continue;
+        expected += 1;
+        if (!slot.packPullId) continue;
+        const placed = placedById.get(slot.packPullId);
+        if (placed && placed.cardId === slot.expectedCardId) matched += 1;
+      }
+    }
+    return { matched, expected };
+  }, [binder, placedById]);
+
+  const cardLookup = useCallback(
+    (packPullId: string): InventoryCard | undefined => {
+      return inventoryById.get(packPullId) ?? placedById.get(packPullId);
+    },
+    [inventoryById, placedById],
+  );
+
+  const reloadInventory = useCallback(async () => {
+    setInventoryLoading(true);
+    try {
+      const items = await fetchInventory();
+      setInventory(items);
+    } finally {
+      setInventoryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    reloadInventory();
+  }, [reloadInventory]);
+
+  // After every server response, fold the new placed-cards into the local map
+  // so cards moved into a slot via swap remain renderable even if they were
+  // outside both the current inventory and the initial placedCards.
+  useEffect(() => {
+    setPlacedById((prev) => {
+      const next = new Map(prev);
+      for (const c of inventory) {
+        if (!next.has(c.packPullId)) next.set(c.packPullId, c);
+      }
+      return next;
+    });
+  }, [inventory]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 6 },
+    }),
+    useSensor(KeyboardSensor),
+  );
+
+  // Clamp spreadIndex when pages shrink (e.g. after a page delete).
+  const totalSpreads = Math.max(1, Math.ceil(binder.pages.length / 2));
+  useEffect(() => {
+    if (spreadIndex > totalSpreads - 1) {
+      setSpreadIndex(Math.max(0, totalSpreads - 1));
+    }
+  }, [spreadIndex, totalSpreads]);
+
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const data = event.active.data.current as DragSource | undefined;
+    if (data) setActiveDrag(data);
+  }, []);
+
+  const performSlotOp = useCallback(
+    async (body: Record<string, unknown>) => {
+      setSavingOp(true);
+      try {
+        const res = await fetch(`/api/binders/${binder.slug}/slots`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          toast({
+            type: "error",
+            title: isDe ? "Aktion fehlgeschlagen." : "Action failed.",
+            message:
+              typeof err?.error === "string" ? err.error : undefined,
+          });
+          return false;
+        }
+        const data = (await res.json()) as { binder: BinderDTO };
+        setBinder(data.binder);
+        return true;
+      } catch {
+        toast({
+          type: "error",
+          title: isDe ? "Netzwerkfehler." : "Network error.",
+        });
+        return false;
+      } finally {
+        setSavingOp(false);
+      }
+    },
+    [binder.slug, toast, isDe],
+  );
+
+  const handleSlotClick = useCallback(
+    (pageIndex: number, slotPosition: number) => {
+      const slot = binder.pages[pageIndex]?.slots.find(
+        (s) => s.position === slotPosition,
+      );
+      if (!slot?.packPullId) return;
+      setNoteSlot({
+        pageIndex,
+        slotPosition,
+        packPullId: slot.packPullId,
+        note: slot.note,
+      });
+    },
+    [binder.pages],
+  );
+
+  const handleRemoveCard = useCallback(
+    async (pageIndex: number, slotPosition: number) => {
+      const ok = await performSlotOp({
+        op: "remove",
+        pageIndex,
+        slotPosition,
+      });
+      if (ok) await reloadInventory();
+    },
+    [performSlotOp, reloadInventory],
+  );
+
+  const handlePageTitleSaved = useCallback(
+    (pageIndex: number, nextTitle: string | null) => {
+      setBinder((prev) => {
+        const pages = prev.pages.map((p, i) =>
+          i === pageIndex ? { ...p, title: nextTitle } : p,
+        );
+        return { ...prev, pages };
+      });
+    },
+    [],
+  );
+
+  const handleSlotNoteSaved = useCallback(
+    (pageIndex: number, slotPosition: number, nextNote: string | null) => {
+      setBinder((prev) => {
+        const pages = prev.pages.map((p, i) => {
+          if (i !== pageIndex) return p;
+          return {
+            ...p,
+            slots: p.slots.map((s) =>
+              s.position === slotPosition ? { ...s, note: nextNote } : s,
+            ),
+          };
+        });
+        return { ...prev, pages };
+      });
+    },
+    [],
+  );
+
+  const handleDragEnd = useCallback(
+    async (event: DragEndEvent) => {
+      const drag = activeDrag;
+      setActiveDrag(null);
+      const over = event.over;
+      if (!drag || !over) return;
+      const overData = over.data.current as
+        | { kind: "slot"; pageIndex: number; slotPosition: number }
+        | undefined;
+      if (!overData || overData.kind !== "slot") return;
+
+      if (drag.kind === "inventory") {
+        const slot = binder.pages[overData.pageIndex]?.slots.find(
+          (s) => s.position === overData.slotPosition,
+        );
+        const expectedCurrent = slot?.packPullId ?? null;
+        const ok = await performSlotOp({
+          op: "place",
+          packPullId: drag.card.packPullId,
+          pageIndex: overData.pageIndex,
+          slotPosition: overData.slotPosition,
+          expectedCurrent,
+        });
+        if (ok) {
+          await reloadInventory();
+        }
+      } else {
+        // dragging a slot card to another slot
+        const fromCoord = {
+          pageIndex: drag.pageIndex,
+          slotPosition: drag.slotPosition,
+        };
+        const toCoord = {
+          pageIndex: overData.pageIndex,
+          slotPosition: overData.slotPosition,
+        };
+        if (
+          fromCoord.pageIndex === toCoord.pageIndex &&
+          fromCoord.slotPosition === toCoord.slotPosition
+        ) {
+          return;
+        }
+        const ok = await performSlotOp({
+          op: "swap",
+          from: fromCoord,
+          to: toCoord,
+        });
+        if (ok) await reloadInventory();
+      }
+    },
+    [activeDrag, binder.pages, performSlotOp, reloadInventory],
+  );
+
+  const theme =
+    BINDER_THEMES.find((t) => t.key === binder.theme) ?? BINDER_THEMES[0];
+
+  return (
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+    >
+      <div
+        className="space-y-4"
+        role="application"
+        aria-roledescription={isDe ? "Binder-Editor" : "Binder editor"}
+      >
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              type="button"
+              onClick={() => router.push(`/${lang}/binders`)}
+              className="text-text-secondary hover:text-text-primary inline-flex items-center gap-1.5 text-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              {isDe ? "Binder" : "Binders"}
+            </button>
+            <span className="text-text-muted">/</span>
+            <h1 className="text-xl font-bold text-text-primary line-clamp-1">
+              {binder.name}
+            </h1>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-text-secondary inline-flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5" />
+              {binder.cardCount} {isDe ? "Karten" : "cards"}
+            </span>
+            {savingOp && (
+              <span className="text-xs text-text-muted inline-flex items-center gap-1.5">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                {isDe ? "Speichert…" : "Saving…"}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary hover:border-pa-green/30 inline-flex items-center gap-1.5"
+            >
+              <Settings className="w-4 h-4" />
+              {isDe ? "Einstellungen" : "Settings"}
+            </button>
+          </div>
+        </div>
+
+        {binder.type === "set-template" && (
+          <div>
+            <CompletionMeter
+              matched={completion.matched}
+              expected={completion.expected}
+              isDe={isDe}
+            />
+          </div>
+        )}
+
+        <BinderSpread
+          theme={theme}
+          pages={binder.pages}
+          spreadIndex={spreadIndex}
+          onSpreadChange={setSpreadIndex}
+          cardLookup={cardLookup}
+          expectedLookup={(id) => expectedById.get(id)}
+          binderSlug={binder.slug}
+          isDe={isDe}
+          ownerView
+          onSlotClick={handleSlotClick}
+          onPageTitleSaved={handlePageTitleSaved}
+        />
+
+        <InventoryDrawer
+          open={drawerOpen}
+          onToggle={() => setDrawerOpen((v) => !v)}
+          inventory={inventory}
+          loading={inventoryLoading}
+          isDe={isDe}
+        />
+      </div>
+
+      <DragOverlay>
+        {activeDrag ? (
+          <CardDragOverlay
+            card={
+              activeDrag.kind === "inventory"
+                ? activeDrag.card
+                : (cardLookup(activeDrag.packPullId) ?? null)
+            }
+          />
+        ) : null}
+      </DragOverlay>
+
+      <BinderSettingsSheet
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        binder={binder}
+        placedCards={Array.from(placedById.values())}
+        lang={lang}
+        onUpdated={(next) => setBinder(next)}
+      />
+
+      {noteSlot && (
+        <SlotNotePopover
+          open
+          onClose={() => setNoteSlot(null)}
+          binderSlug={binder.slug}
+          pageIndex={noteSlot.pageIndex}
+          slotPosition={noteSlot.slotPosition}
+          initialNote={noteSlot.note}
+          cardName={cardLookup(noteSlot.packPullId)?.name ?? ""}
+          isDe={isDe}
+          onSaved={(next) =>
+            handleSlotNoteSaved(noteSlot.pageIndex, noteSlot.slotPosition, next)
+          }
+          onRemoveCard={() =>
+            handleRemoveCard(noteSlot.pageIndex, noteSlot.slotPosition)
+          }
+        />
+      )}
+    </DndContext>
+  );
+}

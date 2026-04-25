@@ -1,7 +1,10 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  BookOpen,
+  Compass,
   History,
   LayoutGrid,
+  Library,
   Package,
   ShieldCheck,
   ShoppingCart,
@@ -10,7 +13,13 @@ import {
   Zap,
 } from "lucide-react";
 
-export type NavItemKey = "dashboard" | "packs" | "battles" | "events" | "cart";
+export type NavItemKey =
+  | "dashboard"
+  | "packs"
+  | "battles"
+  | "collection"
+  | "events"
+  | "cart";
 
 export interface NavAccent {
   bg: string;
@@ -146,6 +155,58 @@ export const NAV_ITEMS: readonly NavItem[] = [
     ],
   },
   {
+    key: "collection",
+    labelKey: "collection",
+    labelFallback: "Sammlung",
+    icon: Library,
+    href: (lang) => `/${lang}/collection`,
+    hasMegaMenu: true,
+    children: [
+      {
+        key: "myCollection",
+        labelKey: "my_collection",
+        labelFallback: "Meine Sammlung",
+        descKey: "my_collection_desc",
+        descFallback: "Alle Karten, die dir gehören",
+        href: (lang) => `/${lang}/collection`,
+        icon: Library,
+        accent: {
+          bg: "bg-emerald-500/10",
+          icon: "text-emerald-400",
+          hover: "group-hover:text-emerald-400",
+        },
+      },
+      {
+        key: "binders",
+        labelKey: "binders",
+        labelFallback: "Binder",
+        descKey: "binders_desc",
+        descFallback: "Sammelalben aus deinen Karten",
+        href: (lang) => `/${lang}/binders`,
+        icon: BookOpen,
+        accent: {
+          bg: "bg-amber-500/10",
+          icon: "text-amber-400",
+          hover: "group-hover:text-amber-400",
+        },
+      },
+      {
+        key: "bindersExplore",
+        labelKey: "binders_explore",
+        labelFallback: "Binder-Galerie",
+        descKey: "binders_explore_desc",
+        descFallback: "Was die Community kuratiert",
+        href: (lang) => `/${lang}/binders/explore`,
+        icon: Compass,
+        accent: {
+          bg: "bg-violet-500/10",
+          icon: "text-violet-400",
+          hover: "group-hover:text-violet-400",
+        },
+      },
+    ],
+  },
+  {
     key: "events",
     labelKey: "events",
     labelFallback: "Events",
@@ -165,5 +226,10 @@ export const NAV_ITEMS: readonly NavItem[] = [
 
 export function isNavItemActive(pathname: string, item: NavItem, lang: string): boolean {
   const href = item.href(lang);
-  return item.exactMatch ? pathname === href : pathname.startsWith(href);
+  if (item.exactMatch) return pathname === href;
+  if (pathname.startsWith(href)) return true;
+  for (const child of item.children ?? []) {
+    if (pathname.startsWith(child.href(lang))) return true;
+  }
+  return false;
 }
