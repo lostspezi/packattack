@@ -142,11 +142,16 @@ export const InventoryDrawer = forwardRef<
         clearTimeout(debounceTimerRef.current);
         debounceTimerRef.current = null;
       }
+      // If filters are already clear the filter-change effect won't fire,
+      // so we call loadPage directly. If any filter was set, the effect fires
+      // after reset and we must NOT also call loadPage (double-fetch).
+      const filtersAlreadyClear =
+        !filters.game && !filters.set && !filters.rarity && !debouncedQ;
       setItems([]);
       setNextCursor(null);
       setFilters(EMPTY_FILTERS);
       setDebouncedQ("");
-      loadPage({}, false);
+      if (filtersAlreadyClear) loadPage({}, false);
     },
   }));
 
