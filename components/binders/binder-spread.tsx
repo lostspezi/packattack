@@ -199,9 +199,17 @@ function Slot({
   });
   const card = packPullId ? cardLookup(packPullId) : undefined;
 
+  const slotLabel = packPullId
+    ? `Slot ${slotPosition + 1}: ${card?.name ?? "card"}`
+    : expectedCardId
+      ? `Slot ${slotPosition + 1}: empty (expects ${expectedCard?.name ?? "card"})`
+      : `Slot ${slotPosition + 1}: empty`;
+
   return (
     <div
       ref={setNodeRef}
+      role="group"
+      aria-label={slotLabel}
       className={[
         "relative aspect-[5/7] rounded-md transition-all",
         isOver

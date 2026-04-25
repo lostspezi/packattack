@@ -373,7 +373,11 @@ export function BinderEditor({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="space-y-4">
+      <div
+        className="space-y-4"
+        role="application"
+        aria-roledescription={isDe ? "Binder-Editor" : "Binder editor"}
+      >
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
             <button
