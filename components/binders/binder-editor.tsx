@@ -159,7 +159,8 @@ export function BinderEditor({
   }, [binder, placedById]);
 
   const cardLookup = useCallback(
-    (packPullId: string) => placedById.get(packPullId),
+    (packPullId: string): InventoryCard | undefined =>
+      placedById.get(packPullId) as InventoryCard | undefined,
     [placedById],
   );
 
