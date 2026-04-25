@@ -112,4 +112,12 @@ export const binderTranslationSeed = [
   // Sidebar
   { namespace: "common", key: "navCollection", values: { de: "Sammlung", en: "Collection" } },
   { namespace: "common", key: "navBinders", values: { de: "Binder", en: "Binders" } },
+
+  // Header mega-menu (Packs sub-items)
+  { namespace: "common", key: "collection", values: { de: "Sammlung", en: "Collection" } },
+  { namespace: "common", key: "collection_desc", values: { de: "Alle Karten, die dir gehören", en: "Every card you own" } },
+  { namespace: "common", key: "binders", values: { de: "Binder", en: "Binders" } },
+  { namespace: "common", key: "binders_desc", values: { de: "Sammelalben aus deinen Karten", en: "Albums built from your cards" } },
+  { namespace: "common", key: "binders_explore", values: { de: "Binder-Galerie", en: "Binder gallery" } },
+  { namespace: "common", key: "binders_explore_desc", values: { de: "Was die Community kuratiert", en: "What the community curates" } },
 ];
