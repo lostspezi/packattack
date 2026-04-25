@@ -69,6 +69,7 @@ export const adminNavGroups: AdminNavGroup[] = [
       { key: "adminAchievements", label: "Achievements", href: "/admin/achievements", icon: "Award" },
       { key: "adminBadges", label: "Badges", href: "/admin/badges", icon: "Medal" },
       { key: "adminNews", label: "News", href: "/admin/news", icon: "Newspaper" },
+      { key: "adminUpvoteCampaigns", label: "Upvote-Kampagnen", href: "/admin/upvote-campaigns", icon: "ThumbsUp" },
     ],
   },
   {
