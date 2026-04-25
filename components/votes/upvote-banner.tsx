@@ -6,7 +6,6 @@ import { getDictionary } from "@/lib/i18n";
 import type { Locale } from "@/lib/i18n";
 import UpvoteCampaign from "@/models/upvote-campaign";
 import UpvoteVote from "@/models/upvote-vote";
-import { autoCloseExpiredBulk } from "@/lib/votes/auto-close";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -18,8 +17,10 @@ interface Props {
 export async function UpvoteBanner({ lang, userId }: Props) {
   if (!Types.ObjectId.isValid(userId)) return null;
 
+  // Auto-close lazy check is already executed by UpvoteTopBanner higher up
+  // in the same dashboard render tree, so the dashboard banner skips it to
+  // avoid a redundant updateMany per page load.
   await connectDB();
-  await autoCloseExpiredBulk();
 
   const active = await UpvoteCampaign.find({ status: "active" })
     .select("_id title question topN endsAt")
