@@ -3,13 +3,19 @@
 import { useMemo, useState } from "react";
 import { Heart, Layers } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
-import type { BinderDTO, PlacedCardDTO } from "./binder-editor";
+import type {
+  BinderDTO,
+  ExpectedCardDTO,
+  PlacedCardDTO,
+} from "./binder-editor";
 import { BINDER_THEMES } from "./theme-picker";
 import { BinderSpread } from "./binder-spread";
+import { CompletionMeter } from "./completion-meter";
 
 interface BinderViewerProps {
   binder: BinderDTO;
   placedCards: PlacedCardDTO[];
+  expectedCards: ExpectedCardDTO[];
   lang: string;
   viewerId: string | null;
 }
@@ -17,6 +23,7 @@ interface BinderViewerProps {
 export function BinderViewer({
   binder: initial,
   placedCards,
+  expectedCards,
   lang,
   viewerId,
 }: BinderViewerProps) {
@@ -31,6 +38,28 @@ export function BinderViewer({
     for (const c of placedCards) map.set(c.packPullId, c);
     return map;
   }, [placedCards]);
+  const expectedById = useMemo(() => {
+    const map = new Map<string, ExpectedCardDTO>();
+    for (const c of expectedCards) map.set(c.cardId, c);
+    return map;
+  }, [expectedCards]);
+  const completion = useMemo(() => {
+    if (binder.type !== "set-template") {
+      return { matched: 0, expected: 0 };
+    }
+    let matched = 0;
+    let expected = 0;
+    for (const page of binder.pages) {
+      for (const slot of page.slots) {
+        if (!slot.expectedCardId) continue;
+        expected += 1;
+        if (!slot.packPullId) continue;
+        const placed = cards.get(slot.packPullId);
+        if (placed && placed.cardId === slot.expectedCardId) matched += 1;
+      }
+    }
+    return { matched, expected };
+  }, [binder, cards]);
 
   async function toggleLike() {
     if (!viewerId) {
@@ -101,6 +130,16 @@ export function BinderViewer({
         </div>
       </div>
 
+      {binder.type === "set-template" && (
+        <div>
+          <CompletionMeter
+            matched={completion.matched}
+            expected={completion.expected}
+            isDe={isDe}
+          />
+        </div>
+      )}
+
       <BinderSpread
         theme={theme}
         leftPage={binder.pages[leftPageIndex] ?? null}
@@ -108,6 +147,7 @@ export function BinderViewer({
         leftPageIndex={leftPageIndex}
         rightPageIndex={rightPageIndex}
         cardLookup={(id) => cards.get(id)}
+        expectedLookup={(id) => expectedById.get(id)}
       />
 
       <div className="flex items-center justify-center gap-4">

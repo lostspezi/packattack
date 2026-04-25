@@ -9,6 +9,7 @@ import { resolveAccess } from "@/lib/binders/public-access";
 import { serializeBinder } from "@/lib/binders/serialize";
 import {
   BinderEditor,
+  type ExpectedCardDTO,
   type PlacedCardDTO,
 } from "@/components/binders/binder-editor";
 import { BinderViewer } from "@/components/binders/binder-viewer";
@@ -84,6 +85,19 @@ export default async function BinderSlugPage({
     })
     .filter((x): x is PlacedCardDTO => x !== null);
 
+  const expectedCards: ExpectedCardDTO[] = Array.from(expectedCardIds)
+    .map((id) => cardMap.get(id))
+    .filter((c): c is NonNullable<typeof c> => Boolean(c))
+    .map((c) => ({
+      cardId: c._id.toString(),
+      name: c.name,
+      game: c.game,
+      set: c.set,
+      setName: c.setName,
+      rarity: c.rarity,
+      image: c.image ?? null,
+    }));
+
   const dto = serializeBinder(binder);
 
   if (access === "owner") {
@@ -91,6 +105,7 @@ export default async function BinderSlugPage({
       <BinderEditor
         initialBinder={dto}
         placedCards={placedCards}
+        expectedCards={expectedCards}
         lang={lang}
       />
     );
@@ -100,6 +115,7 @@ export default async function BinderSlugPage({
     <BinderViewer
       binder={dto}
       placedCards={placedCards}
+      expectedCards={expectedCards}
       lang={lang}
       viewerId={viewerId}
     />

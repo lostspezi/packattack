@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { Layers } from "lucide-react";
 import type { CSSProperties } from "react";
 import type { InventoryCard } from "@/lib/binders/inventory";
+import type { ExpectedCardDTO } from "./binder-editor";
 import { PageTitleEditor } from "./page-title-editor";
 
 export interface SpreadDragSource {
@@ -38,6 +39,7 @@ interface BinderSpreadProps {
   leftPageIndex: number;
   rightPageIndex: number;
   cardLookup: (packPullId: string) => InventoryCard | undefined;
+  expectedLookup?: (cardId: string) => ExpectedCardDTO | undefined;
   binderSlug?: string;
   isDe?: boolean;
   ownerView?: boolean;
@@ -52,6 +54,7 @@ export function BinderSpread({
   leftPageIndex,
   rightPageIndex,
   cardLookup,
+  expectedLookup,
   binderSlug,
   isDe = false,
   ownerView = false,
@@ -70,6 +73,7 @@ export function BinderSpread({
             pageIndex={leftPageIndex}
             theme={theme}
             cardLookup={cardLookup}
+            expectedLookup={expectedLookup}
             binderSlug={binderSlug}
             isDe={isDe}
             ownerView={ownerView}
@@ -85,6 +89,7 @@ export function BinderSpread({
             pageIndex={rightPageIndex}
             theme={theme}
             cardLookup={cardLookup}
+            expectedLookup={expectedLookup}
             binderSlug={binderSlug}
             isDe={isDe}
             ownerView={ownerView}
@@ -104,6 +109,7 @@ function Page({
   pageIndex,
   theme,
   cardLookup,
+  expectedLookup,
   binderSlug,
   isDe,
   ownerView,
@@ -114,6 +120,7 @@ function Page({
   pageIndex: number;
   theme: ThemeShape;
   cardLookup: (packPullId: string) => InventoryCard | undefined;
+  expectedLookup?: (cardId: string) => ExpectedCardDTO | undefined;
   binderSlug?: string;
   isDe: boolean;
   ownerView: boolean;
@@ -143,6 +150,9 @@ function Page({
       >
         {Array.from({ length: 9 }, (_, i) => {
           const slot = page.slots.find((s) => s.position === i);
+          const expected = slot?.expectedCardId
+            ? (expectedLookup?.(slot.expectedCardId) ?? null)
+            : null;
           return (
             <Slot
               key={i}
@@ -150,6 +160,7 @@ function Page({
               slotPosition={i}
               packPullId={slot?.packPullId ?? null}
               expectedCardId={slot?.expectedCardId ?? null}
+              expectedCard={expected}
               note={slot?.note ?? null}
               cardLookup={cardLookup}
               ownerView={ownerView}
@@ -167,6 +178,7 @@ function Slot({
   slotPosition,
   packPullId,
   expectedCardId,
+  expectedCard,
   cardLookup,
   ownerView,
   onClick,
@@ -175,6 +187,7 @@ function Slot({
   slotPosition: number;
   packPullId: string | null;
   expectedCardId: string | null;
+  expectedCard: ExpectedCardDTO | null;
   note: string | null;
   cardLookup: (packPullId: string) => InventoryCard | undefined;
   ownerView: boolean;
@@ -215,9 +228,7 @@ function Slot({
           <Layers className="w-5 h-5 text-white/40" />
         </div>
       ) : expectedCardId ? (
-        <div className="absolute inset-0 flex items-center justify-center text-[10px] text-white/40 px-1 text-center">
-          ?
-        </div>
+        <ExpectedPlaceholder card={expectedCard} />
       ) : null}
     </div>
   );
@@ -276,6 +287,27 @@ function SlotDraggableCard({
         </div>
       )}
     </motion.div>
+  );
+}
+
+function ExpectedPlaceholder({ card }: { card: ExpectedCardDTO | null }) {
+  return (
+    <div className="absolute inset-0 rounded-md overflow-hidden">
+      {card?.image ? (
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={card.image}
+          alt={card.name}
+          className="object-cover w-full h-full opacity-25 grayscale"
+          draggable={false}
+        />
+      ) : null}
+      <div className="absolute inset-0 flex items-end justify-center p-1">
+        <span className="text-[9px] text-white/70 bg-black/60 rounded px-1 py-0.5 line-clamp-1">
+          {card?.name ?? "?"}
+        </span>
+      </div>
+    </div>
   );
 }
 
