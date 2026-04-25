@@ -38,14 +38,23 @@ export function UpvoteReveal({ dict, cards, ranked, totalVoters, myPicks }: Prop
         </h2>
         <p className="text-sm text-text-secondary mt-1">
           {totalVoters === 1
-            ? `1 ${dict["statusActive"] ?? "voter"}`
-            : `${totalVoters} ${dict["pageTitle"] ?? "votes"}`}
+            ? dict["voterCountSingular"] ?? "1 voter"
+            : (dict["voterCountPlural"] ?? "{{count}} voters").replace(
+                "{{count}}",
+                String(totalVoters)
+              )}
         </p>
       </div>
 
       {myPicks.length === 0 ? (
         <p className="text-sm text-text-muted italic">{dict["myVotesEmpty"] ?? "You did not vote here."}</p>
       ) : null}
+
+      {ranked.length === 0 && (
+        <p className="text-sm text-text-muted">
+          {dict["revealNoVotes"] ?? "No votes yet."}
+        </p>
+      )}
 
       <ul className="space-y-2">
         {ranked.map((row, idx) => {

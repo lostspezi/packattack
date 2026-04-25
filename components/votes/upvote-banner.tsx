@@ -16,6 +16,8 @@ interface Props {
 }
 
 export async function UpvoteBanner({ lang, userId }: Props) {
+  if (!Types.ObjectId.isValid(userId)) return null;
+
   await connectDB();
   await autoCloseExpiredBulk();
 
