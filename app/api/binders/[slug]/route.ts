@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Types } from "mongoose";
 import { auth } from "@/lib/auth";
 import connectDB from "@/lib/db";
 import Binder from "@/models/binder";
 import BinderLike from "@/models/binder-like";
 import PackPull from "@/models/pack-pull";
+import Card from "@/models/card";
 import { updateBinderSchema } from "@/lib/binders/validations";
 import { resolveAccess } from "@/lib/binders/public-access";
 import { serializeBinder } from "@/lib/binders/serialize";
@@ -29,9 +31,83 @@ export async function GET(
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
+  const placedPullIds = new Set<string>();
+  for (const page of binder.pages) {
+    for (const slot of page.slots) {
+      if (slot.packPullId) placedPullIds.add(slot.packPullId.toString());
+    }
+  }
+  const expectedCardIds = new Set<string>();
+  for (const page of binder.pages) {
+    for (const slot of page.slots) {
+      if (slot.expectedCardId) {
+        expectedCardIds.add(slot.expectedCardId.toString());
+      }
+    }
+  }
+
+  const placedPulls =
+    placedPullIds.size > 0
+      ? await PackPull.find({
+          _id: {
+            $in: Array.from(placedPullIds).map((id) => new Types.ObjectId(id)),
+          },
+        })
+          .select("_id cardId createdAt")
+          .lean()
+      : [];
+
+  const cardIds = new Set<string>();
+  for (const pull of placedPulls) cardIds.add(pull.cardId.toString());
+  for (const id of expectedCardIds) cardIds.add(id);
+
+  const cards = cardIds.size
+    ? await Card.find({
+        _id: {
+          $in: Array.from(cardIds).map((id) => new Types.ObjectId(id)),
+        },
+      })
+        .select("_id name game set setName rarity image")
+        .lean()
+    : [];
+  const cardMap = new Map(cards.map((c) => [c._id.toString(), c]));
+
+  const placedCards = placedPulls
+    .map((p) => {
+      const card = cardMap.get(p.cardId.toString());
+      if (!card) return null;
+      return {
+        packPullId: p._id.toString(),
+        cardId: card._id.toString(),
+        name: card.name,
+        game: card.game,
+        set: card.set,
+        setName: card.setName,
+        rarity: card.rarity,
+        image: card.image ?? null,
+        createdAt: p.createdAt.toISOString(),
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+
+  const expectedCardsList = Array.from(expectedCardIds)
+    .map((id) => cardMap.get(id))
+    .filter((c): c is NonNullable<typeof c> => Boolean(c))
+    .map((c) => ({
+      cardId: c._id.toString(),
+      name: c.name,
+      game: c.game,
+      set: c.set,
+      setName: c.setName,
+      rarity: c.rarity,
+      image: c.image ?? null,
+    }));
+
   return NextResponse.json({
     binder: serializeBinder(binder),
     access,
+    placedCards,
+    expectedCards: expectedCardsList,
   });
 }
 
