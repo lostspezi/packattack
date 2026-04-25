@@ -117,3 +117,18 @@ export function BadgesSkeleton() {
     </Card>
   );
 }
+
+export function UpvoteBannerSkeleton() {
+  return (
+    <Card variant="soft" className="p-4 md:p-5 animate-pulse">
+      <div className="flex items-center gap-4">
+        <div className="h-10 w-10 bg-white/4 rounded-full shrink-0" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-40 bg-white/4 rounded" />
+          <div className="h-3 w-2/3 bg-white/4 rounded" />
+        </div>
+        <div className="h-9 w-32 bg-white/4 rounded-md shrink-0" />
+      </div>
+    </Card>
+  );
+}

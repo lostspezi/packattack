@@ -10,6 +10,7 @@ import { DashboardActivityFeedAsync } from "@/components/dashboard/dashboard-act
 import { DashboardLiveSidebar } from "@/components/dashboard/dashboard-live-sidebar";
 import { DashboardBadgesShowcase } from "@/components/dashboard/dashboard-badges-showcase";
 import { PushSubscriptionPrompt } from "@/components/dashboard/push-subscription-prompt";
+import { UpvoteBanner } from "@/components/votes/upvote-banner";
 import {
   ActivityFeedSkeleton,
   BadgesSkeleton,
@@ -17,6 +18,7 @@ import {
   NewsStripSkeleton,
   SidebarSkeleton,
   StatsStripSkeleton,
+  UpvoteBannerSkeleton,
 } from "@/components/dashboard/dashboard-skeletons";
 
 export default async function DashboardPage({
@@ -40,6 +42,10 @@ export default async function DashboardPage({
 
       <Suspense fallback={<DashboardHeroSkeleton userName={userName} />}>
         <DashboardHeroAsync lang={lang} userId={userId} userName={userName} />
+      </Suspense>
+
+      <Suspense fallback={<UpvoteBannerSkeleton />}>
+        <UpvoteBanner lang={lang} userId={userId} />
       </Suspense>
 
       <Suspense fallback={<StatsStripSkeleton />}>
