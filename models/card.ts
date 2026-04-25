@@ -7,6 +7,7 @@ export interface ICard extends Omit<Document, "set"> {
   set: string;
   setName: string;
   rarity: string;
+  cardNumberInSet: number | null;
   image: string | null;
   tcgplayerId: string | null;
   marketPrice: number | null;
@@ -38,6 +39,7 @@ const CardSchema = new Schema<ICard>(
     set: { type: String, required: true },
     setName: { type: String, required: true },
     rarity: { type: String, required: true },
+    cardNumberInSet: { type: Number, default: null, min: 0 },
     image: { type: String, default: null },
     tcgplayerId: { type: String, default: null },
     marketPrice: { type: Number, default: null },
@@ -66,6 +68,7 @@ const CardSchema = new Schema<ICard>(
 CardSchema.index({ game: 1 });
 CardSchema.index({ set: 1 });
 CardSchema.index({ rarity: 1 });
+CardSchema.index({ game: 1, set: 1, cardNumberInSet: 1, name: 1 });
 
 const Card: Model<ICard> =
   mongoose.models.Card ?? mongoose.model<ICard>("Card", CardSchema);

@@ -9,16 +9,17 @@ export interface TemplateBuildResult {
 
 /**
  * Loads all master cards for a (game, set) and pre-allocates template pages.
- * Sorted by name ascending — until Card gets a `cardNumberInSet` field this is
- * the best stable order we have.
+ * Primary sort is cardNumberInSet (ascending, nulls last) so a Pokemon set
+ * appears in #001..#102 order; name is the stable tie-breaker for cards
+ * without a number yet.
  */
 export async function buildTemplatePages(
   game: string,
   set: string,
 ): Promise<TemplateBuildResult> {
   const cards = await Card.find({ game, set })
-    .select("_id name")
-    .sort({ name: 1 })
+    .select("_id name cardNumberInSet")
+    .sort({ cardNumberInSet: 1, name: 1 })
     .lean();
   const expectedCardIds = cards.map((c) => c._id as Types.ObjectId);
   const pages = makeTemplatePages(expectedCardIds.map((id) => id.toString()));
