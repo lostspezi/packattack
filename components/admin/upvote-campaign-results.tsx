@@ -1,24 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Download } from "lucide-react";
+import { Download, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 
 interface ResultsResponse {
   totalVoters: number;
-  perCard: Array<{
-    cardRefId: string;
+  perItem: Array<{
+    itemRefId: string;
     voteCount: number;
-    card: {
-      name: string;
+    item: {
+      kind: "card" | "option" | "box";
+      label: { de: string; en: string };
       image: string | null;
-      rarity: string;
-      game: string;
-      set: string;
-      setName: string;
-      source: "internal" | "justtcg";
+      rarity: string | null;
+      game: string | null;
+      set: string | null;
+      setName: string | null;
+      source: "internal" | "justtcg" | null;
+      boxSlug: string | null;
     } | null;
     voters: Array<{ userId: string; name: string; username: string; votedAt: string }>;
   }>;
@@ -35,7 +37,7 @@ export function UpvoteCampaignResults({ lang, dict, campaignId }: Props) {
   const { toast } = useToast();
   const [data, setData] = useState<ResultsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [openCard, setOpenCard] = useState<string | null>(null);
+  const [openItem, setOpenItem] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,39 +92,58 @@ export function UpvoteCampaignResults({ lang, dict, campaignId }: Props) {
         </div>
       </div>
 
-      {data.perCard.length === 0 ? (
+      {data.perItem.length === 0 ? (
         <p className="text-sm text-text-muted">
           {dict["upvoteCampaigns_resultsNoVotes"] ?? "No votes yet."}
         </p>
       ) : (
         <ul className="space-y-2">
-          {data.perCard.map((row, idx) => {
-            const isOpen = openCard === row.cardRefId;
+          {data.perItem.map((row, idx) => {
+            const isOpen = openItem === row.itemRefId;
+            const label = row.item
+              ? isDe
+                ? row.item.label.de || row.item.label.en
+                : row.item.label.en || row.item.label.de
+              : row.itemRefId;
             return (
-              <li key={row.cardRefId} className="bg-surface rounded-lg border border-border">
+              <li key={row.itemRefId} className="bg-surface rounded-lg border border-border">
                 <button
                   type="button"
-                  onClick={() => setOpenCard(isOpen ? null : row.cardRefId)}
+                  onClick={() => setOpenItem(isOpen ? null : row.itemRefId)}
                   className="w-full flex items-center gap-3 p-3 hover:bg-white/2 text-left"
                 >
                   <span className="text-sm font-bold text-text-muted w-6 text-right">
                     {idx + 1}
                   </span>
-                  {row.card?.image ? (
+                  {row.item?.image ? (
                     <img
-                      src={row.card.image}
+                      src={row.item.image}
                       alt=""
                       className="w-10 h-14 object-cover rounded bg-surface-2"
                     />
                   ) : (
-                    <div className="w-10 h-14 bg-surface-2 rounded" />
+                    <div className="w-10 h-14 bg-surface-2 rounded flex items-center justify-center text-text-muted">
+                      {row.item?.kind === "box" ? <Package className="w-4 h-4" /> : null}
+                    </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-text-primary truncate">
-                      {row.card?.name ?? row.cardRefId}
-                    </div>
-                    <div className="text-xs text-text-muted truncate">
-                      {row.card?.setName} · <Badge variant="info">{row.card?.rarity}</Badge>
+                    <div className="text-sm font-medium text-text-primary truncate">{label}</div>
+                    <div className="text-xs text-text-muted truncate flex items-center gap-1">
+                      {row.item?.kind === "card" && row.item.setName && (
+                        <>
+                          {row.item.setName}
+                          {row.item.rarity && <Badge variant="info">{row.item.rarity}</Badge>}
+                        </>
+                      )}
+                      {row.item?.kind === "box" && (
+                        <>
+                          <Package className="w-3 h-3" />
+                          {row.item.game ?? "Box"}
+                        </>
+                      )}
+                      {row.item?.kind === "option" && (
+                        <Badge variant="warning">{isDe ? "Option" : "Option"}</Badge>
+                      )}
                     </div>
                   </div>
                   <div className="text-sm font-bold text-text-primary tabular-nums">
@@ -142,12 +163,11 @@ export function UpvoteCampaignResults({ lang, dict, campaignId }: Props) {
                       <ul className="space-y-1 max-h-60 overflow-y-auto">
                         {row.voters.map((v) => (
                           <li
-                            key={`${v.userId}-${row.cardRefId}`}
+                            key={`${v.userId}-${row.itemRefId}`}
                             className="flex justify-between text-xs"
                           >
                             <span className="text-text-primary">
-                              {v.name}{" "}
-                              <span className="text-text-muted">@{v.username}</span>
+                              {v.name} <span className="text-text-muted">@{v.username}</span>
                             </span>
                             <span className="text-text-muted">
                               {new Date(v.votedAt).toLocaleString()}

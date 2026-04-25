@@ -1,7 +1,8 @@
 import { Types } from "mongoose";
 import Card from "@/models/card";
-import type { CardInput } from "@/lib/admin/upvote-campaign-payload";
-import type { IUpvoteCampaignCard } from "@/models/upvote-campaign";
+import Box from "@/models/box";
+import type { ItemInput } from "@/lib/admin/upvote-campaign-payload";
+import type { IUpvoteCampaignItem } from "@/models/upvote-campaign";
 
 export type AdminGate =
   | { ok: true; userId: string; role: "admin" | "super_admin" }
@@ -16,88 +17,142 @@ export function gateAdmin(session: unknown): AdminGate {
   return { ok: true, userId, role };
 }
 
-/**
- * Macht aus Card-Input-Payload eingefrorene Snapshot-Subdocs. Für `internal`
- * Cards werden Name/Set/Rarity aus der Card-Collection geladen — der Snapshot
- * bleibt stabil, auch wenn das Card-Doc später umbenannt wird oder die
- * externe JustTCG-Karte verschwindet.
- *
- * Wirft, wenn ein angegebenes Card-Doc nicht existiert.
- */
-export async function buildCardSnapshots(
-  inputs: CardInput[]
-): Promise<Omit<IUpvoteCampaignCard, "_id">[]> {
-  const internalIds = inputs
-    .filter((c): c is Extract<CardInput, { source: "internal" }> => c.source === "internal")
-    .map((c) => c.internalCardId);
+type ItemSnapshot = Omit<IUpvoteCampaignItem, "_id">;
 
-  const cardDocs = internalIds.length
-    ? await Card.find({ _id: { $in: internalIds.map((id) => new Types.ObjectId(id)) } })
+/**
+ * Turns API payload items into immutable subdoc snapshots. For internal
+ * cards and boxes the display fields are loaded from the source document
+ * so the snapshot stays stable even if the source is later renamed or
+ * removed. JustTCG cards and free-form options keep what the admin typed.
+ */
+export async function buildItemSnapshots(inputs: ItemInput[]): Promise<ItemSnapshot[]> {
+  const internalCardIds = inputs.flatMap((i) =>
+    i.kind === "card" && i.source === "internal" && i.internalCardId
+      ? [i.internalCardId]
+      : []
+  );
+
+  const boxIds = inputs.flatMap((i) => (i.kind === "box" ? [i.boxId] : []));
+
+  const cardDocs = internalCardIds.length
+    ? await Card.find({ _id: { $in: internalCardIds.map((id) => new Types.ObjectId(id)) } })
         .select("_id justTcgId name game set setName rarity image tcgplayerId")
         .lean()
     : [];
-
   const cardMap = new Map(cardDocs.map((c) => [c._id.toString(), c]));
 
+  const boxDocs = boxIds.length
+    ? await Box.find({ _id: { $in: boxIds.map((id) => new Types.ObjectId(id)) } })
+        .select("_id slug name image game")
+        .lean()
+    : [];
+  const boxMap = new Map(boxDocs.map((b) => [b._id.toString(), b]));
+
+  const empty = { de: "", en: "" };
+
   return inputs.map((input) => {
-    if (input.source === "internal") {
-      const doc = cardMap.get(input.internalCardId);
-      if (!doc) throw new Error(`unknown_internal_card:${input.internalCardId}`);
+    if (input.kind === "card") {
+      if (input.source === "internal") {
+        const doc = cardMap.get(input.internalCardId!);
+        if (!doc) throw new Error(`unknown_internal_card:${input.internalCardId}`);
+        return {
+          kind: "card" as const,
+          label: { de: doc.name, en: doc.name },
+          description: empty,
+          image: doc.image ?? null,
+          position: input.position,
+          source: "internal" as const,
+          internalCardId: doc._id,
+          justTcgId: doc.justTcgId ?? null,
+          game: doc.game,
+          set: doc.set,
+          setName: doc.setName,
+          rarity: doc.rarity,
+          tcgplayerId: doc.tcgplayerId ?? null,
+          boxId: null,
+          boxSlug: null,
+        };
+      }
       return {
-        source: "internal" as const,
-        internalCardId: doc._id,
-        justTcgId: doc.justTcgId ?? null,
-        name: doc.name,
-        game: doc.game,
-        set: doc.set,
-        setName: doc.setName,
-        rarity: doc.rarity,
-        image: doc.image ?? null,
-        tcgplayerId: doc.tcgplayerId ?? null,
+        kind: "card" as const,
+        label: { de: input.name!, en: input.name! },
+        description: empty,
+        image: input.image ?? null,
         position: input.position,
+        source: "justtcg" as const,
+        internalCardId: null,
+        justTcgId: input.justTcgId!,
+        game: input.game!,
+        set: input.set!,
+        setName: input.setName!,
+        rarity: input.rarity!,
+        tcgplayerId: input.tcgplayerId ?? null,
+        boxId: null,
+        boxSlug: null,
       };
     }
+
+    if (input.kind === "box") {
+      const doc = boxMap.get(input.boxId);
+      if (!doc) throw new Error(`unknown_box:${input.boxId}`);
+      return {
+        kind: "box" as const,
+        label: doc.name,
+        description: empty,
+        image: doc.image ?? null,
+        position: input.position,
+        source: null,
+        internalCardId: null,
+        justTcgId: null,
+        game: doc.game ?? null,
+        set: null,
+        setName: null,
+        rarity: null,
+        tcgplayerId: null,
+        boxId: doc._id,
+        boxSlug: doc.slug ?? null,
+      };
+    }
+
     return {
-      source: "justtcg" as const,
-      internalCardId: null,
-      justTcgId: input.justTcgId,
-      name: input.name,
-      game: input.game,
-      set: input.set,
-      setName: input.setName,
-      rarity: input.rarity,
+      kind: "option" as const,
+      label: input.label,
+      description: input.description ?? empty,
       image: input.image ?? null,
-      tcgplayerId: input.tcgplayerId ?? null,
       position: input.position,
+      source: null,
+      internalCardId: null,
+      justTcgId: null,
+      game: null,
+      set: null,
+      setName: null,
+      rarity: null,
+      tcgplayerId: null,
+      boxId: null,
+      boxSlug: null,
     };
   });
 }
 
-export interface CsvExportRow {
-  campaign: string;
-  card: string;
-  voteCount: number;
-}
-
 export function toCsvLong(
   campaignTitle: string,
-  rows: { cardName: string; voteCount: number; userNames: string[] }[]
+  rows: { itemLabel: string; voteCount: number; userNames: string[] }[]
 ): string {
-  const header = "campaign,card,voteCount,voters";
+  const header = "campaign,item,voteCount,voters";
   const lines = rows.map((r) => {
     const voters = r.userNames.join("; ");
-    return [campaignTitle, r.cardName, String(r.voteCount), voters].map(csvEscape).join(",");
+    return [campaignTitle, r.itemLabel, String(r.voteCount), voters].map(csvEscape).join(",");
   });
   return [header, ...lines].join("\n");
 }
 
 export function toCsvMatrix(
-  cardNames: string[],
+  itemLabels: string[],
   userRows: { userName: string; picks: Set<string> }[]
 ): string {
-  const header = ["user", ...cardNames].map(csvEscape).join(",");
+  const header = ["user", ...itemLabels].map(csvEscape).join(",");
   const lines = userRows.map((row) =>
-    [row.userName, ...cardNames.map((c) => (row.picks.has(c) ? "1" : "0"))]
+    [row.userName, ...itemLabels.map((c) => (row.picks.has(c) ? "1" : "0"))]
       .map(csvEscape)
       .join(",")
   );

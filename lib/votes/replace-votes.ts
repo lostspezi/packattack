@@ -3,8 +3,8 @@ type IdLike = { toString(): string };
 export interface ReplaceVotesInput {
   campaignId: IdLike;
   userId: IdLike;
-  currentCardRefIds: IdLike[];
-  desiredCardRefIds: IdLike[];
+  currentItemRefIds: IdLike[];
+  desiredItemRefIds: IdLike[];
 }
 
 export interface ReplaceVotesPlan {
@@ -14,8 +14,8 @@ export interface ReplaceVotesPlan {
 }
 
 export function planVoteReplacement(input: ReplaceVotesInput): ReplaceVotesPlan {
-  const current = new Set(input.currentCardRefIds.map((id) => id.toString()));
-  const desired = new Set(input.desiredCardRefIds.map((id) => id.toString()));
+  const current = new Set(input.currentItemRefIds.map((id) => id.toString()));
+  const desired = new Set(input.desiredItemRefIds.map((id) => id.toString()));
 
   const toInsert: string[] = [];
   const toDelete: string[] = [];

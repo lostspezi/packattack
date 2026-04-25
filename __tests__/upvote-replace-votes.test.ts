@@ -8,8 +8,8 @@ describe("planVoteReplacement", () => {
     const plan = planVoteReplacement({
       campaignId: id("c1"),
       userId: id("u1"),
-      currentCardRefIds: [],
-      desiredCardRefIds: [id("a"), id("b"), id("c")],
+      currentItemRefIds: [],
+      desiredItemRefIds: [id("a"), id("b"), id("c")],
     });
     expect(plan.toInsert.sort()).toEqual(["a", "b", "c"]);
     expect(plan.toDelete).toEqual([]);
@@ -20,8 +20,8 @@ describe("planVoteReplacement", () => {
     const plan = planVoteReplacement({
       campaignId: id("c1"),
       userId: id("u1"),
-      currentCardRefIds: [id("a"), id("b")],
-      desiredCardRefIds: [],
+      currentItemRefIds: [id("a"), id("b")],
+      desiredItemRefIds: [],
     });
     expect(plan.toInsert).toEqual([]);
     expect(plan.toDelete.sort()).toEqual(["a", "b"]);
@@ -32,8 +32,8 @@ describe("planVoteReplacement", () => {
     const plan = planVoteReplacement({
       campaignId: id("c1"),
       userId: id("u1"),
-      currentCardRefIds: [id("a"), id("b"), id("c")],
-      desiredCardRefIds: [id("b"), id("c"), id("d")],
+      currentItemRefIds: [id("a"), id("b"), id("c")],
+      desiredItemRefIds: [id("b"), id("c"), id("d")],
     });
     expect(plan.toInsert).toEqual(["d"]);
     expect(plan.toDelete).toEqual(["a"]);
@@ -44,8 +44,8 @@ describe("planVoteReplacement", () => {
     const plan = planVoteReplacement({
       campaignId: id("c1"),
       userId: id("u1"),
-      currentCardRefIds: [id("x"), id("y")],
-      desiredCardRefIds: [id("x"), id("y")],
+      currentItemRefIds: [id("x"), id("y")],
+      desiredItemRefIds: [id("x"), id("y")],
     });
     expect(plan.toInsert).toEqual([]);
     expect(plan.toDelete).toEqual([]);
@@ -62,8 +62,8 @@ describe("planVoteReplacement", () => {
     const plan = planVoteReplacement({
       campaignId: new FakeOid("camp"),
       userId: new FakeOid("user"),
-      currentCardRefIds: [new FakeOid("a")],
-      desiredCardRefIds: [new FakeOid("a"), new FakeOid("b")],
+      currentItemRefIds: [new FakeOid("a")],
+      desiredItemRefIds: [new FakeOid("a"), new FakeOid("b")],
     });
     expect(plan.toInsert).toEqual(["b"]);
     expect(plan.unchanged).toEqual(["a"]);

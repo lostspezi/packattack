@@ -38,23 +38,23 @@ export async function GET(
       campaignId: campaign._id,
       userId: new Types.ObjectId(userId),
     })
-      .select("cardRefId")
+      .select("itemRefId")
       .lean();
-    const myCardRefIds = myVotes.map((v) => v.cardRefId.toString());
+    const myItemRefIds = myVotes.map((v) => v.itemRefId.toString());
 
-    let aggregate: Array<{ cardRefId: string; voteCount: number }> | undefined;
+    let aggregate: Array<{ itemRefId: string; voteCount: number }> | undefined;
     let totalVoters: number | undefined;
     if (campaign.status === "closed") {
       const votes = await UpvoteVote.find({ campaignId: campaign._id })
-        .select("userId cardRefId")
+        .select("userId itemRefId")
         .lean();
       const flat = votes.map((v) => ({
         userId: v.userId.toString(),
-        cardRefId: v.cardRefId.toString(),
+        itemRefId: v.itemRefId.toString(),
       }));
-      const cardIds = campaign.cards.map((c) => c._id.toString());
-      const positions = new Map(campaign.cards.map((c) => [c._id.toString(), c.position]));
-      aggregate = rankAggregatedVotes(aggregateVotes(flat, cardIds), positions);
+      const itemIds = campaign.items.map((c) => c._id.toString());
+      const positions = new Map(campaign.items.map((c) => [c._id.toString(), c.position]));
+      aggregate = rankAggregatedVotes(aggregateVotes(flat, itemIds), positions);
       totalVoters = countUniqueVoters(flat);
     }
 
@@ -68,20 +68,23 @@ export async function GET(
         topN: campaign.topN,
         endsAt: campaign.endsAt,
         closedAt: campaign.closedAt,
-        cards: campaign.cards.map((c) => ({
+        items: campaign.items.map((c) => ({
           _id: c._id.toString(),
+          kind: c.kind,
+          label: c.label,
+          description: c.description,
+          image: c.image,
           source: c.source,
-          name: c.name,
           game: c.game,
           set: c.set,
           setName: c.setName,
           rarity: c.rarity,
-          image: c.image,
           tcgplayerId: c.tcgplayerId,
+          boxSlug: c.boxSlug,
           position: c.position,
         })),
       },
-      myVotes: myCardRefIds,
+      myVotes: myItemRefIds,
       aggregate,
       totalVoters,
     });

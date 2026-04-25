@@ -4,31 +4,33 @@ import { Types } from "mongoose";
 
 const oid = () => new Types.ObjectId().toHexString();
 
-const makeCampaign = (overrides: Partial<{
-  status: "draft" | "active" | "closed";
-  topN: number;
-  endsAt: Date | null;
-  cardCount: number;
-  cardIds: string[];
-}> = {}) => {
-  const cardCount = overrides.cardCount ?? 5;
-  const cardIds = overrides.cardIds ?? Array.from({ length: cardCount }, oid);
+const makeCampaign = (
+  overrides: Partial<{
+    status: "draft" | "active" | "closed";
+    topN: number;
+    endsAt: Date | null;
+    itemCount: number;
+    itemIds: string[];
+  }> = {}
+) => {
+  const itemCount = overrides.itemCount ?? 5;
+  const itemIds = overrides.itemIds ?? Array.from({ length: itemCount }, oid);
   return {
-    cardIds,
+    itemIds,
     campaign: {
       status: overrides.status ?? ("active" as const),
       topN: overrides.topN ?? 3,
       endsAt: overrides.endsAt ?? null,
-      cards: cardIds.map((id) => ({ _id: id })),
+      items: itemIds.map((id) => ({ _id: id })),
     },
   };
 };
 
 describe("validateVotePayload", () => {
   it("accepts a valid selection within topN", () => {
-    const { cardIds, campaign } = makeCampaign();
+    const { itemIds, campaign } = makeCampaign();
     const result = validateVotePayload({
-      cardRefIds: cardIds.slice(0, 3),
+      itemRefIds: itemIds.slice(0, 3),
       campaign,
     });
     expect(result).toEqual({ ok: true });
@@ -36,67 +38,67 @@ describe("validateVotePayload", () => {
 
   it("accepts an empty selection (user clears their vote)", () => {
     const { campaign } = makeCampaign();
-    expect(validateVotePayload({ cardRefIds: [], campaign })).toEqual({ ok: true });
+    expect(validateVotePayload({ itemRefIds: [], campaign })).toEqual({ ok: true });
   });
 
   it("rejects when status is draft", () => {
-    const { cardIds, campaign } = makeCampaign({ status: "draft" });
-    const result = validateVotePayload({ cardRefIds: cardIds.slice(0, 1), campaign });
+    const { itemIds, campaign } = makeCampaign({ status: "draft" });
+    const result = validateVotePayload({ itemRefIds: itemIds.slice(0, 1), campaign });
     expect(result).toEqual({ ok: false, error: "campaign_not_active" });
   });
 
   it("rejects when status is closed", () => {
-    const { cardIds, campaign } = makeCampaign({ status: "closed" });
-    expect(validateVotePayload({ cardRefIds: cardIds.slice(0, 1), campaign })).toEqual({
+    const { itemIds, campaign } = makeCampaign({ status: "closed" });
+    expect(validateVotePayload({ itemRefIds: itemIds.slice(0, 1), campaign })).toEqual({
       ok: false,
       error: "campaign_not_active",
     });
   });
 
   it("rejects when endsAt has passed (lazy expired)", () => {
-    const { cardIds, campaign } = makeCampaign({
+    const { itemIds, campaign } = makeCampaign({
       endsAt: new Date("2020-01-01"),
     });
     expect(
       validateVotePayload({
-        cardRefIds: cardIds.slice(0, 1),
+        itemRefIds: itemIds.slice(0, 1),
         campaign,
         now: new Date("2026-04-25"),
       })
     ).toEqual({ ok: false, error: "campaign_not_active" });
   });
 
-  it("rejects when more than topN cards selected", () => {
-    const { cardIds, campaign } = makeCampaign({ topN: 2 });
-    expect(validateVotePayload({ cardRefIds: cardIds.slice(0, 3), campaign })).toEqual({
+  it("rejects when more than topN items selected", () => {
+    const { itemIds, campaign } = makeCampaign({ topN: 2 });
+    expect(validateVotePayload({ itemRefIds: itemIds.slice(0, 3), campaign })).toEqual({
       ok: false,
       error: "too_many_votes",
     });
   });
 
-  it("rejects duplicate card ids in selection", () => {
-    const { cardIds, campaign } = makeCampaign();
+  it("rejects duplicate item ids in selection", () => {
+    const { itemIds, campaign } = makeCampaign();
     expect(
       validateVotePayload({
-        cardRefIds: [cardIds[0], cardIds[0]],
+        itemRefIds: [itemIds[0], itemIds[0]],
         campaign,
       })
-    ).toEqual({ ok: false, error: "duplicate_card" });
+    ).toEqual({ ok: false, error: "duplicate_item" });
   });
 
   it("rejects malformed ObjectId", () => {
     const { campaign } = makeCampaign();
-    expect(validateVotePayload({ cardRefIds: ["not-an-oid"], campaign })).toEqual({
+    expect(validateVotePayload({ itemRefIds: ["not-an-oid"], campaign })).toEqual({
       ok: false,
-      error: "invalid_card_id",
+      error: "invalid_item_id",
     });
   });
 
-  it("rejects card id that is not in the campaign", () => {
+  it("rejects item id that is not in the campaign", () => {
     const { campaign } = makeCampaign();
-    expect(validateVotePayload({ cardRefIds: [oid()], campaign })).toEqual({
+    expect(validateVotePayload({ itemRefIds: [oid()], campaign })).toEqual({
       ok: false,
-      error: "unknown_card",
+      error: "unknown_item",
     });
   });
 });

@@ -13,8 +13,9 @@ import {
   countUniqueVoters,
   rankAggregatedVotes,
 } from "@/lib/votes/aggregate";
-import { UpvoteCardGrid } from "@/components/votes/upvote-card-grid";
+import { UpvoteItemGrid } from "@/components/votes/upvote-item-grid";
 import { UpvoteReveal } from "@/components/votes/upvote-reveal";
+import type { VotingItem } from "@/components/votes/upvote-item-tile";
 
 export default async function VoteDetailPage({
   params,
@@ -41,21 +42,21 @@ export default async function VoteDetailPage({
     campaignId: campaign._id,
     userId: new Types.ObjectId(userId),
   })
-    .select("cardRefId")
+    .select("itemRefId")
     .lean();
-  const myPicks = myVotes.map((v) => v.cardRefId.toString());
+  const myPicks = myVotes.map((v) => v.itemRefId.toString());
 
-  const cards = campaign.cards
+  const items: VotingItem[] = campaign.items
     .map((c) => ({
       _id: c._id.toString(),
-      source: c.source,
-      name: c.name,
-      game: c.game,
-      set: c.set,
-      setName: c.setName,
-      rarity: c.rarity,
+      kind: c.kind,
+      label: { de: c.label.de, en: c.label.en },
+      description: { de: c.description.de, en: c.description.en },
       image: c.image,
-      tcgplayerId: c.tcgplayerId,
+      rarity: c.rarity,
+      setName: c.setName,
+      game: c.game,
+      boxSlug: c.boxSlug,
       position: c.position,
     }))
     .sort((a, b) => a.position - b.position);
@@ -67,22 +68,22 @@ export default async function VoteDetailPage({
     : campaign.description.en || campaign.description.de;
 
   let revealData: {
-    ranked: Array<{ cardRefId: string; voteCount: number }>;
+    ranked: Array<{ itemRefId: string; voteCount: number }>;
     totalVoters: number;
   } | null = null;
 
   if (campaign.status === "closed") {
     const allVotes = await UpvoteVote.find({ campaignId: campaign._id })
-      .select("userId cardRefId")
+      .select("userId itemRefId")
       .lean();
     const flat = allVotes.map((v) => ({
       userId: v.userId.toString(),
-      cardRefId: v.cardRefId.toString(),
+      itemRefId: v.itemRefId.toString(),
     }));
-    const cardIds = cards.map((c) => c._id);
-    const positions = new Map(cards.map((c) => [c._id, c.position]));
+    const itemIds = items.map((c) => c._id);
+    const positions = new Map(items.map((c) => [c._id, c.position]));
     revealData = {
-      ranked: rankAggregatedVotes(aggregateVotes(flat, cardIds), positions),
+      ranked: rankAggregatedVotes(aggregateVotes(flat, itemIds), positions),
       totalVoters: countUniqueVoters(flat),
     };
   }
@@ -103,19 +104,19 @@ export default async function VoteDetailPage({
       </header>
 
       {campaign.status === "active" ? (
-        <UpvoteCardGrid
+        <UpvoteItemGrid
           lang={lang}
           dict={dict}
           campaignId={campaign._id.toString()}
           topN={campaign.topN}
-          cards={cards}
+          items={items}
           initialPicks={myPicks}
         />
       ) : revealData ? (
         <UpvoteReveal
           lang={lang}
           dict={dict}
-          cards={cards}
+          items={items}
           ranked={revealData.ranked}
           totalVoters={revealData.totalVoters}
           myPicks={myPicks}

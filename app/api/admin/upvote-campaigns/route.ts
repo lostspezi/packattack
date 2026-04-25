@@ -5,7 +5,7 @@ import connectDB from "@/lib/db";
 import UpvoteCampaign from "@/models/upvote-campaign";
 import UpvoteVote from "@/models/upvote-vote";
 import { createCampaignSchema } from "@/lib/admin/upvote-campaign-payload";
-import { buildCardSnapshots, gateAdmin } from "@/lib/admin/upvote-campaign-helpers";
+import { buildItemSnapshots, gateAdmin } from "@/lib/admin/upvote-campaign-helpers";
 import { autoCloseExpiredBulk } from "@/lib/votes/auto-close";
 
 export async function GET(req: NextRequest) {
@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
 
     const [campaigns, total] = await Promise.all([
       UpvoteCampaign.find(query)
-        .select("_id title status topN cards endsAt closedAt createdAt")
+        .select("_id title status topN items endsAt closedAt createdAt")
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
         title: c.title,
         status: c.status,
         topN: c.topN,
-        cardCount: Array.isArray(c.cards) ? c.cards.length : 0,
+        itemCount: Array.isArray(c.items) ? c.items.length : 0,
         voteCount: countByCampaign.get(c._id.toString()) ?? 0,
         endsAt: c.endsAt,
         closedAt: c.closedAt,
@@ -96,7 +96,7 @@ export async function POST(req: NextRequest) {
 
   try {
     await connectDB();
-    const cards = await buildCardSnapshots(parsed.data.cards);
+    const items = await buildItemSnapshots(parsed.data.items);
 
     const campaign = await UpvoteCampaign.create({
       title: parsed.data.title,
@@ -104,13 +104,16 @@ export async function POST(req: NextRequest) {
       question: parsed.data.question,
       topN: parsed.data.topN,
       endsAt: parsed.data.endsAt ? new Date(parsed.data.endsAt) : null,
-      cards,
+      items,
       createdBy: new Types.ObjectId(gate.userId),
     });
 
     return NextResponse.json({ _id: campaign._id.toString() }, { status: 201 });
   } catch (err) {
-    if (err instanceof Error && err.message.startsWith("unknown_internal_card:")) {
+    if (
+      err instanceof Error &&
+      (err.message.startsWith("unknown_internal_card:") || err.message.startsWith("unknown_box:"))
+    ) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
     console.error("[admin/upvote-campaigns POST]", err);

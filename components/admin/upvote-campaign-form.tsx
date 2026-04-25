@@ -8,9 +8,9 @@ import { Select } from "@/components/ui/select";
 import type { SelectOption } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import {
-  UpvoteCampaignCardPicker,
-  type PickerCard,
-} from "@/components/admin/upvote-campaign-card-picker";
+  UpvoteCampaignItemPicker,
+  type PickerItem,
+} from "@/components/admin/upvote-campaign-item-picker";
 
 interface CampaignDoc {
   _id: string;
@@ -19,19 +19,23 @@ interface CampaignDoc {
   question: { de: string; en: string };
   status: "draft" | "active" | "closed";
   topN: number;
-  cards: Array<{
+  items: Array<{
     _id: string;
-    source: "internal" | "justtcg";
+    kind: "card" | "option" | "box";
+    label: { de: string; en: string };
+    description: { de: string; en: string };
+    image: string | null;
+    position: number;
+    source: "internal" | "justtcg" | null;
     internalCardId: string | null;
     justTcgId: string | null;
-    name: string;
-    game: string;
-    set: string;
-    setName: string;
-    rarity: string;
-    image: string | null;
+    game: string | null;
+    set: string | null;
+    setName: string | null;
+    rarity: string | null;
     tcgplayerId: string | null;
-    position: number;
+    boxId: string | null;
+    boxSlug: string | null;
   }>;
   endsAt: string | null;
   closedAt: string | null;
@@ -78,46 +82,68 @@ export function UpvoteCampaignForm(props: Props) {
   const [endsAt, setEndsAt] = useState(
     initialCampaign?.endsAt ? new Date(initialCampaign.endsAt).toISOString().slice(0, 16) : ""
   );
-  const [cards, setCards] = useState<PickerCard[]>(
-    initialCampaign?.cards.map((c) => ({
-      source: c.source,
+  const [items, setItems] = useState<PickerItem[]>(
+    initialCampaign?.items.map((c) => ({
+      kind: c.kind,
+      label: c.label,
+      description: c.description,
+      image: c.image,
+      source: c.source ?? undefined,
       internalCardId: c.internalCardId ?? undefined,
       justTcgId: c.justTcgId ?? undefined,
-      name: c.name,
-      game: c.game,
-      set: c.set,
-      setName: c.setName,
-      rarity: c.rarity,
-      image: c.image,
-      tcgplayerId: c.tcgplayerId,
+      game: c.game ?? undefined,
+      set: c.set ?? undefined,
+      setName: c.setName ?? undefined,
+      rarity: c.rarity ?? undefined,
+      tcgplayerId: c.tcgplayerId ?? undefined,
+      boxId: c.boxId ?? undefined,
+      boxSlug: c.boxSlug ?? undefined,
     })) ?? []
   );
   const [submitting, setSubmitting] = useState(false);
   const [actionLoading, setActionLoading] = useState<"activate" | "close" | "duplicate" | "delete" | null>(null);
 
   const status = initialCampaign?.status ?? "draft";
-  const cardsLocked = mode === "edit" && status !== "draft";
+  const itemsLocked = mode === "edit" && status !== "draft";
   const topNLocked = mode === "edit" && status !== "draft";
 
   const buildPayload = useCallback(() => {
-    const cardPayload = cards.map((c, idx) => {
-      if (c.source === "internal") {
+    const itemPayload = items.map((item, idx) => {
+      if (item.kind === "card") {
+        if (item.source === "internal") {
+          return {
+            kind: "card" as const,
+            source: "internal" as const,
+            internalCardId: item.internalCardId,
+            position: idx,
+          };
+        }
         return {
-          source: "internal" as const,
-          internalCardId: c.internalCardId,
+          kind: "card" as const,
+          source: "justtcg" as const,
+          justTcgId: item.justTcgId,
+          name: item.label.de,
+          game: item.game,
+          set: item.set,
+          setName: item.setName,
+          rarity: item.rarity,
+          image: item.image,
+          tcgplayerId: item.tcgplayerId,
+          position: idx,
+        };
+      }
+      if (item.kind === "box") {
+        return {
+          kind: "box" as const,
+          boxId: item.boxId,
           position: idx,
         };
       }
       return {
-        source: "justtcg" as const,
-        justTcgId: c.justTcgId,
-        name: c.name,
-        game: c.game,
-        set: c.set,
-        setName: c.setName,
-        rarity: c.rarity,
-        image: c.image,
-        tcgplayerId: c.tcgplayerId,
+        kind: "option" as const,
+        label: item.label,
+        description: item.description,
+        image: item.image,
         position: idx,
       };
     });
@@ -128,9 +154,9 @@ export function UpvoteCampaignForm(props: Props) {
       question: { de: questionDe.trim(), en: questionEn.trim() },
       topN: Number.parseInt(topN, 10),
       endsAt: endsAt ? new Date(endsAt).toISOString() : null,
-      cards: cardPayload,
+      items: itemPayload,
     };
-  }, [titleDe, titleEn, descDe, descEn, questionDe, questionEn, topN, endsAt, cards]);
+  }, [titleDe, titleEn, descDe, descEn, questionDe, questionEn, topN, endsAt, items]);
 
   const validate = useCallback(() => {
     if (!titleDe.trim() || !titleEn.trim()) {
@@ -143,14 +169,14 @@ export function UpvoteCampaignForm(props: Props) {
     if (!Number.isFinite(n) || n < 1 || n > 10) {
       return isDe ? "Top-N zwischen 1 und 10." : "Top-N between 1 and 10.";
     }
-    if (mode === "create" && cards.length === 0) {
-      return isDe ? "Mindestens eine Karte hinzufügen." : "Add at least one card.";
+    if (mode === "create" && items.length === 0) {
+      return isDe ? "Mindestens einen Eintrag hinzufügen." : "Add at least one item.";
     }
-    if (cards.length > 0 && n > cards.length) {
-      return dict["upvoteCampaigns_errorTopNTooLarge"] ?? "Top-N cannot exceed number of cards.";
+    if (items.length > 0 && n > items.length) {
+      return dict["upvoteCampaigns_errorTopNTooLarge"] ?? "Top-N cannot exceed number of items.";
     }
     return null;
-  }, [titleDe, titleEn, questionDe, questionEn, topN, cards, mode, isDe, dict]);
+  }, [titleDe, titleEn, questionDe, questionEn, topN, items, mode, isDe, dict]);
 
   const handleSubmit = useCallback(async () => {
     const error = validate();
@@ -319,14 +345,14 @@ export function UpvoteCampaignForm(props: Props) {
 
       <div>
         <h3 className="text-sm font-medium text-text-primary mb-3">
-          {isDe ? "Karten" : "Cards"}
+          {isDe ? "Einträge" : "Items"}
         </h3>
-        <UpvoteCampaignCardPicker
+        <UpvoteCampaignItemPicker
           lang={lang}
           dict={dict}
-          cards={cards}
-          onChange={setCards}
-          disabled={cardsLocked}
+          items={items}
+          onChange={setItems}
+          disabled={itemsLocked}
         />
       </div>
 
@@ -343,11 +369,11 @@ export function UpvoteCampaignForm(props: Props) {
                 callAction(
                   "activate",
                   dict["upvoteCampaigns_confirmActivate"] ??
-                    "Activate? Cards and Top-N cannot be changed afterwards.",
+                    "Activate? Items and Top-N cannot be changed afterwards.",
                   dict["upvoteCampaigns_activatedToast"] ?? "Activated."
                 )
               }
-              disabled={actionLoading !== null || cards.length < Number.parseInt(topN, 10)}
+              disabled={actionLoading !== null || items.length < Number.parseInt(topN, 10)}
             >
               {dict["upvoteCampaigns_actionActivate"] ?? "Activate"}
             </Button>

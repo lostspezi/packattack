@@ -6,33 +6,33 @@ import {
 } from "@/lib/votes/aggregate";
 
 describe("aggregateVotes", () => {
-  it("counts votes per card and includes zero-vote cards", () => {
+  it("counts votes per item and includes zero-vote items", () => {
     const result = aggregateVotes(
       [
-        { cardRefId: "a", userId: "u1" },
-        { cardRefId: "a", userId: "u2" },
-        { cardRefId: "b", userId: "u1" },
+        { itemRefId: "a", userId: "u1" },
+        { itemRefId: "a", userId: "u2" },
+        { itemRefId: "b", userId: "u1" },
       ],
       ["a", "b", "c"]
     );
 
-    const map = Object.fromEntries(result.map((r) => [r.cardRefId, r.voteCount]));
+    const map = Object.fromEntries(result.map((r) => [r.itemRefId, r.voteCount]));
     expect(map).toEqual({ a: 2, b: 1, c: 0 });
   });
 
-  it("ignores votes for cards not in the campaign", () => {
+  it("ignores votes for items not in the campaign", () => {
     const result = aggregateVotes(
       [
-        { cardRefId: "phantom", userId: "u1" },
-        { cardRefId: "a", userId: "u1" },
+        { itemRefId: "phantom", userId: "u1" },
+        { itemRefId: "a", userId: "u1" },
       ],
       ["a"]
     );
-    expect(result).toEqual([{ cardRefId: "a", voteCount: 1 }]);
+    expect(result).toEqual([{ itemRefId: "a", voteCount: 1 }]);
   });
 
-  it("returns empty list for empty card pool", () => {
-    expect(aggregateVotes([{ cardRefId: "x", userId: "u1" }], [])).toEqual([]);
+  it("returns empty list for empty item pool", () => {
+    expect(aggregateVotes([{ itemRefId: "x", userId: "u1" }], [])).toEqual([]);
   });
 });
 
@@ -45,13 +45,13 @@ describe("rankAggregatedVotes", () => {
     ]);
     const ranked = rankAggregatedVotes(
       [
-        { cardRefId: "a", voteCount: 3 },
-        { cardRefId: "b", voteCount: 7 },
-        { cardRefId: "c", voteCount: 1 },
+        { itemRefId: "a", voteCount: 3 },
+        { itemRefId: "b", voteCount: 7 },
+        { itemRefId: "c", voteCount: 1 },
       ],
       positions
     );
-    expect(ranked.map((r) => r.cardRefId)).toEqual(["b", "a", "c"]);
+    expect(ranked.map((r) => r.itemRefId)).toEqual(["b", "a", "c"]);
   });
 
   it("breaks ties by position (lower position first)", () => {
@@ -62,38 +62,38 @@ describe("rankAggregatedVotes", () => {
     ]);
     const ranked = rankAggregatedVotes(
       [
-        { cardRefId: "a", voteCount: 5 },
-        { cardRefId: "b", voteCount: 5 },
-        { cardRefId: "c", voteCount: 5 },
+        { itemRefId: "a", voteCount: 5 },
+        { itemRefId: "b", voteCount: 5 },
+        { itemRefId: "c", voteCount: 5 },
       ],
       positions
     );
-    expect(ranked.map((r) => r.cardRefId)).toEqual(["b", "c", "a"]);
+    expect(ranked.map((r) => r.itemRefId)).toEqual(["b", "c", "a"]);
   });
 
-  it("breaks position ties by cardRefId lexicographically", () => {
+  it("breaks position ties by itemRefId lexicographically", () => {
     const positions = new Map([
       ["zzz", 0],
       ["aaa", 0],
     ]);
     const ranked = rankAggregatedVotes(
       [
-        { cardRefId: "zzz", voteCount: 1 },
-        { cardRefId: "aaa", voteCount: 1 },
+        { itemRefId: "zzz", voteCount: 1 },
+        { itemRefId: "aaa", voteCount: 1 },
       ],
       positions
     );
-    expect(ranked.map((r) => r.cardRefId)).toEqual(["aaa", "zzz"]);
+    expect(ranked.map((r) => r.itemRefId)).toEqual(["aaa", "zzz"]);
   });
 });
 
 describe("countUniqueVoters", () => {
   it("counts each user once even with multiple votes", () => {
     const count = countUniqueVoters([
-      { cardRefId: "a", userId: "u1" },
-      { cardRefId: "b", userId: "u1" },
-      { cardRefId: "c", userId: "u1" },
-      { cardRefId: "a", userId: "u2" },
+      { itemRefId: "a", userId: "u1" },
+      { itemRefId: "b", userId: "u1" },
+      { itemRefId: "c", userId: "u1" },
+      { itemRefId: "a", userId: "u2" },
     ]);
     expect(count).toBe(2);
   });

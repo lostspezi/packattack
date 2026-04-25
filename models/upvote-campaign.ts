@@ -1,21 +1,32 @@
 import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
 export type UpvoteCampaignStatus = "draft" | "active" | "closed";
+export type UpvoteItemKind = "card" | "option" | "box";
 export type UpvoteCardSource = "internal" | "justtcg";
 
-export interface IUpvoteCampaignCard {
+export interface IUpvoteCampaignItem {
   _id: Types.ObjectId;
-  source: UpvoteCardSource;
+  kind: UpvoteItemKind;
+  /** Bilingual primary display label. For cards/boxes copied from the source. */
+  label: { de: string; en: string };
+  /** Optional bilingual secondary text. Shown only for `option` items today. */
+  description: { de: string; en: string };
+  image: string | null;
+  position: number;
+
+  // card-specific (kind === "card")
+  source: UpvoteCardSource | null;
   internalCardId: Types.ObjectId | null;
   justTcgId: string | null;
-  name: string;
-  game: string;
-  set: string;
-  setName: string;
-  rarity: string;
-  image: string | null;
+  game: string | null;
+  set: string | null;
+  setName: string | null;
+  rarity: string | null;
   tcgplayerId: string | null;
-  position: number;
+
+  // box-specific (kind === "box")
+  boxId: Types.ObjectId | null;
+  boxSlug: string | null;
 }
 
 export interface IUpvoteCampaign extends Document {
@@ -24,7 +35,7 @@ export interface IUpvoteCampaign extends Document {
   question: { de: string; en: string };
   status: UpvoteCampaignStatus;
   topN: number;
-  cards: Types.DocumentArray<IUpvoteCampaignCard>;
+  items: Types.DocumentArray<IUpvoteCampaignItem>;
   endsAt: Date | null;
   closedAt: Date | null;
   createdBy: Types.ObjectId;
@@ -32,19 +43,31 @@ export interface IUpvoteCampaign extends Document {
   updatedAt: Date;
 }
 
-const UpvoteCampaignCardSchema = new Schema<IUpvoteCampaignCard>(
+const UpvoteCampaignItemSchema = new Schema<IUpvoteCampaignItem>(
   {
-    source: { type: String, enum: ["internal", "justtcg"], required: true },
+    kind: { type: String, enum: ["card", "option", "box"], required: true },
+    label: {
+      de: { type: String, required: true },
+      en: { type: String, required: true },
+    },
+    description: {
+      de: { type: String, default: "" },
+      en: { type: String, default: "" },
+    },
+    image: { type: String, default: null },
+    position: { type: Number, required: true, min: 0 },
+
+    source: { type: String, enum: ["internal", "justtcg", null], default: null },
     internalCardId: { type: Schema.Types.ObjectId, ref: "Card", default: null },
     justTcgId: { type: String, default: null },
-    name: { type: String, required: true },
-    game: { type: String, required: true },
-    set: { type: String, required: true },
-    setName: { type: String, required: true },
-    rarity: { type: String, required: true },
-    image: { type: String, default: null },
+    game: { type: String, default: null },
+    set: { type: String, default: null },
+    setName: { type: String, default: null },
+    rarity: { type: String, default: null },
     tcgplayerId: { type: String, default: null },
-    position: { type: Number, required: true, min: 0 },
+
+    boxId: { type: Schema.Types.ObjectId, ref: "Box", default: null },
+    boxSlug: { type: String, default: null },
   },
   { _id: true }
 );
@@ -69,7 +92,7 @@ const UpvoteCampaignSchema = new Schema<IUpvoteCampaign>(
       default: "draft",
     },
     topN: { type: Number, required: true, min: 1, max: 10 },
-    cards: { type: [UpvoteCampaignCardSchema], default: [] },
+    items: { type: [UpvoteCampaignItemSchema], default: [] },
     endsAt: { type: Date, default: null },
     closedAt: { type: Date, default: null },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },

@@ -1,39 +1,25 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import { Check } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-
-interface CampaignCard {
-  _id: string;
-  source: "internal" | "justtcg";
-  name: string;
-  game: string;
-  set: string;
-  setName: string;
-  rarity: string;
-  image: string | null;
-  tcgplayerId: string | null;
-  position: number;
-}
+import { UpvoteItemTile, type VotingItem } from "@/components/votes/upvote-item-tile";
 
 interface Props {
   lang: string;
   dict: Record<string, string>;
   campaignId: string;
   topN: number;
-  cards: CampaignCard[];
+  items: VotingItem[];
   initialPicks: string[];
 }
 
-export function UpvoteCardGrid({
+export function UpvoteItemGrid({
   lang,
   dict,
   campaignId,
   topN,
-  cards,
+  items,
   initialPicks,
 }: Props) {
   const isDe = lang === "de";
@@ -57,7 +43,7 @@ export function UpvoteCardGrid({
         if (next.size >= topN) {
           toast({
             type: "info",
-            title: (dict["submitErrorTooMany"] ?? "You can pick at most {{max}} cards.").replace(
+            title: (dict["submitErrorTooMany"] ?? "You can pick at most {{max}}.").replace(
               "{{max}}",
               String(topN)
             ),
@@ -83,7 +69,7 @@ export function UpvoteCardGrid({
       const res = await fetch(`/api/votes/${campaignId}/votes`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ cardRefIds: [...picks] }),
+        body: JSON.stringify({ itemRefIds: [...picks] }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -111,7 +97,7 @@ export function UpvoteCardGrid({
         <div className="text-sm text-text-secondary">
           <span className="font-bold text-text-primary">{counterText}</span>
           {" · "}
-          <span className="text-text-muted">{dict["voteSavedHint"] ?? "Editable until the vote closes."}</span>
+          <span className="text-text-muted">{dict["voteSavedHint"] ?? "Editable until close."}</span>
         </div>
         <div className="flex gap-2">
           {picks.size > 0 && (
@@ -126,55 +112,21 @@ export function UpvoteCardGrid({
       </div>
 
       <ul className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-        {cards.map((card) => {
-          const selected = picks.has(card._id);
-          return (
-            <li key={card._id}>
-              <button
-                type="button"
-                onClick={() => toggle(card._id)}
-                className={`relative w-full text-left rounded-xl overflow-hidden border-2 transition-all ${
-                  selected
-                    ? "border-pa-green ring-2 ring-pa-green/40"
-                    : "border-border hover:border-pa-green/30"
-                }`}
-              >
-                <div className="aspect-[3/4] bg-surface-2 relative">
-                  {card.image ? (
-                    <img
-                      src={card.image}
-                      alt={card.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-text-muted">
-                      ?
-                    </div>
-                  )}
-                  {selected && (
-                    <div className="absolute top-2 right-2 bg-pa-green text-bg rounded-full w-7 h-7 flex items-center justify-center shadow-lg">
-                      <Check className="w-4 h-4" strokeWidth={3} />
-                    </div>
-                  )}
-                </div>
-                <div className="p-2 bg-surface">
-                  <div className="text-xs font-medium text-text-primary truncate">
-                    {card.name}
-                  </div>
-                  <div className="text-[10px] text-text-muted truncate flex items-center gap-1">
-                    {card.setName}
-                    <Badge variant="info">{card.rarity}</Badge>
-                  </div>
-                </div>
-              </button>
-            </li>
-          );
-        })}
+        {items.map((item) => (
+          <li key={item._id}>
+            <UpvoteItemTile
+              item={item}
+              lang={lang}
+              selected={picks.has(item._id)}
+              onClick={() => toggle(item._id)}
+            />
+          </li>
+        ))}
       </ul>
 
-      {cards.length === 0 && (
+      {items.length === 0 && (
         <p className="text-sm text-text-muted">
-          {isDe ? "Diese Abstimmung enthält keine Karten." : "This vote has no cards."}
+          {isDe ? "Diese Abstimmung enthält keine Einträge." : "This vote has no items."}
         </p>
       )}
     </div>

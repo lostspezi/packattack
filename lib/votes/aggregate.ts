@@ -1,47 +1,47 @@
 export interface AggregateVoteInput {
-  cardRefId: string;
+  itemRefId: string;
   userId: string;
 }
 
 export interface AggregateVoteOutput {
-  cardRefId: string;
+  itemRefId: string;
   voteCount: number;
 }
 
 /**
- * Reduziert flache Vote-Records (eine Reihe pro User-x-Karte) zu pro-Karte
- * Vote-Counts. Karten ohne Stimmen erscheinen mit count 0, sofern in
- * `allCardRefIds` enthalten — wichtig für vollständige Reveal-Anzeige.
+ * Reduziert flache Vote-Records (eine Reihe pro User-x-Item) zu pro-Item
+ * Vote-Counts. Items ohne Stimmen erscheinen mit count 0, sofern in
+ * `allItemRefIds` enthalten — wichtig für vollständige Reveal-Anzeige.
  *
  * Tie-Breaker: stabile Sortierung über `position` (Caller-supplied), sekundär
- * `cardRefId` lexikografisch — verhindert Flackern bei Gleichstand.
+ * `itemRefId` lexikografisch — verhindert Flackern bei Gleichstand.
  */
 export function aggregateVotes(
   votes: AggregateVoteInput[],
-  allCardRefIds: string[]
+  allItemRefIds: string[]
 ): AggregateVoteOutput[] {
   const counts = new Map<string, number>();
-  for (const id of allCardRefIds) counts.set(id, 0);
+  for (const id of allItemRefIds) counts.set(id, 0);
   for (const vote of votes) {
-    if (!counts.has(vote.cardRefId)) continue;
-    counts.set(vote.cardRefId, (counts.get(vote.cardRefId) ?? 0) + 1);
+    if (!counts.has(vote.itemRefId)) continue;
+    counts.set(vote.itemRefId, (counts.get(vote.itemRefId) ?? 0) + 1);
   }
-  return [...counts.entries()].map(([cardRefId, voteCount]) => ({
-    cardRefId,
+  return [...counts.entries()].map(([itemRefId, voteCount]) => ({
+    itemRefId,
     voteCount,
   }));
 }
 
 export function rankAggregatedVotes(
   aggregated: AggregateVoteOutput[],
-  positionByCardRefId: Map<string, number>
+  positionByItemRefId: Map<string, number>
 ): AggregateVoteOutput[] {
   return [...aggregated].sort((a, b) => {
     if (b.voteCount !== a.voteCount) return b.voteCount - a.voteCount;
-    const posA = positionByCardRefId.get(a.cardRefId) ?? Number.MAX_SAFE_INTEGER;
-    const posB = positionByCardRefId.get(b.cardRefId) ?? Number.MAX_SAFE_INTEGER;
+    const posA = positionByItemRefId.get(a.itemRefId) ?? Number.MAX_SAFE_INTEGER;
+    const posB = positionByItemRefId.get(b.itemRefId) ?? Number.MAX_SAFE_INTEGER;
     if (posA !== posB) return posA - posB;
-    return a.cardRefId.localeCompare(b.cardRefId);
+    return a.itemRefId.localeCompare(b.itemRefId);
   });
 }
 

@@ -8,7 +8,7 @@ import {
   patchActiveCampaignSchema,
   patchCampaignSchema,
 } from "@/lib/admin/upvote-campaign-payload";
-import { buildCardSnapshots, gateAdmin } from "@/lib/admin/upvote-campaign-helpers";
+import { buildItemSnapshots, gateAdmin } from "@/lib/admin/upvote-campaign-helpers";
 import { autoCloseIfExpired } from "@/lib/votes/auto-close";
 
 export async function GET(
@@ -99,14 +99,14 @@ export async function PATCH(
     if (parsed.data.endsAt !== undefined) {
       campaign.endsAt = parsed.data.endsAt ? new Date(parsed.data.endsAt) : null;
     }
-    if (parsed.data.cards !== undefined) {
-      const snapshots = await buildCardSnapshots(parsed.data.cards);
-      campaign.cards.splice(0, campaign.cards.length, ...snapshots);
+    if (parsed.data.items !== undefined) {
+      const snapshots = await buildItemSnapshots(parsed.data.items);
+      campaign.items.splice(0, campaign.items.length, ...snapshots);
     }
 
-    if (campaign.topN > campaign.cards.length) {
+    if (campaign.topN > campaign.items.length) {
       return NextResponse.json(
-        { error: "topN_exceeds_cards" },
+        { error: "topN_exceeds_items" },
         { status: 400 }
       );
     }
@@ -114,7 +114,10 @@ export async function PATCH(
     await campaign.save();
     return NextResponse.json({ campaign: serialize(campaign) });
   } catch (err) {
-    if (err instanceof Error && err.message.startsWith("unknown_internal_card:")) {
+    if (
+      err instanceof Error &&
+      (err.message.startsWith("unknown_internal_card:") || err.message.startsWith("unknown_box:"))
+    ) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
     console.error("[admin/upvote-campaigns/:id PATCH]", err);
@@ -159,19 +162,23 @@ function serialize(c: InstanceType<typeof UpvoteCampaign>) {
     question: c.question,
     status: c.status,
     topN: c.topN,
-    cards: c.cards.map((card) => ({
-      _id: card._id.toString(),
-      source: card.source,
-      internalCardId: card.internalCardId ? card.internalCardId.toString() : null,
-      justTcgId: card.justTcgId,
-      name: card.name,
-      game: card.game,
-      set: card.set,
-      setName: card.setName,
-      rarity: card.rarity,
-      image: card.image,
-      tcgplayerId: card.tcgplayerId,
-      position: card.position,
+    items: c.items.map((item) => ({
+      _id: item._id.toString(),
+      kind: item.kind,
+      label: item.label,
+      description: item.description,
+      image: item.image,
+      position: item.position,
+      source: item.source,
+      internalCardId: item.internalCardId ? item.internalCardId.toString() : null,
+      justTcgId: item.justTcgId,
+      game: item.game,
+      set: item.set,
+      setName: item.setName,
+      rarity: item.rarity,
+      tcgplayerId: item.tcgplayerId,
+      boxId: item.boxId ? item.boxId.toString() : null,
+      boxSlug: item.boxSlug,
     })),
     endsAt: c.endsAt,
     closedAt: c.closedAt,

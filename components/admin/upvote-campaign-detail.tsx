@@ -14,19 +14,23 @@ interface CampaignDoc {
   question: { de: string; en: string };
   status: "draft" | "active" | "closed";
   topN: number;
-  cards: Array<{
+  items: Array<{
     _id: string;
-    source: "internal" | "justtcg";
+    kind: "card" | "option" | "box";
+    label: { de: string; en: string };
+    description: { de: string; en: string };
+    image: string | null;
+    position: number;
+    source: "internal" | "justtcg" | null;
     internalCardId: string | null;
     justTcgId: string | null;
-    name: string;
-    game: string;
-    set: string;
-    setName: string;
-    rarity: string;
-    image: string | null;
+    game: string | null;
+    set: string | null;
+    setName: string | null;
+    rarity: string | null;
     tcgplayerId: string | null;
-    position: number;
+    boxId: string | null;
+    boxSlug: string | null;
   }>;
   endsAt: string | null;
   closedAt: string | null;

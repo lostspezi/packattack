@@ -9,7 +9,7 @@ import { autoCloseIfExpired } from "@/lib/votes/auto-close";
 import { validateVotePayload } from "@/lib/votes/eligibility";
 
 const bodySchema = z.object({
-  cardRefIds: z.array(z.string().regex(/^[a-f0-9]{24}$/i)).max(10),
+  itemRefIds: z.array(z.string().regex(/^[a-f0-9]{24}$/i)).max(10),
 });
 
 export async function PUT(
@@ -47,12 +47,12 @@ export async function PUT(
     campaign = await autoCloseIfExpired(campaign);
 
     const validation = validateVotePayload({
-      cardRefIds: parsed.data.cardRefIds,
+      itemRefIds: parsed.data.itemRefIds,
       campaign: {
         status: campaign.status,
         topN: campaign.topN,
         endsAt: campaign.endsAt,
-        cards: campaign.cards.map((c) => ({ _id: c._id })),
+        items: campaign.items.map((c) => ({ _id: c._id })),
       },
     });
     if (!validation.ok) {
@@ -61,14 +61,14 @@ export async function PUT(
 
     const userOid = new Types.ObjectId(userId);
     const campaignOid = campaign._id;
-    const desiredOids = parsed.data.cardRefIds.map((s) => new Types.ObjectId(s));
+    const desiredOids = parsed.data.itemRefIds.map((s) => new Types.ObjectId(s));
 
     await UpvoteVote.bulkWrite(
       [
         { deleteMany: { filter: { campaignId: campaignOid, userId: userOid } } },
-        ...desiredOids.map((cardRefId) => ({
+        ...desiredOids.map((itemRefId) => ({
           insertOne: {
-            document: { campaignId: campaignOid, userId: userOid, cardRefId },
+            document: { campaignId: campaignOid, userId: userOid, itemRefId },
           },
         })),
       ],

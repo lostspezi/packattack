@@ -27,8 +27,8 @@ export async function POST(
     if (!canTransition(campaign.status, "active")) {
       return NextResponse.json({ error: "invalid_transition" }, { status: 409 });
     }
-    if (campaign.cards.length < campaign.topN) {
-      return NextResponse.json({ error: "not_enough_cards" }, { status: 409 });
+    if (campaign.items.length < campaign.topN) {
+      return NextResponse.json({ error: "not_enough_items" }, { status: 409 });
     }
     if (campaign.endsAt && campaign.endsAt.getTime() <= Date.now()) {
       return NextResponse.json({ error: "endsAt_in_past" }, { status: 409 });
@@ -37,9 +37,6 @@ export async function POST(
     campaign.status = "active";
     await campaign.save();
 
-    // Fire-and-forget Notification + Push. Wenn die Push-Pipeline aus
-    // irgendeinem Grund hängt, soll das Activate trotzdem erfolgreich
-    // zurückkommen — der Status ist bereits persistent.
     notifyUpvoteCampaignActivated(campaign).catch((err) => {
       console.error("[activate] notify upvote campaign failed:", err);
     });

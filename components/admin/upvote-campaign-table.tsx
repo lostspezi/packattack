@@ -15,7 +15,7 @@ interface AdminUpvoteCampaignRow {
   title: { de: string; en: string };
   status: "draft" | "active" | "closed";
   topN: number;
-  cardCount: number;
+  itemCount: number;
   voteCount: number;
   endsAt: string | null;
   closedAt: string | null;
@@ -152,7 +152,7 @@ export function UpvoteCampaignTable({ lang, dict }: Props) {
               <Th>{dict["upvoteCampaigns_colTitle"] ?? "Title"}</Th>
               <Th>{dict["upvoteCampaigns_colStatus"] ?? "Status"}</Th>
               <Th>{dict["upvoteCampaigns_colTopN"] ?? "Top-N"}</Th>
-              <Th>{dict["upvoteCampaigns_colCards"] ?? "Cards"}</Th>
+              <Th>{dict["upvoteCampaigns_colItems"] ?? "Items"}</Th>
               <Th>{dict["upvoteCampaigns_colVotes"] ?? "Votes"}</Th>
               <Th>{dict["upvoteCampaigns_colEndsAt"] ?? "Ends"}</Th>
               <Th>{dict["upvoteCampaigns_colCreated"] ?? "Created"}</Th>
@@ -187,7 +187,7 @@ export function UpvoteCampaignTable({ lang, dict }: Props) {
                     </Badge>
                   </td>
                   <td className="px-4 py-3 text-sm text-text-secondary">{row.topN}</td>
-                  <td className="px-4 py-3 text-sm text-text-secondary">{row.cardCount}</td>
+                  <td className="px-4 py-3 text-sm text-text-secondary">{row.itemCount}</td>
                   <td className="px-4 py-3 text-sm text-text-secondary">{row.voteCount}</td>
                   <td className="px-4 py-3 text-sm text-text-muted">{formatDate(row.endsAt)}</td>
                   <td className="px-4 py-3 text-sm text-text-muted">{formatDate(row.createdAt)}</td>

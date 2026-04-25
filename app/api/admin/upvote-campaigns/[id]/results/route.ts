@@ -30,21 +30,21 @@ export async function GET(
     const campaign = await UpvoteCampaign.findById(id).lean();
     if (!campaign) return NextResponse.json({ error: "not_found" }, { status: 404 });
 
-    const cardIds = (campaign.cards ?? []).map((c) => c._id.toString());
+    const itemIds = (campaign.items ?? []).map((c) => c._id.toString());
     const positions = new Map(
-      (campaign.cards ?? []).map((c) => [c._id.toString(), c.position])
+      (campaign.items ?? []).map((c) => [c._id.toString(), c.position])
     );
 
     const votes = await UpvoteVote.find({ campaignId: campaign._id })
-      .select("userId cardRefId createdAt")
+      .select("userId itemRefId createdAt")
       .lean();
 
     const flat = votes.map((v) => ({
       userId: v.userId.toString(),
-      cardRefId: v.cardRefId.toString(),
+      itemRefId: v.itemRefId.toString(),
     }));
 
-    const aggregated = aggregateVotes(flat, cardIds);
+    const aggregated = aggregateVotes(flat, itemIds);
     const ranked = rankAggregatedVotes(aggregated, positions);
     const totalVoters = countUniqueVoters(flat);
 
@@ -60,10 +60,13 @@ export async function GET(
       users.map((u) => [u._id.toString(), { name: u.name, username: u.username }])
     );
 
-    const votersByCard = new Map<string, { userId: string; name: string; username: string; votedAt: Date }[]>();
+    const votersByItem = new Map<
+      string,
+      { userId: string; name: string; username: string; votedAt: Date }[]
+    >();
     for (const v of votes) {
-      const key = v.cardRefId.toString();
-      const list = votersByCard.get(key) ?? [];
+      const key = v.itemRefId.toString();
+      const list = votersByItem.get(key) ?? [];
       const u = userMap.get(v.userId.toString());
       list.push({
         userId: v.userId.toString(),
@@ -71,28 +74,30 @@ export async function GET(
         username: u?.username ?? "?",
         votedAt: v.createdAt,
       });
-      votersByCard.set(key, list);
+      votersByItem.set(key, list);
     }
 
     return NextResponse.json({
       totalVoters,
-      perCard: ranked.map((r) => {
-        const card = campaign.cards.find((c) => c._id.toString() === r.cardRefId);
+      perItem: ranked.map((r) => {
+        const item = campaign.items.find((c) => c._id.toString() === r.itemRefId);
         return {
-          cardRefId: r.cardRefId,
+          itemRefId: r.itemRefId,
           voteCount: r.voteCount,
-          card: card
+          item: item
             ? {
-                name: card.name,
-                image: card.image,
-                rarity: card.rarity,
-                game: card.game,
-                set: card.set,
-                setName: card.setName,
-                source: card.source,
+                kind: item.kind,
+                label: item.label,
+                image: item.image,
+                rarity: item.rarity,
+                game: item.game,
+                set: item.set,
+                setName: item.setName,
+                source: item.source,
+                boxSlug: item.boxSlug,
               }
             : null,
-          voters: votersByCard.get(r.cardRefId) ?? [],
+          voters: votersByItem.get(r.itemRefId) ?? [],
         };
       }),
     });

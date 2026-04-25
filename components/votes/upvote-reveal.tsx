@@ -1,32 +1,21 @@
 "use client";
 
-import { Star } from "lucide-react";
+import { Star, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-
-interface CampaignCard {
-  _id: string;
-  source: "internal" | "justtcg";
-  name: string;
-  game: string;
-  set: string;
-  setName: string;
-  rarity: string;
-  image: string | null;
-  tcgplayerId: string | null;
-  position: number;
-}
+import type { VotingItem } from "@/components/votes/upvote-item-tile";
 
 interface Props {
   lang: string;
   dict: Record<string, string>;
-  cards: CampaignCard[];
-  ranked: Array<{ cardRefId: string; voteCount: number }>;
+  items: VotingItem[];
+  ranked: Array<{ itemRefId: string; voteCount: number }>;
   totalVoters: number;
   myPicks: string[];
 }
 
-export function UpvoteReveal({ dict, cards, ranked, totalVoters, myPicks }: Props) {
-  const cardById = new Map(cards.map((c) => [c._id, c]));
+export function UpvoteReveal({ lang, dict, items, ranked, totalVoters, myPicks }: Props) {
+  const isDe = lang === "de";
+  const itemById = new Map(items.map((c) => [c._id, c]));
   const myPickSet = new Set(myPicks);
   const maxCount = ranked.length > 0 ? Math.max(...ranked.map((r) => r.voteCount), 1) : 1;
 
@@ -58,30 +47,33 @@ export function UpvoteReveal({ dict, cards, ranked, totalVoters, myPicks }: Prop
 
       <ul className="space-y-2">
         {ranked.map((row, idx) => {
-          const card = cardById.get(row.cardRefId);
-          if (!card) return null;
-          const wasPicked = myPickSet.has(row.cardRefId);
+          const item = itemById.get(row.itemRefId);
+          if (!item) return null;
+          const wasPicked = myPickSet.has(row.itemRefId);
           const widthPct = (row.voteCount / maxCount) * 100;
+          const label = isDe ? item.label.de || item.label.en : item.label.en || item.label.de;
           return (
             <li
-              key={row.cardRefId}
+              key={row.itemRefId}
               className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
                 wasPicked ? "border-pa-green/40 bg-pa-green/5" : "border-border bg-surface"
               }`}
             >
               <span className="text-lg font-bold text-text-muted w-7 text-right">{idx + 1}</span>
-              {card.image ? (
+              {item.image ? (
                 <img
-                  src={card.image}
+                  src={item.image}
                   alt=""
                   className="w-12 h-16 object-cover rounded bg-surface-2"
                 />
               ) : (
-                <div className="w-12 h-16 bg-surface-2 rounded" />
+                <div className="w-12 h-16 bg-surface-2 rounded flex items-center justify-center text-text-muted">
+                  {item.kind === "box" ? <Package className="w-5 h-5" /> : null}
+                </div>
               )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium text-text-primary truncate">{card.name}</span>
+                  <span className="font-medium text-text-primary truncate">{label}</span>
                   {wasPicked && (
                     <span className="inline-flex items-center gap-1 text-xs text-pa-green">
                       <Star className="w-3 h-3 fill-current" />
@@ -90,7 +82,17 @@ export function UpvoteReveal({ dict, cards, ranked, totalVoters, myPicks }: Prop
                   )}
                 </div>
                 <div className="text-xs text-text-muted truncate flex items-center gap-1">
-                  {card.setName} · <Badge variant="info">{card.rarity}</Badge>
+                  {item.kind === "card" && item.setName ? (
+                    <>
+                      {item.setName}
+                      {item.rarity && <Badge variant="info">{item.rarity}</Badge>}
+                    </>
+                  ) : item.kind === "box" ? (
+                    <>
+                      <Package className="w-3 h-3" />
+                      {item.game ?? "Box"}
+                    </>
+                  ) : null}
                 </div>
                 <div className="mt-2 h-1.5 bg-surface-2 rounded-full overflow-hidden">
                   <div
