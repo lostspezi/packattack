@@ -44,7 +44,9 @@ export async function GET() {
         as: "card",
       },
     },
+    // Intentionally drops pulls whose cardId has no card document (orphaned pulls).
     { $unwind: "$card" },
+    { $project: { _id: 0, "card.game": 1, "card.set": 1, "card.rarity": 1 } },
     {
       $group: {
         _id: "$card.game",
