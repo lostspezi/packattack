@@ -5,11 +5,14 @@ import { Volume2, VolumeX, SkipForward } from "lucide-react";
 import { useReducedMotion } from "motion/react";
 import { Pack3D } from "./pack-3d";
 import { PackRipper } from "./pack-ripper";
+import { CosmicPackRipper } from "./cosmic-pack-ripper";
 import { CardRevealStack } from "./card-reveal-stack";
+import { CosmicCardReveal } from "./cosmic-card-reveal";
 import { GodpackIntro } from "./godpack-intro";
 import { suppressPendingGuard, notifyPendingPulls } from "./pending-pulls-guard";
 import { ParticleCanvas, type ParticleCanvasHandle } from "./particle-canvas";
 import { usePackSounds, type SoundKey } from "./use-pack-sounds";
+import { formatGameLabel } from "@/lib/format-game";
 
 interface DrawnCard {
   cardId: string;
@@ -195,7 +198,7 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse at 50% 35%, rgba(255, 200, 80, 0.10) 0%, rgba(180, 80, 255, 0.10) 30%, rgba(40, 10, 80, 0.35) 60%, rgba(8, 4, 22, 0.0) 80%)",
+              "radial-gradient(ellipse at 50% 35%, rgba(255, 200, 80, 0.12) 0%, rgba(255, 90, 60, 0.14) 28%, rgba(80, 12, 14, 0.45) 60%, rgba(8, 4, 6, 0.0) 80%)",
           }}
         />
       )}
@@ -248,7 +251,7 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
                 height: 420,
                 borderRadius: "50%",
                 background: isGodpack
-                  ? "radial-gradient(circle, rgba(255,200,80,0.18) 0%, rgba(180,80,255,0.10) 45%, transparent 75%)"
+                  ? "radial-gradient(circle, rgba(255,200,80,0.22) 0%, rgba(255,90,60,0.14) 45%, transparent 75%)"
                   : "radial-gradient(circle, rgba(155,255,0,0.06) 0%, rgba(155,255,0,0.03) 40%, transparent 70%)",
                 filter: "blur(40px)",
               }}
@@ -258,6 +261,13 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
                 boxName={boxName}
                 lang={lang}
                 onReady={() => setPhase("ripping")}
+              />
+            ) : isGodpack && result.godpack ? (
+              <CosmicPackRipper
+                game={formatGameLabel(result.godpack.game).toUpperCase()}
+                particleRef={particleRef}
+                onRipComplete={() => setPhase("reveal")}
+                onPlaySound={handlePlaySound}
               />
             ) : (
               <PackRipper
@@ -271,20 +281,33 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
           </div>
         )}
         {phase === "reveal" && (
-          <CardRevealStack
-            cards={cards}
-            packCount={result.packCount}
-            lang={lang}
-            particleRef={particleRef}
-            onPlaySound={handlePlaySound}
-            onAllRevealed={handleAnimationDone}
-            fairnessCommitmentId={
-              result.godpack?.fairnessProof?.commitmentId
-                ?? result.fairnessProof?.commitmentId
-                ?? null
-            }
-            godpackEventId={result.godpack?.eventId ?? null}
-          />
+          isGodpack && result.godpack ? (
+            <CosmicCardReveal
+              cards={cards.filter((c) => c.isGodpack)}
+              game={result.godpack.game}
+              totalCoinValue={result.godpack.totalCoinValue}
+              lang={lang}
+              particleRef={particleRef}
+              onPlaySound={handlePlaySound}
+              onAllRevealed={handleAnimationDone}
+              fairnessCommitmentId={
+                result.godpack.fairnessProof?.commitmentId
+                  ?? result.fairnessProof?.commitmentId
+                  ?? null
+              }
+            />
+          ) : (
+            <CardRevealStack
+              cards={cards}
+              packCount={result.packCount}
+              lang={lang}
+              particleRef={particleRef}
+              onPlaySound={handlePlaySound}
+              onAllRevealed={handleAnimationDone}
+              fairnessCommitmentId={result.fairnessProof?.commitmentId ?? null}
+              godpackEventId={null}
+            />
+          )
         )}
       </div>
     </div>

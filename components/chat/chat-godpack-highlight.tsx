@@ -22,9 +22,9 @@ export function ChatGodpackHighlight({ highlight, className }: ChatGodpackHighli
       ].join(" ")}
       style={{
         background:
-          "linear-gradient(135deg, rgba(70, 25, 130, 0.55) 0%, rgba(20, 10, 50, 0.78) 55%, rgba(10, 4, 25, 0.85) 100%)",
+          "linear-gradient(135deg, rgba(165, 25, 30, 0.55) 0%, rgba(80, 12, 18, 0.78) 55%, rgba(20, 4, 8, 0.88) 100%)",
         boxShadow:
-          "0 0 0 1px rgba(255, 200, 80, 0.14), 0 12px 32px rgba(0, 0, 0, 0.45), 0 0 24px rgba(255, 180, 60, 0.18)",
+          "0 0 0 1px rgba(255, 200, 80, 0.18), 0 12px 32px rgba(0, 0, 0, 0.45), 0 0 24px rgba(255, 130, 60, 0.22)",
       }}
     >
       {/* Sterne */}

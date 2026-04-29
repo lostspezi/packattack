@@ -118,9 +118,9 @@ export function GodpackToast({ currentUserId }: GodpackToastProps) {
               className="flex items-center gap-3 rounded-full px-5 py-2.5 backdrop-blur-md border border-amber-300/40"
               style={{
                 background:
-                  "linear-gradient(135deg, rgba(60, 20, 100, 0.92) 0%, rgba(20, 8, 40, 0.92) 100%)",
+                  "linear-gradient(135deg, rgba(140, 20, 30, 0.92) 0%, rgba(50, 8, 14, 0.92) 100%)",
                 boxShadow:
-                  "0 0 0 1px rgba(255,210,110,0.15), 0 14px 32px rgba(0,0,0,0.45), 0 0 28px rgba(255,180,60,0.25)",
+                  "0 0 0 1px rgba(255,210,110,0.18), 0 14px 32px rgba(0,0,0,0.45), 0 0 28px rgba(255,140,60,0.30)",
               }}
             >
               <Sparkles

@@ -3,6 +3,7 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { motion } from "motion/react";
 import { formatGameLabel } from "@/lib/format-game";
+import { GODPACK_THEME } from "@/lib/godpack-theme";
 import type { ParticleCanvasHandle } from "./particle-canvas";
 
 interface GodpackIntroProps {
@@ -46,16 +47,7 @@ const T = {
 
 const GODPACK_LETTERS = ["G", "O", "D", "P", "A", "C", "K"];
 
-const CONFETTI_RAINBOW = [
-  "#FFD700", // gold
-  "#FFEC8B", // light gold
-  "#FFA500", // orange
-  "#FF6B6B", // coral
-  "#FF6BCB", // pink
-  "#9B59FF", // violet
-  "#4ECDC4", // mint
-  "#FFFFFF", // white
-];
+const CONFETTI_RAINBOW = GODPACK_THEME.confettiColors;
 
 export function GodpackIntro({
   game,
@@ -209,8 +201,7 @@ export function GodpackIntro({
           times: [0, 0.1, 0.5, 0.85, 1],
         }}
         style={{
-          background:
-            "radial-gradient(ellipse at 50% 50%, rgba(95, 35, 165, 0.55) 0%, rgba(35, 12, 80, 0.85) 35%, rgba(0,0,0,0.95) 75%)",
+          background: GODPACK_THEME.backdropRadial,
         }}
       />
 

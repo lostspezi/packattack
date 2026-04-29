@@ -55,8 +55,8 @@ export function MyPulls({ pulls, lang }: { pulls: PullInfo[]; lang: string }) {
                       className="ml-1.5 align-middle inline-flex items-center rounded-full px-1.5 py-[1px] text-[8px] font-extrabold uppercase tracking-[1.5px] text-amber-100"
                       style={{
                         background:
-                          "linear-gradient(135deg, rgba(140, 60, 200, 0.85) 0%, rgba(60, 24, 100, 0.85) 100%)",
-                        boxShadow: "0 0 0 1px rgba(255,200,80,0.45), 0 0 8px rgba(255,180,60,0.35)",
+                          "linear-gradient(135deg, rgba(180, 30, 40, 0.88) 0%, rgba(80, 14, 18, 0.88) 100%)",
+                        boxShadow: "0 0 0 1px rgba(255,200,80,0.5), 0 0 8px rgba(255,140,60,0.4)",
                       }}
                       title="Aus einem Godpack gezogen"
                     >
