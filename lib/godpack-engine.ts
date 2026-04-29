@@ -26,6 +26,14 @@ import {
 export const GODPACK_CARD_COUNT = 5;
 export const GODPACK_MIN_COIN_VALUE = 20;
 export const GODPACK_FALLBACK_MIN_COIN_VALUE = 10;
+/**
+ * Obere Schranke für den Coin-Wert einer Karte im Godpack-Pool. Aktuell 500
+ * — bewusst konservativ, damit ein einzelner mythisch-teurer Pull (z. B.
+ * 8000+ Coins Parallel-Leader) nicht das wirtschaftliche Gleichgewicht der
+ * Plattform sprengt. Kann später angehoben werden, sobald wir Telemetrie
+ * über typische Godpack-Auszahlungen haben.
+ */
+export const GODPACK_MAX_COIN_VALUE = 500;
 /** Pool muss mindestens so groß sein, damit der primäre Filter (≥ 20) genutzt wird. */
 export const GODPACK_MIN_POOL_SIZE_FOR_PRIMARY = 10;
 /** Wenn auch der Fallback (≥ 10) den Pool unter diese Grenze drückt, wird der Godpack übersprungen. */
@@ -119,7 +127,7 @@ async function buildCandidates(game: string, minCoinValue: number): Promise<RawC
       const cardDoc = cardMap.get(cardIdStr);
       if (!cardDoc) continue;
       const coinValue = computeCoinValue(cardDoc);
-      if (coinValue < minCoinValue) continue;
+      if (coinValue < minCoinValue || coinValue > GODPACK_MAX_COIN_VALUE) continue;
 
       const candidate: RawCandidate = {
         cardId: cardIdStr,
