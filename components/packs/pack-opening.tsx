@@ -83,6 +83,29 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
   // Recovery / quickOpen / reduced motion → skip animation, hand off to guard immediately
   const skipAnimation = isRecovery || quickOpen || prefersReducedMotion;
   const isGodpack = Boolean(result.godpack);
+  const godpackEventId = result.godpack?.eventId ?? null;
+
+  // Reveal-Acknowledge SOFORT beim Mount feuern — unabhängig davon, ob der
+  // User die Reveal-Animation komplett anschaut, durchskipt, den Tab
+  // schließt oder Reduced-Motion aktiv hat. Server-side idempotent. Spoiler-
+  // Schutz bleibt durch das vorab-publishte godpack_incoming-Banner gewahrt.
+  useEffect(() => {
+    if (!godpackEventId) return;
+    let cancelled = false;
+    void (async () => {
+      try {
+        await fetch(`/api/godpacks/${godpackEventId}/reveal`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (err) {
+        if (!cancelled) console.error("[godpack reveal acknowledge]", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [godpackEventId]);
 
   const getInitialPhase = (): Phase | null => {
     if (skipAnimation) return null; // will finish immediately
