@@ -197,26 +197,42 @@ export async function POST(
     // überquert. Damit gewinnt genau ein paralleler Caller den Claim, ein
     // Race zwischen Inc und Advance ist ausgeschlossen.
     const triggerInfo = await incrementGodpackCounter(packCount, userId);
+    // Ein Godpack hat immer 5 Karten. Bei Boxen mit cardsPerPack < 5 belegt
+    // der Godpack daher mehrere Pack-Slots — sonst würde ein 1-Karten-Pack
+    // plötzlich 5 Karten enthalten und die Multi-Open-Karten-Anzahl bricht.
+    const slotsForGodpack = Math.ceil(GODPACK_CARD_COUNT / Math.max(1, box.cardsPerPack));
     let godpackOutcome: {
       packIndex: number;
       pool: GodpackPool;
       triggerCount: number;
     } | null = null;
     if (triggerInfo.triggered) {
-      const candidatePool = await buildGodpackPool(box.game);
-      if (!candidatePool.insufficient) {
-        godpackOutcome = {
-          packIndex: triggerInfo.godpackPackIndex!,
-          pool: candidatePool,
-          triggerCount: triggerInfo.triggeredAt!,
-        };
-      } else {
-        // Pool zu klein — Drop nicht verlieren, sondern auf den unmittelbar
-        // nächsten Pack-Pull verschieben (egal welches Franchise).
+      // Reicht der Pack-Open überhaupt für so viele Slots?
+      if (slotsForGodpack > packCount) {
         try {
           await retractGodpackTrigger();
         } catch (err) {
-          console.error("[packs/[id]/open godpack-retract]", err);
+          console.error("[packs/[id]/open godpack-retract-slots]", err);
+        }
+      } else {
+        const candidatePool = await buildGodpackPool(box.game);
+        if (!candidatePool.insufficient) {
+          // Trigger-Position auf den freien Slot-Bereich klemmen, damit der
+          // Block [packIndex .. packIndex+slotsForGodpack-1] vollständig in
+          // der Multi-Open passt.
+          const rawIndex = triggerInfo.godpackPackIndex!;
+          const clampedIndex = Math.min(rawIndex, packCount - slotsForGodpack);
+          godpackOutcome = {
+            packIndex: Math.max(0, clampedIndex),
+            pool: candidatePool,
+            triggerCount: triggerInfo.triggeredAt!,
+          };
+        } else {
+          try {
+            await retractGodpackTrigger();
+          } catch (err) {
+            console.error("[packs/[id]/open godpack-retract]", err);
+          }
         }
       }
     }
@@ -224,7 +240,7 @@ export async function POST(
     // 5. Fairness wiring — auto-init client seed, reserve nonce range,
     // snapshot the pool, commit BEFORE any mutating draw step so every
     // downstream record has an immutable hash chain back to the seed.
-    const regularPackCount = godpackOutcome ? packCount - 1 : packCount;
+    const regularPackCount = godpackOutcome ? packCount - slotsForGodpack : packCount;
     const regularDrawCount = regularPackCount * box.cardsPerPack;
     const godpackDrawCount = godpackOutcome ? GODPACK_CARD_COUNT : 0;
     const totalDraws = regularDrawCount + godpackDrawCount;
@@ -322,13 +338,15 @@ export async function POST(
     }
 
     // 6b. Pack-Index-Remap: reguläre Packs füllen die User-View-Slots, ohne
-    // den Godpack-Slot zu beanspruchen. Der Engine-interne packIndex 0..N-1
-    // wird zu den User-Slots [0..godpackPackIndex-1] ∪ [godpackPackIndex+1..packCount-1].
+    // den Godpack-Block zu beanspruchen. Der Engine-interne packIndex 0..N-1
+    // wird um `slotsForGodpack` nach hinten verschoben, sobald er den
+    // Godpack-Block überschreitet — dadurch entsteht eine zusammenhängende
+    // Lücke an Position [packIndex .. packIndex+slotsForGodpack-1].
     if (godpackOutcome) {
-      const gpIdx = godpackOutcome.packIndex;
+      const gpStart = godpackOutcome.packIndex;
       for (const card of regularDrawn) {
-        if (card.packIndex >= gpIdx) {
-          card.packIndex += 1;
+        if (card.packIndex >= gpStart) {
+          card.packIndex += slotsForGodpack;
         }
       }
     }
@@ -417,6 +435,7 @@ export async function POST(
     }
 
     for (const d of godpackDrawn) {
+      const slotOffset = Math.floor((d.position - 1) / Math.max(1, box.cardsPerPack));
       pullDocs.push({
         userId,
         boxId: new Types.ObjectId(d.sourceBoxId),
@@ -427,7 +446,7 @@ export async function POST(
         status: "pending" as const,
         decidedAt: null,
         packGroupId,
-        packIndex: godpackOutcome!.packIndex,
+        packIndex: godpackOutcome!.packIndex + slotOffset,
         cardIndex: cardIndexCounter,
         ipAddress: ip,
         userAgent: ua,
@@ -629,6 +648,7 @@ export async function POST(
       });
     }
     for (const c of godpackDrawn) {
+      const slotOffset = Math.floor((c.position - 1) / Math.max(1, box.cardsPerPack));
       responseCards.push({
         cardId: c.cardId,
         name: c.name,
@@ -636,7 +656,7 @@ export async function POST(
         coinValue: c.coinValue,
         conversionValue: c.conversionValue,
         image: c.image,
-        packIndex: godpackOutcome!.packIndex,
+        packIndex: godpackOutcome!.packIndex + slotOffset,
         cardIndex: regularDrawn.length + (c.position - 1),
         isGodpack: true,
         godpackPosition: c.position,
