@@ -11,7 +11,8 @@ import PackOpenSession from "@/models/pack-open-session";
 import CoinTransaction from "@/models/coin-transaction";
 import Notification from "@/models/notification";
 import PackOpenCommitment from "@/models/pack-open-commitment";
-import { drawPacksWithFairness, type PackCard } from "@/lib/pack-engine";
+import GodpackEvent from "@/models/godpack-event";
+import { drawPacksWithFairness, type PackCard, type DrawnCard } from "@/lib/pack-engine";
 import { grantXp, incrementCounter, fireOnceEvent } from "@/lib/level/grant-xp";
 import { xpForPackPull } from "@/lib/level/xp-rates";
 import { getUserEffects } from "@/lib/achievements/effects";
@@ -22,6 +23,18 @@ import {
   type PoolEntry,
 } from "@/lib/fairness";
 import { ensureClientSeed, reserveNonces } from "@/lib/fairness-server";
+import {
+  buildGodpackPool,
+  drawGodpack,
+  poolSnapshotEntries,
+  GODPACK_CARD_COUNT,
+  type GodpackPool,
+  type GodpackDrawnCard,
+} from "@/lib/godpack-engine";
+import {
+  incrementGodpackCounter,
+  advanceGodpackTrigger,
+} from "@/lib/godpack-counter";
 
 export async function POST(
   req: NextRequest,
@@ -176,13 +189,43 @@ export async function POST(
       return NextResponse.json({ error: "No available cards in this box" }, { status: 400 });
     }
 
+    // 4b. Godpack-Counter inkrementieren — atomar via findOneAndUpdate.
+    // Wenn der Counter den nextTriggerAt überspringt, wird hier festgelegt,
+    // welcher der `packCount` Packs zum Godpack wird. Der Trigger wird erst
+    // ADVANCED, sobald der Godpack tatsächlich gezogen wurde — so „erbt" der
+    // nächste Pack-Pull den Trigger, falls der Franchise-Pool zu klein war.
+    const triggerInfo = await incrementGodpackCounter(packCount);
+    let godpackOutcome: {
+      packIndex: number;
+      pool: GodpackPool;
+      triggerCount: number;
+    } | null = null;
+    if (triggerInfo.triggered) {
+      const candidatePool = await buildGodpackPool(box.game);
+      if (!candidatePool.insufficient) {
+        godpackOutcome = {
+          packIndex: triggerInfo.godpackPackIndex!,
+          pool: candidatePool,
+          triggerCount: triggerInfo.triggeredAt!,
+        };
+      }
+    }
+
     // 5. Fairness wiring — auto-init client seed, reserve nonce range,
     // snapshot the pool, commit BEFORE any mutating draw step so every
     // downstream record has an immutable hash chain back to the seed.
-    const totalDraws = packCount * box.cardsPerPack;
+    const regularPackCount = godpackOutcome ? packCount - 1 : packCount;
+    const regularDrawCount = regularPackCount * box.cardsPerPack;
+    const godpackDrawCount = godpackOutcome ? GODPACK_CARD_COUNT : 0;
+    const totalDraws = regularDrawCount + godpackDrawCount;
+
     const clientSeed = await ensureClientSeed(userId);
     const { seed: reservedSeed, nonceStart } = await reserveNonces(userId, totalDraws);
-    const nonceEnd = nonceStart + totalDraws;
+
+    const regularNonceStart = nonceStart;
+    const regularNonceEnd = regularNonceStart + regularDrawCount;
+    const godpackNonceStart = regularNonceEnd;
+    const godpackNonceEnd = godpackNonceStart + godpackDrawCount;
 
     const poolEntries: PoolEntry[] = packCards.map((c) => ({
       cardId: c.cardId,
@@ -191,48 +234,105 @@ export async function POST(
     }));
     const poolHash = await computePoolHash(poolEntries);
 
-    const commitment = await PackOpenCommitment.create({
-      userId,
-      packGroupId,
-      boxId: realBoxId,
-      serverSeedId: reservedSeed._id,
-      serverSeedHashAtOpen: reservedSeed.serverSeedHash,
-      clientSeed,
-      nonceStart,
-      nonceEnd,
-      poolSnapshot: poolEntries.map((e) => ({
-        cardId: new Types.ObjectId(e.cardId),
-        weight: e.weight,
-        stockAtOpen: e.stock,
-      })),
-      poolHash,
-    });
+    let regularCommitment: { _id: Types.ObjectId } | null = null;
+    if (regularPackCount > 0) {
+      regularCommitment = await PackOpenCommitment.create({
+        userId,
+        packGroupId,
+        boxId: realBoxId,
+        kind: "regular",
+        serverSeedId: reservedSeed._id,
+        serverSeedHashAtOpen: reservedSeed.serverSeedHash,
+        clientSeed,
+        nonceStart: regularNonceStart,
+        nonceEnd: regularNonceEnd,
+        poolSnapshot: poolEntries.map((e) => ({
+          cardId: new Types.ObjectId(e.cardId),
+          weight: e.weight,
+          stockAtOpen: e.stock,
+        })),
+        poolHash,
+      });
+    }
 
-    // 6. Draw cards
-    const rng = createFairnessRng({
-      serverSeed: reservedSeed.serverSeed,
-      clientSeed,
-      nonceStart,
-      poolHash,
-    });
-    const result = await drawPacksWithFairness(
-      packCards,
-      box.cardsPerPack,
-      packCount,
-      box.priceInCoins,
-      rng,
-    );
+    // 5b. Godpack-Commitment (separater Pool-Hash über alle Franchise-Karten ≥ 20)
+    let godpackCommitment: { _id: Types.ObjectId } | null = null;
+    let godpackPoolHash: string | null = null;
+    if (godpackOutcome) {
+      const gpEntries = poolSnapshotEntries(godpackOutcome.pool);
+      godpackPoolHash = await computePoolHash(gpEntries);
+      godpackCommitment = await PackOpenCommitment.create({
+        userId,
+        packGroupId: `${packGroupId}-godpack`,
+        boxId: realBoxId,
+        kind: "godpack",
+        serverSeedId: reservedSeed._id,
+        serverSeedHashAtOpen: reservedSeed.serverSeedHash,
+        clientSeed,
+        nonceStart: godpackNonceStart,
+        nonceEnd: godpackNonceEnd,
+        poolSnapshot: gpEntries.map((e) => ({
+          cardId: new Types.ObjectId(e.cardId),
+          weight: e.weight,
+          stockAtOpen: e.stock,
+        })),
+        poolHash: godpackPoolHash,
+      });
+    }
 
-    if (result.drawnCards.length === 0) {
-      // Refund coins + release session. The commitment remains as a
-      // deliberate audit trail: the nonce range is "burned" (FairnessSeed
-      // already advanced) so user-side verification sees a commitment with
-      // zero pulls — rare, but honest. /api/fairness/commitment treats
-      // zero-pull commitments as a valid abandoned-draw state.
-      await User.findByIdAndUpdate(userId, { $inc: { coins: totalCost } });
-      deductedCoins = 0;
-      await PackOpenSession.deleteOne({ userId, packGroupId });
-      return NextResponse.json({ error: "Could not draw cards" }, { status: 400 });
+    // 6. Draw regular packs (skip wenn alle Slots vom Godpack belegt sind, also packCount=1+godpack)
+    let regularDrawn: DrawnCard[] = [];
+    if (regularPackCount > 0) {
+      const regularRng = createFairnessRng({
+        serverSeed: reservedSeed.serverSeed,
+        clientSeed,
+        nonceStart: regularNonceStart,
+        poolHash,
+      });
+      const regularResult = await drawPacksWithFairness(
+        packCards,
+        box.cardsPerPack,
+        regularPackCount,
+        box.priceInCoins,
+        regularRng,
+      );
+      regularDrawn = regularResult.drawnCards;
+
+      if (regularDrawn.length === 0) {
+        // Refund coins + release session. The commitment remains as a
+        // deliberate audit trail: the nonce range is "burned" (FairnessSeed
+        // already advanced) so user-side verification sees a commitment with
+        // zero pulls — rare, but honest. /api/fairness/commitment treats
+        // zero-pull commitments as a valid abandoned-draw state.
+        await User.findByIdAndUpdate(userId, { $inc: { coins: totalCost } });
+        deductedCoins = 0;
+        await PackOpenSession.deleteOne({ userId, packGroupId });
+        return NextResponse.json({ error: "Could not draw cards" }, { status: 400 });
+      }
+    }
+
+    // 6b. Pack-Index-Remap: reguläre Packs füllen die User-View-Slots, ohne
+    // den Godpack-Slot zu beanspruchen. Der Engine-interne packIndex 0..N-1
+    // wird zu den User-Slots [0..godpackPackIndex-1] ∪ [godpackPackIndex+1..packCount-1].
+    if (godpackOutcome) {
+      const gpIdx = godpackOutcome.packIndex;
+      for (const card of regularDrawn) {
+        if (card.packIndex >= gpIdx) {
+          card.packIndex += 1;
+        }
+      }
+    }
+
+    // 6c. Godpack-Draw — gleiches Server-/Client-Seed, eigene Nonce-Range, eigener Pool-Hash
+    let godpackDrawn: GodpackDrawnCard[] = [];
+    if (godpackOutcome && godpackPoolHash) {
+      const godpackRng = createFairnessRng({
+        serverSeed: reservedSeed.serverSeed,
+        clientSeed,
+        nonceStart: godpackNonceStart,
+        poolHash: godpackPoolHash,
+      });
+      godpackDrawn = await drawGodpack({ pool: godpackOutcome.pool, rng: godpackRng });
     }
 
     // 7. Get IP and User Agent
@@ -241,38 +341,124 @@ export async function POST(
       ?? "unknown";
     const ua = req.headers.get("user-agent") ?? "unknown";
 
-    // 6. Create PackPull records with status "pending" — crash-safe. Reuse
+    // 7b. GodpackEvent persistieren (BEVOR PackPulls, damit die Pulls die ID referenzieren können)
+    let godpackEventId: Types.ObjectId | null = null;
+    let godpackEventTotalCoinValue = 0;
+    if (godpackOutcome && godpackCommitment && godpackDrawn.length > 0) {
+      godpackEventTotalCoinValue = godpackDrawn.reduce((sum, c) => sum + c.coinValue, 0);
+      const username =
+        (user as unknown as { username?: string | null; name?: string | null }).username
+        ?? (user as unknown as { name?: string | null }).name
+        ?? "Nutzer";
+      const created = await GodpackEvent.create({
+        userId,
+        username,
+        game: box.game,
+        triggerCount: godpackOutcome.triggerCount,
+        packGroupId,
+        cards: godpackDrawn.map((c) => ({
+          cardId: new Types.ObjectId(c.cardId),
+          sourceBoxId: new Types.ObjectId(c.sourceBoxId),
+          name: c.name,
+          image: c.image,
+          rarity: c.rarity,
+          coinValue: c.coinValue,
+          conversionValue: c.conversionValue,
+        })),
+        totalCoinValue: godpackEventTotalCoinValue,
+        fairnessCommitmentId: godpackCommitment._id,
+        poolSize: godpackOutcome.pool.entries.length,
+        poolFallbackUsed: godpackOutcome.pool.fallbackUsed,
+      });
+      godpackEventId = created._id;
+
+      await advanceGodpackTrigger({
+        previousTriggerAt: godpackOutcome.triggerCount,
+        triggerCount: godpackOutcome.triggerCount,
+        userId,
+      });
+    }
+
+    // 8. Create PackPull records with status "pending" — crash-safe. Reuse
     // the packGroupId + expiry we already pinned on the session so pulls and
     // session rot together.
     const pullExpiresAt = sessionExpiresAt;
-    const pullDocs = result.drawnCards.map((d, i) => ({
-      userId,
-      boxId: realBoxId,
-      cardId: d.cardId,
-      rarity: d.rarity,
-      coinValue: d.coinValue,
-      conversionValue: d.conversionValue,
-      status: "pending" as const,
-      decidedAt: null,
-      packGroupId,
-      packIndex: d.packIndex,
-      cardIndex: i,
-      ipAddress: ip,
-      userAgent: ua,
-      expiresAt: pullExpiresAt,
-      fairnessCommitmentId: commitment._id,
-      fairnessNonce: nonceStart + i,
-    }));
+    let cardIndexCounter = 0;
+    const pullDocs: Array<Record<string, unknown>> = [];
+
+    for (const d of regularDrawn) {
+      pullDocs.push({
+        userId,
+        boxId: realBoxId,
+        cardId: d.cardId,
+        rarity: d.rarity,
+        coinValue: d.coinValue,
+        conversionValue: d.conversionValue,
+        status: "pending" as const,
+        decidedAt: null,
+        packGroupId,
+        packIndex: d.packIndex,
+        cardIndex: cardIndexCounter,
+        ipAddress: ip,
+        userAgent: ua,
+        expiresAt: pullExpiresAt,
+        fairnessCommitmentId: regularCommitment?._id ?? null,
+        fairnessNonce: regularNonceStart + d.cardIndex,
+        isGodpack: false,
+        godpackEventId: null,
+        godpackPosition: null,
+      });
+      cardIndexCounter++;
+    }
+
+    for (const d of godpackDrawn) {
+      pullDocs.push({
+        userId,
+        boxId: new Types.ObjectId(d.sourceBoxId),
+        cardId: d.cardId,
+        rarity: d.rarity,
+        coinValue: d.coinValue,
+        conversionValue: d.conversionValue,
+        status: "pending" as const,
+        decidedAt: null,
+        packGroupId,
+        packIndex: godpackOutcome!.packIndex,
+        cardIndex: cardIndexCounter,
+        ipAddress: ip,
+        userAgent: ua,
+        expiresAt: pullExpiresAt,
+        fairnessCommitmentId: godpackCommitment?._id ?? null,
+        fairnessNonce: godpackNonceStart + (d.position - 1),
+        isGodpack: true,
+        godpackEventId,
+        godpackPosition: d.position,
+      });
+      cardIndexCounter++;
+    }
+
     await PackPull.insertMany(pullDocs);
     // Pulls are durable — from here on a server error is recoverable by the
     // user-facing decide flow, not by a coin refund, so stop tracking the
     // deduction for catch-path cleanup.
     deductedCoins = 0;
 
-    // 8. Atomically reduce stock per drawn card (race-condition safe)
-    const stockUpdates: Record<string, number> = {};
-    for (const d of result.drawnCards) {
-      stockUpdates[d.cardId] = (stockUpdates[d.cardId] ?? 0) + 1;
+    // 9. Atomically reduce stock per drawn card (race-condition safe).
+    // Reguläre Karten zählen gegen die angeklickte Box, Godpack-Karten gegen
+    // ihre Source-Box (kann eine andere Box im selben Franchise sein).
+    const stockUpdatesPerBox: Map<string, Map<string, number>> = new Map();
+    function bumpStock(boxIdStr: string, cardId: string) {
+      let perBox = stockUpdatesPerBox.get(boxIdStr);
+      if (!perBox) {
+        perBox = new Map();
+        stockUpdatesPerBox.set(boxIdStr, perBox);
+      }
+      perBox.set(cardId, (perBox.get(cardId) ?? 0) + 1);
+    }
+    for (const d of regularDrawn) {
+      bumpStock(realBoxId.toString(), d.cardId);
+    }
+    for (const d of godpackDrawn) {
+      bumpStock(d.sourceBoxId, d.cardId);
     }
 
     // One atomic decrement per drawn unit, still guarded by $gte:1 so a
@@ -285,15 +471,18 @@ export async function POST(
         update: Record<string, unknown>;
       };
     }> = [];
-    for (const [cardId, count] of Object.entries(stockUpdates)) {
-      const cardObjectId = new Types.ObjectId(cardId);
-      for (let i = 0; i < count; i++) {
-        stockOps.push({
-          updateOne: {
-            filter: { _id: realBoxId, "cards.card": cardObjectId, "cards.stock": { $gte: 1 } },
-            update: { $inc: { "cards.$.stock": -1 } },
-          },
-        });
+    for (const [boxIdStr, perBox] of stockUpdatesPerBox.entries()) {
+      const boxObjectId = new Types.ObjectId(boxIdStr);
+      for (const [cardId, count] of perBox.entries()) {
+        const cardObjectId = new Types.ObjectId(cardId);
+        for (let i = 0; i < count; i++) {
+          stockOps.push({
+            updateOne: {
+              filter: { _id: boxObjectId, "cards.card": cardObjectId, "cards.stock": { $gte: 1 } },
+              update: { $inc: { "cards.$.stock": -1 } },
+            },
+          });
+        }
       }
     }
     stockOps.push({
@@ -321,10 +510,15 @@ export async function POST(
     // lässt (Coins sind dann ja schon verbucht und die Karten erzeugt).
     let finalBalance = user.coins;
     try {
-      const totalPullXp = result.drawnCards.reduce(
+      const regularPullXp = regularDrawn.reduce(
         (sum, card) => sum + xpForPackPull(card.rarity, card.coinValue),
         0,
       );
+      const godpackPullXp = godpackDrawn.reduce(
+        (sum, card) => sum + xpForPackPull(card.rarity, card.coinValue),
+        0,
+      );
+      const totalPullXp = regularPullXp + godpackPullXp;
       if (totalPullXp > 0) {
         await grantXp(userId, totalPullXp, "pack_open");
       }
@@ -339,10 +533,18 @@ export async function POST(
       console.error("[packs/[id]/open xp-hooks]", err);
     }
 
-    // 10. Low-stock warnings for drawn cards. Out-of-stock notifications
-    // live with the pause block below so the single request that actually
-    // wins the pause race is the only one that notifies admins.
-    if (updatedBox) void sendLowStockAlerts(updatedBox, cardMap, stockUpdates);
+    // 10. Low-stock warnings für die angeklickte Box. Godpack-Karten aus
+    // anderen Boxen werden gesondert gelogged (Out-of-Stock unten), aber
+    // pro-Box-Pause respektiert nur die Origin-Box, weil sie der Klick-Pfad
+    // ist und wir Admin-Alerts kompakt halten wollen.
+    const originBoxStockUpdates: Record<string, number> = {};
+    const originPerBox = stockUpdatesPerBox.get(realBoxId.toString());
+    if (originPerBox) {
+      for (const [cardId, count] of originPerBox.entries()) {
+        originBoxStockUpdates[cardId] = count;
+      }
+    }
+    if (updatedBox) void sendLowStockAlerts(updatedBox, cardMap, originBoxStockUpdates);
 
     // 11. Pause box if any drawn card hit stock 0. Admin reviews before it
     // goes live again. The `status: "published"` guard on the filter means
@@ -350,7 +552,7 @@ export async function POST(
     // and skip notifications so admins don't get duplicate alerts.
     if (updatedBox) {
       const depleted: Array<{ cardId: string; cardName: string }> = [];
-      for (const cardId of Object.keys(stockUpdates)) {
+      for (const cardId of Object.keys(originBoxStockUpdates)) {
         const entry = updatedBox.cards.find((c) => c.card.toString() === cardId);
         if (entry && (entry.stock ?? 0) === 0) {
           depleted.push({
@@ -384,18 +586,81 @@ export async function POST(
       }
     }
 
-    // 12. Response
+    // 12. Response — kombiniere reguläre und Godpack-Karten in User-View-Order.
+    // Reguläre Karten haben packIndex bereits via Remap auf die richtigen Slots,
+    // Godpack-Karten teilen sich packIndex `godpackOutcome.packIndex`.
+    interface ResponseCard {
+      cardId: string;
+      name: string;
+      rarity: string;
+      coinValue: number;
+      conversionValue: number;
+      image: string | null;
+      packIndex: number;
+      cardIndex: number;
+      isGodpack: boolean;
+      godpackPosition: number | null;
+    }
+    const responseCards: ResponseCard[] = [];
+    for (const c of regularDrawn) {
+      responseCards.push({
+        cardId: c.cardId,
+        name: c.name,
+        rarity: c.rarity,
+        coinValue: c.coinValue,
+        conversionValue: c.conversionValue,
+        image: c.image,
+        packIndex: c.packIndex,
+        cardIndex: c.cardIndex,
+        isGodpack: false,
+        godpackPosition: null,
+      });
+    }
+    for (const c of godpackDrawn) {
+      responseCards.push({
+        cardId: c.cardId,
+        name: c.name,
+        rarity: c.rarity,
+        coinValue: c.coinValue,
+        conversionValue: c.conversionValue,
+        image: c.image,
+        packIndex: godpackOutcome!.packIndex,
+        cardIndex: regularDrawn.length + (c.position - 1),
+        isGodpack: true,
+        godpackPosition: c.position,
+      });
+    }
+    responseCards.sort((a, b) => a.packIndex - b.packIndex || a.cardIndex - b.cardIndex);
+
     return NextResponse.json({
       packGroupId,
       packCount,
       totalCost,
       newBalance: finalBalance,
-      cards: result.drawnCards,
-      fairnessProof: {
-        commitmentId: commitment._id.toString(),
-        nonceStart,
-        nonceEnd,
-      },
+      cards: responseCards,
+      godpack: godpackOutcome && godpackEventId
+        ? {
+            eventId: godpackEventId.toString(),
+            packIndex: godpackOutcome.packIndex,
+            game: box.game,
+            totalCoinValue: godpackEventTotalCoinValue,
+            poolFallbackUsed: godpackOutcome.pool.fallbackUsed,
+            fairnessProof: godpackCommitment
+              ? {
+                  commitmentId: godpackCommitment._id.toString(),
+                  nonceStart: godpackNonceStart,
+                  nonceEnd: godpackNonceEnd,
+                }
+              : null,
+          }
+        : null,
+      fairnessProof: regularCommitment
+        ? {
+            commitmentId: regularCommitment._id.toString(),
+            nonceStart: regularNonceStart,
+            nonceEnd: regularNonceEnd,
+          }
+        : null,
     });
   } catch (err) {
     console.error("[packs/[id]/open POST]", err);

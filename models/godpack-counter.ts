@@ -21,7 +21,12 @@ export interface IGodpackCounter extends Document {
 const GodpackCounterSchema = new Schema<IGodpackCounter>(
   {
     totalPacksOpened: { type: Number, required: true, default: 0, min: 0 },
-    nextTriggerAt: { type: Number, required: true, min: 1 },
+    nextTriggerAt: {
+      type: Number,
+      required: true,
+      min: 1,
+      default: () => rollNextTriggerGap(),
+    },
     lastTriggerAt: { type: Date, default: null },
     lastTriggerCount: { type: Number, default: null, min: 0 },
     lastTriggerUserId: { type: Schema.Types.ObjectId, ref: "User", default: null },

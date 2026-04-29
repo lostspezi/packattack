@@ -6,11 +6,14 @@ export interface IPoolSnapshotEntry {
   stockAtOpen: number;
 }
 
+export type PackOpenCommitmentKind = "regular" | "godpack";
+
 export interface IPackOpenCommitment extends Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
   packGroupId: string;
   boxId: Types.ObjectId;
+  kind: PackOpenCommitmentKind;
   serverSeedId: Types.ObjectId;
   serverSeedHashAtOpen: string;
   clientSeed: string;
@@ -35,6 +38,12 @@ const PackOpenCommitmentSchema = new Schema<IPackOpenCommitment>(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     packGroupId: { type: String, required: true, unique: true },
     boxId: { type: Schema.Types.ObjectId, ref: "Box", required: true },
+    kind: {
+      type: String,
+      enum: ["regular", "godpack"],
+      default: "regular",
+      required: true,
+    },
     serverSeedId: { type: Schema.Types.ObjectId, ref: "FairnessSeed", required: true },
     serverSeedHashAtOpen: { type: String, required: true },
     clientSeed: { type: String, required: true },
