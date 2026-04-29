@@ -30,7 +30,7 @@ interface GodpackIntroProps {
  *  3700-4600ms Smooth Fade-out, Sound „chime", Übergang zum Ripping.
  */
 const T = {
-  total: 6200,
+  total: 7800,
   flashAt: 700,
   burstAt: 720,
   rayStart: 750,
@@ -40,8 +40,8 @@ const T = {
   confetti1: 1800,
   confetti2: 2900,
   confetti3: 4000,
-  confetti4: 4900,
-  fadeOutStart: 5500,
+  confetti4: 5200,
+  fadeOutStart: 7100,
 } as const;
 
 const GODPACK_LETTERS = ["G", "O", "D", "P", "A", "C", "K"];
@@ -90,7 +90,10 @@ export function GodpackIntro({
     schedule(T.flashAt + 90, () => onPlaySound("legendary", 0.85));
     cue(T.confetti1, "godpackFanfare", "rain", 0.75);
     cue(T.confetti2 + 200, "godpackSparkle", "shimmer", 0.7);
-    schedule(T.confetti3, () => onPlaySound("chime", 0.6));
+    schedule(T.confetti3, () => onPlaySound("chime", 0.55));
+    schedule(T.confetti3 + 700, () => onPlaySound("godpackSparkle", 0.55));
+    schedule(T.confetti4, () => onPlaySound("godpackSparkle", 0.6));
+    schedule(T.confetti4 + 600, () => onPlaySound("shimmer", 0.65));
     schedule(T.fadeOutStart - 100, () => onPlaySound("chime", 0.85));
 
     // Particle-Choreografie
@@ -354,8 +357,8 @@ export function GodpackIntro({
               initial={{ scale: 0, opacity: 0, y: 130, rotate: -25 }}
               animate={{
                 scale: [0, 1.65, 0.88, 1.0, 1.04, 1.0, 1.04, 1.0, 1.0],
-                opacity: [0, 1, 1, 1, 1, 1, 1, 1, 0],
-                y: [130, -22, 6, 0, 0, 0, 0, 0, -12],
+                opacity: [0, 1, 1, 1, 1, 1, 1, 1, 1],
+                y: [130, -22, 6, 0, 0, 0, 0, 0, 0],
                 rotate: [-25, 14, -5, 0, 0, 0, 0, 0, 0],
               }}
               transition={{
@@ -412,18 +415,15 @@ export function GodpackIntro({
         }}
       />
 
-      {/* Subline + Game-Tag — kommt nach dem GODPACK-Reveal, bleibt während
-          der gesamten Hold-Phase sichtbar. */}
+      {/* Subline + Game-Tag — kommt nach dem GODPACK-Reveal, bleibt für den
+          gesamten Rest der Intro stabil stehen (kein Letter-fadeout mehr). */}
       <motion.div
         className="relative z-20 flex flex-col items-center gap-2 mt-3"
         initial={{ opacity: 0, y: 28 }}
-        animate={{
-          opacity: [0, 1, 1, 0],
-          y: [28, 0, 0, -16],
-        }}
+        animate={{ opacity: [0, 1, 1], y: [28, 0, 0] }}
         transition={{
-          duration: (T.fadeOutStart - T.sublineIn) / 1000 + 0.45,
-          times: [0, 0.16, 0.88, 1],
+          duration: (T.total - T.sublineIn) / 1000,
+          times: [0, 0.18, 1],
           delay: T.sublineIn / 1000,
         }}
       >
