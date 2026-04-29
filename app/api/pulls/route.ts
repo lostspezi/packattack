@@ -15,6 +15,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = req.nextUrl;
   const status = searchParams.get("status") ?? "";
+  const isGodpackParam = searchParams.get("isGodpack");
   const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
   const limit = Math.max(1, Math.min(100, parseInt(searchParams.get("limit") ?? "50", 10)));
 
@@ -23,6 +24,8 @@ export async function GET(req: NextRequest) {
 
     const query: Record<string, unknown> = { userId };
     if (status) query.status = status;
+    if (isGodpackParam === "true") query.isGodpack = true;
+    else if (isGodpackParam === "false") query.isGodpack = { $ne: true };
 
     const [pulls, total] = await Promise.all([
       PackPull.find(query)
@@ -49,6 +52,9 @@ export async function GET(req: NextRequest) {
         packIndex: p.packIndex,
         cardIndex: p.cardIndex,
         createdAt: p.createdAt,
+        isGodpack: p.isGodpack ?? false,
+        godpackEventId: p.godpackEventId ? p.godpackEventId.toString() : null,
+        godpackPosition: p.godpackPosition ?? null,
       })),
       total,
       page,

@@ -4,9 +4,11 @@ import { ChatMessageBody } from "@/components/chat/chat-message-body";
 import { ChatMessageGif } from "@/components/chat/chat-message-gif";
 import { ChatJackpotCard } from "@/components/chat/chat-jackpot-card";
 import { ChatBattleInvite } from "@/components/chat/chat-battle-invite";
+import { ChatGodpackHighlight } from "@/components/chat/chat-godpack-highlight";
 import type {
   ChatBattleInviteSummary,
   ChatGifSummary,
+  ChatGodpackHighlightSummary,
   ChatHighlightCardSummary,
   ChatQuotedMessageSummary,
 } from "@/types/chat";
@@ -15,6 +17,7 @@ interface ChatMessageContentProps {
   body: string;
   gif: ChatGifSummary | null;
   highlightCard?: ChatHighlightCardSummary | null;
+  godpackHighlight?: ChatGodpackHighlightSummary | null;
   battleInvite?: ChatBattleInviteSummary | null;
   quotedMessage?: ChatQuotedMessageSummary | null;
   quoteLabels?: {
@@ -33,6 +36,7 @@ export function ChatMessageContent({
   body,
   gif,
   highlightCard,
+  godpackHighlight,
   battleInvite,
   quotedMessage,
   quoteLabels,
@@ -43,7 +47,7 @@ export function ChatMessageContent({
   gifClassName,
   gifImageClassName,
 }: ChatMessageContentProps) {
-  if (!gif && !body && !highlightCard && !battleInvite && !quotedMessage) {
+  if (!gif && !body && !highlightCard && !godpackHighlight && !battleInvite && !quotedMessage) {
     return null;
   }
 
@@ -68,6 +72,9 @@ export function ChatMessageContent({
             {quotePreview}
           </p>
         </div>
+      ) : null}
+      {godpackHighlight ? (
+        <ChatGodpackHighlight highlight={godpackHighlight} className="mb-2" />
       ) : null}
       {highlightCard ? <ChatJackpotCard card={highlightCard} className="mb-2" /> : null}
       {battleInvite ? <ChatBattleInvite invite={battleInvite} lang={lang ?? "de"} className="mb-2" /> : null}

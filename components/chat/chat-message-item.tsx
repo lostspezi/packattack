@@ -235,6 +235,7 @@ function ChatMessageItemImpl({
         body={message.body}
         gif={message.gif}
         highlightCard={message.highlightCard}
+        godpackHighlight={message.godpackHighlight}
         battleInvite={message.battleInvite}
         quotedMessage={message.quotedMessage}
         quoteLabels={{

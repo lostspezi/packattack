@@ -11,6 +11,7 @@ interface PullInfo {
   conversionValue: number;
   status: string;
   createdAt: string;
+  isGodpack?: boolean;
 }
 
 export function MyPulls({ pulls, lang }: { pulls: PullInfo[]; lang: string }) {
@@ -47,7 +48,22 @@ export function MyPulls({ pulls, lang }: { pulls: PullInfo[]; lang: string }) {
                 <div className="w-8 aspect-[63/88] bg-white/4 rounded shrink-0" />
               )}
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-semibold text-text-primary truncate">{card?.name ?? "Unknown"}</p>
+                <p className="text-[11px] font-semibold text-text-primary truncate">
+                  {card?.name ?? "Unknown"}
+                  {pull.isGodpack ? (
+                    <span
+                      className="ml-1.5 align-middle inline-flex items-center rounded-full px-1.5 py-[1px] text-[8px] font-extrabold uppercase tracking-[1.5px] text-amber-100"
+                      style={{
+                        background:
+                          "linear-gradient(135deg, rgba(140, 60, 200, 0.85) 0%, rgba(60, 24, 100, 0.85) 100%)",
+                        boxShadow: "0 0 0 1px rgba(255,200,80,0.45), 0 0 8px rgba(255,180,60,0.35)",
+                      }}
+                      title="Aus einem Godpack gezogen"
+                    >
+                      ★ GP
+                    </span>
+                  ) : null}
+                </p>
                 <Badge variant="info">{pull.rarity}</Badge>
               </div>
               <Badge variant={pull.status === "claimed" ? "success" : "info"}>
