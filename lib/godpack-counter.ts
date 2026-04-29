@@ -89,6 +89,7 @@ export async function incrementGodpackCounter(
     {
       upsert: true,
       returnDocument: "after",
+      updatePipeline: true,
     },
   );
 
