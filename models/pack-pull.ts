@@ -20,6 +20,9 @@ export interface IPackPull extends Document {
   fairnessCommitmentId: Types.ObjectId | null;
   fairnessNonce: number | null;
   binderId: Types.ObjectId | null;
+  isGodpack: boolean;
+  godpackEventId: Types.ObjectId | null;
+  godpackPosition: number | null;
   createdAt: Date;
 }
 
@@ -52,6 +55,13 @@ const PackPullSchema = new Schema<IPackPull>(
     },
     fairnessNonce: { type: Number, default: null, min: 0 },
     binderId: { type: Schema.Types.ObjectId, ref: "Binder", default: null },
+    isGodpack: { type: Boolean, default: false },
+    godpackEventId: {
+      type: Schema.Types.ObjectId,
+      ref: "GodpackEvent",
+      default: null,
+    },
+    godpackPosition: { type: Number, default: null, min: 1, max: 5 },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );
@@ -65,6 +75,8 @@ PackPullSchema.index({ status: 1, expiresAt: 1 });
 PackPullSchema.index({ battleId: 1, status: 1 });
 PackPullSchema.index({ fairnessCommitmentId: 1, fairnessNonce: 1 });
 PackPullSchema.index({ userId: 1, binderId: 1 });
+PackPullSchema.index({ isGodpack: 1, createdAt: -1 });
+PackPullSchema.index({ godpackEventId: 1 });
 
 const PackPull: Model<IPackPull> =
   mongoose.models.PackPull ?? mongoose.model<IPackPull>("PackPull", PackPullSchema);
