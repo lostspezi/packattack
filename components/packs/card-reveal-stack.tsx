@@ -16,6 +16,8 @@ interface CardData {
   packIndex: number;
   cardIndex: number;
   status?: string;
+  isGodpack?: boolean;
+  godpackPosition?: number | null;
 }
 
 interface CardRevealStackProps {
@@ -26,16 +28,44 @@ interface CardRevealStackProps {
   onPlaySound: (key: string, volume?: number) => void;
   onAllRevealed: () => void;
   fairnessCommitmentId?: string | null;
+  /** Wenn gesetzt: Cosmic-Theme aktiv, am Ende wird ein Reveal-Acknowledge an die API gesendet. */
+  godpackEventId?: string | null;
 }
 
 const CARD_W = 150;
 
 export function CardRevealStack({
   cards, packCount, lang, particleRef, onPlaySound, onAllRevealed,
-  fairnessCommitmentId,
+  fairnessCommitmentId, godpackEventId,
 }: CardRevealStackProps) {
   const isDe = lang === "de";
   const prefersReducedMotion = useReducedMotion();
+  const isCosmic = Boolean(godpackEventId);
+  const acknowledgedRef = useRef(false);
+
+  /**
+   * Bestätigt den Godpack-Reveal beim Server, sobald alle 5 Karten gesehen
+   * wurden. Idempotent (Server sperrt via revealedAt-Lock); ein Fehler darf
+   * den UI-Flow nicht abbrechen, weil die Karten ja schon dem User gehören.
+   */
+  const acknowledgeGodpackReveal = useCallback(async () => {
+    if (!godpackEventId || acknowledgedRef.current) return;
+    acknowledgedRef.current = true;
+    try {
+      await fetch(`/api/godpacks/${godpackEventId}/reveal`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (err) {
+      // Logging only — UI darf nicht stocken, falls der Server gerade nicht greifbar ist.
+      console.error("[godpack reveal acknowledge]", err);
+    }
+  }, [godpackEventId]);
+
+  const handleAllRevealed = useCallback(() => {
+    void acknowledgeGodpackReveal();
+    onAllRevealed();
+  }, [acknowledgeGodpackReveal, onAllRevealed]);
 
   const sortedCards = useMemo(
     () =>
@@ -171,7 +201,7 @@ export function CardRevealStack({
             {isDe ? "Öffnung nachrechnen (Provably Fair)" : "Verify this opening (Provably Fair)"}
           </a>
         )}
-        <Button variant="primary" size="lg" className="w-full" onClick={onAllRevealed}>
+        <Button variant="primary" size="lg" className="w-full" onClick={handleAllRevealed}>
           {isDe ? "Weiter zur Übersicht" : "Continue to overview"}
         </Button>
       </div>
@@ -181,6 +211,11 @@ export function CardRevealStack({
   return (
     <div className="w-full max-w-4xl mx-auto flex flex-col items-center gap-8 py-6 px-3">
       <div className="text-center">
+        {isCosmic && (
+          <p className="text-[10px] uppercase tracking-[5px] font-bold text-amber-300 drop-shadow-[0_0_10px_rgba(255,200,90,0.55)] mb-2">
+            ★ GODPACK ★
+          </p>
+        )}
         <p className="text-sm text-text-muted">
           {revealedCount}/{sortedCards.length} {isDe ? "aufgedeckt" : "revealed"}
           {packCount > 1 && ` · ${packCount} Packs`}
@@ -232,7 +267,7 @@ export function CardRevealStack({
               {isDe ? "Öffnung nachrechnen (Provably Fair)" : "Verify this opening (Provably Fair)"}
             </a>
           )}
-          <Button variant="primary" size="lg" className="w-full" onClick={onAllRevealed}>
+          <Button variant="primary" size="lg" className="w-full" onClick={handleAllRevealed}>
             {isDe ? "Weiter zur Übersicht" : "Continue to overview"}
           </Button>
         </motion.div>

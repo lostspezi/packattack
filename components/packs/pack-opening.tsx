@@ -132,6 +132,18 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
   // ─── ANIMATION PHASES: fullscreen overlay for ripping + reveal ───
   return (
     <div className="fixed inset-0 z-80 flex flex-col items-center justify-center overflow-auto bg-[#08070d]">
+      {/* Cosmic Backdrop — only for godpack openings */}
+      {isGodpack && (
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(ellipse at 50% 35%, rgba(255, 200, 80, 0.10) 0%, rgba(180, 80, 255, 0.10) 30%, rgba(40, 10, 80, 0.35) 60%, rgba(8, 4, 22, 0.0) 80%)",
+          }}
+        />
+      )}
+
       {/* Particle canvas — covers entire overlay */}
       <div className="absolute inset-0">
         <ParticleCanvas ref={particleRef} />
@@ -202,7 +214,12 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
             particleRef={particleRef}
             onPlaySound={handlePlaySound}
             onAllRevealed={handleAnimationDone}
-            fairnessCommitmentId={result.fairnessProof?.commitmentId ?? null}
+            fairnessCommitmentId={
+              result.godpack?.fairnessProof?.commitmentId
+                ?? result.fairnessProof?.commitmentId
+                ?? null
+            }
+            godpackEventId={result.godpack?.eventId ?? null}
           />
         )}
       </div>
