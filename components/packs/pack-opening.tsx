@@ -85,19 +85,22 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
   const isGodpack = Boolean(result.godpack);
   const godpackEventId = result.godpack?.eventId ?? null;
   const godpackAckedRef = useRef(false);
+  // Wird true, sobald der User die Reveal-Phase betreten hat. Vorher wäre ein
+  // Acknowledge ein Spoiler (andere User würden die Karten im Chat sehen
+  // bevor der Glückliche sie selbst aufgedeckt hat). Auch verhindert das
+  // den React-19/StrictMode-Double-Mount-Cleanup, der sonst das Acknowledge
+  // sofort nach dem ersten Render feuern würde.
+  const revealStartedRef = useRef(false);
 
   /**
    * Reveal-Acknowledge an den Server schicken. Wird in mehreren Pfaden
-   * angetriggert (Continue-Button, Skip-Button, Component-Unmount, Skip-
-   * Animation-Bypass), damit der Chat-Broadcast nicht verloren geht. Die
-   * Funktion ist client-seitig idempotent (acknowledgedRef) — der Server
-   * ist es zusätzlich, falls der Client doppelt fired.
-   *
-   * Wichtig: NICHT beim Mount feuern, sonst spoilert die Chat-Message das
-   * Pack noch bevor der User die Karten überhaupt gesehen hat.
+   * angetriggert (Continue-Button, Skip-Button, Tab-Close, Unmount nach
+   * Reveal), damit der Chat-Broadcast nicht verloren geht. Client- und
+   * server-seitig idempotent.
    */
   const fireGodpackAck = useCallback(() => {
     if (!godpackEventId || godpackAckedRef.current) return;
+    if (!revealStartedRef.current) return;
     godpackAckedRef.current = true;
     void fetch(`/api/godpacks/${godpackEventId}/reveal`, {
       method: "POST",
@@ -105,14 +108,18 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
     }).catch((err) => console.error("[godpack reveal acknowledge]", err));
   }, [godpackEventId]);
 
-  // Catch-all: wenn der User den Tab schließt oder die Komponente sonst
-  // unmountet, bevor ein Continue/Skip gefeuert wurde, holen wir das
-  // Acknowledge im Cleanup nach.
+  // Tab-Close / Navigation als Fallback. Cleanup beim React-Unmount fired
+  // ebenfalls, ist aber durch revealStartedRef gegen Strict-Mode-Doppel-
+  // Mounts geschützt.
   useEffect(() => {
+    if (!godpackEventId) return;
+    const handler = () => fireGodpackAck();
+    window.addEventListener("beforeunload", handler);
     return () => {
+      window.removeEventListener("beforeunload", handler);
       fireGodpackAck();
     };
-  }, [fireGodpackAck]);
+  }, [godpackEventId, fireGodpackAck]);
 
   const getInitialPhase = (): Phase | null => {
     if (skipAnimation) return null; // will finish immediately
@@ -127,18 +134,33 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
   // When there's no animation phase, finish immediately and let the guard take over
   useEffect(() => {
     if (skipAnimation) {
+      // Bei Recovery / quickOpen / reduced-motion gibt es keine Reveal-
+      // Phase; das Acknowledge darf direkt feuern, weil der User selbst
+      // ohnehin keine Karten-Animation sieht und damit kein Spoiler-
+      // Konflikt entsteht.
+      revealStartedRef.current = true;
+      fireGodpackAck();
       // Unsuppress before onDone unmounts us, so the guard can show immediately
       suppressPendingGuard(false);
       notifyPendingPulls();
       onDone();
     }
-  }, [skipAnimation, onDone]);
+  }, [skipAnimation, onDone, fireGodpackAck]);
 
   // Lock body scroll during animation overlay
   useEffect(() => {
     if (phase === null) return;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = ""; };
+  }, [phase]);
+
+  // Reveal-Start markieren: erst ab phase=="reveal" darf das Acknowledge
+  // tatsächlich feuern. Vorher (godpack-intro, ripping) wäre eine
+  // Chat-Message Spoiler.
+  useEffect(() => {
+    if (phase === "reveal") {
+      revealStartedRef.current = true;
+    }
   }, [phase]);
 
   const cards = result.cards;
