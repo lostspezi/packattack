@@ -76,6 +76,22 @@ interface IChatHighlightCard {
   coinValue: number;
 }
 
+interface IChatGodpackHighlightCard {
+  cardId: Types.ObjectId;
+  name: string;
+  image: string | null;
+  rarity: string;
+  coinValue: number;
+}
+
+interface IChatGodpackHighlight {
+  eventId: Types.ObjectId;
+  username: string;
+  game: string;
+  totalCoinValue: number;
+  cards: IChatGodpackHighlightCard[];
+}
+
 interface IChatBattleInvite {
   battleId: string;
   battleSlug: string;
@@ -107,6 +123,7 @@ export interface IChatMessage extends Document {
   bodyDisplay: string;
   gif: IChatGif | null;
   highlightCard: IChatHighlightCard | null;
+  godpackHighlight: IChatGodpackHighlight | null;
   battleInvite: IChatBattleInvite | null;
   quotedMessage: IChatQuotedMessage | null;
   status: ChatMessageStatus;
@@ -223,6 +240,28 @@ const ChatHighlightCardSchema = new Schema<IChatHighlightCard>(
   { _id: false }
 );
 
+const ChatGodpackHighlightCardSchema = new Schema<IChatGodpackHighlightCard>(
+  {
+    cardId: { type: Schema.Types.ObjectId, ref: "Card", required: true },
+    name: { type: String, required: true, maxlength: 200 },
+    image: { type: String, default: null, maxlength: 500 },
+    rarity: { type: String, required: true, maxlength: 64 },
+    coinValue: { type: Number, required: true, min: 1 },
+  },
+  { _id: false }
+);
+
+const ChatGodpackHighlightSchema = new Schema<IChatGodpackHighlight>(
+  {
+    eventId: { type: Schema.Types.ObjectId, ref: "GodpackEvent", required: true },
+    username: { type: String, required: true, maxlength: 64 },
+    game: { type: String, required: true, maxlength: 64 },
+    totalCoinValue: { type: Number, required: true, min: 1 },
+    cards: { type: [ChatGodpackHighlightCardSchema], required: true },
+  },
+  { _id: false }
+);
+
 const ChatBattleInviteSchema = new Schema<IChatBattleInvite>(
   {
     battleId: { type: String, required: true, maxlength: 32 },
@@ -291,6 +330,7 @@ const ChatMessageSchema = new Schema<IChatMessage>(
     bodyDisplay: { type: String, default: "", trim: true, maxlength: 500 },
     gif: { type: ChatGifSchema, default: null },
     highlightCard: { type: ChatHighlightCardSchema, default: null },
+    godpackHighlight: { type: ChatGodpackHighlightSchema, default: null },
     battleInvite: { type: ChatBattleInviteSchema, default: null },
     quotedMessage: { type: ChatQuotedMessageSchema, default: null },
     status: {
@@ -335,8 +375,10 @@ ChatMessageSchema.index({ roomId: 1, createdAt: -1 });
 const existingChatMessageModel = mongoose.models.ChatMessage as Model<IChatMessage> | undefined;
 const cachedSchemaMissingQuotedMessage =
   existingChatMessageModel && !existingChatMessageModel.schema.path("quotedMessage");
+const cachedSchemaMissingGodpackHighlight =
+  existingChatMessageModel && !existingChatMessageModel.schema.path("godpackHighlight");
 
-if (cachedSchemaMissingQuotedMessage) {
+if (cachedSchemaMissingQuotedMessage || cachedSchemaMissingGodpackHighlight) {
   delete mongoose.models.ChatMessage;
 }
 

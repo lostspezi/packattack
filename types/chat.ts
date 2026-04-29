@@ -112,6 +112,7 @@ export interface ChatMessageSummary {
   body: string;
   gif: ChatGifSummary | null;
   highlightCard: ChatHighlightCardSummary | null;
+  godpackHighlight: ChatGodpackHighlightSummary | null;
   battleInvite: ChatBattleInviteSummary | null;
   quotedMessage: ChatQuotedMessageSummary | null;
   status: ChatMessageStatus;
@@ -289,6 +290,32 @@ export interface ChatEventEnvelope<T = Record<string, unknown>> {
     | "moderation_updated"
     | "room_state"
     | "read_state"
-    | "user_notice";
+    | "user_notice"
+    | "godpack_incoming"
+    | "godpack_revealed";
   payload: T;
+}
+
+export interface ChatGodpackHighlightCardSummary {
+  cardId: string;
+  name: string;
+  image: string | null;
+  rarity: string;
+  coinValue: number;
+}
+
+export interface ChatGodpackHighlightSummary {
+  eventId: string;
+  username: string;
+  game: string;
+  totalCoinValue: number;
+  cards: ChatGodpackHighlightCardSummary[];
+}
+
+export interface GodpackIncomingEvent {
+  eventId: string;
+  username: string;
+  game: string;
+  /** Wenn true: der Empfänger des Events ist der Glückliche selbst — Toast unterdrücken. */
+  ownerUserId: string;
 }

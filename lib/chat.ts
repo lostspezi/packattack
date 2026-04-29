@@ -399,6 +399,21 @@ export function serializeChatMessage(
           coinValue: message.highlightCard.coinValue,
         }
       : null,
+    godpackHighlight: message.godpackHighlight
+      ? {
+          eventId: toStringId(message.godpackHighlight.eventId),
+          username: message.godpackHighlight.username,
+          game: message.godpackHighlight.game,
+          totalCoinValue: message.godpackHighlight.totalCoinValue,
+          cards: (message.godpackHighlight.cards ?? []).map((card) => ({
+            cardId: toStringId(card.cardId),
+            name: card.name,
+            image: card.image ?? null,
+            rarity: card.rarity,
+            coinValue: card.coinValue,
+          })),
+        }
+      : null,
     battleInvite: message.battleInvite
       ? {
           battleId: message.battleInvite.battleId,

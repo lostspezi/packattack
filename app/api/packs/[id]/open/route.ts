@@ -35,6 +35,9 @@ import {
   incrementGodpackCounter,
   advanceGodpackTrigger,
 } from "@/lib/godpack-counter";
+import { publishRoomEvent } from "@/lib/chat";
+import { CHAT_ROOM_SLUG } from "@/lib/chat-constants";
+import type { GodpackIncomingEvent } from "@/types/chat";
 
 export async function POST(
   req: NextRequest,
@@ -631,6 +634,30 @@ export async function POST(
       });
     }
     responseCards.sort((a, b) => a.packIndex - b.packIndex || a.cardIndex - b.cardIndex);
+
+    // 13. Live-Banner publishen, wenn Godpack getriggert wurde. Wird von allen
+    // verbundenen Chat-Clients empfangen — der Toast unterdrückt sich beim
+    // glücklichen User selbst (siehe ownerUserId).
+    if (godpackOutcome && godpackEventId) {
+      const username =
+        (user as unknown as { username?: string | null; name?: string | null }).username
+        ?? (user as unknown as { name?: string | null }).name
+        ?? "Nutzer";
+      try {
+        await publishRoomEvent<GodpackIncomingEvent>(CHAT_ROOM_SLUG, {
+          type: "godpack_incoming",
+          payload: {
+            eventId: godpackEventId.toString(),
+            username,
+            game: box.game,
+            ownerUserId: userId,
+          },
+        });
+      } catch (err) {
+        // Banner-Publish darf nie den Pack-Open scheitern lassen
+        console.error("[packs/[id]/open godpack-broadcast]", err);
+      }
+    }
 
     return NextResponse.json({
       packGroupId,

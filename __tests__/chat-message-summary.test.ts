@@ -15,6 +15,7 @@ function makeMessage(overrides: Partial<ChatMessageSummary> & { id: string; visi
     body: "",
     gif: null,
     highlightCard: null,
+    godpackHighlight: null,
     battleInvite: null,
     quotedMessage: null,
     status: "visible",
