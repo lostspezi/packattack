@@ -195,18 +195,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { pullId, packGroupId, cardId, cardIndex, rarity, coinValue, decision, boxId } = body as {
+  // Spoofbare Felder (cardId, boxId, rarity, coinValue) werden vom Frontend
+  // weiterhin mitgeschickt, aber serverseitig nicht mehr genutzt — alles
+  // Authoritative kommt aus dem PackPull-Dokument. Wir akzeptieren sie nur,
+  // damit die bestehenden Clients ohne Anpassung weiterlaufen.
+  const { pullId, packGroupId, cardIndex, decision } = body as {
     pullId?: string;
     packGroupId?: string;
-    cardId?: string;
     cardIndex?: number;
-    rarity?: string;
-    coinValue?: number;
     decision?: "claim" | "convert";
-    boxId?: string;
   };
 
-  if ((!pullId && (!packGroupId || !cardId || cardIndex === undefined)) || !decision || !boxId) {
+  if ((!pullId && (!packGroupId || cardIndex === undefined)) || !decision) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
@@ -237,9 +237,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Already decided or not found" }, { status: 400 });
     }
 
+    // Authoritative IDs/Werte ausschließlich aus dem Pull-Dokument lesen.
+    // Früher kamen cardId/boxId/rarity/coinValue aus dem Request-Body — das
+    // erlaubte einem Angreifer, eine Junk-Karte zu ziehen und im Decide-Schritt
+    // die Wunsch-Karte als CartItem zu reservieren. Pull = Single Source of Truth.
+    const authoritativeCardId = pull.cardId.toString();
+    const authoritativeBoxId = pull.boxId.toString();
+
     // Get user info for SSE event
     const userDoc = await User.findById(userId).select("name username image").lean();
-    const cardDoc = await Card.findById(cardId).select("name image").lean();
+    const cardDoc = await Card.findById(authoritativeCardId).select("name image").lean();
 
     if (decision === "claim") {
       // Use existing cart expiry or start a new 3h window
@@ -252,8 +259,8 @@ export async function POST(req: NextRequest) {
 
       await CartItem.create({
         userId,
-        cardId,
-        boxId,
+        cardId: pull.cardId,
+        boxId: pull.boxId,
         pullId: pull._id,
         rarity: pull.rarity,
         conversionValue: pull.conversionValue,
@@ -263,8 +270,8 @@ export async function POST(req: NextRequest) {
 
       const user = await User.findById(userId).select("coins").lean();
 
-      // Publish SSE live event
-      void publishLiveEvent(boxId, userDoc, cardDoc, rarity ?? "", coinValue ?? 0, decision);
+      // Publish SSE live event — alle Werte aus dem Pull-Dokument, nicht aus dem Body
+      void publishLiveEvent(authoritativeBoxId, userDoc, cardDoc, pull.rarity, pull.coinValue, decision);
 
       await finalizePackGroupIfComplete({ packGroupId: pull.packGroupId, userId });
 
@@ -323,8 +330,8 @@ export async function POST(req: NextRequest) {
         console.error("[pulls/decide xp-hooks]", err);
       }
 
-      // Publish SSE live event
-      void publishLiveEvent(boxId, userDoc, cardDoc, pull.rarity, pull.coinValue, decision);
+      // Publish SSE live event — Box-ID aus dem Pull, nicht aus dem Body
+      void publishLiveEvent(authoritativeBoxId, userDoc, cardDoc, pull.rarity, pull.coinValue, decision);
 
       await finalizePackGroupIfComplete({ packGroupId: pull.packGroupId, userId });
 
