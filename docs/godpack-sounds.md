@@ -1,6 +1,19 @@
 # Godpack — Audio-Cues
 
-Die Cosmic-Intro stapelt mehrere Sound-Layer für maximalen Wow-Effekt. Vier neue Slots sind in `components/packs/use-pack-sounds.ts` reserviert. Lege die Files unter `public/sounds/` ab — solange sie nicht da sind, fallen die Cues weich auf die existing Keys (`epic`, `burst`, `legendary`, `rain`, `shimmer`, `chime`) zurück, sodass die Animation auch ohne neue Files schon ordentlich klingt.
+Die Cosmic-Intro stapelt mehrere Sound-Layer für maximalen Wow-Effekt. Vier dedizierte Slots sind in `components/packs/use-pack-sounds.ts` reserviert; die mp3-Files liegen unter `public/sounds/`. Falls einer ausfällt, fallen die Cues weich auf die existing Keys (`epic`, `burst`, `legendary`, `rain`, `shimmer`, `chime`) zurück.
+
+## Aktuell installierte Files (Mixkit, Free SFX License)
+
+Heruntergeladen via direkter CDN-URL `https://assets.mixkit.co/active_storage/sfx/{id}/{id}-preview.mp3`:
+
+| Slot | Mixkit-ID | Tags |
+|---|---|---|
+| `godpackBuildup` | 488 | Movie · Cinematic · Drum · Heartbeat |
+| `godpackBoom` | 788 | Cinematic · Impact · Hit |
+| `godpackFanfare` | 2290 | Brass · Orchestra · Cinematic · Transition |
+| `godpackSparkle` | 869 | Fairy · Sparkle · Magic |
+
+Alle vier fallen unter die [Mixkit Free SFX License](https://mixkit.co/license/#sfxFree): freie Nutzung in Web-Projekten und kommerziellen Apps, kein Credit Pflicht, Resale verboten. Falls du einen Slot lieber durch ein eigenes Sample ersetzen willst — Filename behalten, einfach überschreiben.
 
 ## Slots & Charakter
 
