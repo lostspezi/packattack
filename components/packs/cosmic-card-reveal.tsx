@@ -313,8 +313,7 @@ function CosmicCardFrame({
 
   return (
     <div className="flex flex-col items-center">
-      {/* Card-Area mit 3D-Flip — outer relative für Ribbon, inner mit
-          preserve-3d für Front/Back. */}
+      {/* Card-Area mit 3D-Flip — inner mit preserve-3d für Front/Back. */}
       <div
         className="relative cursor-pointer"
         style={{
