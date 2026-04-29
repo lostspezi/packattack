@@ -120,14 +120,17 @@ export async function incrementGodpackCounter(
  * Verschiebt den nächsten Godpack-Trigger auf den unmittelbar nachfolgenden
  * Pack-Pull, ohne den Counter selbst zurückzudrehen. Wird vom Caller benutzt,
  * wenn der claim-gewinnende User keinen brauchbaren Franchise-Pool zusammen-
- * bekommt. Best-effort: läuft auch dann sauber, wenn ein paralleler Caller
- * inzwischen schon den Trigger weiter geschoben hat.
+ * bekommt.
+ *
+ * Atomar via Aggregation-Pipeline: `nextTriggerAt` wird im selben Update aus
+ * dem aktuellen `totalPacksOpened` abgeleitet. Damit kann ein parallel
+ * laufender Counter-Inc nicht zwischen Read und Write hineinfunken — die
+ * Race aus dem ursprünglichen find-then-update Pattern ist dadurch geschlossen.
  */
 export async function retractGodpackTrigger(): Promise<void> {
-  const counter = await GodpackCounter.findOne({}).lean();
-  if (!counter) return;
   await GodpackCounter.updateOne(
-    { _id: counter._id },
-    { $set: { nextTriggerAt: counter.totalPacksOpened + 1 } },
+    {},
+    [{ $set: { nextTriggerAt: { $add: ["$totalPacksOpened", 1] } } }],
+    { updatePipeline: true },
   );
 }

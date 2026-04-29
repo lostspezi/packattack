@@ -280,6 +280,7 @@ export function CosmicPackRipper({
 }: CosmicPackRipperProps) {
   const [completed, setCompleted] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [showHint, setShowHint] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const packRef = useRef<HTMLDivElement>(null);
   const rippingRef = useRef(false);
@@ -387,6 +388,7 @@ export function CosmicPackRipper({
       const relY = e.clientY - rect.top;
       if (Math.abs(relY - TEAR_Y) > TEAR_ZONE) return;
       rippingRef.current = true;
+      setShowHint(false);
       tiltX.set(0);
       tiltY.set(0);
       packRef.current?.setPointerCapture(e.pointerId);
@@ -631,7 +633,7 @@ export function CosmicPackRipper({
       </motion.div>
 
       {/* Hint-Text unter dem Pack */}
-      {!rippingRef.current && (
+      {showHint && (
         <motion.p
           className="mt-6 text-[10px] uppercase tracking-[5px] font-bold text-amber-300/85"
           style={{ textShadow: "0 0 10px rgba(255,200,80,0.5)" }}

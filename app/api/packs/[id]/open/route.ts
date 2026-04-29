@@ -343,6 +343,28 @@ export async function POST(
         poolHash: godpackPoolHash,
       });
       godpackDrawn = await drawGodpack({ pool: godpackOutcome.pool, rng: godpackRng });
+
+      // Defensive Sicherheit: wenn der Draw weniger als 5 Karten liefert
+      // (sollte mit dem Pool-Size-Guard nicht vorkommen, ist aber theoretisch
+      // möglich wenn z. B. Stocks zwischen Pool-Snapshot und Draw kollidieren):
+      // Trigger zurück auf den nächsten Pack, alle Coins refunden, abort.
+      if (godpackDrawn.length < GODPACK_CARD_COUNT) {
+        try {
+          await retractGodpackTrigger();
+        } catch (err) {
+          console.error("[packs/[id]/open godpack-retract-on-empty]", err);
+        }
+        await User.findByIdAndUpdate(userId, { $inc: { coins: totalCost } });
+        deductedCoins = 0;
+        await PackOpenSession.deleteOne({ userId, packGroupId });
+        console.error(
+          `[packs/[id]/open] godpack draw produced ${godpackDrawn.length} cards (expected ${GODPACK_CARD_COUNT}); refunded and aborted`,
+        );
+        return NextResponse.json(
+          { error: "godpack_draw_incomplete" },
+          { status: 500 },
+        );
+      }
     }
 
     // 7. Get IP and User Agent
@@ -516,7 +538,7 @@ export async function POST(
       await CoinTransaction.create({
         userId,
         amount: refundedCoins,
-        type: "pack_purchase",
+        type: "pack_refund",
         relatedBoxId: realBoxId,
       });
     }
@@ -525,7 +547,11 @@ export async function POST(
     // optional Once-Event "first_pack_opened". Alle Seiteneffekte in einem
     // try/catch, damit ein Level-Fehler niemals die Pack-Öffnung scheitern
     // lässt (Coins sind dann ja schon verbucht und die Karten erzeugt).
-    let finalBalance = user.coins;
+    // user.coins reflektiert den Stand NACH dem totalCost-Abzug; ein
+    // bereits durchgeführter Godpack-Refund muss draufgerechnet werden,
+    // damit `finalBalance` auch dann korrekt ist, wenn der XP-Block unten
+    // throws und das User-Reload übersprungen wird.
+    let finalBalance = user.coins + refundedCoins;
     try {
       const regularPullXp = regularDrawn.reduce(
         (sum, card) => sum + xpForPackPull(card.rarity, card.coinValue),

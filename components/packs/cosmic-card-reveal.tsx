@@ -85,15 +85,10 @@ export function CosmicCardReveal({
     [cards],
   );
   const [revealIndex, setRevealIndex] = useState(0);
-  const [phase, setPhase] = useState<"sequence" | "final">("sequence");
-
-  // Wenn alle Karten durch sind: Final-View
-  useEffect(() => {
-    if (phase !== "sequence") return;
-    if (revealIndex >= sortedCards.length) {
-      setPhase("final");
-    }
-  }, [revealIndex, phase, sortedCards.length]);
+  const [skippedToFinal, setSkippedToFinal] = useState(false);
+  // Phase abgeleitet — entweder „alle Karten durch" oder per Skip-All Button.
+  const phase: "sequence" | "final" =
+    skippedToFinal || revealIndex >= sortedCards.length ? "final" : "sequence";
 
   /**
    * Wird beim FLIP der aktuellen Karte gefired (von Card-Back zu Card-
@@ -169,7 +164,7 @@ export function CosmicCardReveal({
 
   // Skip-All Button — direkt zum Final-View
   const handleSkipAll = useCallback(() => {
-    setPhase("final");
+    setSkippedToFinal(true);
   }, []);
 
   if (phase === "final") {
@@ -606,20 +601,25 @@ function CoinCounter({
   durationMs: number;
   tier: "solid" | "rare" | "epic";
 }) {
-  const [value, setValue] = useState(0);
+  // Target hash als Reset-Token — wenn er ändert, beginnt der Counter neu
+  // bei 0 und zählt hoch. Lazy-Init der useState verhindert den lint-
+  // unfreundlichen `setState` direkt im Effect.
+  const [value, setValue] = useState(() => 0);
 
   useEffect(() => {
-    setValue(0);
+    let cancelled = false;
     const start = performance.now();
-    let frame = 0;
-    function tick(now: number) {
+    let frame = requestAnimationFrame(function tick(now) {
+      if (cancelled) return;
       const t = Math.min(1, (now - start) / durationMs);
       const eased = 1 - Math.pow(1 - t, 3);
       setValue(Math.round(target * eased));
       if (t < 1) frame = requestAnimationFrame(tick);
-    }
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    });
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(frame);
+    };
   }, [target, durationMs]);
 
   const sizeClass =
