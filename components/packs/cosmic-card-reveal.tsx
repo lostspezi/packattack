@@ -333,15 +333,36 @@ function CosmicCardFrame({
         <motion.div
           className="absolute inset-0"
           style={{ transformStyle: "preserve-3d" }}
-          animate={{ rotateY: flipped ? 0 : 180 }}
+          initial={{ rotateY: 0 }}
+          animate={{ rotateY: flipped ? 180 : 0 }}
           transition={{ duration: 0.85, ease: [0.5, 1.05, 0.45, 1] }}
         >
-          {/* FRONT — die enthüllte Karte */}
+          {/* BACK — kein Transform, dadurch initial sichtbar (auch noch
+              vor framer-motion seinen ersten Frame setzt). */}
           <div
             className="absolute inset-0"
             style={{
               backfaceVisibility: "hidden",
               WebkitBackfaceVisibility: "hidden",
+              borderRadius: 14,
+              border: "2px solid rgba(255,215,95,0.85)",
+              boxShadow:
+                "0 0 36px rgba(255,200,80,0.7), 0 0 72px rgba(255,140,60,0.35)",
+              overflow: "hidden",
+              background: GODPACK_THEME.bgGradient,
+            }}
+          >
+            <CosmicCardBack />
+          </div>
+
+          {/* FRONT — pre-rotated um 180°, dadurch nicht sichtbar bevor der
+              Container auf 180° gedreht wurde. */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+              transform: "rotateY(180deg)",
               borderRadius: 14,
               border: tierBorder,
               boxShadow: tierGlow,
@@ -382,24 +403,6 @@ function CosmicCardFrame({
                 }}
               />
             )}
-          </div>
-
-          {/* BACK — Cosmic Card Back, sichtbar bis der User klickt */}
-          <div
-            className="absolute inset-0"
-            style={{
-              backfaceVisibility: "hidden",
-              WebkitBackfaceVisibility: "hidden",
-              transform: "rotateY(180deg)",
-              borderRadius: 14,
-              border: "2px solid rgba(255,215,95,0.85)",
-              boxShadow:
-                "0 0 36px rgba(255,200,80,0.7), 0 0 72px rgba(255,140,60,0.35)",
-              overflow: "hidden",
-              background: GODPACK_THEME.bgGradient,
-            }}
-          >
-            <CosmicCardBack />
           </div>
         </motion.div>
 
