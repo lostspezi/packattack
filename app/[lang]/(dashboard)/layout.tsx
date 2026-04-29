@@ -1,6 +1,7 @@
 ﻿import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { ChatDock } from "@/components/chat/chat-dock";
+import { GodpackToast } from "@/components/notifications/godpack-toast";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
 import { Footer } from "@/components/layout/footer";
 import { UserHeader } from "@/components/layout/header/user-header";
@@ -64,6 +65,7 @@ export default async function DashboardLayout({
               currentUserId={session.user.id}
               userRole={userRole}
             />
+            <GodpackToast currentUserId={session.user.id ?? null} />
             <Footer lang={lang} dict={footerDict} />
             <LevelUpModal />
           </DashboardShell>
