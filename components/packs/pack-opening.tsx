@@ -84,28 +84,35 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
   const skipAnimation = isRecovery || quickOpen || prefersReducedMotion;
   const isGodpack = Boolean(result.godpack);
   const godpackEventId = result.godpack?.eventId ?? null;
+  const godpackAckedRef = useRef(false);
 
-  // Reveal-Acknowledge SOFORT beim Mount feuern — unabhängig davon, ob der
-  // User die Reveal-Animation komplett anschaut, durchskipt, den Tab
-  // schließt oder Reduced-Motion aktiv hat. Server-side idempotent. Spoiler-
-  // Schutz bleibt durch das vorab-publishte godpack_incoming-Banner gewahrt.
-  useEffect(() => {
-    if (!godpackEventId) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        await fetch(`/api/godpacks/${godpackEventId}/reveal`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-        });
-      } catch (err) {
-        if (!cancelled) console.error("[godpack reveal acknowledge]", err);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  /**
+   * Reveal-Acknowledge an den Server schicken. Wird in mehreren Pfaden
+   * angetriggert (Continue-Button, Skip-Button, Component-Unmount, Skip-
+   * Animation-Bypass), damit der Chat-Broadcast nicht verloren geht. Die
+   * Funktion ist client-seitig idempotent (acknowledgedRef) — der Server
+   * ist es zusätzlich, falls der Client doppelt fired.
+   *
+   * Wichtig: NICHT beim Mount feuern, sonst spoilert die Chat-Message das
+   * Pack noch bevor der User die Karten überhaupt gesehen hat.
+   */
+  const fireGodpackAck = useCallback(() => {
+    if (!godpackEventId || godpackAckedRef.current) return;
+    godpackAckedRef.current = true;
+    void fetch(`/api/godpacks/${godpackEventId}/reveal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    }).catch((err) => console.error("[godpack reveal acknowledge]", err));
   }, [godpackEventId]);
+
+  // Catch-all: wenn der User den Tab schließt oder die Komponente sonst
+  // unmountet, bevor ein Continue/Skip gefeuert wurde, holen wir das
+  // Acknowledge im Cleanup nach.
+  useEffect(() => {
+    return () => {
+      fireGodpackAck();
+    };
+  }, [fireGodpackAck]);
 
   const getInitialPhase = (): Phase | null => {
     if (skipAnimation) return null; // will finish immediately
@@ -143,11 +150,15 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
 
   /** Called when the reveal grid finishes — hand off to PendingPullsGuard */
   const handleAnimationDone = useCallback(() => {
+    // Reveal ist beendet (egal ob durchgespielt oder geskippt) — jetzt darf
+    // der Server die Chat-Message broadcasten, vorher würde sie das Pack
+    // für den User spoilern.
+    fireGodpackAck();
     // Unsuppress before onDone unmounts us, so the guard can show immediately
     suppressPendingGuard(false);
     notifyPendingPulls();
     onDone();
-  }, [onDone]);
+  }, [onDone, fireGodpackAck]);
 
   // If no animation phase (recovery/quickOpen/reduced-motion), render nothing
   if (phase === null) return null;

@@ -8,6 +8,7 @@ import type { ChatEventEnvelope, GodpackIncomingEvent } from "@/types/chat";
 
 interface ToastEntry {
   id: string;
+  eventId: string;
   username: string;
   game: string;
 }
@@ -16,7 +17,8 @@ interface GodpackToastProps {
   currentUserId?: string | null;
 }
 
-const TOAST_VISIBLE_MS = 8000;
+/** Safety-Timeout, falls das godpack_revealed-Event nie ankommt. */
+const TOAST_FALLBACK_MS = 60_000;
 
 /**
  * Site-wide Live-Notification, die feuert sobald irgendwo auf der Plattform
@@ -36,6 +38,20 @@ export function GodpackToast({ currentUserId }: GodpackToastProps) {
     const timers = dismissTimers.current;
     const source = new EventSource("/api/chat/events");
 
+    function dismissByEventId(eventId: string) {
+      setToasts((prev) =>
+        prev.filter((t) => {
+          if (t.eventId !== eventId) return true;
+          const handle = timers.get(t.id);
+          if (handle != null) {
+            window.clearTimeout(handle);
+            timers.delete(t.id);
+          }
+          return false;
+        }),
+      );
+    }
+
     source.onmessage = (event) => {
       let envelope: ChatEventEnvelope;
       try {
@@ -43,6 +59,13 @@ export function GodpackToast({ currentUserId }: GodpackToastProps) {
       } catch {
         return;
       }
+
+      if (envelope.type === "godpack_revealed") {
+        const payload = envelope.payload as unknown as { eventId?: string };
+        if (payload?.eventId) dismissByEventId(payload.eventId);
+        return;
+      }
+
       if (envelope.type !== "godpack_incoming") return;
       const payload = envelope.payload as unknown as GodpackIncomingEvent;
       if (currentUserId && payload.ownerUserId === currentUserId) return;
@@ -50,13 +73,18 @@ export function GodpackToast({ currentUserId }: GodpackToastProps) {
       const toastId = `${payload.eventId}:${Date.now()}`;
       setToasts((prev) => [
         ...prev,
-        { id: toastId, username: payload.username, game: formatGameLabel(payload.game) },
+        {
+          id: toastId,
+          eventId: payload.eventId,
+          username: payload.username,
+          game: formatGameLabel(payload.game),
+        },
       ]);
 
       const dismissId = window.setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== toastId));
         timers.delete(toastId);
-      }, TOAST_VISIBLE_MS);
+      }, TOAST_FALLBACK_MS);
       timers.set(toastId, dismissId);
     };
 

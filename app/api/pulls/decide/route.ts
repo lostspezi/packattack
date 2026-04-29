@@ -56,10 +56,14 @@ async function publishJackpotPulls(input: {
   userId: string;
 }) {
 
+  // Godpack-Pulls bekommen ihre eigene konsolidierte Chat-Message (alle 5
+  // Karten in einer godpackHighlight-Card), deshalb hier ausschließen — sonst
+  // doppelt feiern wir denselben Pull.
   const jackpotPulls = await PackPull.find({
     packGroupId: input.packGroupId,
     userId: input.userId,
     coinValue: { $gte: CHAT_JACKPOT_MIN_VALUE },
+    isGodpack: { $ne: true },
   })
     .sort({ cardIndex: 1 })
     .lean();
