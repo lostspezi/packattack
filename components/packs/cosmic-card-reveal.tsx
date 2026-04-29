@@ -41,6 +41,22 @@ interface CosmicCardRevealProps {
 const FINAL_INTRO_MS = 600;
 
 /**
+ * Versucht aus der gespeicherten Karten-Bild-URL eine hochauflösende
+ * TCGPlayer-Variante (`_in_1000x1000.jpg`) abzuleiten. Wird in der
+ * Zoom-Lightbox genutzt, damit beim Vollbild kein Pixel-Mush auftritt.
+ * Wenn die URL keinem TCGPlayer-Pattern folgt, fällt's auf das Original
+ * zurück.
+ */
+function highResCardImage(url: string | null): string | null {
+  if (!url) return null;
+  if (!url.includes("tcgplayer-cdn.tcgplayer.com")) return url;
+  return url
+    .replace(/_in_400x\.jpg$/, "_in_1000x1000.jpg")
+    .replace(/_400w\.jpg$/, "_in_1000x1000.jpg")
+    .replace(/_200w\.jpg$/, "_in_1000x1000.jpg");
+}
+
+/**
  * Cosmic Card Reveal — die spezielle Reveal-Sequenz für Godpacks. Anders als
  * der reguläre CardRevealStack:
  *
@@ -373,7 +389,7 @@ function CosmicCardFrame({
             {card.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={card.image}
+                src={highResCardImage(card.image) ?? card.image}
                 alt={card.name}
                 className="absolute inset-0 w-full h-full object-cover"
                 draggable={false}
@@ -1037,7 +1053,7 @@ function CardZoomLightbox({
             {card.image ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={card.image}
+                src={highResCardImage(card.image) ?? card.image}
                 alt={card.name}
                 className="absolute inset-0 w-full h-full object-cover"
                 draggable={false}
