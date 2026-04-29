@@ -6,6 +6,7 @@ import { useReducedMotion } from "motion/react";
 import { Pack3D } from "./pack-3d";
 import { PackRipper } from "./pack-ripper";
 import { CardRevealStack } from "./card-reveal-stack";
+import { GodpackIntro } from "./godpack-intro";
 import { suppressPendingGuard, notifyPendingPulls } from "./pending-pulls-guard";
 import { ParticleCanvas, type ParticleCanvasHandle } from "./particle-canvas";
 import { usePackSounds, type SoundKey } from "./use-pack-sounds";
@@ -20,6 +21,8 @@ interface DrawnCard {
   packIndex: number;
   cardIndex: number;
   status?: string;
+  isGodpack?: boolean;
+  godpackPosition?: number | null;
 }
 
 interface OpenResult {
@@ -33,7 +36,19 @@ interface OpenResult {
     commitmentId: string;
     nonceStart: number;
     nonceEnd: number;
-  };
+  } | null;
+  godpack?: {
+    eventId: string;
+    packIndex: number;
+    game: string;
+    totalCoinValue: number;
+    poolFallbackUsed?: boolean;
+    fairnessProof?: {
+      commitmentId: string;
+      nonceStart: number;
+      nonceEnd: number;
+    } | null;
+  } | null;
 }
 
 interface BoxInfo {
@@ -50,7 +65,7 @@ interface PackOpeningProps {
   quickOpen?: boolean;
 }
 
-type Phase = "idle" | "ripping" | "reveal";
+type Phase = "idle" | "godpack-intro" | "ripping" | "reveal";
 
 export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpeningProps) {
   const isDe = lang === "de";
@@ -67,9 +82,11 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
 
   // Recovery / quickOpen / reduced motion → skip animation, hand off to guard immediately
   const skipAnimation = isRecovery || quickOpen || prefersReducedMotion;
+  const isGodpack = Boolean(result.godpack);
 
   const getInitialPhase = (): Phase | null => {
     if (skipAnimation) return null; // will finish immediately
+    if (isGodpack) return "godpack-intro";
     return "ripping";
   };
 
@@ -136,6 +153,15 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
 
       {/* Content */}
       <div className={`relative z-10 w-full ${phase === "reveal" ? "max-w-4xl px-3 sm:px-6" : "max-w-md"}`}>
+        {phase === "godpack-intro" && result.godpack && (
+          <GodpackIntro
+            game={result.godpack.game}
+            lang={lang}
+            particleRef={particleRef}
+            onPlaySound={handlePlaySound}
+            onIntroComplete={() => setPhase("ripping")}
+          />
+        )}
         {(phase === "idle" || phase === "ripping") && (
           <div className="relative flex flex-col items-center">
             {/* Focused glow halo behind the pack */}
@@ -145,7 +171,9 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
                 width: 320,
                 height: 420,
                 borderRadius: "50%",
-                background: "radial-gradient(circle, rgba(155,255,0,0.06) 0%, rgba(155,255,0,0.03) 40%, transparent 70%)",
+                background: isGodpack
+                  ? "radial-gradient(circle, rgba(255,200,80,0.18) 0%, rgba(180,80,255,0.10) 45%, transparent 75%)"
+                  : "radial-gradient(circle, rgba(155,255,0,0.06) 0%, rgba(155,255,0,0.03) 40%, transparent 70%)",
                 filter: "blur(40px)",
               }}
             />
