@@ -417,30 +417,6 @@ function CosmicCardFrame({
           </div>
         </motion.div>
 
-        {/* Tier-Ribbon — erscheint erst NACH dem Flip */}
-        {flipped && tier !== "solid" && (
-          <motion.div
-            className="absolute left-1/2 -translate-x-1/2 px-3 py-1 rounded-full whitespace-nowrap z-10"
-            style={{
-              bottom: -14,
-              background:
-                "linear-gradient(135deg, #FFD700 0%, #FFA500 60%, #c46100 100%)",
-              color: "#1a0408",
-              fontWeight: 900,
-              fontSize: 11,
-              letterSpacing: "2px",
-              textTransform: "uppercase",
-              boxShadow:
-                "0 0 18px rgba(255,200,80,0.85), 0 3px 0 rgba(120,35,10,0.5)",
-            }}
-            initial={{ scale: 0, y: 20 }}
-            animate={{ scale: 1, y: 0 }}
-            transition={{ delay: 0.55, duration: 0.45, ease: [0.34, 1.65, 0.5, 1] }}
-          >
-            {tier === "epic" ? "★ MYTHIC ★" : "★ RARE ★"}
-          </motion.div>
-        )}
-
         {/* Hint auf der Rückseite */}
         {!flipped && (
           <motion.p
@@ -1064,25 +1040,6 @@ function CardZoomLightbox({
               </div>
             )}
           </div>
-          {tier !== "solid" && (
-            <div
-              className="absolute left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full whitespace-nowrap z-10"
-              style={{
-                bottom: -16,
-                background:
-                  "linear-gradient(135deg, #FFD700 0%, #FFA500 60%, #c46100 100%)",
-                color: "#1a0408",
-                fontWeight: 900,
-                fontSize: 13,
-                letterSpacing: "2.5px",
-                textTransform: "uppercase",
-                boxShadow:
-                  "0 0 22px rgba(255,200,80,0.9), 0 4px 0 rgba(120,35,10,0.5)",
-              }}
-            >
-              {tier === "epic" ? "★ MYTHIC ★" : "★ RARE ★"}
-            </div>
-          )}
         </div>
 
         <p
