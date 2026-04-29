@@ -30,17 +30,18 @@ interface GodpackIntroProps {
  *  3700-4600ms Smooth Fade-out, Sound „chime", Übergang zum Ripping.
  */
 const T = {
-  total: 4600,
+  total: 6200,
   flashAt: 700,
   burstAt: 720,
   rayStart: 750,
   letterStart: 900,
-  letterStagger: 110,
-  sublineIn: 1900,
-  confetti1: 1700,
-  confetti2: 2700,
-  confetti3: 3400,
-  fadeOutStart: 4000,
+  letterStagger: 130,
+  sublineIn: 2100,
+  confetti1: 1800,
+  confetti2: 2900,
+  confetti3: 4000,
+  confetti4: 4900,
+  fadeOutStart: 5500,
 } as const;
 
 const GODPACK_LETTERS = ["G", "O", "D", "P", "A", "C", "K"];
@@ -136,6 +137,9 @@ export function GodpackIntro({
     schedule(T.confetti3, () => {
       particleRef.current?.emitConfetti(CONFETTI_RAINBOW, 35);
     });
+    schedule(T.confetti4, () => {
+      particleRef.current?.emitConfetti(CONFETTI_RAINBOW, 30);
+    });
     // Side-bursts für Breite
     schedule(T.confetti1 + 250, () => {
       const canvas = particleRef.current;
@@ -179,7 +183,7 @@ export function GodpackIntro({
 
   return (
     <motion.div
-      className="relative flex flex-col items-center justify-center min-h-[500px] w-full"
+      className="relative flex flex-col items-center justify-center w-full min-h-screen overflow-hidden"
       animate={{
         x: [0, -6, 7, -4, 5, -2, 0],
         y: [0, 4, -5, 2, -3, 1, 0],

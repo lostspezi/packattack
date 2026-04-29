@@ -220,7 +220,15 @@ export function PackOpening({ result, box, lang, onDone, quickOpen }: PackOpenin
       </div>
 
       {/* Content */}
-      <div className={`relative z-10 w-full ${phase === "reveal" ? "max-w-4xl px-3 sm:px-6" : "max-w-md"}`}>
+      <div
+        className={`relative z-10 w-full ${
+          phase === "reveal"
+            ? "max-w-4xl px-3 sm:px-6"
+            : phase === "godpack-intro"
+              ? ""
+              : "max-w-md"
+        }`}
+      >
         {phase === "godpack-intro" && result.godpack && (
           <GodpackIntro
             game={result.godpack.game}
