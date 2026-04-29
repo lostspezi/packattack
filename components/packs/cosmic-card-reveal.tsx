@@ -38,7 +38,6 @@ interface CosmicCardRevealProps {
   fairnessCommitmentId?: string | null;
 }
 
-const HOLD_PER_CARD_MS = 2400;
 const FINAL_INTRO_MS = 600;
 
 /**
@@ -71,17 +70,12 @@ export function CosmicCardReveal({
   );
   const [revealIndex, setRevealIndex] = useState(0);
   const [phase, setPhase] = useState<"sequence" | "final">("sequence");
-  const advanceTimerRef = useRef<number | null>(null);
   const burstedRef = useRef<Set<number>>(new Set());
 
-  const clearAdvanceTimer = useCallback(() => {
-    if (advanceTimerRef.current != null) {
-      window.clearTimeout(advanceTimerRef.current);
-      advanceTimerRef.current = null;
-    }
-  }, []);
-
-  // Pro-Karte Sound + Particle-Burst, dann Auto-Cycle zum nächsten
+  // Pro-Karte EINMAL Sound + Particle-Burst beim Erscheinen. Kein Auto-
+  // Cycle — der User klickt selbst weiter, damit jede Karte in Ruhe
+  // angesehen werden kann. burstedRef stellt sicher, dass derselbe Index
+  // selbst bei React-StrictMode-Double-Mount nur einmal feuert.
   useEffect(() => {
     if (phase !== "sequence") return;
     if (revealIndex >= sortedCards.length) {
@@ -90,88 +84,81 @@ export function CosmicCardReveal({
     }
 
     const card = sortedCards[revealIndex];
-    if (!burstedRef.current.has(revealIndex)) {
-      burstedRef.current.add(revealIndex);
+    if (burstedRef.current.has(revealIndex)) return;
+    burstedRef.current.add(revealIndex);
 
-      // Sound je Coin-Wert
-      const tier =
-        card.coinValue >= 400
-          ? { primary: "godpackSparkle", aux: "legendary", vol: 0.85 }
-          : card.coinValue >= 250
-            ? { primary: "shimmer", aux: "chime", vol: 0.75 }
-            : { primary: "chime", aux: null, vol: 0.7 };
-      onPlaySound(tier.primary, tier.vol);
-      if (tier.aux) {
-        window.setTimeout(() => onPlaySound(tier.aux, tier.vol * 0.8), 220);
-      }
-
-      // Particle-Burst um die Karte
-      window.setTimeout(() => {
-        const canvas = particleRef.current;
-        if (!canvas) return;
-        const cx = window.innerWidth / 2;
-        const cy = window.innerHeight / 2;
-        canvas.emit({
-          x: cx,
-          y: cy,
-          count: card.coinValue >= 400 ? 70 : card.coinValue >= 250 ? 45 : 28,
-          colors: GODPACK_THEME.burstColors,
-          speed: [180, 480],
-          size: [3, 10],
-          lifetime: [600, 1300],
-          gravity: 60,
-          spread: Math.PI * 2,
-          shape: "circle",
-        });
-        // Goldene Side-Bursts für hochwertige Karten
-        if (card.coinValue >= 400) {
-          canvas.emit({
-            x: cx - 200,
-            y: cy,
-            count: 20,
-            colors: ["#FFD700", "#FFEC8B", "#FFFFFF"],
-            speed: [180, 380],
-            size: [3, 7],
-            lifetime: [800, 1400],
-            gravity: 80,
-            spread: Math.PI / 2,
-            shape: "circle",
-          });
-          canvas.emit({
-            x: cx + 200,
-            y: cy,
-            count: 20,
-            colors: ["#FFD700", "#FFEC8B", "#FFFFFF"],
-            speed: [180, 380],
-            size: [3, 7],
-            lifetime: [800, 1400],
-            gravity: 80,
-            spread: Math.PI / 2,
-            shape: "circle",
-          });
-        }
-      }, 280);
+    // Sound je Coin-Wert
+    const tier =
+      card.coinValue >= 400
+        ? { primary: "godpackSparkle", aux: "legendary", vol: 0.85 }
+        : card.coinValue >= 250
+          ? { primary: "shimmer", aux: "chime", vol: 0.75 }
+          : { primary: "chime", aux: null, vol: 0.7 };
+    onPlaySound(tier.primary, tier.vol);
+    if (tier.aux) {
+      window.setTimeout(() => onPlaySound(tier.aux, tier.vol * 0.8), 220);
     }
 
-    advanceTimerRef.current = window.setTimeout(() => {
-      setRevealIndex((i) => i + 1);
-    }, HOLD_PER_CARD_MS);
+    // Particle-Burst um die Karte (kurz nach dem Card-Enter)
+    const burstTimer = window.setTimeout(() => {
+      const canvas = particleRef.current;
+      if (!canvas) return;
+      const cx = window.innerWidth / 2;
+      const cy = window.innerHeight / 2;
+      canvas.emit({
+        x: cx,
+        y: cy,
+        count: card.coinValue >= 400 ? 70 : card.coinValue >= 250 ? 45 : 28,
+        colors: GODPACK_THEME.burstColors,
+        speed: [180, 480],
+        size: [3, 10],
+        lifetime: [600, 1300],
+        gravity: 60,
+        spread: Math.PI * 2,
+        shape: "circle",
+      });
+      // Goldene Side-Bursts für hochwertige Karten
+      if (card.coinValue >= 400) {
+        canvas.emit({
+          x: cx - 200,
+          y: cy,
+          count: 20,
+          colors: ["#FFD700", "#FFEC8B", "#FFFFFF"],
+          speed: [180, 380],
+          size: [3, 7],
+          lifetime: [800, 1400],
+          gravity: 80,
+          spread: Math.PI / 2,
+          shape: "circle",
+        });
+        canvas.emit({
+          x: cx + 200,
+          y: cy,
+          count: 20,
+          colors: ["#FFD700", "#FFEC8B", "#FFFFFF"],
+          speed: [180, 380],
+          size: [3, 7],
+          lifetime: [800, 1400],
+          gravity: 80,
+          spread: Math.PI / 2,
+          shape: "circle",
+        });
+      }
+    }, 320);
 
-    return () => clearAdvanceTimer();
-  }, [revealIndex, phase, sortedCards, onPlaySound, particleRef, clearAdvanceTimer]);
+    return () => window.clearTimeout(burstTimer);
+  }, [revealIndex, phase, sortedCards, onPlaySound, particleRef]);
 
-  // Klick weiter
+  // Klick weiter — User-getrieben, kein Auto-Timer
   const handleAdvance = useCallback(() => {
     if (phase !== "sequence") return;
-    clearAdvanceTimer();
     setRevealIndex((i) => i + 1);
-  }, [phase, clearAdvanceTimer]);
+  }, [phase]);
 
-  // Skip-All Button
+  // Skip-All Button — direkt zum Final-View
   const handleSkipAll = useCallback(() => {
-    clearAdvanceTimer();
     setPhase("final");
-  }, [clearAdvanceTimer]);
+  }, []);
 
   if (phase === "final") {
     return (
@@ -209,8 +196,8 @@ export function CosmicCardReveal({
           background: GODPACK_THEME.haloGradient,
           filter: "blur(36px)",
         }}
-        animate={{ scale: [0.85, 1.0, 0.95, 1.05] }}
-        transition={{ duration: HOLD_PER_CARD_MS / 1000, ease: "easeOut" }}
+        animate={{ scale: [0.9, 1.05, 1.0] }}
+        transition={{ duration: 3.6, ease: "easeInOut", repeat: Infinity }}
       />
 
       {/* Rotierende Goldstrahlen für hohe Tiers */}
@@ -242,18 +229,12 @@ export function CosmicCardReveal({
         <motion.div
           key={`${current.cardId}-${revealIndex}`}
           className="relative z-10 flex flex-col items-center"
-          initial={{ scale: 0.4, opacity: 0, y: -50, rotateY: -25 }}
-          animate={{
-            scale: [0.4, 1.12, 1.0, 1.0, 1.02, 1.0],
-            opacity: [0, 1, 1, 1, 1, 1],
-            y: [-50, 0, 0, 0, 0, 0],
-            rotateY: [-25, 8, 0, 0, 0, 0],
-          }}
-          exit={{ scale: 0.85, opacity: 0, y: -40 }}
+          initial={{ scale: 0.5, opacity: 0, y: -40, rotateY: -15 }}
+          animate={{ scale: 1, opacity: 1, y: 0, rotateY: 0 }}
+          exit={{ scale: 0.88, opacity: 0, y: -28, transition: { duration: 0.32 } }}
           transition={{
-            duration: 0.95,
-            times: [0, 0.32, 0.5, 0.7, 0.85, 1],
-            ease: [0.25, 1.4, 0.5, 1],
+            duration: 0.9,
+            ease: [0.22, 1.2, 0.36, 1],
           }}
         >
           {/* Position-Tag oben */}
@@ -270,7 +251,7 @@ export function CosmicCardReveal({
           {/* Coin-Counter — animiert hochzählend */}
           <CoinCounter
             target={current.coinValue}
-            durationMs={Math.min(1200, 400 + current.coinValue * 1.2)}
+            durationMs={Math.min(1700, 1100 + current.coinValue * 0.9)}
             tier={tier}
           />
 
