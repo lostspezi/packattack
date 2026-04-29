@@ -2,6 +2,15 @@
 
 import { useRef, useState, useEffect, useCallback } from "react";
 
+/**
+ * Sound-Files unter /public/sounds/. Wenn ein File fehlt, scheitert der
+ * Audio-Load lautlos (catch in `play`) und der Animation läuft trotzdem.
+ *
+ * Für Godpack sind eigene episch-cinematic Slots reserviert (siehe
+ * docs/godpack-sounds.md für empfohlene Free-Sources). Bis die Files in
+ * /public/sounds/ liegen, fallen die Calls in der Komponente softly auf
+ * existing Keys (epic / burst / legendary / rain) zurück.
+ */
 const SOUND_MAP = {
   rip: "/sounds/pack-rip.mp3",
   burst: "/sounds/pack-burst.mp3",
@@ -12,6 +21,11 @@ const SOUND_MAP = {
   epic: "/sounds/card-epic.mp3",
   legendary: "/sounds/card-legendary.mp3",
   rain: "/sounds/coins-rain.mp3",
+  // Godpack-Slots
+  godpackBuildup: "/sounds/godpack-buildup.mp3",
+  godpackBoom: "/sounds/godpack-boom.mp3",
+  godpackFanfare: "/sounds/godpack-fanfare.mp3",
+  godpackSparkle: "/sounds/godpack-sparkle.mp3",
 } as const;
 
 export type SoundKey = keyof typeof SOUND_MAP;
