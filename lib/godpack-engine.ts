@@ -24,8 +24,8 @@ import {
 } from "@/lib/fairness";
 
 export const GODPACK_CARD_COUNT = 5;
-export const GODPACK_MIN_COIN_VALUE = 20;
-export const GODPACK_FALLBACK_MIN_COIN_VALUE = 10;
+export const GODPACK_MIN_COIN_VALUE = 100;
+export const GODPACK_FALLBACK_MIN_COIN_VALUE = 50;
 /**
  * Obere Schranke für den Coin-Wert einer Karte im Godpack-Pool. Aktuell 500
  * — bewusst konservativ, damit ein einzelner mythisch-teurer Pull (z. B.
