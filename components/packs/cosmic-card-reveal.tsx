@@ -661,6 +661,17 @@ function CosmicFinalView({
   const isDe = lang === "de";
   const gameLabel = formatGameLabel(game).toUpperCase();
   const firedRef = useRef(false);
+  const [zoomedIndex, setZoomedIndex] = useState<number | null>(null);
+
+  // ESC schließt die Lightbox
+  useEffect(() => {
+    if (zoomedIndex === null) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setZoomedIndex(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [zoomedIndex]);
 
   useEffect(() => {
     if (firedRef.current) return;
@@ -677,6 +688,26 @@ function CosmicFinalView({
       );
     }
   }, [onPlaySound, particleRef]);
+
+  const openZoom = useCallback(
+    (i: number) => {
+      setZoomedIndex(i);
+      onPlaySound("shimmer", 0.55);
+    },
+    [onPlaySound],
+  );
+  const closeZoom = useCallback(() => setZoomedIndex(null), []);
+  const cycleZoom = useCallback(
+    (delta: number) => {
+      setZoomedIndex((cur) => {
+        if (cur === null) return cur;
+        const next = (cur + delta + cards.length) % cards.length;
+        return next;
+      });
+      onPlaySound("flip", 0.45);
+    },
+    [cards.length, onPlaySound],
+  );
 
   return (
     <motion.div
@@ -726,19 +757,23 @@ function CosmicFinalView({
           {isDe ? "DEINE LEGENDÄREN 5" : "YOUR LEGENDARY 5"}
         </motion.h2>
 
-        {/* 5er-Kartenreihe */}
+        {/* 5er-Kartenreihe — anklickbar für Zoom-Lightbox */}
         <div className="mt-2 grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4">
           {cards.map((card, i) => (
-            <motion.div
+            <motion.button
+              type="button"
               key={card.cardId}
               initial={{ opacity: 0, scale: 0.7, y: 30 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
+              whileHover={{ scale: 1.06, y: -4 }}
+              whileTap={{ scale: 0.97 }}
               transition={{
                 delay: 0.3 + i * 0.08,
                 duration: 0.5,
                 ease: [0.25, 1.5, 0.5, 1],
               }}
-              className="relative"
+              onClick={() => openZoom(i)}
+              className="relative cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
               style={{
                 width: "min(34vw, 130px)",
                 aspectRatio: "63/88",
@@ -754,6 +789,11 @@ function CosmicFinalView({
                 overflow: "hidden",
                 background: GODPACK_THEME.deepCrimson,
               }}
+              aria-label={
+                isDe
+                  ? `${card.name} größer ansehen`
+                  : `View ${card.name} larger`
+              }
             >
               {card.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -782,9 +822,12 @@ function CosmicFinalView({
                   {card.coinValue.toLocaleString("de-DE")} Coins
                 </p>
               </div>
-            </motion.div>
+            </motion.button>
           ))}
         </div>
+        <p className="mt-2 text-[10px] uppercase tracking-[4px] font-semibold text-white/55">
+          {isDe ? "Tippe eine Karte für die volle Ansicht" : "Tap a card for the full view"}
+        </p>
 
         {/* Total Coin-Wert */}
         <motion.div
@@ -844,6 +887,223 @@ function CosmicFinalView({
           </Button>
         </motion.div>
       </div>
+
+      {/* Card-Zoom-Lightbox */}
+      <AnimatePresence>
+        {zoomedIndex !== null && cards[zoomedIndex] && (
+          <CardZoomLightbox
+            card={cards[zoomedIndex]}
+            isDe={isDe}
+            onClose={closeZoom}
+            onPrev={() => cycleZoom(-1)}
+            onNext={() => cycleZoom(1)}
+            position={zoomedIndex + 1}
+            total={cards.length}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+}
+
+function CardZoomLightbox({
+  card,
+  isDe,
+  onClose,
+  onPrev,
+  onNext,
+  position,
+  total,
+}: {
+  card: CosmicCardRevealCard;
+  isDe: boolean;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  position: number;
+  total: number;
+}) {
+  const tier =
+    card.coinValue >= 400 ? "epic" : card.coinValue >= 250 ? "rare" : "solid";
+  const tierBorder =
+    tier === "epic"
+      ? "3px solid rgba(255,215,95,0.95)"
+      : tier === "rare"
+        ? "2.5px solid rgba(255,215,95,0.75)"
+        : "2px solid rgba(255,215,95,0.55)";
+  const tierGlow =
+    tier === "epic"
+      ? "0 0 60px rgba(255,200,80,0.85), 0 0 120px rgba(255,150,80,0.55)"
+      : tier === "rare"
+        ? "0 0 40px rgba(255,200,80,0.65)"
+        : "0 0 24px rgba(255,200,80,0.45)";
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[120] flex items-center justify-center px-4 py-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.25 }}
+      onClick={onClose}
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse at 50% 50%, rgba(80,12,18,0.85) 0%, rgba(15,4,8,0.96) 60%, rgba(0,0,0,0.98) 100%)",
+          backdropFilter: "blur(8px)",
+        }}
+      />
+
+      {/* Close X */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        className="absolute top-4 right-4 z-10 w-10 h-10 rounded-full flex items-center justify-center text-amber-200 text-2xl font-black bg-black/60 hover:bg-black/80 transition-colors border border-amber-300/40"
+        aria-label={isDe ? "Schließen" : "Close"}
+      >
+        ✕
+      </button>
+
+      {/* Position-Tag */}
+      <p
+        className="absolute top-6 left-1/2 -translate-x-1/2 text-[10px] uppercase tracking-[6px] font-bold text-amber-200/85 z-10"
+        style={{ textShadow: "0 0 10px rgba(255,180,60,0.55)" }}
+      >
+        Karte {position} / {total}
+      </p>
+
+      {/* Prev / Next */}
+      {total > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrev();
+            }}
+            className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full flex items-center justify-center text-amber-200 text-2xl bg-black/60 hover:bg-black/80 transition-colors border border-amber-300/40"
+            aria-label={isDe ? "Vorherige Karte" : "Previous card"}
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onNext();
+            }}
+            className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 z-10 w-12 h-12 rounded-full flex items-center justify-center text-amber-200 text-2xl bg-black/60 hover:bg-black/80 transition-colors border border-amber-300/40"
+            aria-label={isDe ? "Nächste Karte" : "Next card"}
+          >
+            ›
+          </button>
+        </>
+      )}
+
+      {/* Zoomed Card */}
+      <motion.div
+        key={card.cardId}
+        className="relative z-[5] flex flex-col items-center"
+        initial={{ scale: 0.7, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.85, opacity: 0 }}
+        transition={{ duration: 0.35, ease: [0.22, 1.2, 0.36, 1] }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div
+          className="relative"
+          style={{
+            width: "min(78vw, 460px)",
+            maxHeight: "78vh",
+            aspectRatio: "63/88",
+          }}
+        >
+          <div
+            className="absolute inset-0"
+            style={{
+              borderRadius: 18,
+              border: tierBorder,
+              boxShadow: tierGlow,
+              background: GODPACK_THEME.deepCrimson,
+              overflow: "hidden",
+            }}
+          >
+            {card.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={card.image}
+                alt={card.name}
+                className="absolute inset-0 w-full h-full object-cover"
+                draggable={false}
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-amber-300/55 text-3xl font-black">
+                ?
+              </div>
+            )}
+          </div>
+          {tier !== "solid" && (
+            <div
+              className="absolute left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full whitespace-nowrap z-10"
+              style={{
+                bottom: -16,
+                background:
+                  "linear-gradient(135deg, #FFD700 0%, #FFA500 60%, #c46100 100%)",
+                color: "#1a0408",
+                fontWeight: 900,
+                fontSize: 13,
+                letterSpacing: "2.5px",
+                textTransform: "uppercase",
+                boxShadow:
+                  "0 0 22px rgba(255,200,80,0.9), 0 4px 0 rgba(120,35,10,0.5)",
+              }}
+            >
+              {tier === "epic" ? "★ MYTHIC ★" : "★ RARE ★"}
+            </div>
+          )}
+        </div>
+
+        <p
+          className="mt-8 text-2xl sm:text-3xl font-bold text-white text-center px-4"
+          style={{
+            textShadow:
+              "0 0 18px rgba(255,200,80,0.65), 0 3px 0 rgba(120,35,10,0.55), 0 6px 14px rgba(0,0,0,0.5)",
+          }}
+        >
+          {card.name}
+        </p>
+        <div className="flex items-center gap-3 mt-2">
+          <p
+            className="text-xs uppercase tracking-[5px] font-bold text-amber-300/85"
+            style={{ textShadow: "0 0 10px rgba(255,140,60,0.5)" }}
+          >
+            {card.rarity}
+          </p>
+          <span className="text-amber-300/40">·</span>
+          <p
+            className="text-2xl font-black"
+            style={{
+              background:
+                "linear-gradient(180deg, #fff7c2 0%, #ffd700 40%, #ff8a00 85%, #b54a00 100%)",
+              backgroundClip: "text",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              filter:
+                "drop-shadow(0 0 14px rgba(255, 200, 80, 0.7)) drop-shadow(0 3px 0 rgba(120, 45, 0, 0.45))",
+              fontFamily: "'Impact', 'Arial Black', sans-serif",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {card.coinValue.toLocaleString("de-DE")} Coins
+          </p>
+        </div>
+      </motion.div>
     </motion.div>
   );
 }
