@@ -70,37 +70,36 @@ export function CosmicCardReveal({
   );
   const [revealIndex, setRevealIndex] = useState(0);
   const [phase, setPhase] = useState<"sequence" | "final">("sequence");
-  const burstedRef = useRef<Set<number>>(new Set());
 
-  // Pro-Karte EINMAL Sound + Particle-Burst beim Erscheinen. Kein Auto-
-  // Cycle — der User klickt selbst weiter, damit jede Karte in Ruhe
-  // angesehen werden kann. burstedRef stellt sicher, dass derselbe Index
-  // selbst bei React-StrictMode-Double-Mount nur einmal feuert.
+  // Wenn alle Karten durch sind: Final-View
   useEffect(() => {
     if (phase !== "sequence") return;
     if (revealIndex >= sortedCards.length) {
       setPhase("final");
-      return;
     }
+  }, [revealIndex, phase, sortedCards.length]);
 
-    const card = sortedCards[revealIndex];
-    if (burstedRef.current.has(revealIndex)) return;
-    burstedRef.current.add(revealIndex);
+  /**
+   * Wird beim FLIP der aktuellen Karte gefired (von Card-Back zu Card-
+   * Front). Spielt den passenden Sound-Stack und feuert die Particle-
+   * Bursts. Wird über die CardFrame-Komponente angetriggert, sobald der
+   * User die geschlossene Karte aktiv aufdeckt.
+   */
+  const handleCardFlipped = useCallback(
+    (card: CosmicCardRevealCard) => {
+      // Sound je Coin-Wert
+      const tier =
+        card.coinValue >= 400
+          ? { primary: "godpackSparkle", aux: "legendary", vol: 0.9 }
+          : card.coinValue >= 250
+            ? { primary: "shimmer", aux: "chime", vol: 0.78 }
+            : { primary: "chime", aux: null as string | null, vol: 0.7 };
+      onPlaySound(tier.primary, tier.vol);
+      if (tier.aux) {
+        window.setTimeout(() => onPlaySound(tier.aux as string, tier.vol * 0.8), 220);
+      }
 
-    // Sound je Coin-Wert
-    const tier =
-      card.coinValue >= 400
-        ? { primary: "godpackSparkle", aux: "legendary", vol: 0.85 }
-        : card.coinValue >= 250
-          ? { primary: "shimmer", aux: "chime", vol: 0.75 }
-          : { primary: "chime", aux: null, vol: 0.7 };
-    onPlaySound(tier.primary, tier.vol);
-    if (tier.aux) {
-      window.setTimeout(() => onPlaySound(tier.aux, tier.vol * 0.8), 220);
-    }
-
-    // Particle-Burst um die Karte (kurz nach dem Card-Enter)
-    const burstTimer = window.setTimeout(() => {
+      // Particle-Burst zentriert
       const canvas = particleRef.current;
       if (!canvas) return;
       const cx = window.innerWidth / 2;
@@ -117,7 +116,6 @@ export function CosmicCardReveal({
         spread: Math.PI * 2,
         shape: "circle",
       });
-      // Goldene Side-Bursts für hochwertige Karten
       if (card.coinValue >= 400) {
         canvas.emit({
           x: cx - 200,
@@ -144,16 +142,14 @@ export function CosmicCardReveal({
           shape: "circle",
         });
       }
-    }, 320);
+    },
+    [onPlaySound, particleRef],
+  );
 
-    return () => window.clearTimeout(burstTimer);
-  }, [revealIndex, phase, sortedCards, onPlaySound, particleRef]);
-
-  // Klick weiter — User-getrieben, kein Auto-Timer
-  const handleAdvance = useCallback(() => {
-    if (phase !== "sequence") return;
+  // Wenn die schon aufgedeckte Karte erneut geklickt wird → nächste
+  const handleCardAdvance = useCallback(() => {
     setRevealIndex((i) => i + 1);
-  }, [phase]);
+  }, []);
 
   // Skip-All Button — direkt zum Final-View
   const handleSkipAll = useCallback(() => {
@@ -181,10 +177,7 @@ export function CosmicCardReveal({
   const tier = current.coinValue >= 400 ? "epic" : current.coinValue >= 250 ? "rare" : "solid";
 
   return (
-    <div
-      className="relative w-full min-h-screen flex flex-col items-center justify-center cursor-pointer select-none"
-      onClick={handleAdvance}
-    >
+    <div className="relative w-full min-h-screen flex flex-col items-center justify-center select-none">
       {/* Gold-Halo hinter der Karte */}
       <motion.div
         aria-hidden
@@ -229,8 +222,8 @@ export function CosmicCardReveal({
         <motion.div
           key={`${current.cardId}-${revealIndex}`}
           className="relative z-10 flex flex-col items-center"
-          initial={{ scale: 0.5, opacity: 0, y: -40, rotateY: -15 }}
-          animate={{ scale: 1, opacity: 1, y: 0, rotateY: 0 }}
+          initial={{ scale: 0.5, opacity: 0, y: -40 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.88, opacity: 0, y: -28, transition: { duration: 0.32 } }}
           transition={{
             duration: 0.9,
@@ -245,48 +238,22 @@ export function CosmicCardReveal({
             Karte {revealIndex + 1} / {sortedCards.length}
           </p>
 
-          {/* Die Karte */}
-          <CosmicCardFrame card={current} tier={tier} />
-
-          {/* Coin-Counter — animiert hochzählend */}
-          <CoinCounter
-            target={current.coinValue}
-            durationMs={Math.min(1700, 1100 + current.coinValue * 0.9)}
+          {/* Die Karte — startet als Rückseite, flippt bei erstem Klick */}
+          <CosmicCardFrame
+            card={current}
             tier={tier}
+            isDe={isDe}
+            onFlipped={() => handleCardFlipped(current)}
+            onAdvance={handleCardAdvance}
           />
-
-          {/* Card-Name + Rarity */}
-          <p
-            className="mt-3 text-2xl sm:text-3xl font-bold text-white"
-            style={{
-              textShadow:
-                "0 0 18px rgba(255,200,80,0.65), 0 3px 0 rgba(120,35,10,0.55), 0 6px 14px rgba(0,0,0,0.5)",
-            }}
-          >
-            {current.name}
-          </p>
-          <p
-            className="text-xs uppercase tracking-[5px] font-bold text-amber-300/85 mt-1"
-            style={{ textShadow: "0 0 10px rgba(255,140,60,0.5)" }}
-          >
-            {current.rarity}
-          </p>
         </motion.div>
       </AnimatePresence>
 
-      {/* Tap to continue hint + Skip All */}
+      {/* Skip-All Button bleibt für ungeduldige User */}
       <div className="absolute bottom-12 left-0 right-0 flex flex-col items-center gap-3 pointer-events-none">
-        <p
-          className="text-[10px] uppercase tracking-[5px] font-semibold text-white/55 pointer-events-none"
-        >
-          {isDe ? "Tippe für die nächste Karte" : "Tap for the next card"}
-        </p>
         <button
           type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleSkipAll();
-          }}
+          onClick={handleSkipAll}
           className="pointer-events-auto text-[10px] uppercase tracking-[3px] font-bold text-amber-300/70 hover:text-amber-200 transition-colors"
         >
           {isDe ? "Alle überspringen" : "Skip all"}
@@ -299,10 +266,26 @@ export function CosmicCardReveal({
 function CosmicCardFrame({
   card,
   tier,
+  isDe,
+  onFlipped,
+  onAdvance,
 }: {
   card: CosmicCardRevealCard;
   tier: "solid" | "rare" | "epic";
+  isDe: boolean;
+  onFlipped: () => void;
+  onAdvance: () => void;
 }) {
+  const [flipped, setFlipped] = useState(false);
+
+  const handleClick = useCallback(() => {
+    if (!flipped) {
+      setFlipped(true);
+      onFlipped();
+    } else {
+      onAdvance();
+    }
+  }, [flipped, onFlipped, onAdvance]);
   const tierGlow =
     tier === "epic"
       ? "0 0 60px rgba(255,200,80,0.85), 0 0 120px rgba(255,150,80,0.55)"
@@ -317,84 +300,280 @@ function CosmicCardFrame({
         ? "2.5px solid rgba(255,215,95,0.75)"
         : "2px solid rgba(255,215,95,0.55)";
 
-  // Wrap-Hierarchie: outer = relative + sichtbares Overflow für das
-  // Tier-Ribbon, inner = der eigentliche Frame mit overflow:hidden für
-  // die Bild-Rundung. Das Ribbon hängt am outer und wird nicht abgeschnitten.
   return (
-    <div
-      className="relative"
-      style={{
-        width: "min(70vw, 320px)",
-        aspectRatio: "63/88",
-      }}
-    >
+    <div className="flex flex-col items-center">
+      {/* Card-Area mit 3D-Flip — outer relative für Ribbon, inner mit
+          preserve-3d für Front/Back. */}
+      <div
+        className="relative cursor-pointer"
+        style={{
+          width: "min(70vw, 320px)",
+          aspectRatio: "63/88",
+          perspective: 1400,
+        }}
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        aria-label={
+          flipped
+            ? isDe
+              ? "Weiter zur nächsten Karte"
+              : "Continue to next card"
+            : isDe
+              ? "Karte aufdecken"
+              : "Reveal card"
+        }
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+      >
+        <motion.div
+          className="absolute inset-0"
+          style={{ transformStyle: "preserve-3d" }}
+          animate={{ rotateY: flipped ? 0 : 180 }}
+          transition={{ duration: 0.85, ease: [0.5, 1.05, 0.45, 1] }}
+        >
+          {/* FRONT — die enthüllte Karte */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+              borderRadius: 14,
+              border: tierBorder,
+              boxShadow: tierGlow,
+              background: GODPACK_THEME.deepCrimson,
+              overflow: "hidden",
+            }}
+          >
+            {card.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={card.image}
+                alt={card.name}
+                className="absolute inset-0 w-full h-full object-cover"
+                draggable={false}
+              />
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center text-amber-300/55 text-2xl font-black">
+                ?
+              </div>
+            )}
+
+            {/* Glanz-Streifen — nur ein Mal nach dem Flip */}
+            {flipped && (
+              <motion.div
+                aria-hidden
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    "linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.55) 49%, rgba(255,240,180,0.45) 51%, transparent 62%)",
+                  mixBlendMode: "screen",
+                }}
+                initial={{ x: "-110%" }}
+                animate={{ x: "110%" }}
+                transition={{
+                  duration: 1.1,
+                  delay: 0.55,
+                  ease: "easeInOut",
+                }}
+              />
+            )}
+          </div>
+
+          {/* BACK — Cosmic Card Back, sichtbar bis der User klickt */}
+          <div
+            className="absolute inset-0"
+            style={{
+              backfaceVisibility: "hidden",
+              WebkitBackfaceVisibility: "hidden",
+              transform: "rotateY(180deg)",
+              borderRadius: 14,
+              border: "2px solid rgba(255,215,95,0.85)",
+              boxShadow:
+                "0 0 36px rgba(255,200,80,0.7), 0 0 72px rgba(255,140,60,0.35)",
+              overflow: "hidden",
+              background: GODPACK_THEME.bgGradient,
+            }}
+          >
+            <CosmicCardBack />
+          </div>
+        </motion.div>
+
+        {/* Tier-Ribbon — erscheint erst NACH dem Flip */}
+        {flipped && tier !== "solid" && (
+          <motion.div
+            className="absolute left-1/2 -translate-x-1/2 px-3 py-1 rounded-full whitespace-nowrap z-10"
+            style={{
+              bottom: -14,
+              background:
+                "linear-gradient(135deg, #FFD700 0%, #FFA500 60%, #c46100 100%)",
+              color: "#1a0408",
+              fontWeight: 900,
+              fontSize: 11,
+              letterSpacing: "2px",
+              textTransform: "uppercase",
+              boxShadow:
+                "0 0 18px rgba(255,200,80,0.85), 0 3px 0 rgba(120,35,10,0.5)",
+            }}
+            initial={{ scale: 0, y: 20 }}
+            animate={{ scale: 1, y: 0 }}
+            transition={{ delay: 0.55, duration: 0.45, ease: [0.34, 1.65, 0.5, 1] }}
+          >
+            {tier === "epic" ? "★ MYTHIC ★" : "★ RARE ★"}
+          </motion.div>
+        )}
+
+        {/* Hint auf der Rückseite */}
+        {!flipped && (
+          <motion.p
+            className="absolute -bottom-10 left-0 right-0 text-center text-[11px] uppercase tracking-[5px] font-bold text-amber-300/85 pointer-events-none"
+            style={{ textShadow: "0 0 10px rgba(255,180,60,0.55)" }}
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          >
+            {isDe ? "★ Tippe zum Aufdecken ★" : "★ Tap to reveal ★"}
+          </motion.p>
+        )}
+      </div>
+
+      {/* Coin-Counter + Name + Rarity — nur nach dem Flip */}
+      {flipped && (
+        <motion.div
+          className="flex flex-col items-center"
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65, duration: 0.45 }}
+        >
+          <CoinCounter
+            target={card.coinValue}
+            durationMs={Math.min(1700, 1100 + card.coinValue * 0.9)}
+            tier={tier}
+          />
+          <p
+            className="mt-3 text-2xl sm:text-3xl font-bold text-white text-center px-4"
+            style={{
+              textShadow:
+                "0 0 18px rgba(255,200,80,0.65), 0 3px 0 rgba(120,35,10,0.55), 0 6px 14px rgba(0,0,0,0.5)",
+            }}
+          >
+            {card.name}
+          </p>
+          <p
+            className="text-xs uppercase tracking-[5px] font-bold text-amber-300/85 mt-1"
+            style={{ textShadow: "0 0 10px rgba(255,140,60,0.5)" }}
+          >
+            {card.rarity}
+          </p>
+          <p className="mt-4 text-[10px] uppercase tracking-[4px] font-semibold text-white/55">
+            {isDe ? "Tippe für die nächste Karte" : "Tap for the next card"}
+          </p>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
+function CosmicCardBack() {
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {/* Sterne-Pattern */}
+      {Array.from({ length: 14 }).map((_, i) => {
+        const left = ((i * 89 + 7) % 100);
+        const top = ((i * 41 + 13) % 100);
+        const size = (i % 3) + 1;
+        return (
+          <motion.span
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              left: `${left}%`,
+              top: `${top}%`,
+              width: size,
+              height: size,
+              background: i % 2 === 0 ? "rgba(255, 240, 180, 0.85)" : "rgba(255, 255, 255, 0.7)",
+              boxShadow: `0 0 ${size * 3}px rgba(255, 230, 150, 0.6)`,
+            }}
+            animate={{ opacity: [0.3, 1, 0.4], scale: [0.8, 1.3, 0.9] }}
+            transition={{ duration: 2 + (i % 4) * 0.4, repeat: Infinity, delay: i * 0.13 }}
+          />
+        );
+      })}
+
+      {/* Diagonale Lichtlinien */}
       <div
         className="absolute inset-0"
         style={{
-          borderRadius: 14,
-          border: tierBorder,
-          boxShadow: tierGlow,
-          background: GODPACK_THEME.deepCrimson,
-          overflow: "hidden",
+          background: `
+            repeating-linear-gradient(135deg, transparent, transparent 22px, ${GODPACK_THEME.patternGold} 22px, ${GODPACK_THEME.patternGold} 23px),
+            repeating-linear-gradient(45deg, transparent, transparent 30px, ${GODPACK_THEME.patternRed} 30px, ${GODPACK_THEME.patternRed} 31px)
+          `,
         }}
-      >
-        {card.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={card.image}
-            alt={card.name}
-            className="absolute inset-0 w-full h-full object-cover"
-            draggable={false}
-          />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center text-amber-300/55 text-2xl font-black">
-            ?
-          </div>
-        )}
+      />
 
-        {/* Innerer Glanz-Streifen */}
-        <motion.div
-          aria-hidden
-          className="absolute inset-0 pointer-events-none"
+      {/* Goldene Trim-Linie innen */}
+      <div
+        className="absolute pointer-events-none rounded-md"
+        style={{
+          top: 8,
+          left: 8,
+          right: 8,
+          bottom: 8,
+          border: "1.5px solid rgba(255, 215, 95, 0.45)",
+          boxShadow: "inset 0 0 22px rgba(255, 200, 80, 0.18)",
+        }}
+      />
+
+      {/* Mittel-Logo */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+        <span
+          className="text-[12px] uppercase tracking-[6px] font-bold"
+          style={{ color: "rgba(255, 230, 150, 0.85)" }}
+        >
+          ★
+        </span>
+        <span
           style={{
-            background:
-              "linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.55) 49%, rgba(255,240,180,0.45) 51%, transparent 62%)",
-            mixBlendMode: "screen",
+            fontSize: 30,
+            fontWeight: 900,
+            color: "#fffbe1",
+            WebkitTextStroke: "1.5px rgba(120, 35, 10, 0.7)",
+            fontFamily: "'Impact', 'Arial Black', sans-serif",
+            letterSpacing: "-0.02em",
+            filter:
+              "drop-shadow(0 0 12px rgba(255, 215, 95, 0.95)) drop-shadow(0 4px 0 rgba(180, 95, 15, 0.55))",
           }}
-          initial={{ x: "-110%" }}
-          animate={{ x: "110%" }}
-          transition={{
-            duration: 1.1,
-            delay: 0.55,
-            ease: "easeInOut",
-          }}
-        />
+        >
+          GODPACK
+        </span>
+        <span
+          className="text-[10px] uppercase tracking-[5px] font-bold"
+          style={{ color: "rgba(255, 215, 95, 0.7)" }}
+        >
+          ★ ★ ★
+        </span>
+        <span
+          className="text-[8px] uppercase tracking-[4px] font-bold mt-2"
+          style={{ color: "rgba(255, 215, 95, 0.55)" }}
+        >
+          PACKATTACK
+        </span>
       </div>
 
-      {/* Tier-Ribbon — außerhalb des overflow:hidden-Frames, dadurch
-          ragt es sauber unter die Karte. */}
-      {tier !== "solid" && (
-        <motion.div
-          className="absolute left-1/2 -translate-x-1/2 px-3 py-1 rounded-full whitespace-nowrap z-10"
-          style={{
-            bottom: -14,
-            background:
-              "linear-gradient(135deg, #FFD700 0%, #FFA500 60%, #c46100 100%)",
-            color: "#1a0408",
-            fontWeight: 900,
-            fontSize: 11,
-            letterSpacing: "2px",
-            textTransform: "uppercase",
-            boxShadow:
-              "0 0 18px rgba(255,200,80,0.85), 0 3px 0 rgba(120,35,10,0.5)",
-          }}
-          initial={{ scale: 0, y: 20 }}
-          animate={{ scale: 1, y: 0 }}
-          transition={{ delay: 0.7, duration: 0.45, ease: [0.34, 1.65, 0.5, 1] }}
-        >
-          {tier === "epic" ? "★ MYTHIC ★" : "★ RARE ★"}
-        </motion.div>
-      )}
+      {/* Holographic sheen — wandert subtil */}
+      <motion.div
+        aria-hidden
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: GODPACK_THEME.hologramSheen,
+          mixBlendMode: "screen",
+        }}
+        animate={{ x: ["-30%", "30%", "-30%"] }}
+        transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
+      />
     </div>
   );
 }
