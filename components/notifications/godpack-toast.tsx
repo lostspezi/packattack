@@ -32,6 +32,7 @@ export function GodpackToast({ currentUserId }: GodpackToastProps) {
   const dismissTimers = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
+    const timers = dismissTimers.current;
     const source = new EventSource("/api/chat/events");
 
     source.onmessage = (event) => {
@@ -53,9 +54,9 @@ export function GodpackToast({ currentUserId }: GodpackToastProps) {
 
       const dismissId = window.setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== toastId));
-        dismissTimers.current.delete(toastId);
+        timers.delete(toastId);
       }, TOAST_VISIBLE_MS);
-      dismissTimers.current.set(toastId, dismissId);
+      timers.set(toastId, dismissId);
     };
 
     source.onerror = () => {
@@ -64,10 +65,10 @@ export function GodpackToast({ currentUserId }: GodpackToastProps) {
 
     return () => {
       source.close();
-      for (const id of dismissTimers.current.values()) {
+      for (const id of timers.values()) {
         window.clearTimeout(id);
       }
-      dismissTimers.current.clear();
+      timers.clear();
     };
   }, [currentUserId]);
 

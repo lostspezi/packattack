@@ -33,7 +33,7 @@ import {
 } from "@/lib/godpack-engine";
 import {
   incrementGodpackCounter,
-  advanceGodpackTrigger,
+  retractGodpackTrigger,
 } from "@/lib/godpack-counter";
 import { publishRoomEvent } from "@/lib/chat";
 import { CHAT_ROOM_SLUG } from "@/lib/chat-constants";
@@ -192,12 +192,11 @@ export async function POST(
       return NextResponse.json({ error: "No available cards in this box" }, { status: 400 });
     }
 
-    // 4b. Godpack-Counter inkrementieren — atomar via findOneAndUpdate.
-    // Wenn der Counter den nextTriggerAt überspringt, wird hier festgelegt,
-    // welcher der `packCount` Packs zum Godpack wird. Der Trigger wird erst
-    // ADVANCED, sobald der Godpack tatsächlich gezogen wurde — so „erbt" der
-    // nächste Pack-Pull den Trigger, falls der Franchise-Pool zu klein war.
-    const triggerInfo = await incrementGodpackCounter(packCount);
+    // 4b. Godpack-Counter inkrementieren — atomar via Aggregation-Pipeline,
+    // die zugleich `nextTriggerAt` advanced, wenn der Counter den Trigger
+    // überquert. Damit gewinnt genau ein paralleler Caller den Claim, ein
+    // Race zwischen Inc und Advance ist ausgeschlossen.
+    const triggerInfo = await incrementGodpackCounter(packCount, userId);
     let godpackOutcome: {
       packIndex: number;
       pool: GodpackPool;
@@ -211,6 +210,14 @@ export async function POST(
           pool: candidatePool,
           triggerCount: triggerInfo.triggeredAt!,
         };
+      } else {
+        // Pool zu klein — Drop nicht verlieren, sondern auf den unmittelbar
+        // nächsten Pack-Pull verschieben (egal welches Franchise).
+        try {
+          await retractGodpackTrigger();
+        } catch (err) {
+          console.error("[packs/[id]/open godpack-retract]", err);
+        }
       }
     }
 
@@ -374,12 +381,7 @@ export async function POST(
         poolFallbackUsed: godpackOutcome.pool.fallbackUsed,
       });
       godpackEventId = created._id;
-
-      await advanceGodpackTrigger({
-        previousTriggerAt: godpackOutcome.triggerCount,
-        triggerCount: godpackOutcome.triggerCount,
-        userId,
-      });
+      // Trigger wurde bereits in incrementGodpackCounter atomar advanced.
     }
 
     // 8. Create PackPull records with status "pending" — crash-safe. Reuse
@@ -549,27 +551,34 @@ export async function POST(
     }
     if (updatedBox) void sendLowStockAlerts(updatedBox, cardMap, originBoxStockUpdates);
 
-    // 11. Pause box if any drawn card hit stock 0. Admin reviews before it
-    // goes live again. The `status: "published"` guard on the filter means
-    // only one concurrent opener flips the status; others see modifiedCount=0
-    // and skip notifications so admins don't get duplicate alerts.
-    if (updatedBox) {
-      const depleted: Array<{ cardId: string; cardName: string }> = [];
-      for (const cardId of Object.keys(originBoxStockUpdates)) {
-        const entry = updatedBox.cards.find((c) => c.card.toString() === cardId);
-        if (entry && (entry.stock ?? 0) === 0) {
-          depleted.push({
-            cardId,
-            cardName: cardMap.get(cardId)?.name ?? "Unknown",
-          });
+    // 11. Pause boxes whose stock was depleted to 0 — checked across BOTH
+    // the origin box (regular pulls) and any sibling boxes affected by
+    // godpack pulls. Each box gets its own status="published" guard so a
+    // concurrent opener that already paused it won't double-fire alerts.
+    const affectedBoxIds = [...stockUpdatesPerBox.keys()];
+    if (affectedBoxIds.length > 0) {
+      const allAffectedBoxes = await Box.find({
+        _id: { $in: affectedBoxIds.map((id) => new Types.ObjectId(id)) },
+      });
+      for (const affected of allAffectedBoxes) {
+        const perBox = stockUpdatesPerBox.get(affected._id.toString());
+        if (!perBox) continue;
+        const depleted: Array<{ cardId: string; cardName: string }> = [];
+        for (const cardId of perBox.keys()) {
+          const entry = affected.cards.find((c) => c.card.toString() === cardId);
+          if (entry && (entry.stock ?? 0) === 0) {
+            depleted.push({
+              cardId,
+              cardName: cardMap.get(cardId)?.name ?? entry.card.toString(),
+            });
+          }
         }
-      }
+        if (depleted.length === 0) continue;
 
-      if (depleted.length > 0) {
         const pausedAt = new Date();
         const first = depleted[0];
         const pauseResult = await Box.updateOne(
-          { _id: realBoxId, status: "published" },
+          { _id: affected._id, status: "published" },
           {
             $set: {
               status: "paused",
@@ -584,7 +593,7 @@ export async function POST(
         );
 
         if (pauseResult.modifiedCount === 1) {
-          void sendOutOfStockAlerts(updatedBox, depleted);
+          void sendOutOfStockAlerts(affected, depleted);
         }
       }
     }

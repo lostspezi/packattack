@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import mongoose, { Document, Model, Schema, Types } from "mongoose";
 
 /**
@@ -49,6 +50,8 @@ export const GODPACK_TRIGGER_MIN_GAP = 9500;
 export const GODPACK_TRIGGER_MAX_GAP = 10500;
 
 export function rollNextTriggerGap(): number {
-  const span = GODPACK_TRIGGER_MAX_GAP - GODPACK_TRIGGER_MIN_GAP + 1;
-  return GODPACK_TRIGGER_MIN_GAP + Math.floor(Math.random() * span);
+  // crypto.randomInt nutzt /dev/urandom-Niveau-Entropie statt Math.random's
+  // V8-PRNG — ein Server-Admin kann die Trigger-Sequenz dann nicht aus dem
+  // Node-Prozessstate ableiten.
+  return randomInt(GODPACK_TRIGGER_MIN_GAP, GODPACK_TRIGGER_MAX_GAP + 1);
 }
