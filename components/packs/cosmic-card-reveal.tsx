@@ -317,56 +317,67 @@ function CosmicCardFrame({
         ? "2.5px solid rgba(255,215,95,0.75)"
         : "2px solid rgba(255,215,95,0.55)";
 
+  // Wrap-Hierarchie: outer = relative + sichtbares Overflow für das
+  // Tier-Ribbon, inner = der eigentliche Frame mit overflow:hidden für
+  // die Bild-Rundung. Das Ribbon hängt am outer und wird nicht abgeschnitten.
   return (
     <div
       className="relative"
       style={{
         width: "min(70vw, 320px)",
         aspectRatio: "63/88",
-        borderRadius: 14,
-        border: tierBorder,
-        boxShadow: tierGlow,
-        background: GODPACK_THEME.deepCrimson,
-        overflow: "hidden",
       }}
     >
-      {card.image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={card.image}
-          alt={card.name}
-          className="absolute inset-0 w-full h-full object-cover"
-          draggable={false}
-        />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center text-amber-300/55 text-2xl font-black">
-          ?
-        </div>
-      )}
-
-      {/* Innerer Glanz-Streifen */}
-      <motion.div
-        aria-hidden
-        className="absolute inset-0 pointer-events-none"
+      <div
+        className="absolute inset-0"
         style={{
-          background:
-            "linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.55) 49%, rgba(255,240,180,0.45) 51%, transparent 62%)",
-          mixBlendMode: "screen",
+          borderRadius: 14,
+          border: tierBorder,
+          boxShadow: tierGlow,
+          background: GODPACK_THEME.deepCrimson,
+          overflow: "hidden",
         }}
-        initial={{ x: "-110%" }}
-        animate={{ x: "110%" }}
-        transition={{
-          duration: 1.1,
-          delay: 0.55,
-          ease: "easeInOut",
-        }}
-      />
+      >
+        {card.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={card.image}
+            alt={card.name}
+            className="absolute inset-0 w-full h-full object-cover"
+            draggable={false}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-amber-300/55 text-2xl font-black">
+            ?
+          </div>
+        )}
 
-      {/* Untere Ribbon mit Coin-Tag (hidden bei tier solid) */}
+        {/* Innerer Glanz-Streifen */}
+        <motion.div
+          aria-hidden
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.55) 49%, rgba(255,240,180,0.45) 51%, transparent 62%)",
+            mixBlendMode: "screen",
+          }}
+          initial={{ x: "-110%" }}
+          animate={{ x: "110%" }}
+          transition={{
+            duration: 1.1,
+            delay: 0.55,
+            ease: "easeInOut",
+          }}
+        />
+      </div>
+
+      {/* Tier-Ribbon — außerhalb des overflow:hidden-Frames, dadurch
+          ragt es sauber unter die Karte. */}
       {tier !== "solid" && (
         <motion.div
-          className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full"
+          className="absolute left-1/2 -translate-x-1/2 px-3 py-1 rounded-full whitespace-nowrap z-10"
           style={{
+            bottom: -14,
             background:
               "linear-gradient(135deg, #FFD700 0%, #FFA500 60%, #c46100 100%)",
             color: "#1a0408",
