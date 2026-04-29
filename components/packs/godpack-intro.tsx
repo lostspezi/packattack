@@ -17,28 +17,30 @@ interface GodpackIntroProps {
  * Timing-Beats des Build-ups. Jeder Beat hat einen klaren emotionalen Zweck:
  *
  *  0-700ms     Tension: schwarzer Backdrop, ein winziger Punkt pulsiert.
- *              Der User wartet, weiß noch nicht was passiert. Kein Sound außer
- *              einem tiefen Drone.
+ *              Der User wartet, weiß noch nicht was passiert. Tiefer Drone.
  *  700-900ms   BOOM: Weißer Mega-Flash + Goldener Particle-Burst + Camera-
- *              Shake + erster lauter Hit-Sound.
- *  900-1500ms  Letter-by-Letter Bounce der GODPACK-Buchstaben mit ~90ms
- *              Stagger — jeder Buchstabe wird mit overshoot reingeschmissen.
- *  1500-2400ms Confetti-Wellen, „DU HAST ES GESCHAFFT!" + „5 LEGENDÄRE x …"
- *              Subline. Goldene Strahlen rotieren weiter.
- *  2400-3400ms Smooth Fade-out, Sound „chime", Übergang zum Ripping.
+ *              Shake + lauter Hit-Sound.
+ *  900-1700ms  Letter-by-Letter Bounce der GODPACK-Buchstaben mit ~110ms
+ *              Stagger. Jeder Buchstabe knallt mit overshoot rein.
+ *  1700-3700ms HOLD: GODPACK steht groß und strahlend in der Mitte, der
+ *              Schriftzug shimmert, „DU HAST ES GESCHAFFT!" + Game-Tag
+ *              kommen darunter rein, Confetti-Wellen, Goldstrahlen rotieren.
+ *              Dieser Beat ist absichtlich lang — der User soll seinen
+ *              Triumph sehen, lesen, fühlen.
+ *  3700-4600ms Smooth Fade-out, Sound „chime", Übergang zum Ripping.
  */
 const T = {
-  total: 3400,
+  total: 4600,
   flashAt: 700,
   burstAt: 720,
   rayStart: 750,
   letterStart: 900,
-  letterStagger: 95,
-  jackpotIn: 700,
-  sublineIn: 1500,
-  confetti1: 1500,
-  confetti2: 2200,
-  fadeOutStart: 2900,
+  letterStagger: 110,
+  sublineIn: 1900,
+  confetti1: 1700,
+  confetti2: 2700,
+  confetti3: 3400,
+  fadeOutStart: 4000,
 } as const;
 
 const GODPACK_LETTERS = ["G", "O", "D", "P", "A", "C", "K"];
@@ -87,6 +89,7 @@ export function GodpackIntro({
     schedule(T.flashAt + 90, () => onPlaySound("legendary", 0.85));
     cue(T.confetti1, "godpackFanfare", "rain", 0.75);
     cue(T.confetti2 + 200, "godpackSparkle", "shimmer", 0.7);
+    schedule(T.confetti3, () => onPlaySound("chime", 0.6));
     schedule(T.fadeOutStart - 100, () => onPlaySound("chime", 0.85));
 
     // Particle-Choreografie
@@ -129,6 +132,9 @@ export function GodpackIntro({
     });
     schedule(T.confetti2, () => {
       particleRef.current?.emitConfetti(CONFETTI_RAINBOW, 50);
+    });
+    schedule(T.confetti3, () => {
+      particleRef.current?.emitConfetti(CONFETTI_RAINBOW, 35);
     });
     // Side-bursts für Breite
     schedule(T.confetti1 + 250, () => {
@@ -331,100 +337,104 @@ export function GodpackIntro({
         }}
       />
 
-      {/* JACKPOT! — knallt rein mit overshoot */}
-      <motion.div
-        className="relative z-20 mb-1"
-        initial={{ scale: 0.15, opacity: 0, y: -30 }}
-        animate={{
-          scale: [0.15, 1.45, 1.0, 1.0, 1.05, 0.92],
-          opacity: [0, 1, 1, 1, 1, 0],
-          y: [-30, 0, 0, 0, 0, -16],
-        }}
-        transition={{
-          duration: (T.fadeOutStart - T.jackpotIn) / 1000 + 0.45,
-          times: [0, 0.1, 0.2, 0.55, 0.85, 1],
-          delay: T.jackpotIn / 1000,
-          ease: [0.34, 1.85, 0.5, 1],
-        }}
-      >
-        <div
-          className="text-[44px] sm:text-[68px] md:text-[84px] font-black tracking-[-0.04em] italic"
-          style={{
-            background:
-              "linear-gradient(180deg, #fff7c2 0%, #ffd700 35%, #ff8a00 80%, #b54a00 100%)",
-            backgroundClip: "text",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            filter:
-              "drop-shadow(0 0 28px rgba(255, 200, 80, 0.85)) drop-shadow(0 5px 0 rgba(120, 45, 0, 0.55))",
-            fontFamily: "'Impact', 'Arial Black', 'Helvetica Neue', sans-serif",
-            transform: "skew(-6deg)",
-          }}
-        >
-          JACKPOT!
-        </div>
-      </motion.div>
-
-      {/* GODPACK — letter-by-letter bounce-in */}
-      <div className="relative z-20 flex items-baseline mb-3">
-        {GODPACK_LETTERS.map((letter, i) => (
-          <motion.span
-            key={`${letter}-${i}`}
-            initial={{ scale: 0, opacity: 0, y: 110, rotate: -22 }}
-            animate={{
-              scale: [0, 1.55, 0.9, 1.0, 1.0, 1.0, 0.95],
-              opacity: [0, 1, 1, 1, 1, 1, 0],
-              y: [110, -18, 4, 0, 0, 0, -10],
-              rotate: [-22, 12, -4, 0, 0, 0, 0],
-            }}
-            transition={{
-              duration: (T.fadeOutStart - T.letterStart) / 1000 + 0.5,
-              times: [0, 0.07, 0.13, 0.22, 0.5, 0.85, 1],
-              delay: (T.letterStart + i * T.letterStagger) / 1000,
-              ease: [0.18, 1.6, 0.42, 1],
-            }}
-            className="text-[60px] sm:text-[96px] md:text-[128px] font-black inline-block"
-            style={{
-              color: "#fffbe1",
-              WebkitTextStroke: "2.5px rgba(85, 35, 0, 0.7)",
-              filter:
-                "drop-shadow(0 0 22px rgba(255, 215, 95, 0.95)) drop-shadow(0 8px 0 rgba(180, 95, 15, 0.6)) drop-shadow(0 14px 22px rgba(0,0,0,0.5))",
-              fontFamily: "'Impact', 'Arial Black', 'Helvetica Neue', sans-serif",
-              letterSpacing: "-0.025em",
-              padding: "0 1px",
-            }}
-          >
-            {letter}
-          </motion.span>
-        ))}
+      {/* GODPACK — Letter-by-Letter mit overshoot, dann lange Hold-Phase
+          mit subtilem Idle-Glow (atmen + leichte Skalierung). Der Buchstabe
+          fade-out passiert erst gegen Ende der gesamten Sequenz. */}
+      <div className="relative z-20 flex items-baseline mb-4">
+        {GODPACK_LETTERS.map((letter, i) => {
+          const reveal = (T.letterStart + i * T.letterStagger) / 1000;
+          const sequenceDuration = (T.fadeOutStart - T.letterStart) / 1000 + 0.5;
+          return (
+            <motion.span
+              key={`${letter}-${i}`}
+              initial={{ scale: 0, opacity: 0, y: 130, rotate: -25 }}
+              animate={{
+                scale: [0, 1.65, 0.88, 1.0, 1.04, 1.0, 1.04, 1.0, 1.0],
+                opacity: [0, 1, 1, 1, 1, 1, 1, 1, 0],
+                y: [130, -22, 6, 0, 0, 0, 0, 0, -12],
+                rotate: [-25, 14, -5, 0, 0, 0, 0, 0, 0],
+              }}
+              transition={{
+                duration: sequenceDuration,
+                times: [0, 0.05, 0.1, 0.16, 0.4, 0.6, 0.8, 0.92, 1],
+                delay: reveal,
+                ease: [0.18, 1.65, 0.42, 1],
+              }}
+              className="text-[64px] sm:text-[112px] md:text-[152px] font-black inline-block"
+              style={{
+                color: "#fffbe1",
+                WebkitTextStroke: "3px rgba(85, 35, 0, 0.75)",
+                filter:
+                  "drop-shadow(0 0 28px rgba(255, 215, 95, 1)) drop-shadow(0 10px 0 rgba(180, 95, 15, 0.65)) drop-shadow(0 18px 28px rgba(0,0,0,0.55))",
+                fontFamily: "'Impact', 'Arial Black', 'Helvetica Neue', sans-serif",
+                letterSpacing: "-0.025em",
+                padding: "0 2px",
+              }}
+            >
+              {letter}
+            </motion.span>
+          );
+        })}
       </div>
 
-      {/* Joyful Subline + Game-Tag */}
+      {/* Shimmer-Streak über GODPACK — wandert während der Hold-Phase
+          mehrfach von links nach rechts und gibt dem Schriftzug Leben. */}
       <motion.div
-        className="relative z-20 flex flex-col items-center gap-2 mt-1"
-        initial={{ opacity: 0, y: 22 }}
+        aria-hidden
+        className="pointer-events-none absolute z-20"
+        style={{
+          width: "min(90vw, 1100px)",
+          height: 200,
+          top: "calc(50% - 40px)",
+          mixBlendMode: "screen",
+          background:
+            "linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.85) 49%, rgba(255,240,180,0.7) 51%, transparent 62%)",
+          maskImage:
+            "linear-gradient(105deg, transparent 38%, black 49%, black 51%, transparent 62%)",
+          WebkitMaskImage:
+            "linear-gradient(105deg, transparent 38%, black 49%, black 51%, transparent 62%)",
+        }}
+        initial={{ x: "-110%", opacity: 0 }}
+        animate={{
+          x: ["-110%", "120%", "-110%", "120%"],
+          opacity: [0, 1, 0, 1, 0],
+        }}
+        transition={{
+          duration: 2.4,
+          times: [0, 0.25, 0.5, 0.75, 1],
+          delay: 1.7,
+          repeat: 1,
+          repeatDelay: 0.2,
+        }}
+      />
+
+      {/* Subline + Game-Tag — kommt nach dem GODPACK-Reveal, bleibt während
+          der gesamten Hold-Phase sichtbar. */}
+      <motion.div
+        className="relative z-20 flex flex-col items-center gap-2 mt-3"
+        initial={{ opacity: 0, y: 28 }}
         animate={{
           opacity: [0, 1, 1, 0],
-          y: [22, 0, 0, -14],
+          y: [28, 0, 0, -16],
         }}
         transition={{
           duration: (T.fadeOutStart - T.sublineIn) / 1000 + 0.45,
-          times: [0, 0.18, 0.85, 1],
+          times: [0, 0.16, 0.88, 1],
           delay: T.sublineIn / 1000,
         }}
       >
         <motion.p
-          className="text-[22px] sm:text-[30px] md:text-[34px] font-extrabold text-white"
+          className="text-[24px] sm:text-[34px] md:text-[40px] font-extrabold text-white"
           style={{
             textShadow:
-              "0 0 18px rgba(255,200,90,0.85), 0 3px 0 rgba(120,55,0,0.5), 0 6px 14px rgba(0,0,0,0.45)",
+              "0 0 22px rgba(255,200,90,0.95), 0 3px 0 rgba(120,55,0,0.55), 0 6px 14px rgba(0,0,0,0.5)",
             letterSpacing: "0.01em",
           }}
           animate={{
-            scale: [1, 1.03, 1],
+            scale: [1, 1.04, 1],
           }}
           transition={{
-            duration: 1.2,
+            duration: 1.4,
             repeat: Infinity,
             ease: "easeInOut",
           }}
@@ -432,8 +442,8 @@ export function GodpackIntro({
           {isDe ? "DU HAST ES GESCHAFFT!" : "YOU MADE IT!"}
         </motion.p>
         <p
-          className="text-[11px] sm:text-sm uppercase tracking-[5px] sm:tracking-[7px] font-bold text-amber-300/95"
-          style={{ textShadow: "0 0 10px rgba(255,180,60,0.55)" }}
+          className="text-[12px] sm:text-sm uppercase tracking-[6px] sm:tracking-[8px] font-bold text-amber-300/95"
+          style={{ textShadow: "0 0 12px rgba(255,180,60,0.65)" }}
         >
           5 KARTEN × {gameLabel}
         </p>
