@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, type RefObject } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { formatGameLabel } from "@/lib/format-game";
 import type { ParticleCanvasHandle } from "./particle-canvas";
 
 interface GodpackIntroProps {
@@ -135,6 +136,7 @@ export function GodpackIntro({
 }
 
 function TitleSequence({ isDe, game }: { isDe: boolean; game: string }) {
+  const gameLabel = formatGameLabel(game).toUpperCase();
   return (
     <div className="relative z-10 flex flex-col items-center gap-3 text-center">
       <motion.span
@@ -181,7 +183,7 @@ function TitleSequence({ isDe, game }: { isDe: boolean; game: string }) {
           delay: (TITLE_SHOW_AT_MS + 200) / 1000,
         }}
       >
-        × {game.toUpperCase()} GODPACK
+        × {gameLabel} GODPACK
       </motion.span>
     </div>
   );

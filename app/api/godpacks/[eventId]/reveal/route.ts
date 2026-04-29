@@ -14,6 +14,7 @@ import {
   serializeChatMessageWithCurrentRelations,
 } from "@/lib/chat";
 import { getChatRoleBadgeLabel } from "@/lib/chat-constants";
+import { formatGameLabel } from "@/lib/format-game";
 
 /**
  * POST /api/godpacks/{eventId}/reveal
@@ -108,7 +109,8 @@ export async function POST(
       return NextResponse.json({ ok: true, chatMessageId: null });
     }
 
-    const bodyOriginal = `${displayName} hat ein GODPACK gezogen — 5x ${locked.game}, zusammen ${locked.totalCoinValue} Coins!`;
+    const gameLabel = formatGameLabel(locked.game);
+    const bodyOriginal = `${displayName} hat ein GODPACK gezogen! 5x ${gameLabel}, zusammen ${locked.totalCoinValue} Coins.`;
 
     const message = await ChatMessage.create({
       roomId: room._id,

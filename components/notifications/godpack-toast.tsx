@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Sparkles } from "lucide-react";
+import { formatGameLabel } from "@/lib/format-game";
 import type { ChatEventEnvelope, GodpackIncomingEvent } from "@/types/chat";
 
 interface ToastEntry {
@@ -49,7 +50,7 @@ export function GodpackToast({ currentUserId }: GodpackToastProps) {
       const toastId = `${payload.eventId}:${Date.now()}`;
       setToasts((prev) => [
         ...prev,
-        { id: toastId, username: payload.username, game: payload.game },
+        { id: toastId, username: payload.username, game: formatGameLabel(payload.game) },
       ]);
 
       const dismissId = window.setTimeout(() => {
@@ -102,7 +103,7 @@ export function GodpackToast({ currentUserId }: GodpackToastProps) {
                 <span className="font-bold text-amber-200">{toast.username}</span>
                 {" zieht GERADE ein "}
                 <span className="font-bold uppercase tracking-wider text-amber-200">GODPACK</span>
-                {" — "}
+                {" in "}
                 <span className="text-amber-200">{toast.game}</span>
               </p>
             </div>

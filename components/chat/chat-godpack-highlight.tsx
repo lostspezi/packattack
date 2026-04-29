@@ -1,3 +1,4 @@
+import { formatGameLabel } from "@/lib/format-game";
 import type { ChatGodpackHighlightSummary } from "@/types/chat";
 
 interface ChatGodpackHighlightProps {
@@ -39,7 +40,7 @@ export function ChatGodpackHighlight({ highlight, className }: ChatGodpackHighli
       <div className="relative">
         <div className="flex items-baseline justify-between gap-2 mb-2.5">
           <p className="text-[11px] font-extrabold uppercase tracking-[0.22em] text-amber-200 drop-shadow-[0_0_10px_rgba(255,200,80,0.55)]">
-            ★ GODPACK ★ {highlight.game}
+            ★ GODPACK ★ {formatGameLabel(highlight.game)}
           </p>
           <p className="text-[11px] font-bold text-amber-200">
             {highlight.totalCoinValue} Coins
